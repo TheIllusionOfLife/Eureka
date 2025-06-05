@@ -26,3 +26,14 @@ Since this is a newly initialized Python project with no existing structure, whe
 - The `.gitignore` is configured for Python projects including Django, Flask, and Jupyter patterns
 - No existing codebase or architecture to follow yet - this is a blank slate
 - When implementing, establish clear patterns for future development
+
+## Development Philosophy
+
+### Test-Driven Development (TDD)
+
+* As an overall principle, do test-driven development.
+* First, write tests based on expected input/ouput pairs. Avoid creating mock implementations, even for functionality that doesn't exist yet in the codebase.
+* Second, run the tests and confirm they fail. Do not write any implementation code at this stage.
+* Third, commit the test when you're satisfied with them.
+* Then, write code that passes the tests. Do not modify the tests. Keep going until all tests pass.
+* Finally, commit the code once only when you're satisfied with the changes.

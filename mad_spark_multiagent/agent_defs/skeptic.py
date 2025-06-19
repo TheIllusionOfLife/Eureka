@@ -1,16 +1,24 @@
 from google.adk.agents import Agent, Tool
+import google.generativeai as genai
 
 
-def criticize_idea(idea: str) -> dict:
+def criticize_idea(idea: str, temperature: float = 0.5) -> dict:
     """
     懐疑役として、アイデアの問題点や改善点を3つ挙げる
     """
-    prompt = (
-        f"以下のアイデアについて、懐疑者としてその問題点・リスクを3つ挙げてください。\n"
-        f"【アイデア】\n{idea}\n"
-    )
-    response = skeptic_agent.call({"prompt": prompt, "temperature": 0.5})
-    return {"status": "success", "criticism": response.get("choices", [])[0].get("text", "")}
+    try:
+        prompt = (
+            f"以下のアイデアについて、懐疑者としてその問題点・リスクを3つ挙げてください。\n"
+            f"【アイデア】\n{idea}\n"
+        )
+        model = genai.GenerativeModel('gemini-2.0-flash')
+        response = model.generate_content(
+            prompt,
+            generation_config=genai.types.GenerationConfig(temperature=temperature)
+        )
+        return {"status": "success", "criticism": response.text if response.text else ""}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 
 skeptic_agent = Agent(

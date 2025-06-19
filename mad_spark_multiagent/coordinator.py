@@ -1,12 +1,17 @@
 import os
 import json
-from agent_defs.idea_generator import idea_generator_agent
-from agent_defs.critic import critic_agent
-from agent_defs.advocate import advocate_agent
-from agent_defs.skeptic import skeptic_agent
+from dotenv import load_dotenv
+import google.generativeai as genai
+from agent_defs.idea_generator import idea_generator_agent, generate_ideas
+from agent_defs.critic import critic_agent, evaluate_ideas
+from agent_defs.advocate import advocate_agent, advocate_idea
+from agent_defs.skeptic import skeptic_agent, criticize_idea
 
 # 環境変数から API キーを読み込み
-os.environ["GOOGLE_API_KEY"] = os.getenv("GOOGLE_API_KEY", "")
+load_dotenv()
+api_key = os.getenv("GOOGLE_API_KEY")
+if api_key:
+    genai.configure(api_key=api_key)
 
 
 def run_multistep_workflow(theme: str, constraints: dict):
@@ -14,15 +19,13 @@ def run_multistep_workflow(theme: str, constraints: dict):
     1) IdeaGeneratorAgent → 2) CriticAgent → 3) Advocate/Skeptic → 最終候補リスト返却
     """
     # 1. アイデア生成
-    gen_payload = {"theme": theme, "constraints": constraints}
-    gen_result = idea_generator_agent.call_tool("generate_ideas", gen_payload)
+    gen_result = generate_ideas(theme, constraints)
     if gen_result.get("status") != "success":
         return {"status": "error", "message": "アイデア生成に失敗しました。"}
     ideas = gen_result["ideas"]  # 生成されたアイデアのリスト
 
     # 2. 一次評価（CriticAgent）
-    eval_payload = {"ideas": ideas}
-    eval_result = critic_agent.call_tool("evaluate_ideas", eval_payload)
+    eval_result = evaluate_ideas(ideas)
     if eval_result.get("status") != "success":
         return {"status": "error", "message": "評価に失敗しました。"}
     evaluations = eval_result["evaluations"]
@@ -36,9 +39,9 @@ def run_multistep_workflow(theme: str, constraints: dict):
     for candidate in top_candidates:
         idea_text = candidate["idea"]
         # 擁護側の意見
-        adv_res = advocate_agent.call_tool("advocate_idea", {"idea": idea_text})
+        adv_res = advocate_idea(idea_text)
         # 懐疑側の意見
-        skp_res = skeptic_agent.call_tool("criticize_idea", {"idea": idea_text})
+        skp_res = criticize_idea(idea_text)
 
         final_candidates.append({
             "idea": idea_text,

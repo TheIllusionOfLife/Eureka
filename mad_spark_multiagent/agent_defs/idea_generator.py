@@ -1,5 +1,6 @@
 from google.adk.agents import Agent, Tool
 import os
+import google.generativeai as genai
 
 
 def build_generation_prompt(theme: str, constraints: dict) -> str:
@@ -15,19 +16,28 @@ def build_generation_prompt(theme: str, constraints: dict) -> str:
     if constraints.get("mode") == "逆転":
         base += "・逆転の発想で考えてください。\n"
     if random_words := constraints.get("random_words"):
-        w1, w2 = random_words
-        base += f"・「{w1}」と「{w2}」を必ず組み合わせてください。\n"
+        if random_words and len(random_words) >= 2:
+            w1, w2 = random_words[:2]
+            base += f"・「{w1}」と「{w2}」を必ず組み合わせてください。\n"
     base += "・ありきたりなアイデアは出さないでください。\n"
     return base
 
 
-def generate_ideas(theme: str, constraints: dict) -> dict:
+def generate_ideas(theme: str, constraints: dict, temperature: float = 0.9) -> dict:
     """
     Gemini API を呼び出して実際にアイデアを生成するツール関数。
     """
-    prompt = build_generation_prompt(theme, constraints)
-    response = idea_generator_agent.call({"prompt": prompt, "temperature": 0.9})
-    return {"status": "success", "ideas": response.get("choices", [])}
+    try:
+        prompt = build_generation_prompt(theme, constraints)
+        model = genai.GenerativeModel('gemini-2.0-flash')
+        response = model.generate_content(
+            prompt,
+            generation_config=genai.types.GenerationConfig(temperature=temperature)
+        )
+        ideas = [response.text] if response.text else []
+        return {"status": "success", "ideas": ideas}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 
 idea_generator_agent = Agent(

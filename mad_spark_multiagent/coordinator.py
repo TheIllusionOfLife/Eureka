@@ -1,24 +1,24 @@
 import os
 import json
-from agent_defs.idea_generator import idea_generator_agent, generate_ideas
-from agent_defs.critic import critic_agent, evaluate_ideas
-from agent_defs.advocate import advocate_agent, advocate_idea
-from agent_defs.skeptic import skeptic_agent, criticize_idea
+from agent_defs.idea_generator import idea_generator_agent
+from agent_defs.critic import critic_agent
+from agent_defs.advocate import advocate_agent
+from agent_defs.skeptic import skeptic_agent
 
 if not os.getenv("GOOGLE_API_KEY"):
     raise EnvironmentError("GOOGLE_API_KEY is not set")
 
 
-def run_multistep_workflow(theme: str, constraints: dict):
+def run_multistep_workflow(theme: str, constraints: dict) -> dict:
     """Run phase 1 workflow: generate, evaluate, debate."""
     gen_payload = {"theme": theme, "constraints": constraints}
-    gen_result = generate_ideas(**gen_payload)
+    gen_result = idea_generator_agent.call_tool("generate_ideas", gen_payload)
     if gen_result.get("status") != "success":
         return {"status": "error", "message": "アイデア生成に失敗しました。"}
     ideas = gen_result["ideas"]
 
     eval_payload = {"ideas": ideas}
-    eval_result = evaluate_ideas(**eval_payload)
+    eval_result = critic_agent.call_tool("evaluate_ideas", eval_payload)
     if eval_result.get("status") != "success":
         return {"status": "error", "message": "評価に失敗しました。"}
     evaluations = eval_result["evaluations"]
@@ -29,8 +29,8 @@ def run_multistep_workflow(theme: str, constraints: dict):
     final_candidates = []
     for candidate in top_candidates:
         idea_text = candidate["idea"]
-        adv_res = advocate_idea(idea_text)
-        skp_res = criticize_idea(idea_text)
+        adv_res = advocate_agent.call_tool("advocate_idea", {"idea": idea_text})
+        skp_res = skeptic_agent.call_tool("criticize_idea", {"idea": idea_text})
         final_candidates.append({
             "idea": idea_text,
             "score": candidate["score"],

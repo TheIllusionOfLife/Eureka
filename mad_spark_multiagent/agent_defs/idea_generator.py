@@ -11,8 +11,12 @@ def build_generation_prompt(theme: str, constraints: dict) -> str:
     if constraints.get("mode") == "逆転":
         base += "・逆転の発想で考えてください。\n"
     if random_words := constraints.get("random_words"):
-        w1, w2 = random_words
-        base += f"・「{w1}」と「{w2}」を必ず組み合わせてください。\n"
+        if len(random_words) >= 2:
+            w1, w2 = random_words[:2]
+            base += f"・「{w1}」と「{w2}」を必ず組み合わせてください。\n"
+        else:
+            joined = "、".join(random_words)
+            base += f"・以下のキーワードを絡めてください: {joined}\n"
     base += "・ありきたりなアイデアは出さないでください。\n"
     return base
 

@@ -16,7 +16,7 @@ This project implements a multi-agent system for idea generation and refinement 
     From within the `mad_spark_multiagent` directory:
     ```bash
     python -m venv venv
-    source venv/bin/activate  # On Windows use `venv\Scriptsctivate`
+    source venv/bin/activate  # On Windows use `venv\Scripts\activate`
     ```
 
 3.  **Install dependencies:**

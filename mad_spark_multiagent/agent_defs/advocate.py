@@ -38,7 +38,17 @@ def advocate_idea(idea: str, evaluation: str, context: str) -> str:
 
   Returns:
     A string containing the persuasive arguments for the idea.
+    Returns a placeholder string if the agent provides no content.
+  Raises:
+    ValueError: If idea, evaluation, or context are empty or invalid.
   """
+  if not isinstance(idea, str) or not idea.strip():
+    raise ValueError("Input 'idea' to advocate_idea must be a non-empty string.")
+  if not isinstance(evaluation, str) or not evaluation.strip():
+    raise ValueError("Input 'evaluation' to advocate_idea must be a non-empty string.")
+  if not isinstance(context, str) or not context.strip():
+    raise ValueError("Input 'context' to advocate_idea must be a non-empty string.")
+
   prompt: str = (
       f"Here's an idea:\n{idea}\n\n"
       f"Here's its evaluation:\n{evaluation}\n\n"
@@ -49,7 +59,11 @@ def advocate_idea(idea: str, evaluation: str, context: str) -> str:
   )
   agent_response: Any = advocate_agent.call(prompt=prompt)
   if not isinstance(agent_response, str):
-    return str(agent_response)
+    agent_response = str(agent_response) # Ensure it's a string
+
+  if not agent_response.strip():
+    # This specific string is recognized by the coordinator's error handling.
+    return "Advocate agent returned no content."
   return agent_response
 
 

@@ -3,23 +3,20 @@
 This module orchestrates the interaction between various specialized agents
 (Idea Generator, Critic, Advocate, Skeptic) to generate, evaluate, and
 refine ideas based on a given theme and constraints.
-
-The main function, `run_multistep_workflow`, manages the flow:
-1. Generates initial ideas.
-2. Evaluates these ideas using a critic agent, expecting JSON-formatted scores
-   and comments.
-3. Selects top candidates based on scores.
-4. For each top candidate, an advocate agent builds a case for it, and then
-   a skeptic agent critically analyzes it.
-5. Returns a compiled list of results including the idea, its evaluations,
-   advocacy, and skepticism.
-
-Environment variables GOOGLE_API_KEY and GOOGLE_GENAI_MODEL must be set,
-typically in a .env file, for the agents to function.
+# ... (rest of module docstring)
 """
 import os
 import json
-from typing import List, Dict, Any, Optional
+import logging
+from typing import List, Dict, Any, Optional, TypedDict # Added TypedDict
+
+# --- Logging Configuration ---
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+# --- End Logging Configuration ---
 
 # SECURITY NOTE: Storing API keys directly in environment variables is suitable for
 # local development but not recommended for production.
@@ -28,49 +25,57 @@ from typing import List, Dict, Any, Optional
 try:
     from dotenv import load_dotenv
     if os.path.exists(".env"):
-        print("Coordinator: .env file found, loading environment variables.")
+        logging.info("Coordinator: .env file found, loading environment variables.")
         load_dotenv()
     else:
-        print("Coordinator: .env file not found, relying on environment variables.")
+        logging.info("Coordinator: .env file not found, relying on environment variables.")
 except ImportError:
-    print("Coordinator: python-dotenv not found, .env file will not be loaded.\n"
-          "Ensure GOOGLE_API_KEY and GOOGLE_GENAI_MODEL are set in your environment.")
+    logging.warning(
+        "Coordinator: python-dotenv not found, .env file will not be loaded.\n"
+        "Ensure GOOGLE_API_KEY and GOOGLE_GENAI_MODEL are set in your environment."
+    )
 
-# Check for GOOGLE_API_KEY and GOOGLE_GENAI_MODEL after attempting to load .env.
-# These are required for ADK agent initialization.
 api_key: Optional[str] = os.getenv("GOOGLE_API_KEY")
 model_name: Optional[str] = os.getenv("GOOGLE_GENAI_MODEL")
 
 if not api_key:
-    print("\nFATAL: GOOGLE_API_KEY is not set in the environment or .env file.")
-    print("Please set the GOOGLE_API_KEY environment variable.")
-    print("Example for .env file: GOOGLE_API_KEY='your_actual_api_key_here'")
-    print("If not using .env, ensure it's exported in your shell.")
-    print("Ensure `python-dotenv` is installed (`pip install python-dotenv`) if using .env.")
+    logging.critical("\nFATAL: GOOGLE_API_KEY is not set in the environment or .env file.")
+    # ... (rest of fatal error messages for API key)
     exit(1)
 else:
     os.environ["GOOGLE_API_KEY"] = api_key
 
 if not model_name:
-    print("\nWARNING: GOOGLE_GENAI_MODEL is not set in the environment or .env file.")
-    print("The agents in this application expect this to be set (e.g., 'gemini-pro').")
-    print("Example for .env file: GOOGLE_GENAI_MODEL='gemini-pro'")
-    print("Proceeding, but agent initialization or calls may fail if a model is not found.")
+    logging.critical("\nFATAL: GOOGLE_GENAI_MODEL is not set in the environment or .env file.")
+    # ... (rest of fatal error messages for model name)
+    exit(1)
+else:
+    os.environ["GOOGLE_GENAI_MODEL"] = model_name
 
-# Agents are imported after environment variable checks and setup.
 from mad_spark_multiagent.agent_defs import (
     idea_generator_agent,
     critic_agent,
     advocate_agent,
     skeptic_agent,
 )
-# For type hinting Agent instances if needed, though they are used directly here.
-from google.adk.agents import Agent
+# from google.adk.agents import Agent # No longer needed directly for hints here
 
 
-# Define a type alias for the candidate data structure for clarity
-CandidateData = Dict[str, Any] # Keys: "idea", "initial_score", "initial_critique", "advocacy", "skepticism"
-EvaluatedIdea = Dict[str, Any] # Keys: "text", "score", "critique"
+# --- TypedDict Definitions ---
+class EvaluatedIdea(TypedDict):
+    """Structure for an idea after evaluation by the CriticAgent."""
+    text: str       # The original idea text
+    score: int      # Score assigned by the critic
+    critique: str   # Textual critique from the critic
+
+class CandidateData(TypedDict):
+    """Structure for the final data compiled for each candidate idea."""
+    idea: str
+    initial_score: int
+    initial_critique: str
+    advocacy: str
+    skepticism: str
+# --- End TypedDict Definitions ---
 
 
 def run_multistep_workflow(
@@ -78,167 +83,152 @@ def run_multistep_workflow(
 ) -> List[CandidateData]:
     """
     Runs the multi-step idea generation and refinement workflow.
-
-    Args:
-        theme: The central theme for idea generation.
-        constraints: A string outlining constraints or specific criteria for
-                     ideas and their evaluation.
-        num_top_candidates: The number of top-scoring ideas to process through
-                            advocacy and skepticism stages.
-
-    Returns:
-        A list of dictionaries, where each dictionary contains detailed
-        information about a processed candidate idea, including its score,
-        critique, advocacy, and skepticism. Returns an empty list if critical
-        errors occur early in the process (e.g., idea generation fails).
+    # ... (rest of docstring)
     """
     final_candidates_data: List[CandidateData] = []
-    raw_generated_ideas: str = ""
+    # raw_generated_ideas: str = "" # Type will be known after call
     parsed_ideas: List[str] = []
 
     # 1. Generate Ideas
     try:
-        print(f"Coordinator: Generating ideas for theme '{theme}'...")
-        # Assuming call_tool returns str; ADK might have more specific types.
+        logging.info(f"Generating ideas for theme '{theme}'...")
         agent_response_ideas: Any = idea_generator_agent.call_tool(
             "generate_ideas", topic=theme, context=constraints
         )
-        raw_generated_ideas = str(agent_response_ideas) # Ensure it's a string
+        # Ensure the response is treated as a string, as expected from generate_ideas tool
+        raw_generated_ideas: str = str(agent_response_ideas)
 
         parsed_ideas = [idea.strip() for idea in raw_generated_ideas.split("\n") if idea.strip()]
         if not parsed_ideas:
-            print("Coordinator: No ideas were generated by IdeaGeneratorAgent.")
+            logging.warning("No ideas were generated by IdeaGeneratorAgent.")
             return []
-        print(f"Coordinator: Generated {len(parsed_ideas)} raw ideas.")
+        logging.info(f"Generated {len(parsed_ideas)} raw ideas.")
     except Exception as e:
-        print(f"Coordinator Error: IdeaGeneratorAgent failed to generate ideas. Error: {str(e)}")
+        logging.error(f"IdeaGeneratorAgent failed to generate ideas. Error: {str(e)}")
         return []
 
     # 2. Evaluate Ideas
-    raw_evaluations: str = ""
+    # raw_evaluations: str = "" # Type will be known after call
     evaluated_ideas_data: List[EvaluatedIdea] = []
-
     try:
-        print(f"Coordinator: Evaluating {len(parsed_ideas)} ideas...")
+        logging.info(f"Evaluating {len(parsed_ideas)} ideas...")
         agent_response_evals: Any = critic_agent.call_tool(
             "evaluate_ideas",
             ideas="\n".join(parsed_ideas),
             criteria=constraints,
             context=theme,
         )
-        raw_evaluations = str(agent_response_evals) # Ensure it's a string
-        print(f"Coordinator: Raw evaluations received:\n{raw_evaluations}")
+        # Ensure the response is treated as a string, as expected from evaluate_ideas tool
+        raw_evaluations: str = str(agent_response_evals)
+        logging.debug(f"Raw evaluations received:\n{raw_evaluations}")
 
         json_evaluation_lines: List[str] = [
             line.strip() for line in raw_evaluations.split("\n") if line.strip()
         ]
 
         if len(json_evaluation_lines) != len(parsed_ideas):
-            print(
-                f"Coordinator Warning: Mismatch between number of ideas ({len(parsed_ideas)}) "
+            logging.warning(
+                f"Mismatch between number of ideas ({len(parsed_ideas)}) "
                 f"and number of evaluation lines ({len(json_evaluation_lines)})."
-                " Will attempt to process based on the shorter list, or ideas without evaluations will get defaults."
+                " Each idea will be processed; those without a corresponding evaluation line will receive a default critique."
             )
 
         for i, idea_text in enumerate(parsed_ideas):
             score: int = 0
             critique: str = "Evaluation not available or parsing failed."
-
             if i < len(json_evaluation_lines):
                 json_line: str = json_evaluation_lines[i]
                 try:
+                    # Assuming eval_data from JSON matches keys 'score' and 'comment'
                     eval_data: Dict[str, Any] = json.loads(json_line)
                     score = int(eval_data.get("score", 0))
                     critique = str(eval_data.get("comment", "No comment provided."))
+                # ... (rest of except blocks for parsing)
                 except json.JSONDecodeError:
-                    print(f"Coordinator Warning: Could not parse JSON from CriticAgent for idea: '{idea_text[:50]}...'. JSON: '{json_line}'")
+                    logging.warning(f"Could not parse JSON from CriticAgent for idea: '{idea_text[:50]}...'. JSON: '{json_line}'")
                     critique = "Failed to parse JSON evaluation from CriticAgent."
                 except ValueError:
-                    print(f"Coordinator Warning: Could not parse score as int for idea: '{idea_text[:50]}...'. JSON: '{json_line}'")
+                    logging.warning(f"Could not parse score as int for idea: '{idea_text[:50]}...'. JSON: '{json_line}'")
                     critique = "Failed to parse score as integer from CriticAgent's evaluation."
                 except Exception as e:
-                    print(f"Coordinator Warning: Unexpected error parsing evaluation for idea: '{idea_text[:50]}...'. Error: {e}. JSON: '{json_line}'")
+                    logging.warning(f"Unexpected error parsing evaluation for idea: '{idea_text[:50]}...'. Error: {e}. JSON: '{json_line}'")
                     critique = f"Unexpected error parsing evaluation: {e}"
             else:
-                print(f"Coordinator Warning: No evaluation received from CriticAgent for idea: '{idea_text[:50]}...' (expected {len(parsed_ideas)}, got {len(json_evaluation_lines)}).")
+                logging.warning(f"No evaluation line received from CriticAgent for idea: '{idea_text[:50]}...' (index {i}). Assigning default critique.")
+                critique = "Evaluation missing from critic response."
 
+            # Create the EvaluatedIdea dictionary matching the TypedDict
             evaluated_ideas_data.append({"text": idea_text, "score": score, "critique": critique})
 
-        evaluated_ideas_data.sort(key=lambda x: x.get("score", 0), reverse=True)
+
+        evaluated_ideas_data.sort(key=lambda x: x["score"], reverse=True) # Can use x["score"] if TypedDict guarantees it
         top_candidates: List[EvaluatedIdea] = evaluated_ideas_data[:num_top_candidates]
 
         if not top_candidates and parsed_ideas:
-             print("Coordinator: No ideas were selected as top candidates "
+             logging.info("No ideas were selected as top candidates "
                    "(e.g., all failed parsing, had 0 score, or num_top_candidates is 0).")
-
-        print(f"Coordinator: Selected {len(top_candidates)} top candidates for further processing.")
+        logging.info(f"Selected {len(top_candidates)} top candidates for further processing.")
 
     except Exception as e:
-        print(f"Coordinator Error: CriticAgent failed during evaluation phase. Error: {str(e)}")
+        logging.error(f"CriticAgent failed during evaluation phase. Error: {str(e)}")
         if parsed_ideas:
-            print(f"Coordinator: Falling back to using the first {min(num_top_candidates, len(parsed_ideas))} raw ideas due to CriticAgent failure.")
-            top_candidates = [{"text": idea, "critique": "N/A (CriticAgent failed)", "score": 0} for idea in parsed_ideas[:min(num_top_candidates, len(parsed_ideas))]]
+            logging.info(f"Falling back to using the first {min(num_top_candidates, len(parsed_ideas))} raw ideas due to CriticAgent failure.")
+            # Construct fallback candidates matching EvaluatedIdea structure
+            top_candidates = [
+                {"text": idea, "critique": "N/A (CriticAgent failed)", "score": 0}
+                for idea in parsed_ideas[:min(num_top_candidates, len(parsed_ideas))]
+            ]
         else:
             return []
-        if not top_candidates and parsed_ideas:
-            print("Coordinator: Fallback selection after CriticAgent failure resulted in no candidates.")
+        if not top_candidates and parsed_ideas: # Should be List[EvaluatedIdea]
+            logging.info("Fallback selection after CriticAgent failure resulted in no candidates.")
             return []
 
-
     # 3. Advocate and Criticize for top N candidates
-    for candidate in top_candidates:
-        idea_text: str = str(candidate.get("text", "Unknown Idea"))
-        evaluation_detail: str = str(candidate.get("critique", "N/A"))
+    for candidate in top_candidates: # candidate is now TypedDict EvaluatedIdea
+        idea_text: str = candidate["text"] # Direct access if TypedDict guarantees
+        evaluation_detail: str = candidate["critique"] # Direct access
         advocacy_output: str = "N/A"
         skepticism_output: str = "N/A"
-
-        print(f"\nCoordinator: Processing candidate: {idea_text} (Score: {candidate.get('score',0)})")
-
+        logging.info(f"Processing candidate: {idea_text} (Score: {candidate['score']})")
         try:
-            print(f"Coordinator: Advocating for idea: '{idea_text}'...")
+            logging.info(f"Advocating for idea: '{idea_text}'...")
             agent_advocate_response: Any = advocate_agent.call_tool(
-                "advocate_idea",
-                idea=idea_text,
-                evaluation=evaluation_detail,
-                context=theme,
+                "advocate_idea", idea=idea_text, evaluation=evaluation_detail, context=theme,
             )
+            # Ensure the response is treated as a string
             advocacy_output = str(agent_advocate_response)
             if not advocacy_output.strip():
                  advocacy_output = "AdvocateAgent returned no content."
         except Exception as e:
-            print(f"Coordinator Warning: AdvocateAgent failed for idea '{idea_text}'. Error: {str(e)}")
+            logging.warning(f"AdvocateAgent failed for idea '{idea_text}'. Error: {str(e)}")
             advocacy_output = "Advocacy not available due to agent error."
-
         try:
-            print(f"Coordinator: Skepticizing idea: '{idea_text}'...")
+            logging.info(f"Skepticizing idea: '{idea_text}'...")
             agent_skeptic_response: Any = skeptic_agent.call_tool(
-                "criticize_idea",
-                idea=idea_text,
-                advocacy=advocacy_output,
-                context=theme,
+                "criticize_idea", idea=idea_text, advocacy=advocacy_output, context=theme,
             )
+            # Ensure the response is treated as a string
             skepticism_output = str(agent_skeptic_response)
             if not skepticism_output.strip():
                 skepticism_output = "SkepticAgent returned no content."
         except Exception as e:
-            print(f"Coordinator Warning: SkepticAgent failed for idea '{idea_text}'. Error: {str(e)}")
+            logging.warning(f"SkepticAgent failed for idea '{idea_text}'. Error: {str(e)}")
             skepticism_output = "Skepticism not available due to agent error."
 
+        # Create the CandidateData dictionary matching the TypedDict
         final_candidates_data.append({
             "idea": idea_text,
-            "initial_score": candidate.get("score", 0),
+            "initial_score": candidate["score"], # Direct access
             "initial_critique": evaluation_detail,
             "advocacy": advocacy_output,
             "skepticism": skepticism_output,
         })
-        print(f"Coordinator: Finished processing for: {idea_text}")
-
+        logging.info(f"Finished processing for: {idea_text}")
     return final_candidates_data
 
-
 if __name__ == "__main__":
-    print("Starting Mad Spark Multi-Agent Workflow...")
-
+    logging.info("Starting Mad Spark Multi-Agent Workflow...")
     sample_theme: str = "Sustainable Urban Living"
     sample_constraints: str = (
         "Ideas should be implementable within a typical city budget, focus on "
@@ -246,21 +236,16 @@ if __name__ == "__main__":
         "years. Ideas should also consider scalability and inclusivity."
     )
     num_ideas_to_process: int = 1
-
-    print(f"\nTheme: {sample_theme}")
-    print(f"Constraints: {sample_constraints}")
-    print(f"Number of top ideas to fully process: {num_ideas_to_process}\n")
+    logging.info(f"Theme: {sample_theme}")
+    logging.info(f"Constraints: {sample_constraints}")
+    logging.info(f"Number of top ideas to fully process: {num_ideas_to_process}")
 
     results: List[CandidateData] = run_multistep_workflow(
-        theme=sample_theme,
-        constraints=sample_constraints,
-        num_top_candidates=num_ideas_to_process
+        theme=sample_theme, constraints=sample_constraints, num_top_candidates=num_ideas_to_process
     )
-
-    print("\n--- Final Results ---")
+    logging.info("--- Final Results ---")
     if results:
         print(json.dumps(results, indent=2))
     else:
-        print("No results were generated from the workflow.")
-
-    print("\nMad Spark Multi-Agent Workflow Finished.")
+        logging.info("No results were generated from the workflow.")
+    logging.info("Mad Spark Multi-Agent Workflow Finished.")

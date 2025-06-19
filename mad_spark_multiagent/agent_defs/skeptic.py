@@ -40,7 +40,19 @@ def criticize_idea(idea: str, advocacy: str, context: str) -> str:
 
   Returns:
     A string containing the critical analysis, counterarguments, and identified risks.
+    Returns a placeholder string if the agent provides no content.
+  Raises:
+    ValueError: If idea, advocacy, or context are empty or invalid.
   """
+  if not isinstance(idea, str) or not idea.strip():
+    raise ValueError("Input 'idea' to criticize_idea must be a non-empty string.")
+  if not isinstance(advocacy, str) or not advocacy.strip():
+    # Advocacy might be a placeholder like "Advocacy not available..." which is fine.
+    # This check ensures it's not an empty string from an unexpected source.
+    raise ValueError("Input 'advocacy' to criticize_idea must be a non-empty string.")
+  if not isinstance(context, str) or not context.strip():
+    raise ValueError("Input 'context' to criticize_idea must be a non-empty string.")
+
   prompt: str = (
       f"Here's an idea:\n{idea}\n\n"
       f"Here's the case made for it:\n{advocacy}\n\n"
@@ -51,7 +63,11 @@ def criticize_idea(idea: str, advocacy: str, context: str) -> str:
   )
   agent_response: Any = skeptic_agent.call(prompt=prompt)
   if not isinstance(agent_response, str):
-    return str(agent_response)
+    agent_response = str(agent_response) # Ensure it's a string
+
+  if not agent_response.strip():
+    # This specific string is recognized by the coordinator's error handling.
+    return "Skeptic agent returned no content."
   return agent_response
 
 

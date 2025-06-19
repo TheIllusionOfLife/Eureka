@@ -42,8 +42,18 @@ def evaluate_ideas(ideas: str, criteria: str, context: str) -> str:
 
   Returns:
     A string from the LLM, expected to be newline-separated JSON objects,
-    each representing an evaluation for an idea.
+    each representing an evaluation for an idea. Returns an empty string if
+    the agent provides no content.
+  Raises:
+    ValueError: If ideas, criteria, or context are empty or invalid.
   """
+  if not isinstance(ideas, str) or not ideas.strip():
+    raise ValueError("Input 'ideas' to evaluate_ideas must be a non-empty string.")
+  if not isinstance(criteria, str) or not criteria.strip():
+    raise ValueError("Input 'criteria' to evaluate_ideas must be a non-empty string.")
+  if not isinstance(context, str) or not context.strip():
+    raise ValueError("Input 'context' to evaluate_ideas must be a non-empty string.")
+
   prompt: str = (
       "You will be provided with a list of ideas, evaluation criteria, and context.\n"
       "For each idea, you MUST provide an evaluation in the form of a single-line JSON object string.\n"
@@ -59,7 +69,11 @@ def evaluate_ideas(ideas: str, criteria: str, context: str) -> str:
   )
   agent_response: Any = critic_agent.call(prompt=prompt)
   if not isinstance(agent_response, str):
-    return str(agent_response)
+    agent_response = str(agent_response) # Ensure it's a string
+
+  # If agent_response is empty or only whitespace, it will be returned as such.
+  # The coordinator's parsing of json_evaluation_lines will correctly result
+  # in an empty list, leading to default "Evaluation not available" critiques.
   return agent_response
 
 

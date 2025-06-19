@@ -56,16 +56,25 @@ def generate_ideas(topic: str, context: str) -> str:
 
   Returns:
     A string containing the generated ideas, typically newline-separated.
+    Returns an empty string if the agent provides no content.
+  Raises:
+    ValueError: If topic or context are empty or invalid.
   """
+  if not isinstance(topic, str) or not topic.strip():
+    raise ValueError("Input 'topic' to generate_ideas must be a non-empty string.")
+  if not isinstance(context, str) or not context.strip():
+    raise ValueError("Input 'context' to generate_ideas must be a non-empty string.")
+
   prompt: str = build_generation_prompt(topic=topic, context=context)
-  # Assuming agent.call() returns a string. If it's more complex,
-  # the return type of agent.call and this function might need adjustment.
   agent_response: Any = idea_generator_agent.call(prompt=prompt)
+
   if not isinstance(agent_response, str):
-    # Add basic handling if the response is not a string, as expected by type hint.
-    # This depends on how ADK's agent.call() is typed and behaves.
-    # For now, we'll assume it's meant to be a string or can be stringified.
-    return str(agent_response)
+    agent_response = str(agent_response) # Ensure it's a string
+
+  # If agent_response is empty or only whitespace, it will be returned as such.
+  # The coordinator's parsing `parsed_ideas = [idea.strip() for idea in raw_generated_ideas.split("\n") if idea.strip()]`
+  # will correctly result in an empty list if the response is effectively empty,
+  # which is then handled by the coordinator.
   return agent_response
 
 

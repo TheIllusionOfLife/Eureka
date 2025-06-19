@@ -1,5 +1,6 @@
 import os
 import json
+import logging
 from dotenv import load_dotenv
 import google.generativeai as genai
 from agent_defs.idea_generator import idea_generator_agent, generate_ideas
@@ -7,11 +8,18 @@ from agent_defs.critic import critic_agent, evaluate_ideas
 from agent_defs.advocate import advocate_agent, advocate_idea
 from agent_defs.skeptic import skeptic_agent, criticize_idea
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # 環境変数から API キーを読み込み
 load_dotenv()
 api_key = os.getenv("GOOGLE_API_KEY")
 if api_key:
     genai.configure(api_key=api_key)
+    logger.info("Google API key configured successfully")
+else:
+    logger.warning("GOOGLE_API_KEY not found in environment variables. Please set it to use the system.")
 
 
 def run_multistep_workflow(theme: str, constraints: dict):

@@ -1,5 +1,4 @@
 from google.adk.agents import Agent, Tool
-import os
 
 
 def build_generation_prompt(theme: str, constraints: dict) -> str:
@@ -19,10 +18,16 @@ def build_generation_prompt(theme: str, constraints: dict) -> str:
 
 
 def generate_ideas(theme: str, constraints: dict) -> dict:
-    """Call LLM to generate ideas."""
+    """Generate a few placeholder ideas without calling an LLM."""
     prompt = build_generation_prompt(theme, constraints)
-    response = idea_generator_agent.call({"prompt": prompt, "temperature": 0.9})
-    return {"status": "success", "ideas": response.get("choices", [])}
+    random_words = constraints.get("random_words", [])
+    ideas = []
+    for i in range(5):
+        idea = f"{theme} idea {i + 1}"
+        if random_words:
+            idea += f" with {random_words[i % len(random_words)]}"
+        ideas.append(idea)
+    return {"status": "success", "ideas": ideas}
 
 
 idea_generator_agent = Agent(
@@ -30,5 +35,5 @@ idea_generator_agent = Agent(
     model="gemini-2.0-flash",
     description="MadSparkのアイデア生成エージェント",
     instruction="ユーザーから渡されたテーマと制約に基づき、突飛なアイデアを複数生成します。",
-    tools=[Tool(name="generate_ideas", func=generate_ideas)]
 )
+idea_generator_agent.add_tools([Tool(name="generate_ideas", func=generate_ideas)])

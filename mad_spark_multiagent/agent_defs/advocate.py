@@ -1,10 +1,18 @@
+"""Advocate Agent.
+
+This module defines the Advocate agent and its associated tools.
+The agent is responsible for constructing persuasive arguments in favor of
+an idea, considering its evaluation and context.
+"""
 import os
+from typing import Any # For model type, if not specifically known
 
 from google.adk.agents import Agent
 from google.adk.agents import Tool
 
-advocate_agent = Agent(
-    model=os.environ.get("GOOGLE_GENAI_MODEL"),
+# The Advocate agent builds a compelling case for an idea.
+advocate_agent: Agent = Agent(
+    model=os.environ.get("GOOGLE_GENAI_MODEL"), # type: ignore
     instructions=(
         "You are a persuasive advocate. Given an idea, its evaluation, and"
         " context, build a strong case for the idea, highlighting its"
@@ -21,14 +29,28 @@ advocate_agent = Agent(
     ),
 )
 def advocate_idea(idea: str, evaluation: str, context: str) -> str:
-  """Advocates for an idea using its evaluation and context."""
-  prompt = (
-      "Here's an idea:\n{idea}\n\nHere's its evaluation:\n{evaluation}\n\nAnd"
-      " the context:\n{context}\n\nBased on this, build a strong case for the"
-      " idea, focusing on its strengths and potential benefits. Address any"
-      " criticisms from the evaluation constructively."
-  ).format(idea=idea, evaluation=evaluation, context=context)
-  return advocate_agent.call(prompt=prompt)
+  """Advocates for an idea using its evaluation and context via the advocate_agent.
+
+  Args:
+    idea: The idea to advocate for.
+    evaluation: The evaluation received for the idea (e.g., from a critic).
+    context: Additional context relevant for building the advocacy.
+
+  Returns:
+    A string containing the persuasive arguments for the idea.
+  """
+  prompt: str = (
+      f"Here's an idea:\n{idea}\n\n"
+      f"Here's its evaluation:\n{evaluation}\n\n"
+      f"And the context:\n{context}\n\n"
+      "Based on this, build a strong case for the idea, focusing on its "
+      "strengths and potential benefits. Address any criticisms from the "
+      "evaluation constructively."
+  )
+  agent_response: Any = advocate_agent.call(prompt=prompt)
+  if not isinstance(agent_response, str):
+    return str(agent_response)
+  return agent_response
 
 
 advocate_agent.add_tools([advocate_idea])

@@ -1,169 +1,228 @@
+"""Coordinator for the Mad Spark Multi-Agent Workflow.
+
+This module orchestrates the interaction between various specialized agents
+(Idea Generator, Critic, Advocate, Skeptic) to generate, evaluate, and
+refine ideas based on a given theme and constraints.
+
+The main function, `run_multistep_workflow`, manages the flow:
+1. Generates initial ideas.
+2. Evaluates these ideas using a critic agent, expecting JSON-formatted scores
+   and comments.
+3. Selects top candidates based on scores.
+4. For each top candidate, an advocate agent builds a case for it, and then
+   a skeptic agent critically analyzes it.
+5. Returns a compiled list of results including the idea, its evaluations,
+   advocacy, and skepticism.
+
+Environment variables GOOGLE_API_KEY and GOOGLE_GENAI_MODEL must be set,
+typically in a .env file, for the agents to function.
+"""
 import os
 import json
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
-# Ensure GOOGLE_API_KEY is set for the ADK
-# In a real application, prefer to use a .env file or other secret management
-os.environ["GOOGLE_API_KEY"] = os.getenv("GOOGLE_API_KEY", "")
-# Attempt to load .env if python-dotenv is available and .env exists
+# SECURITY NOTE: Storing API keys directly in environment variables is suitable for
+# local development but not recommended for production.
+# Consider using a dedicated secret management service for production deployments.
+
 try:
     from dotenv import load_dotenv
     if os.path.exists(".env"):
+        print("Coordinator: .env file found, loading environment variables.")
         load_dotenv()
-        # Re-set GOOGLE_API_KEY if it was loaded from .env
-        os.environ["GOOGLE_API_KEY"] = os.getenv("GOOGLE_API_KEY", "")
+    else:
+        print("Coordinator: .env file not found, relying on environment variables.")
 except ImportError:
-    print("python-dotenv not found, .env file will not be loaded.")
+    print("Coordinator: python-dotenv not found, .env file will not be loaded.\n"
+          "Ensure GOOGLE_API_KEY and GOOGLE_GENAI_MODEL are set in your environment.")
 
+# Check for GOOGLE_API_KEY and GOOGLE_GENAI_MODEL after attempting to load .env.
+# These are required for ADK agent initialization.
+api_key: Optional[str] = os.getenv("GOOGLE_API_KEY")
+model_name: Optional[str] = os.getenv("GOOGLE_GENAI_MODEL")
 
-# Check if the API key is actually set, otherwise agents will fail.
-if not os.environ.get("GOOGLE_API_KEY"):
-    print("Warning: GOOGLE_API_KEY is not set. Agent calls will likely fail.")
-    # Provide a dummy key for the ADK to initialize, actual calls would fail
-    os.environ["GOOGLE_API_KEY"] = "YOUR_API_KEY"
+if not api_key:
+    print("\nFATAL: GOOGLE_API_KEY is not set in the environment or .env file.")
+    print("Please set the GOOGLE_API_KEY environment variable.")
+    print("Example for .env file: GOOGLE_API_KEY='your_actual_api_key_here'")
+    print("If not using .env, ensure it's exported in your shell.")
+    print("Ensure `python-dotenv` is installed (`pip install python-dotenv`) if using .env.")
+    exit(1)
+else:
+    os.environ["GOOGLE_API_KEY"] = api_key
 
+if not model_name:
+    print("\nWARNING: GOOGLE_GENAI_MODEL is not set in the environment or .env file.")
+    print("The agents in this application expect this to be set (e.g., 'gemini-pro').")
+    print("Example for .env file: GOOGLE_GENAI_MODEL='gemini-pro'")
+    print("Proceeding, but agent initialization or calls may fail if a model is not found.")
 
+# Agents are imported after environment variable checks and setup.
 from mad_spark_multiagent.agent_defs import (
     idea_generator_agent,
     critic_agent,
     advocate_agent,
     skeptic_agent,
 )
+# For type hinting Agent instances if needed, though they are used directly here.
+from google.adk.agents import Agent
+
+
+# Define a type alias for the candidate data structure for clarity
+CandidateData = Dict[str, Any] # Keys: "idea", "initial_score", "initial_critique", "advocacy", "skepticism"
+EvaluatedIdea = Dict[str, Any] # Keys: "text", "score", "critique"
 
 
 def run_multistep_workflow(
     theme: str, constraints: str, num_top_candidates: int = 2
-) -> List[Dict[str, Any]]:
+) -> List[CandidateData]:
     """
-    Runs a multi-step workflow involving idea generation, criticism,
-    advocacy, and skepticism.
+    Runs the multi-step idea generation and refinement workflow.
+
+    Args:
+        theme: The central theme for idea generation.
+        constraints: A string outlining constraints or specific criteria for
+                     ideas and their evaluation.
+        num_top_candidates: The number of top-scoring ideas to process through
+                            advocacy and skepticism stages.
+
+    Returns:
+        A list of dictionaries, where each dictionary contains detailed
+        information about a processed candidate idea, including its score,
+        critique, advocacy, and skepticism. Returns an empty list if critical
+        errors occur early in the process (e.g., idea generation fails).
     """
-    final_candidates_data = []
-    raw_generated_ideas = ""
-    parsed_ideas = []
+    final_candidates_data: List[CandidateData] = []
+    raw_generated_ideas: str = ""
+    parsed_ideas: List[str] = []
 
     # 1. Generate Ideas
     try:
         print(f"Coordinator: Generating ideas for theme '{theme}'...")
-        raw_generated_ideas = idea_generator_agent.call_tool(
+        # Assuming call_tool returns str; ADK might have more specific types.
+        agent_response_ideas: Any = idea_generator_agent.call_tool(
             "generate_ideas", topic=theme, context=constraints
         )
-        # Assuming ideas are returned as a newline-separated list
+        raw_generated_ideas = str(agent_response_ideas) # Ensure it's a string
+
         parsed_ideas = [idea.strip() for idea in raw_generated_ideas.split("\n") if idea.strip()]
         if not parsed_ideas:
-            print("Coordinator: No ideas were generated.")
+            print("Coordinator: No ideas were generated by IdeaGeneratorAgent.")
             return []
         print(f"Coordinator: Generated {len(parsed_ideas)} raw ideas.")
     except Exception as e:
-        print(f"Coordinator: Error generating ideas: {e}")
+        print(f"Coordinator Error: IdeaGeneratorAgent failed to generate ideas. Error: {str(e)}")
         return []
 
     # 2. Evaluate Ideas
-    # For simplicity, we'll ask the critic to rank or score.
-    # A more robust implementation would involve structured output from the critic.
-    critic_prompt_context = (
-        "Please evaluate the following list of ideas. For each idea, provide a brief"
-        " critique and a score from 1 (worst) to 10 (best). Present the results as a"
-        " list, with each item starting with 'Idea: <idea text>', followed by"
-        " 'Critique: <critique text>', and 'Score: <score>'. Rank the ideas from"
-        " best to worst if possible."
-    )
-    raw_evaluations = ""
-    evaluated_ideas_data = []
+    raw_evaluations: str = ""
+    evaluated_ideas_data: List[EvaluatedIdea] = []
 
     try:
         print(f"Coordinator: Evaluating {len(parsed_ideas)} ideas...")
-        raw_evaluations = critic_agent.call_tool(
+        agent_response_evals: Any = critic_agent.call_tool(
             "evaluate_ideas",
             ideas="\n".join(parsed_ideas),
             criteria=constraints,
-            context=f"{theme}\n{critic_prompt_context}",
+            context=theme,
         )
+        raw_evaluations = str(agent_response_evals) # Ensure it's a string
         print(f"Coordinator: Raw evaluations received:\n{raw_evaluations}")
 
-        # Simplistic parsing of evaluations (assumes structure from prompt)
-        current_idea_info = {}
-        for line in raw_evaluations.split("\n"):
-            line = line.strip()
-            if line.startswith("Idea:"):
-                if current_idea_info: # save previous idea
-                    evaluated_ideas_data.append(current_idea_info)
-                current_idea_info = {"text": line.replace("Idea:", "").strip(), "score": 0, "critique": ""}
-            elif line.startswith("Critique:"):
-                if current_idea_info:
-                    current_idea_info["critique"] = line.replace("Critique:", "").strip()
-            elif line.startswith("Score:"):
-                if current_idea_info:
-                    try:
-                        current_idea_info["score"] = int(line.replace("Score:", "").strip())
-                    except ValueError:
-                        current_idea_info["score"] = 0 # Default score if parsing fails
-        if current_idea_info: # Append last idea
-            evaluated_ideas_data.append(current_idea_info)
+        json_evaluation_lines: List[str] = [
+            line.strip() for line in raw_evaluations.split("\n") if line.strip()
+        ]
 
-        # Sort by score (descending) and filter out ideas that weren't parsed correctly
-        evaluated_ideas_data.sort(key=lambda x: x.get("score", 0), reverse=True)
-        # Ensure we only select ideas that were actually found in the critic's output
-        top_candidates = [
-            data for data in evaluated_ideas_data
-            if data.get("text") and data.get("text") in parsed_ideas
-        ][:num_top_candidates]
+        if len(json_evaluation_lines) != len(parsed_ideas):
+            print(
+                f"Coordinator Warning: Mismatch between number of ideas ({len(parsed_ideas)}) "
+                f"and number of evaluation lines ({len(json_evaluation_lines)})."
+                " Will attempt to process based on the shorter list, or ideas without evaluations will get defaults."
+            )
 
-        if not top_candidates:
-            print("Coordinator: No ideas were properly evaluated or scored.")
-            # Fallback: if parsing failed, take the first N raw ideas if critic failed
-            if not evaluated_ideas_data and parsed_ideas:
-                 print(f"Coordinator: Falling back to using the first {num_top_candidates} raw ideas due to evaluation parsing failure.")
-                 top_candidates = [{"text": idea, "critique": "N/A (evaluation parsing failed)", "score": 0} for idea in parsed_ideas[:num_top_candidates]]
+        for i, idea_text in enumerate(parsed_ideas):
+            score: int = 0
+            critique: str = "Evaluation not available or parsing failed."
+
+            if i < len(json_evaluation_lines):
+                json_line: str = json_evaluation_lines[i]
+                try:
+                    eval_data: Dict[str, Any] = json.loads(json_line)
+                    score = int(eval_data.get("score", 0))
+                    critique = str(eval_data.get("comment", "No comment provided."))
+                except json.JSONDecodeError:
+                    print(f"Coordinator Warning: Could not parse JSON from CriticAgent for idea: '{idea_text[:50]}...'. JSON: '{json_line}'")
+                    critique = "Failed to parse JSON evaluation from CriticAgent."
+                except ValueError:
+                    print(f"Coordinator Warning: Could not parse score as int for idea: '{idea_text[:50]}...'. JSON: '{json_line}'")
+                    critique = "Failed to parse score as integer from CriticAgent's evaluation."
+                except Exception as e:
+                    print(f"Coordinator Warning: Unexpected error parsing evaluation for idea: '{idea_text[:50]}...'. Error: {e}. JSON: '{json_line}'")
+                    critique = f"Unexpected error parsing evaluation: {e}"
             else:
-                 return []
+                print(f"Coordinator Warning: No evaluation received from CriticAgent for idea: '{idea_text[:50]}...' (expected {len(parsed_ideas)}, got {len(json_evaluation_lines)}).")
 
+            evaluated_ideas_data.append({"text": idea_text, "score": score, "critique": critique})
 
-        print(f"Coordinator: Selected {len(top_candidates)} top candidates based on evaluation.")
+        evaluated_ideas_data.sort(key=lambda x: x.get("score", 0), reverse=True)
+        top_candidates: List[EvaluatedIdea] = evaluated_ideas_data[:num_top_candidates]
+
+        if not top_candidates and parsed_ideas:
+             print("Coordinator: No ideas were selected as top candidates "
+                   "(e.g., all failed parsing, had 0 score, or num_top_candidates is 0).")
+
+        print(f"Coordinator: Selected {len(top_candidates)} top candidates for further processing.")
 
     except Exception as e:
-        print(f"Coordinator: Error evaluating ideas: {e}")
-        # Fallback: if critic agent fails, take the first N raw ideas
-        print(f"Coordinator: Falling back to using the first {num_top_candidates} raw ideas due to critic agent failure.")
-        top_candidates = [{"text": idea, "critique": "N/A (critic agent failed)", "score": 0} for idea in parsed_ideas[:num_top_candidates]]
-        if not top_candidates:
+        print(f"Coordinator Error: CriticAgent failed during evaluation phase. Error: {str(e)}")
+        if parsed_ideas:
+            print(f"Coordinator: Falling back to using the first {min(num_top_candidates, len(parsed_ideas))} raw ideas due to CriticAgent failure.")
+            top_candidates = [{"text": idea, "critique": "N/A (CriticAgent failed)", "score": 0} for idea in parsed_ideas[:min(num_top_candidates, len(parsed_ideas))]]
+        else:
+            return []
+        if not top_candidates and parsed_ideas:
+            print("Coordinator: Fallback selection after CriticAgent failure resulted in no candidates.")
             return []
 
 
     # 3. Advocate and Criticize for top N candidates
     for candidate in top_candidates:
-        idea_text = candidate.get("text", "Unknown Idea")
-        evaluation_detail = candidate.get("critique", "N/A")
-        advocacy_output = "N/A"
-        skepticism_output = "N/A"
+        idea_text: str = str(candidate.get("text", "Unknown Idea"))
+        evaluation_detail: str = str(candidate.get("critique", "N/A"))
+        advocacy_output: str = "N/A"
+        skepticism_output: str = "N/A"
 
-        print(f"\nCoordinator: Processing candidate: {idea_text}")
+        print(f"\nCoordinator: Processing candidate: {idea_text} (Score: {candidate.get('score',0)})")
 
-        # Advocate for the idea
         try:
             print(f"Coordinator: Advocating for idea: '{idea_text}'...")
-            advocacy_output = advocate_agent.call_tool(
+            agent_advocate_response: Any = advocate_agent.call_tool(
                 "advocate_idea",
                 idea=idea_text,
                 evaluation=evaluation_detail,
                 context=theme,
             )
+            advocacy_output = str(agent_advocate_response)
+            if not advocacy_output.strip():
+                 advocacy_output = "AdvocateAgent returned no content."
         except Exception as e:
-            print(f"Coordinator: Error advocating for idea '{idea_text}': {e}")
-            advocacy_output = f"Error during advocacy: {e}"
+            print(f"Coordinator Warning: AdvocateAgent failed for idea '{idea_text}'. Error: {str(e)}")
+            advocacy_output = "Advocacy not available due to agent error."
 
-        # Skeptic criticizes the idea + advocacy
         try:
             print(f"Coordinator: Skepticizing idea: '{idea_text}'...")
-            skepticism_output = skeptic_agent.call_tool(
+            agent_skeptic_response: Any = skeptic_agent.call_tool(
                 "criticize_idea",
                 idea=idea_text,
                 advocacy=advocacy_output,
                 context=theme,
             )
+            skepticism_output = str(agent_skeptic_response)
+            if not skepticism_output.strip():
+                skepticism_output = "SkepticAgent returned no content."
         except Exception as e:
-            print(f"Coordinator: Error skepticizing idea '{idea_text}': {e}")
-            skepticism_output = f"Error during skepticism: {e}"
+            print(f"Coordinator Warning: SkepticAgent failed for idea '{idea_text}'. Error: {str(e)}")
+            skepticism_output = "Skepticism not available due to agent error."
 
         final_candidates_data.append({
             "idea": idea_text,
@@ -174,35 +233,25 @@ def run_multistep_workflow(
         })
         print(f"Coordinator: Finished processing for: {idea_text}")
 
-
     return final_candidates_data
 
 
 if __name__ == "__main__":
     print("Starting Mad Spark Multi-Agent Workflow...")
 
-    # Check for API key at the very beginning of the main execution
-    if os.environ.get("GOOGLE_API_KEY") == "YOUR_API_KEY" or not os.environ.get("GOOGLE_API_KEY"):
-        print("\nFATAL: GOOGLE_API_KEY is not set or is a placeholder.")
-        print("Please set the GOOGLE_API_KEY environment variable to your actual API key.")
-        print("You can set it in a .env file in the mad_spark_multiagent directory, for example:")
-        print("GOOGLE_API_KEY='your_actual_api_key_here'")
-        print("Ensure you have `python-dotenv` installed (`pip install python-dotenv`) for .env loading.")
-        exit(1) # Exit if key is not set.
-
-    sample_theme = "Sustainable Urban Living"
-    sample_constraints = (
-        "Ideas should be implementable within a typical city budget, focus on"
-        " community involvement, and be technologically feasible within the next 5"
-        " years. Ideas should also consider scalability and inclusivity."
+    sample_theme: str = "Sustainable Urban Living"
+    sample_constraints: str = (
+        "Ideas should be implementable within a typical city budget, focus on "
+        "community involvement, and be technologically feasible within the next 5 "
+        "years. Ideas should also consider scalability and inclusivity."
     )
-    num_ideas_to_process = 1 # Keep low for testing to avoid excessive API calls
+    num_ideas_to_process: int = 1
 
     print(f"\nTheme: {sample_theme}")
     print(f"Constraints: {sample_constraints}")
     print(f"Number of top ideas to fully process: {num_ideas_to_process}\n")
 
-    results = run_multistep_workflow(
+    results: List[CandidateData] = run_multistep_workflow(
         theme=sample_theme,
         constraints=sample_constraints,
         num_top_candidates=num_ideas_to_process

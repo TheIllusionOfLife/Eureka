@@ -38,3 +38,14 @@ jobs:
           claude_expires_at: ${{ secrets.CLAUDE_EXPIRES_AT }}
           
           timeout_minutes: "60"
+          # Optional: add custom trigger phrase (default: @claude)
+          # trigger_phrase: "/claude"
+          # Optional: add assignee trigger for issues
+          # assignee_trigger: "claude"
+          # Optional: add custom environment variables (YAML format)
+          # claude_env: |
+          #   NODE_ENV: test
+          #   DEBUG: true
+          #   API_URL: https://api.example.com
+          # Optional: limit the number of conversation turns
+          # max_turns: "5"

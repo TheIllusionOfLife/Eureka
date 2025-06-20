@@ -95,7 +95,7 @@ def call_idea_generator_with_retry(topic: str, context: str) -> Any:
 
 
 @exponential_backoff_retry(max_retries=3, initial_delay=2.0)
-def call_critic_with_retry(ideas: str, criteria: str, context: str) -> Any:
+def call_critic_with_retry(ideas: str, criteria: str, context: str) -> str:
     """Call critic agent with retry logic."""
     return critic_agent.call_tool(
         "evaluate_ideas", ideas=ideas, criteria=criteria, context=context

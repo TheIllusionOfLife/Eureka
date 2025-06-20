@@ -1,37 +1,65 @@
 from google.adk.agents import Agent, Tool
+import google.generativeai as genai
+import re
+from typing import Dict, Any
 
 
-def build_generation_prompt(theme: str, constraints: dict) -> str:
+def build_generation_prompt(theme: str, constraints: Dict[str, Any]) -> str:
     """Build prompt for idea generation."""
     base = (
         f"あなたはMadSparkのアイデア生成エージェントです。\n"
         f"ユーザーのテーマ: 「{theme}」\n"
         "以下の制約に従い、突飛で奇抜なアイデアを5件生成してください。\n"
+        "必ず番号付きリスト形式（1. 2. 3. 4. 5.）で出力してください。\n"
     )
     if constraints.get("mode") == "逆転":
         base += "・逆転の発想で考えてください。\n"
     if random_words := constraints.get("random_words"):
-        if len(random_words) >= 2:
+        if random_words and len(random_words) >= 2:
             w1, w2 = random_words[:2]
             base += f"・「{w1}」と「{w2}」を必ず組み合わせてください。\n"
-        else:
+        elif random_words:
             joined = "、".join(random_words)
             base += f"・以下のキーワードを絡めてください: {joined}\n"
     base += "・ありきたりなアイデアは出さないでください。\n"
     return base
 
 
-def generate_ideas(theme: str, constraints: dict) -> dict:
-    """Generate a few placeholder ideas without calling an LLM."""
-    prompt = build_generation_prompt(theme, constraints)
-    random_words = constraints.get("random_words", [])
-    ideas = []
-    for i in range(5):
-        idea = f"{theme} idea {i + 1}"
-        if random_words:
-            idea += f" with {random_words[i % len(random_words)]}"
-        ideas.append(idea)
-    return {"status": "success", "ideas": ideas}
+def generate_ideas(theme: str, constraints: Dict[str, Any], temperature: float = 0.9) -> Dict[str, Any]:
+    """Generate ideas using Gemini API."""
+    try:
+        prompt = build_generation_prompt(theme, constraints)
+        model = genai.GenerativeModel('gemini-2.0-flash')
+        response = model.generate_content(
+            prompt,
+            generation_config=genai.types.GenerationConfig(temperature=temperature)
+        )
+        
+        # Parse response text into individual ideas
+        ideas = []
+        if response.text:
+            text = response.text.strip()
+            # Try to split by numbered patterns like "1.", "2.", etc.
+            idea_matches = re.split(r'\n\s*\d+\.?\s*', text)
+            if len(idea_matches) > 1:
+                # Remove empty first element if it exists
+                ideas = [idea.strip() for idea in idea_matches[1:] if idea.strip()]
+            else:
+                # Fallback: split by bullet points or newlines
+                idea_matches = re.split(r'\n\s*[•\-\*]\s*', text)
+                if len(idea_matches) > 1:
+                    ideas = [idea.strip() for idea in idea_matches[1:] if idea.strip()]
+                else:
+                    # Last fallback: split by double newlines
+                    ideas = [idea.strip() for idea in text.split('\n\n') if idea.strip()]
+            
+            # Ensure we have at least one idea
+            if not ideas and text:
+                ideas = [text]
+        
+        return {"status": "success", "ideas": ideas}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 
 idea_generator_agent = Agent(

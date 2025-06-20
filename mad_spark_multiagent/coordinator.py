@@ -63,6 +63,10 @@ from mad_spark_multiagent.utils import (
     parse_json_with_fallback,
     validate_evaluation_json,
 )
+from mad_spark_multiagent.constants import (
+    ADVOCATE_FAILED_PLACEHOLDER,
+    SKEPTIC_FAILED_PLACEHOLDER,
+)
 # from google.adk.agents import Agent # No longer needed directly for hints here
 
 
@@ -226,7 +230,7 @@ def run_multistep_workflow(
             # Ensure the response is treated as a string
             advocacy_output = str(agent_advocate_response)
             if not advocacy_output.strip():
-                 advocacy_output = "AdvocateAgent returned no content."
+                 advocacy_output = ADVOCATE_FAILED_PLACEHOLDER
         except Exception as e:
             logging.warning(f"AdvocateAgent failed for idea '{idea_text}'. Error: {str(e)}")
             advocacy_output = "Advocacy not available due to agent error."
@@ -238,7 +242,7 @@ def run_multistep_workflow(
             # Ensure the response is treated as a string
             skepticism_output = str(agent_skeptic_response)
             if not skepticism_output.strip():
-                skepticism_output = "SkepticAgent returned no content."
+                skepticism_output = SKEPTIC_FAILED_PLACEHOLDER
         except Exception as e:
             logging.warning(f"SkepticAgent failed for idea '{idea_text}'. Error: {str(e)}")
             skepticism_output = "Skepticism not available due to agent error."

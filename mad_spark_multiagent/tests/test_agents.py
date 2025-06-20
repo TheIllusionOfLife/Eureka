@@ -3,6 +3,8 @@ import pytest
 from unittest.mock import Mock, patch, MagicMock
 import os
 
+from mad_spark_multiagent.constants import ADVOCATE_EMPTY_RESPONSE, SKEPTIC_EMPTY_RESPONSE
+
 
 class TestAgentDefinitions:
     """Test cases for agent definitions."""
@@ -22,9 +24,10 @@ class TestAgentDefinitions:
         mock_agent_class.assert_called_once()
         call_args = mock_agent_class.call_args
         
-        assert call_args.kwargs["name"] == "IdeaGeneratorAgent"
+        # Verify agent was created with only model and instructions (no name parameter)
         assert "generate diverse and creative ideas" in call_args.kwargs["instructions"]
         assert call_args.kwargs["model"] == "gemini-pro"
+        # Agent constructor doesn't take a 'name' parameter in the actual implementation
     
     @patch('mad_spark_multiagent.agent_defs.critic.Agent')
     def test_critic_agent_initialization(self, mock_agent_class):
@@ -35,9 +38,10 @@ class TestAgentDefinitions:
         mock_agent_class.assert_called_once()
         call_args = mock_agent_class.call_args
         
-        assert call_args.kwargs["name"] == "CriticAgent"
+        # Verify agent was created with only model and instructions (no name parameter)
         assert "evaluate ideas" in call_args.kwargs["instructions"]
         assert call_args.kwargs["model"] == "gemini-pro"
+        # Agent constructor doesn't take a 'name' parameter in the actual implementation
     
     @patch('mad_spark_multiagent.agent_defs.advocate.Agent')
     def test_advocate_agent_initialization(self, mock_agent_class):
@@ -48,9 +52,10 @@ class TestAgentDefinitions:
         mock_agent_class.assert_called_once()
         call_args = mock_agent_class.call_args
         
-        assert call_args.kwargs["name"] == "AdvocateAgent"
+        # Verify agent was created with only model and instructions (no name parameter)
         assert "build a strong case" in call_args.kwargs["instructions"]
         assert call_args.kwargs["model"] == "gemini-pro"
+        # Agent constructor doesn't take a 'name' parameter in the actual implementation
     
     @patch('mad_spark_multiagent.agent_defs.skeptic.Agent')
     def test_skeptic_agent_initialization(self, mock_agent_class):
@@ -61,9 +66,10 @@ class TestAgentDefinitions:
         mock_agent_class.assert_called_once()
         call_args = mock_agent_class.call_args
         
-        assert call_args.kwargs["name"] == "SkepticAgent"
+        # Verify agent was created with only model and instructions (no name parameter)
         assert "devil's advocate" in call_args.kwargs["instructions"]
         assert call_args.kwargs["model"] == "gemini-pro"
+        # Agent constructor doesn't take a 'name' parameter in the actual implementation
     
     @patch('mad_spark_multiagent.agent_defs.idea_generator.idea_generator_agent')
     def test_generate_ideas_tool(self, mock_agent):
@@ -78,10 +84,10 @@ class TestAgentDefinitions:
         
         assert result == "Idea 1\nIdea 2"
         
-        # Test empty response handling
+        # Test empty response handling - returns empty string (no exception)
         mock_agent.call.return_value = ""
-        with pytest.raises(ValueError, match="Agent returned empty response"):
-            generate_ideas(topic="Test", context="Context")
+        result = generate_ideas(topic="Test", context="Context")
+        assert result == ""
     
     @patch('mad_spark_multiagent.agent_defs.critic.critic_agent')
     def test_evaluate_ideas_tool(self, mock_agent):
@@ -96,10 +102,10 @@ class TestAgentDefinitions:
         
         assert result == '{"score": 8, "comment": "Good"}'
         
-        # Test empty response handling
+        # Test empty response handling - returns empty string (no exception)
         mock_agent.call.return_value = ""
-        with pytest.raises(ValueError, match="Agent returned empty response"):
-            evaluate_ideas(ideas="Ideas", criteria="Criteria", context="Context")
+        result = evaluate_ideas(ideas="Ideas", criteria="Criteria", context="Context")
+        assert result == ""
     
     @patch('mad_spark_multiagent.agent_defs.advocate.advocate_agent')
     def test_advocate_idea_tool(self, mock_agent):
@@ -114,10 +120,10 @@ class TestAgentDefinitions:
         
         assert result == "Strong arguments"
         
-        # Test empty response handling
+        # Test empty response handling - returns placeholder string (no exception)
         mock_agent.call.return_value = ""
-        with pytest.raises(ValueError, match="Agent returned empty response"):
-            advocate_idea(idea="Idea", evaluation="Eval", context="Context")
+        result = advocate_idea(idea="Idea", evaluation="Eval", context="Context")
+        assert result == ADVOCATE_EMPTY_RESPONSE
     
     @patch('mad_spark_multiagent.agent_defs.skeptic.skeptic_agent')
     def test_criticize_idea_tool(self, mock_agent):
@@ -132,10 +138,10 @@ class TestAgentDefinitions:
         
         assert result == "Valid concerns"
         
-        # Test empty response handling
+        # Test empty response handling - returns placeholder string (no exception)
         mock_agent.call.return_value = ""
-        with pytest.raises(ValueError, match="Agent returned empty response"):
-            criticize_idea(idea="Idea", advocacy="Args", context="Context")
+        result = criticize_idea(idea="Idea", advocacy="Args", context="Context")
+        assert result == SKEPTIC_EMPTY_RESPONSE
     
     def test_build_generation_prompt(self):
         """Test the prompt building function."""

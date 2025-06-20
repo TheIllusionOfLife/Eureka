@@ -30,7 +30,7 @@ def build_generation_prompt(topic: str, context: str) -> str:
 
 # The Idea Generator agent specializes in brainstorming and creating novel concepts.
 idea_generator_agent: Agent = Agent(
-    model=os.environ.get("GOOGLE_GENAI_MODEL"), # type: ignore # Model type can be complex
+    model=os.environ["GOOGLE_GENAI_MODEL"],
     instructions=(
         "You are an expert idea generator. Given a topic and some context,"
         " generate a list of diverse and creative ideas."

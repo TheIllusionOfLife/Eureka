@@ -12,7 +12,7 @@ from google.adk.agents import Tool
 
 # The Critic agent evaluates ideas, providing scores and constructive feedback.
 critic_agent: Agent = Agent(
-    model=os.environ.get("GOOGLE_GENAI_MODEL"), # type: ignore
+    model=os.environ["GOOGLE_GENAI_MODEL"],
     instructions=(
         "You are an expert critic. Evaluate the given ideas based on the"
         " provided criteria and context. Provide constructive feedback and"

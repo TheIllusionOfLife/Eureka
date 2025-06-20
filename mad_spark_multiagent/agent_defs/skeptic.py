@@ -10,9 +10,11 @@ from typing import Any # For model type, if not specifically known
 from google.adk.agents import Agent
 from google.adk.agents import Tool
 
+from mad_spark_multiagent.constants import SKEPTIC_EMPTY_RESPONSE
+
 # The Skeptic agent plays devil's advocate, critically analyzing ideas.
 skeptic_agent: Agent = Agent(
-    model=os.environ.get("GOOGLE_GENAI_MODEL"), # type: ignore
+    model=os.environ["GOOGLE_GENAI_MODEL"],
     instructions=(
         "You are a devil's advocate. Given an idea, the arguments for it, and"
         " context, critically analyze the idea. Identify potential flaws,"
@@ -67,7 +69,7 @@ def criticize_idea(idea: str, advocacy: str, context: str) -> str:
 
   if not agent_response.strip():
     # This specific string is recognized by the coordinator's error handling.
-    return "Skeptic agent returned no content."
+    return SKEPTIC_EMPTY_RESPONSE
   return agent_response
 
 

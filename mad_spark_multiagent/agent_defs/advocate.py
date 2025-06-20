@@ -10,9 +10,11 @@ from typing import Any # For model type, if not specifically known
 from google.adk.agents import Agent
 from google.adk.agents import Tool
 
+from mad_spark_multiagent.constants import ADVOCATE_EMPTY_RESPONSE
+
 # The Advocate agent builds a compelling case for an idea.
 advocate_agent: Agent = Agent(
-    model=os.environ.get("GOOGLE_GENAI_MODEL"), # type: ignore
+    model=os.environ["GOOGLE_GENAI_MODEL"],
     instructions=(
         "You are a persuasive advocate. Given an idea, its evaluation, and"
         " context, build a strong case for the idea, highlighting its"
@@ -63,7 +65,7 @@ def advocate_idea(idea: str, evaluation: str, context: str) -> str:
 
   if not agent_response.strip():
     # This specific string is recognized by the coordinator's error handling.
-    return "Advocate agent returned no content."
+    return ADVOCATE_EMPTY_RESPONSE
   return agent_response
 
 

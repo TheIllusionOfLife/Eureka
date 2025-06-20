@@ -66,3 +66,42 @@ This will use the sample `theme` and `constraints` defined in the `if __name__ =
     - Failures in advocacy or skepticism for one idea are logged as warnings, and placeholder text is used, allowing the workflow to continue for other ideas.
 6.  The `Coordinator` compiles and returns (prints as JSON) the final list of candidates with all collected information (original idea, score, critique, advocacy, and skepticism).
 7.  Critical errors, such as failure to generate any initial ideas or a complete failure of the critic agent, will result in an empty list of results. API key and model configuration issues are checked before agent initialization and will cause the script to exit with an error if not configured.
+
+## Testing
+
+To run the test suite:
+
+```bash
+# Install test dependencies (if not already installed)
+pip install -r requirements.txt
+
+# Run all tests
+pytest
+
+# Run tests with coverage
+pytest --cov=mad_spark_multiagent
+
+# Run specific test file
+pytest tests/test_utils.py
+
+# Run tests in verbose mode
+pytest -v
+```
+
+The test suite includes:
+- Unit tests for utility functions (JSON parsing, retry logic)
+- Integration tests for the coordinator workflow
+- Tests for agent initialization and tool functions
+- Mock-based testing to avoid actual API calls
+
+## Improvements in This Version
+
+1. **Robust JSON Parsing**: The system now uses multiple fallback strategies to parse critic evaluations, including regex-based extraction for malformed responses.
+
+2. **Retry Logic**: All agent API calls now include exponential backoff retry logic to handle transient failures gracefully.
+
+3. **Enhanced Error Handling**: More comprehensive error handling with better error messages and graceful degradation.
+
+4. **Test Infrastructure**: Added comprehensive unit and integration tests using pytest and mock objects.
+
+5. **Type Safety**: Continued use of TypedDict for better type checking and code clarity.

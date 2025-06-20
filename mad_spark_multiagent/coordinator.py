@@ -58,6 +58,11 @@ from mad_spark_multiagent.agent_defs import (
     advocate_agent,
     skeptic_agent,
 )
+from mad_spark_multiagent.utils import (
+    exponential_backoff_retry,
+    parse_json_with_fallback,
+    validate_evaluation_json,
+)
 # from google.adk.agents import Agent # No longer needed directly for hints here
 
 
@@ -78,6 +83,37 @@ class CandidateData(TypedDict):
 # --- End TypedDict Definitions ---
 
 
+# Create retry-wrapped versions of agent calls
+@exponential_backoff_retry(max_retries=3, initial_delay=2.0)
+def call_idea_generator_with_retry(topic: str, context: str) -> Any:
+    """Call idea generator agent with retry logic."""
+    return idea_generator_agent.call_tool("generate_ideas", topic=topic, context=context)
+
+
+@exponential_backoff_retry(max_retries=3, initial_delay=2.0)
+def call_critic_with_retry(ideas: str, criteria: str, context: str) -> Any:
+    """Call critic agent with retry logic."""
+    return critic_agent.call_tool(
+        "evaluate_ideas", ideas=ideas, criteria=criteria, context=context
+    )
+
+
+@exponential_backoff_retry(max_retries=2, initial_delay=1.0)
+def call_advocate_with_retry(idea: str, evaluation: str, context: str) -> Any:
+    """Call advocate agent with retry logic."""
+    return advocate_agent.call_tool(
+        "advocate_idea", idea=idea, evaluation=evaluation, context=context
+    )
+
+
+@exponential_backoff_retry(max_retries=2, initial_delay=1.0)
+def call_skeptic_with_retry(idea: str, advocacy: str, context: str) -> Any:
+    """Call skeptic agent with retry logic."""
+    return skeptic_agent.call_tool(
+        "criticize_idea", idea=idea, advocacy=advocacy, context=context
+    )
+
+
 def run_multistep_workflow(
     theme: str, constraints: str, num_top_candidates: int = 2
 ) -> List[CandidateData]:
@@ -92,8 +128,8 @@ def run_multistep_workflow(
     # 1. Generate Ideas
     try:
         logging.info(f"Generating ideas for theme '{theme}'...")
-        agent_response_ideas: Any = idea_generator_agent.call_tool(
-            "generate_ideas", topic=theme, context=constraints
+        agent_response_ideas: Any = call_idea_generator_with_retry(
+            topic=theme, context=constraints
         )
         # Ensure the response is treated as a string, as expected from generate_ideas tool
         raw_generated_ideas: str = str(agent_response_ideas)
@@ -112,49 +148,40 @@ def run_multistep_workflow(
     evaluated_ideas_data: List[EvaluatedIdea] = []
     try:
         logging.info(f"Evaluating {len(parsed_ideas)} ideas...")
-        agent_response_evals: Any = critic_agent.call_tool(
-            "evaluate_ideas",
+        agent_response_evals: Any = call_critic_with_retry(
             ideas="\n".join(parsed_ideas),
             criteria=constraints,
-            context=theme,
+            context=theme
         )
         # Ensure the response is treated as a string, as expected from evaluate_ideas tool
         raw_evaluations: str = str(agent_response_evals)
         logging.debug(f"Raw evaluations received:\n{raw_evaluations}")
 
-        json_evaluation_lines: List[str] = [
-            line.strip() for line in raw_evaluations.split("\n") if line.strip()
-        ]
+        # Use robust JSON parsing with fallback strategies
+        parsed_evaluations = parse_json_with_fallback(
+            raw_evaluations, 
+            expected_count=len(parsed_ideas)
+        )
 
-        if len(json_evaluation_lines) != len(parsed_ideas):
+        if len(parsed_evaluations) != len(parsed_ideas):
             logging.warning(
                 f"Mismatch between number of ideas ({len(parsed_ideas)}) "
-                f"and number of evaluation lines ({len(json_evaluation_lines)})."
-                " Each idea will be processed; those without a corresponding evaluation line will receive a default critique."
+                f"and number of parsed evaluations ({len(parsed_evaluations)})."
+                " Each idea will be processed; those without evaluation will receive defaults."
             )
 
         for i, idea_text in enumerate(parsed_ideas):
-            score: int = 0
-            critique: str = "Evaluation not available or parsing failed."
-            if i < len(json_evaluation_lines):
-                json_line: str = json_evaluation_lines[i]
-                try:
-                    # Assuming eval_data from JSON matches keys 'score' and 'comment'
-                    eval_data: Dict[str, Any] = json.loads(json_line)
-                    score = int(eval_data.get("score", 0))
-                    critique = str(eval_data.get("comment", "No comment provided."))
-                # ... (rest of except blocks for parsing)
-                except json.JSONDecodeError:
-                    logging.warning(f"Could not parse JSON from CriticAgent for idea: '{idea_text[:50]}...'. JSON: '{json_line}'")
-                    critique = "Failed to parse JSON evaluation from CriticAgent."
-                except ValueError:
-                    logging.warning(f"Could not parse score as int for idea: '{idea_text[:50]}...'. JSON: '{json_line}'")
-                    critique = "Failed to parse score as integer from CriticAgent's evaluation."
-                except Exception as e:
-                    logging.warning(f"Unexpected error parsing evaluation for idea: '{idea_text[:50]}...'. Error: {e}. JSON: '{json_line}'")
-                    critique = f"Unexpected error parsing evaluation: {e}"
+            if i < len(parsed_evaluations):
+                # Validate and normalize the evaluation data
+                eval_data = validate_evaluation_json(parsed_evaluations[i])
+                score = eval_data["score"]
+                critique = eval_data["comment"]
             else:
-                logging.warning(f"No evaluation line received from CriticAgent for idea: '{idea_text[:50]}...' (index {i}). Assigning default critique.")
+                logging.warning(
+                    f"No evaluation available for idea: '{idea_text[:50]}...' (index {i}). "
+                    "Using default values."
+                )
+                score = 0
                 critique = "Evaluation missing from critic response."
 
             # Create the EvaluatedIdea dictionary matching the TypedDict
@@ -193,8 +220,8 @@ def run_multistep_workflow(
         logging.info(f"Processing candidate: {idea_text} (Score: {candidate['score']})")
         try:
             logging.info(f"Advocating for idea: '{idea_text}'...")
-            agent_advocate_response: Any = advocate_agent.call_tool(
-                "advocate_idea", idea=idea_text, evaluation=evaluation_detail, context=theme,
+            agent_advocate_response: Any = call_advocate_with_retry(
+                idea=idea_text, evaluation=evaluation_detail, context=theme
             )
             # Ensure the response is treated as a string
             advocacy_output = str(agent_advocate_response)
@@ -205,8 +232,8 @@ def run_multistep_workflow(
             advocacy_output = "Advocacy not available due to agent error."
         try:
             logging.info(f"Skepticizing idea: '{idea_text}'...")
-            agent_skeptic_response: Any = skeptic_agent.call_tool(
-                "criticize_idea", idea=idea_text, advocacy=advocacy_output, context=theme,
+            agent_skeptic_response: Any = call_skeptic_with_retry(
+                idea=idea_text, advocacy=advocacy_output, context=theme
             )
             # Ensure the response is treated as a string
             skepticism_output = str(agent_skeptic_response)

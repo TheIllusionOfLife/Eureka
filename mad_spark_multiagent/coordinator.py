@@ -89,7 +89,7 @@ class CandidateData(TypedDict):
 
 # Create retry-wrapped versions of agent calls
 @exponential_backoff_retry(max_retries=3, initial_delay=2.0)
-def call_idea_generator_with_retry(topic: str, context: str) -> Any:
+def call_idea_generator_with_retry(topic: str, context: str) -> str:
     """Call idea generator agent with retry logic."""
     return idea_generator_agent.call_tool("generate_ideas", topic=topic, context=context)
 

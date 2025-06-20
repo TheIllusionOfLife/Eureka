@@ -103,7 +103,7 @@ def call_critic_with_retry(ideas: str, criteria: str, context: str) -> str:
 
 
 @exponential_backoff_retry(max_retries=2, initial_delay=1.0)
-def call_advocate_with_retry(idea: str, evaluation: str, context: str) -> Any:
+def call_advocate_with_retry(idea: str, evaluation: str, context: str) -> str:
     """Call advocate agent with retry logic."""
     return advocate_agent.call_tool(
         "advocate_idea", idea=idea, evaluation=evaluation, context=context

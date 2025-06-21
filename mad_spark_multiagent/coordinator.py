@@ -63,10 +63,8 @@ from mad_spark_multiagent.utils import (
     parse_json_with_fallback,
     validate_evaluation_json,
 )
-from mad_spark_multiagent.constants import (
-    ADVOCATE_FAILED_PLACEHOLDER,
-    SKEPTIC_FAILED_PLACEHOLDER,
-)
+# Removed unused imports - ADVOCATE_FAILED_PLACEHOLDER, SKEPTIC_FAILED_PLACEHOLDER
+# as agent tools already handle empty responses
 # from google.adk.agents import Agent # No longer needed directly for hints here
 
 
@@ -132,11 +130,9 @@ def run_multistep_workflow(
     # 1. Generate Ideas
     try:
         logging.info(f"Generating ideas for theme '{theme}'...")
-        agent_response_ideas: Any = call_idea_generator_with_retry(
+        raw_generated_ideas = call_idea_generator_with_retry(
             topic=theme, context=constraints
         )
-        # Ensure the response is treated as a string, as expected from generate_ideas tool
-        raw_generated_ideas: str = str(agent_response_ideas)
 
         parsed_ideas = [idea.strip() for idea in raw_generated_ideas.split("\n") if idea.strip()]
         if not parsed_ideas:
@@ -152,13 +148,11 @@ def run_multistep_workflow(
     evaluated_ideas_data: List[EvaluatedIdea] = []
     try:
         logging.info(f"Evaluating {len(parsed_ideas)} ideas...")
-        agent_response_evals: Any = call_critic_with_retry(
+        raw_evaluations = call_critic_with_retry(
             ideas="\n".join(parsed_ideas),
             criteria=constraints,
             context=theme
         )
-        # Ensure the response is treated as a string, as expected from evaluate_ideas tool
-        raw_evaluations: str = str(agent_response_evals)
         logging.debug(f"Raw evaluations received:\n{raw_evaluations}")
 
         # Use robust JSON parsing with fallback strategies
@@ -224,25 +218,17 @@ def run_multistep_workflow(
         logging.info(f"Processing candidate: {idea_text} (Score: {candidate['score']})")
         try:
             logging.info(f"Advocating for idea: '{idea_text}'...")
-            agent_advocate_response: Any = call_advocate_with_retry(
+            advocacy_output = call_advocate_with_retry(
                 idea=idea_text, evaluation=evaluation_detail, context=theme
             )
-            # Ensure the response is treated as a string
-            advocacy_output = str(agent_advocate_response)
-            if not advocacy_output.strip():
-                 advocacy_output = ADVOCATE_FAILED_PLACEHOLDER
         except Exception as e:
             logging.warning(f"AdvocateAgent failed for idea '{idea_text}'. Error: {str(e)}")
             advocacy_output = "Advocacy not available due to agent error."
         try:
             logging.info(f"Skepticizing idea: '{idea_text}'...")
-            agent_skeptic_response: Any = call_skeptic_with_retry(
+            skepticism_output = call_skeptic_with_retry(
                 idea=idea_text, advocacy=advocacy_output, context=theme
             )
-            # Ensure the response is treated as a string
-            skepticism_output = str(agent_skeptic_response)
-            if not skepticism_output.strip():
-                skepticism_output = SKEPTIC_FAILED_PLACEHOLDER
         except Exception as e:
             logging.warning(f"SkepticAgent failed for idea '{idea_text}'. Error: {str(e)}")
             skepticism_output = "Skepticism not available due to agent error."

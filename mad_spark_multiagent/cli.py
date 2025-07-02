@@ -11,19 +11,34 @@ import os
 from typing import List, Dict, Any, Optional
 import logging
 
-# Import MadSpark components
-from mad_spark_multiagent.coordinator import run_multistep_workflow
-from mad_spark_multiagent.temperature_control import (
-    TemperatureManager, 
-    add_temperature_arguments,
-    create_temperature_manager_from_args
-)
-from mad_spark_multiagent.bookmark_system import (
-    BookmarkManager,
-    bookmark_from_result,
-    list_bookmarks_cli,
-    remix_with_bookmarks
-)
+# Import MadSpark components with fallback for local development
+try:
+    from mad_spark_multiagent.coordinator import run_multistep_workflow
+    from mad_spark_multiagent.temperature_control import (
+        TemperatureManager, 
+        add_temperature_arguments,
+        create_temperature_manager_from_args
+    )
+    from mad_spark_multiagent.bookmark_system import (
+        BookmarkManager,
+        bookmark_from_result,
+        list_bookmarks_cli,
+        remix_with_bookmarks
+    )
+except ImportError:
+    # Fallback for local development/testing
+    from coordinator import run_multistep_workflow
+    from temperature_control import (
+        TemperatureManager, 
+        add_temperature_arguments,
+        create_temperature_manager_from_args
+    )
+    from bookmark_system import (
+        BookmarkManager,
+        bookmark_from_result,
+        list_bookmarks_cli,
+        remix_with_bookmarks
+    )
 
 logger = logging.getLogger(__name__)
 

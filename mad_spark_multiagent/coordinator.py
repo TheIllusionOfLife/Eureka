@@ -58,12 +58,21 @@ from mad_spark_multiagent.agent_defs import (
     advocate_agent,
     skeptic_agent,
 )
-from mad_spark_multiagent.utils import (
-    exponential_backoff_retry,
-    parse_json_with_fallback,
-    validate_evaluation_json,
-)
-from mad_spark_multiagent.novelty_filter import NoveltyFilter
+try:
+    from mad_spark_multiagent.utils import (
+        exponential_backoff_retry,
+        parse_json_with_fallback,
+        validate_evaluation_json,
+    )
+    from mad_spark_multiagent.novelty_filter import NoveltyFilter
+except ImportError:
+    # Fallback for local development/testing
+    from utils import (
+        exponential_backoff_retry,
+        parse_json_with_fallback,
+        validate_evaluation_json,
+    )
+    from novelty_filter import NoveltyFilter
 # Removed unused imports - ADVOCATE_FAILED_PLACEHOLDER, SKEPTIC_FAILED_PLACEHOLDER
 # as agent tools already handle empty responses
 # from google.adk.agents import Agent # No longer needed directly for hints here

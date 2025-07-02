@@ -10,7 +10,11 @@ from typing import Any # For model type, if not specifically known
 from google.adk.agents import Agent
 from google.adk.agents import Tool
 
-from mad_spark_multiagent.constants import SKEPTIC_EMPTY_RESPONSE
+try:
+    from mad_spark_multiagent.constants import SKEPTIC_EMPTY_RESPONSE
+except ImportError:
+    # Fallback for local development/testing
+    from constants import SKEPTIC_EMPTY_RESPONSE
 
 # The Skeptic agent plays devil's advocate, critically analyzing ideas.
 skeptic_agent: Agent = Agent(

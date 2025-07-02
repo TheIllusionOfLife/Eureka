@@ -10,7 +10,11 @@ from typing import Any # For model type, if not specifically known
 from google.adk.agents import Agent
 from google.adk.agents import Tool
 
-from mad_spark_multiagent.constants import ADVOCATE_EMPTY_RESPONSE
+try:
+    from mad_spark_multiagent.constants import ADVOCATE_EMPTY_RESPONSE
+except ImportError:
+    # Fallback for local development/testing
+    from constants import ADVOCATE_EMPTY_RESPONSE
 
 # The Advocate agent builds a compelling case for an idea.
 advocate_agent: Agent = Agent(

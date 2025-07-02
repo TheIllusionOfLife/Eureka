@@ -1,6 +1,13 @@
-from google.adk.agents import Agent, Tool
 import google.generativeai as genai
 from typing import Dict, Any
+
+# Optional ADK import for production use
+try:
+    from google.adk.agents import Agent
+    ADK_AVAILABLE = True
+except ImportError:
+    ADK_AVAILABLE = False
+    Agent = None
 
 
 def criticize_idea(idea: str, temperature: float = 0.5) -> Dict[str, Any]:
@@ -20,10 +27,13 @@ def criticize_idea(idea: str, temperature: float = 0.5) -> Dict[str, Any]:
         return {"status": "error", "message": str(e)}
 
 
-skeptic_agent = Agent(
-    name="skeptic",
-    model="gemini-2.0-flash",
-    description="MadSparkのアイデア懐疑者エージェント",
-    instruction="あなたはこのアイデアのリスクや問題点を懐疑的に指摘してください。",
-)
-skeptic_agent.add_tools([Tool(name="criticize_idea", func=criticize_idea)])
+# ADK agent setup (optional, for production use)
+if ADK_AVAILABLE:
+    skeptic_agent = Agent(
+        name="skeptic",
+        model="gemini-2.0-flash",
+        description="MadSparkのアイデア懐疑者エージェント",
+        instruction="あなたはこのアイデアのリスクや問題点を懐疑的に指摘してください。",
+    )
+else:
+    skeptic_agent = None

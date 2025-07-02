@@ -1,7 +1,14 @@
-from google.adk.agents import Agent, Tool
 import google.generativeai as genai
 import re
 from typing import Dict, Any
+
+# Optional ADK import for production use
+try:
+    from google.adk.agents import Agent
+    ADK_AVAILABLE = True
+except ImportError:
+    ADK_AVAILABLE = False
+    Agent = None
 
 
 def build_generation_prompt(theme: str, constraints: Dict[str, Any]) -> str:
@@ -62,10 +69,27 @@ def generate_ideas(theme: str, constraints: Dict[str, Any], temperature: float =
         return {"status": "error", "message": str(e)}
 
 
-idea_generator_agent = Agent(
-    name="idea_generator",
-    model="gemini-2.0-flash",
-    description="MadSparkのアイデア生成エージェント",
-    instruction="ユーザーから渡されたテーマと制約に基づき、突飛なアイデアを複数生成します。",
-)
-idea_generator_agent.add_tools([Tool(name="generate_ideas", func=generate_ideas)])
+# ADK agent setup (optional, for production use)
+if ADK_AVAILABLE:
+    import os
+    
+    # Configure API key for ADK if available
+    api_key = os.getenv("GOOGLE_API_KEY")
+    generate_content_config = None
+    if api_key:
+        # Configure genai to make API key available to ADK
+        import google.generativeai as genai
+        genai.configure(api_key=api_key)
+        generate_content_config = genai.types.GenerationConfig(temperature=0.9)
+    
+    idea_generator_agent = Agent(
+        name="idea_generator",
+        model="gemini-2.0-flash",
+        description="MadSparkのアイデア生成エージェント",
+        instruction="ユーザーから渡されたテーマと制約に基づき、突飛なアイデアを複数生成します。",
+        generate_content_config=generate_content_config
+    )
+    # Note: Tool class not available in current ADK version
+    # Function can be called directly instead
+else:
+    idea_generator_agent = None

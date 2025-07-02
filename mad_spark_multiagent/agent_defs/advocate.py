@@ -1,6 +1,13 @@
-from google.adk.agents import Agent, Tool
 import google.generativeai as genai
 from typing import Dict, Any
+
+# Optional ADK import for production use
+try:
+    from google.adk.agents import Agent
+    ADK_AVAILABLE = True
+except ImportError:
+    ADK_AVAILABLE = False
+    Agent = None
 
 
 def advocate_idea(idea: str, temperature: float = 0.5) -> Dict[str, Any]:
@@ -20,10 +27,13 @@ def advocate_idea(idea: str, temperature: float = 0.5) -> Dict[str, Any]:
         return {"status": "error", "message": str(e)}
 
 
-advocate_agent = Agent(
-    name="advocate",
-    model="gemini-2.0-flash",
-    description="MadSparkのアイデア擁護者エージェント",
-    instruction="あなたはこのアイデアの良い点を擁護者として挙げてください。",
-)
-advocate_agent.add_tools([Tool(name="advocate_idea", func=advocate_idea)])
+# ADK agent setup (optional, for production use)
+if ADK_AVAILABLE:
+    advocate_agent = Agent(
+        name="advocate",
+        model="gemini-2.0-flash",
+        description="MadSparkのアイデア擁護者エージェント",
+        instruction="あなたはこのアイデアの良い点を擁護者として挙げてください。",
+    )
+else:
+    advocate_agent = None

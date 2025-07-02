@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  madspark:
+    build: .
+    container_name: madspark-multiagent
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - GOOGLE_GENAI_MODEL=${GOOGLE_GENAI_MODEL:-gemini-2.0-flash}
+    volumes:
+      - .:/app
+      - /app/test_env  # Exclude virtual environment
+    ports:
+      - "8000:8000"
+    command: ["python", "coordinator.py"]
+    restart: unless-stopped
+
+  test:
+    build: .
+    container_name: madspark-test
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-test-key}
+      - GOOGLE_GENAI_MODEL=gemini-2.0-flash
+    volumes:
+      - .:/app
+      - /app/test_env
+    command: ["python", "-m", "pytest", "test_ci.py", "-v"]
+    profiles:
+      - testing
+
+  dev:
+    build: .
+    container_name: madspark-dev
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - GOOGLE_GENAI_MODEL=${GOOGLE_GENAI_MODEL:-gemini-2.0-flash}
+    volumes:
+      - .:/app
+      - /app/test_env
+    ports:
+      - "8000:8000"
+      - "8888:8888"  # For Jupyter if needed
+    command: ["python", "-c", "print('Development container ready'); import time; time.sleep(3600)"]
+    profiles:
+      - dev

@@ -94,16 +94,62 @@ The test suite includes:
 - Tests for agent initialization and tool functions
 - Mock-based testing to avoid actual API calls
 
-## Improvements in This Version
+## Phase 1 "Quick Wins" Features
 
-1. **Robust JSON Parsing**: The system now uses multiple fallback strategies to parse critic evaluations, including regex-based extraction for malformed responses.
+This implementation includes all Phase 1 features from the MadSpark roadmap:
 
-2. **Retry Logic**: All agent API calls now include exponential backoff retry logic to handle transient failures gracefully.
+### 1. **Temperature Control & Structured Prompts** ✅
+- Comprehensive temperature management system with presets (`conservative`, `balanced`, `creative`, `wild`)
+- CLI support for temperature adjustment (`--temperature`, `--temperature-preset`)
+- Stage-specific temperature scaling for different workflow phases
 
-3. **Enhanced Error Handling**: More comprehensive error handling with better error messages and graceful degradation.
+### 2. **Tier0 Novelty Filter** ✅
+- Lightweight duplicate detection using hash-based and keyword similarity
+- Configurable similarity thresholds to control filtering strictness
+- Reduces expensive LLM API calls by filtering redundant ideas early
 
-4. **Test Infrastructure**: Added comprehensive unit and integration tests using pytest and mock objects.
+### 3. **Bookmark & Remix System** ✅
+- File-based bookmark storage for saving favorite ideas
+- Tag-based organization and search functionality
+- Remix mode that generates new ideas based on bookmarked concepts
+- CLI commands for bookmark management
 
-5. **Type Safety**: Continued use of TypedDict for better type checking and code clarity.
+### 4. **Enhanced CLI Interface** ✅
+- Comprehensive command-line interface with all Phase 1 features
+- Multiple output formats (JSON, text, summary)
+- Batch processing and result export capabilities
 
-6. **Constants Module**: Added a dedicated constants module to eliminate magic strings and improve maintainability.
+## Technical Improvements
+
+1. **Robust JSON Parsing**: Multiple fallback strategies for parsing critic evaluations
+2. **Retry Logic**: Exponential backoff retry logic for all agent API calls
+3. **Enhanced Error Handling**: Comprehensive error handling with graceful degradation
+4. **Test Infrastructure**: Complete unit and integration test suite using pytest
+5. **Type Safety**: TypedDict usage for better type checking and code clarity
+6. **Constants Module**: Dedicated constants module to eliminate magic strings
+
+## New CLI Usage Examples
+
+```bash
+# Basic usage with temperature control
+python cli.py "Future transportation" "Budget-friendly" --temperature 0.8
+
+# Use temperature presets
+python cli.py "Smart cities" "Scalable solutions" --temperature-preset creative
+
+# Enable bookmark mode with custom tags
+python cli.py "Green energy" "Residential" --bookmark-results --bookmark-tags renewable energy
+
+# Remix mode - generate ideas based on bookmarks
+python cli.py "Innovation" --remix --bookmark-tags technology
+
+# List and search bookmarks
+python cli.py --list-bookmarks
+python cli.py --search-bookmarks "solar"
+
+# Control novelty filtering
+python cli.py "AI applications" "Practical" --novelty-threshold 0.6
+
+# Different output formats
+python cli.py "Healthcare" "Affordable" --output-format json --output-file results.json
+```

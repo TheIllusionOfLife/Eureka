@@ -333,12 +333,15 @@ def main():
         if args.bookmark_results:
             manager = BookmarkManager(args.bookmark_file)
             for result in results:
-                bookmark_id = bookmark_from_result(
-                    result=result,
+                bookmark_id = manager.bookmark_idea(
+                    idea_text=result.get("idea", ""),
                     theme=args.theme,
                     constraints=args.constraints,
-                    tags=args.bookmark_tags or [],
-                    bookmark_file=args.bookmark_file
+                    score=result.get("initial_score", 0),
+                    critique=result.get("initial_critique", ""),
+                    advocacy=result.get("advocacy", ""),
+                    skepticism=result.get("skepticism", ""),
+                    tags=args.bookmark_tags or []
                 )
                 logger.info(f"Bookmarked result as {bookmark_id}")
         

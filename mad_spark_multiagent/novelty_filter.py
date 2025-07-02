@@ -25,6 +25,12 @@ class FilteredIdea:
 class NoveltyFilter:
     """Lightweight novelty filter for idea deduplication."""
     
+    _STOP_WORDS = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at',
+                   'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was',
+                   'were', 'be', 'been', 'have', 'has', 'had', 'do', 'does',
+                   'did', 'will', 'would', 'should', 'could', 'can', 'may',
+                   'might', 'this', 'that', 'these', 'those'}
+    
     def __init__(self, similarity_threshold: float = 0.8):
         """Initialize the novelty filter.
         
@@ -51,13 +57,8 @@ class NoveltyFilter:
         """Extract keywords from text."""
         normalized = self._normalize_text(text)
         # Simple keyword extraction - remove common words
-        stop_words = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 
-                     'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was', 
-                     'were', 'be', 'been', 'have', 'has', 'had', 'do', 'does',
-                     'did', 'will', 'would', 'should', 'could', 'can', 'may',
-                     'might', 'this', 'that', 'these', 'those'}
         words = set(normalized.split())
-        return words - stop_words
+        return words - self._STOP_WORDS
     
     def _calculate_keyword_similarity(self, text1: str, text2: str) -> float:
         """Calculate similarity based on keyword overlap."""

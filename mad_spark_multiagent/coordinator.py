@@ -71,6 +71,12 @@ try:
     )
     from mad_spark_multiagent.novelty_filter import NoveltyFilter
     from mad_spark_multiagent.temperature_control import TemperatureManager
+    from mad_spark_multiagent.constants import (
+        DEFAULT_IDEA_TEMPERATURE,
+        DEFAULT_EVALUATION_TEMPERATURE, 
+        DEFAULT_ADVOCACY_TEMPERATURE,
+        DEFAULT_SKEPTICISM_TEMPERATURE
+    )
 except ImportError:
     # Fallback for local development/testing
     from utils import (
@@ -80,6 +86,12 @@ except ImportError:
     )
     from novelty_filter import NoveltyFilter
     from temperature_control import TemperatureManager
+    from constants import (
+        DEFAULT_IDEA_TEMPERATURE,
+        DEFAULT_EVALUATION_TEMPERATURE, 
+        DEFAULT_ADVOCACY_TEMPERATURE,
+        DEFAULT_SKEPTICISM_TEMPERATURE
+    )
 # Removed unused imports - ADVOCATE_FAILED_PLACEHOLDER, SKEPTIC_FAILED_PLACEHOLDER
 # as agent tools already handle empty responses
 # from google.adk.agents import Agent # No longer needed directly for hints here
@@ -149,10 +161,10 @@ def run_multistep_workflow(
         logging.debug(f"Using temperatures - Ideas: {idea_temp}, Eval: {eval_temp}, Advocacy: {advocacy_temp}, Skepticism: {skepticism_temp}")
     else:
         # Default temperatures
-        idea_temp = 0.9
-        eval_temp = 0.3
-        advocacy_temp = 0.5
-        skepticism_temp = 0.5
+        idea_temp = DEFAULT_IDEA_TEMPERATURE
+        eval_temp = DEFAULT_EVALUATION_TEMPERATURE
+        advocacy_temp = DEFAULT_ADVOCACY_TEMPERATURE
+        skepticism_temp = DEFAULT_SKEPTICISM_TEMPERATURE
 
     # 1. Generate Ideas
     try:

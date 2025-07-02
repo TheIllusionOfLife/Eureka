@@ -6,10 +6,16 @@ based on saved ones.
 """
 import json
 import os
+import uuid
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass, asdict
 import logging
+
+try:
+    from mad_spark_multiagent.constants import HIGH_SCORE_THRESHOLD, MAX_REMIX_BOOKMARKS
+except ImportError:
+    from constants import HIGH_SCORE_THRESHOLD, MAX_REMIX_BOOKMARKS
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +59,7 @@ class BookmarkManager:
                         for id, bookmark_data in data.items()
                     }
                 logger.info(f"Loaded {len(self.bookmarks)} bookmarks from {self.bookmark_file}")
-            except Exception as e:
+            except (json.JSONDecodeError, IOError, OSError) as e:
                 logger.error(f"Failed to load bookmarks: {e}")
                 self.bookmarks = {}
         else:
@@ -69,14 +75,15 @@ class BookmarkManager:
             with open(self.bookmark_file, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
             logger.debug(f"Saved {len(self.bookmarks)} bookmarks to {self.bookmark_file}")
-        except Exception as e:
+        except (IOError, OSError) as e:
             logger.error(f"Failed to save bookmarks: {e}")
     
     def _generate_id(self) -> str:
         """Generate a unique ID for a bookmark."""
+        # Use UUID for guaranteed uniqueness
+        unique_id = str(uuid.uuid4())[:8]  # Use first 8 chars for readability
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        counter = len(self.bookmarks) + 1
-        return f"bookmark_{timestamp}_{counter}"
+        return f"bookmark_{timestamp}_{unique_id}"
     
     def bookmark_idea(
         self, 
@@ -211,9 +218,9 @@ class BookmarkManager:
             Context string for idea generation
         """
         if bookmark_ids:
-            bookmarks = [self.get_bookmark(id) for id in bookmark_ids if self.get_bookmark(id)]
+            bookmarks = [b for id in bookmark_ids if (b := self.get_bookmark(id))]
         else:
-            bookmarks = list(self.bookmarks.values())
+            bookmarks = sorted(self.bookmarks.values(), key=lambda b: b.bookmarked_at, reverse=True)[:MAX_REMIX_BOOKMARKS]
         
         if not bookmarks:
             return "No bookmarked ideas available for remix context."
@@ -222,9 +229,9 @@ class BookmarkManager:
             "Build upon or combine elements from these previously generated ideas:"
         ]
         
-        for bookmark in bookmarks[-10:]:  # Use last 10 bookmarks
+        for bookmark in bookmarks:  # Now properly sorted and limited
             context_parts.append(f"- {bookmark.text}")
-            if bookmark.score > 7:  # Highlight high-scoring ideas
+            if bookmark.score > HIGH_SCORE_THRESHOLD:  # Highlight high-scoring ideas
                 context_parts.append(f"  (High-rated idea with score {bookmark.score})")
         
         context_parts.append(

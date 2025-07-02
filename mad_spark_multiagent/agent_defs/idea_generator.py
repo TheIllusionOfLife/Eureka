@@ -5,10 +5,8 @@ The agent is responsible for generating novel ideas based on a given topic
 and contextual information.
 """
 import os
-from typing import Any # For model type, if not specifically known
-
-from google.adk.agents import Agent
-from google.adk.agents import Tool
+from typing import Any
+import google.generativeai as genai
 
 
 def build_generation_prompt(topic: str, context: str) -> str:
@@ -28,27 +26,26 @@ def build_generation_prompt(topic: str, context: str) -> str:
   )
 
 
-# The Idea Generator agent specializes in brainstorming and creating novel concepts.
-idea_generator_agent: Agent = Agent(
-    model=os.environ["GOOGLE_GENAI_MODEL"],
-    instructions=(
-        "You are an expert idea generator. Given a topic and some context,"
-        " generate a list of diverse and creative ideas."
-    ),
-)
+# Configure the Google GenerativeAI client
+api_key = os.getenv("GOOGLE_API_KEY")
+model_name = os.getenv("GOOGLE_GENAI_MODEL", "gemini-1.5-flash")
+
+if api_key:
+    genai.configure(api_key=api_key)
+    # Create the model instance
+    idea_generator_model = genai.GenerativeModel(
+        model_name=model_name,
+        system_instruction=(
+            "You are an expert idea generator. Given a topic and some context,"
+            " generate a list of diverse and creative ideas."
+        )
+    )
+else:
+    idea_generator_model = None
 
 
-@Tool(
-    name="generate_ideas",
-    description=(
-        "Generates a list of diverse and creative ideas on a given topic using"
-        " the provided context."
-    ),
-)
 def generate_ideas(topic: str, context: str) -> str:
-  """Generates ideas based on a topic and context using the idea_generator_agent.
-
-  This function is registered as a tool for the agent.
+  """Generates ideas based on a topic and context using the idea generator model.
 
   Args:
     topic: The main topic for which ideas should be generated.
@@ -56,7 +53,7 @@ def generate_ideas(topic: str, context: str) -> str:
 
   Returns:
     A string containing the generated ideas, typically newline-separated.
-    Returns an empty string if the agent provides no content.
+    Returns an empty string if the model provides no content.
   Raises:
     ValueError: If topic or context are empty or invalid.
   """
@@ -66,10 +63,16 @@ def generate_ideas(topic: str, context: str) -> str:
     raise ValueError("Input 'context' to generate_ideas must be a non-empty string.")
 
   prompt: str = build_generation_prompt(topic=topic, context=context)
-  agent_response: Any = idea_generator_agent.call(prompt=prompt)
-
-  if not isinstance(agent_response, str):
-    agent_response = str(agent_response) # Ensure it's a string
+  
+  if idea_generator_model is None:
+    raise RuntimeError("GOOGLE_API_KEY not configured - cannot generate ideas")
+  
+  try:
+    response = idea_generator_model.generate_content(prompt)
+    agent_response = response.text if response.text else ""
+  except Exception as e:
+    # Return empty string on any API error - coordinator will handle this
+    agent_response = ""
 
   # If agent_response is empty or only whitespace, it will be returned as such.
   # The coordinator's parsing `parsed_ideas = [idea.strip() for idea in raw_generated_ideas.split("\n") if idea.strip()]`
@@ -78,4 +81,3 @@ def generate_ideas(topic: str, context: str) -> str:
   return agent_response
 
 
-idea_generator_agent.add_tools([generate_ideas])

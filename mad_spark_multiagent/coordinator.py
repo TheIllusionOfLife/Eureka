@@ -52,12 +52,17 @@ if not model_name:
 else:
     os.environ["GOOGLE_GENAI_MODEL"] = model_name
 
-from mad_spark_multiagent.agent_defs import (
-    idea_generator_agent,
-    critic_agent,
-    advocate_agent,
-    skeptic_agent,
-)
+try:
+    from mad_spark_multiagent.agent_defs.idea_generator import generate_ideas
+    from mad_spark_multiagent.agent_defs.critic import evaluate_ideas
+    from mad_spark_multiagent.agent_defs.advocate import advocate_idea
+    from mad_spark_multiagent.agent_defs.skeptic import criticize_idea
+except ImportError:
+    # Fallback for local development/testing
+    from agent_defs.idea_generator import generate_ideas
+    from agent_defs.critic import evaluate_ideas
+    from agent_defs.advocate import advocate_idea
+    from agent_defs.skeptic import criticize_idea
 try:
     from mad_spark_multiagent.utils import (
         exponential_backoff_retry,
@@ -98,32 +103,26 @@ class CandidateData(TypedDict):
 # Create retry-wrapped versions of agent calls
 @exponential_backoff_retry(max_retries=3, initial_delay=2.0)
 def call_idea_generator_with_retry(topic: str, context: str) -> str:
-    """Call idea generator agent with retry logic."""
-    return idea_generator_agent.call_tool("generate_ideas", topic=topic, context=context)
+    """Call idea generator with retry logic."""
+    return generate_ideas(topic=topic, context=context)
 
 
 @exponential_backoff_retry(max_retries=3, initial_delay=2.0)
 def call_critic_with_retry(ideas: str, criteria: str, context: str) -> str:
-    """Call critic agent with retry logic."""
-    return critic_agent.call_tool(
-        "evaluate_ideas", ideas=ideas, criteria=criteria, context=context
-    )
+    """Call critic with retry logic."""
+    return evaluate_ideas(ideas=ideas, criteria=criteria, context=context)
 
 
 @exponential_backoff_retry(max_retries=2, initial_delay=1.0)
 def call_advocate_with_retry(idea: str, evaluation: str, context: str) -> str:
-    """Call advocate agent with retry logic."""
-    return advocate_agent.call_tool(
-        "advocate_idea", idea=idea, evaluation=evaluation, context=context
-    )
+    """Call advocate with retry logic."""
+    return advocate_idea(idea=idea, evaluation=evaluation, context=context)
 
 
 @exponential_backoff_retry(max_retries=2, initial_delay=1.0)
 def call_skeptic_with_retry(idea: str, advocacy: str, context: str) -> str:
-    """Call skeptic agent with retry logic."""
-    return skeptic_agent.call_tool(
-        "criticize_idea", idea=idea, advocacy=advocacy, context=context
-    )
+    """Call skeptic with retry logic."""
+    return criticize_idea(idea=idea, advocacy=advocacy, context=context)
 
 
 def run_multistep_workflow(

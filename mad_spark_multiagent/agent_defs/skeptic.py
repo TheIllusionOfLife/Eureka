@@ -5,10 +5,8 @@ The agent is responsible for critically analyzing ideas, challenging assumptions
 and identifying potential flaws or risks.
 """
 import os
-from typing import Any # For model type, if not specifically known
-
-from google.adk.agents import Agent
-from google.adk.agents import Tool
+from typing import Any
+import google.generativeai as genai
 
 try:
     from mad_spark_multiagent.constants import SKEPTIC_EMPTY_RESPONSE
@@ -16,28 +14,28 @@ except ImportError:
     # Fallback for local development/testing
     from constants import SKEPTIC_EMPTY_RESPONSE
 
-# The Skeptic agent plays devil's advocate, critically analyzing ideas.
-skeptic_agent: Agent = Agent(
-    model=os.environ["GOOGLE_GENAI_MODEL"],
-    instructions=(
-        "You are a devil's advocate. Given an idea, the arguments for it, and"
-        " context, critically analyze the idea. Identify potential flaws,"
-        " risks, and unintended consequences. Challenge assumptions and present"
-        " counterarguments."
-    ),
-)
+# Configure the Google GenerativeAI client
+api_key = os.getenv("GOOGLE_API_KEY")
+model_name = os.getenv("GOOGLE_GENAI_MODEL", "gemini-1.5-flash")
+
+if api_key:
+    genai.configure(api_key=api_key)
+    # Create the model instance
+    skeptic_model = genai.GenerativeModel(
+        model_name=model_name,
+        system_instruction=(
+            "You are a devil's advocate. Given an idea, the arguments for it, and"
+            " context, critically analyze the idea. Identify potential flaws,"
+            " risks, and unintended consequences. Challenge assumptions and present"
+            " counterarguments."
+        )
+    )
+else:
+    skeptic_model = None
 
 
-@Tool(
-    name="criticize_idea",
-    description=(
-        "Critically analyzes an idea, playing devil's advocate. Identifies"
-        " potential flaws, risks, and unintended consequences. Challenges"
-        " assumptions and presents counterarguments."
-    ),
-)
 def criticize_idea(idea: str, advocacy: str, context: str) -> str:
-  """Critically analyzes an idea, playing devil's advocate, using the skeptic_agent.
+  """Critically analyzes an idea, playing devil's advocate, using the skeptic model.
 
   Args:
     idea: The idea to be critically analyzed.
@@ -46,7 +44,7 @@ def criticize_idea(idea: str, advocacy: str, context: str) -> str:
 
   Returns:
     A string containing the critical analysis, counterarguments, and identified risks.
-    Returns a placeholder string if the agent provides no content.
+    Returns a placeholder string if the model provides no content.
   Raises:
     ValueError: If idea, advocacy, or context are empty or invalid.
   """
@@ -67,9 +65,16 @@ def criticize_idea(idea: str, advocacy: str, context: str) -> str:
       "potential flaws, risks, and unintended consequences. Challenge "
       "assumptions and present counterarguments."
   )
-  agent_response: Any = skeptic_agent.call(prompt=prompt)
-  if not isinstance(agent_response, str):
-    agent_response = str(agent_response) # Ensure it's a string
+  
+  if skeptic_model is None:
+    raise RuntimeError("GOOGLE_API_KEY not configured - cannot criticize ideas")
+  
+  try:
+    response = skeptic_model.generate_content(prompt)
+    agent_response = response.text if response.text else ""
+  except Exception as e:
+    # Return empty string on any API error - coordinator will handle this
+    agent_response = ""
 
   if not agent_response.strip():
     # This specific string is recognized by the coordinator's error handling.
@@ -77,4 +82,3 @@ def criticize_idea(idea: str, advocacy: str, context: str) -> str:
   return agent_response
 
 
-skeptic_agent.add_tools([criticize_idea])

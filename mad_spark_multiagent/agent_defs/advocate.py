@@ -5,10 +5,8 @@ The agent is responsible for constructing persuasive arguments in favor of
 an idea, considering its evaluation and context.
 """
 import os
-from typing import Any # For model type, if not specifically known
-
-from google.adk.agents import Agent
-from google.adk.agents import Tool
+from typing import Any
+import google.generativeai as genai
 
 try:
     from mad_spark_multiagent.constants import ADVOCATE_EMPTY_RESPONSE
@@ -16,26 +14,27 @@ except ImportError:
     # Fallback for local development/testing
     from constants import ADVOCATE_EMPTY_RESPONSE
 
-# The Advocate agent builds a compelling case for an idea.
-advocate_agent: Agent = Agent(
-    model=os.environ["GOOGLE_GENAI_MODEL"],
-    instructions=(
-        "You are a persuasive advocate. Given an idea, its evaluation, and"
-        " context, build a strong case for the idea, highlighting its"
-        " strengths and potential benefits."
-    ),
-)
+# Configure the Google GenerativeAI client
+api_key = os.getenv("GOOGLE_API_KEY")
+model_name = os.getenv("GOOGLE_GENAI_MODEL", "gemini-1.5-flash")
+
+if api_key:
+    genai.configure(api_key=api_key)
+    # Create the model instance
+    advocate_model = genai.GenerativeModel(
+        model_name=model_name,
+        system_instruction=(
+            "You are a persuasive advocate. Given an idea, its evaluation, and"
+            " context, build a strong case for the idea, highlighting its"
+            " strengths and potential benefits."
+        )
+    )
+else:
+    advocate_model = None
 
 
-@Tool(
-    name="advocate_idea",
-    description=(
-        "Builds a strong case for an idea, highlighting its strengths and"
-        " potential benefits, considering its evaluation and context."
-    ),
-)
 def advocate_idea(idea: str, evaluation: str, context: str) -> str:
-  """Advocates for an idea using its evaluation and context via the advocate_agent.
+  """Advocates for an idea using its evaluation and context via the advocate model.
 
   Args:
     idea: The idea to advocate for.
@@ -44,7 +43,7 @@ def advocate_idea(idea: str, evaluation: str, context: str) -> str:
 
   Returns:
     A string containing the persuasive arguments for the idea.
-    Returns a placeholder string if the agent provides no content.
+    Returns a placeholder string if the model provides no content.
   Raises:
     ValueError: If idea, evaluation, or context are empty or invalid.
   """
@@ -63,9 +62,16 @@ def advocate_idea(idea: str, evaluation: str, context: str) -> str:
       "strengths and potential benefits. Address any criticisms from the "
       "evaluation constructively."
   )
-  agent_response: Any = advocate_agent.call(prompt=prompt)
-  if not isinstance(agent_response, str):
-    agent_response = str(agent_response) # Ensure it's a string
+  
+  if advocate_model is None:
+    raise RuntimeError("GOOGLE_API_KEY not configured - cannot advocate ideas")
+  
+  try:
+    response = advocate_model.generate_content(prompt)
+    agent_response = response.text if response.text else ""
+  except Exception as e:
+    # Return empty string on any API error - coordinator will handle this
+    agent_response = ""
 
   if not agent_response.strip():
     # This specific string is recognized by the coordinator's error handling.
@@ -73,4 +79,3 @@ def advocate_idea(idea: str, evaluation: str, context: str) -> str:
   return agent_response
 
 
-advocate_agent.add_tools([advocate_idea])

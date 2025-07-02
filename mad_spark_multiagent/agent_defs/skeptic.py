@@ -34,13 +34,14 @@ else:
     skeptic_model = None
 
 
-def criticize_idea(idea: str, advocacy: str, context: str) -> str:
+def criticize_idea(idea: str, advocacy: str, context: str, temperature: float = 0.5) -> str:
   """Critically analyzes an idea, playing devil's advocate, using the skeptic model.
 
   Args:
     idea: The idea to be critically analyzed.
     advocacy: The arguments previously made in favor of the idea.
     context: Additional context relevant for the critical analysis.
+    temperature: Controls randomness in generation (0.0-1.0). Balanced for criticism.
 
   Returns:
     A string containing the critical analysis, counterarguments, and identified risks.
@@ -70,7 +71,8 @@ def criticize_idea(idea: str, advocacy: str, context: str) -> str:
     raise RuntimeError("GOOGLE_API_KEY not configured - cannot criticize ideas")
   
   try:
-    response = skeptic_model.generate_content(prompt)
+    generation_config = genai.types.GenerationConfig(temperature=temperature)
+    response = skeptic_model.generate_content(prompt, generation_config=generation_config)
     agent_response = response.text if response.text else ""
   except Exception as e:
     # Return empty string on any API error - coordinator will handle this

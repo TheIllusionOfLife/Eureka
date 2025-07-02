@@ -44,12 +44,13 @@ else:
     idea_generator_model = None
 
 
-def generate_ideas(topic: str, context: str) -> str:
+def generate_ideas(topic: str, context: str, temperature: float = 0.9) -> str:
   """Generates ideas based on a topic and context using the idea generator model.
 
   Args:
     topic: The main topic for which ideas should be generated.
     context: Supporting context, constraints, or inspiration for the ideas.
+    temperature: Controls randomness in generation (0.0-1.0). Higher values increase creativity.
 
   Returns:
     A string containing the generated ideas, typically newline-separated.
@@ -68,7 +69,8 @@ def generate_ideas(topic: str, context: str) -> str:
     raise RuntimeError("GOOGLE_API_KEY not configured - cannot generate ideas")
   
   try:
-    response = idea_generator_model.generate_content(prompt)
+    generation_config = genai.types.GenerationConfig(temperature=temperature)
+    response = idea_generator_model.generate_content(prompt, generation_config=generation_config)
     agent_response = response.text if response.text else ""
   except Exception as e:
     # Return empty string on any API error - coordinator will handle this

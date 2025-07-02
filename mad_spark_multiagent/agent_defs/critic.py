@@ -27,7 +27,7 @@ else:
     critic_model = None
 
 
-def evaluate_ideas(ideas: str, criteria: str, context: str) -> str:
+def evaluate_ideas(ideas: str, criteria: str, context: str, temperature: float = 0.3) -> str:
   """Evaluates ideas based on criteria and context using the critic model.
 
   The model is prompted to return a newline-separated list of JSON strings.
@@ -38,6 +38,7 @@ def evaluate_ideas(ideas: str, criteria: str, context: str) -> str:
     ideas: A string containing the ideas to be evaluated, typically newline-separated.
     criteria: The criteria against which the ideas should be evaluated.
     context: Additional context relevant for the evaluation.
+    temperature: Controls randomness in generation (0.0-1.0). Lower values increase consistency.
 
   Returns:
     A string from the LLM, expected to be newline-separated JSON objects,
@@ -71,7 +72,8 @@ def evaluate_ideas(ideas: str, criteria: str, context: str) -> str:
     raise RuntimeError("GOOGLE_API_KEY not configured - cannot evaluate ideas")
   
   try:
-    response = critic_model.generate_content(prompt)
+    generation_config = genai.types.GenerationConfig(temperature=temperature)
+    response = critic_model.generate_content(prompt, generation_config=generation_config)
     agent_response = response.text if response.text else ""
   except Exception as e:
     # Return empty string on any API error - coordinator will handle this

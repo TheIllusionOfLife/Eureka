@@ -321,7 +321,8 @@ def main():
             constraints=args.constraints,
             num_top_candidates=args.num_candidates,
             enable_novelty_filter=not args.disable_novelty_filter,
-            novelty_threshold=args.novelty_threshold
+            novelty_threshold=args.novelty_threshold,
+            temperature_manager=temp_manager
         )
         
         if not results:

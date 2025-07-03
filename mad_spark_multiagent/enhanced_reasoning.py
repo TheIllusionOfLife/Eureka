@@ -176,9 +176,7 @@ class ContextMemory:
             
             if len(union) > 0:
                 similarity = len(intersection) / len(union)
-                # Lower threshold for better matching in tests
-                effective_threshold = min(threshold, 0.3) if threshold > 0.3 else threshold
-                if similarity >= effective_threshold:
+                if similarity >= threshold:
                     context_dict = self.get_context(context.context_id)
                     if context_dict:
                         context_dict['similarity_score'] = similarity

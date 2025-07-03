@@ -143,7 +143,7 @@ class TestContextMemory:
         memory.store_context({"content": "Machine learning medical diagnosis", "theme": "healthcare"})
         memory.store_context({"content": "Blockchain supply chain", "theme": "logistics"})
         
-        similar_contexts = memory.find_similar_contexts("medical AI diagnosis", threshold=0.5)
+        similar_contexts = memory.find_similar_contexts("medical AI diagnosis", threshold=0.3)
         
         assert len(similar_contexts) >= 1
         # Should find the healthcare-related contexts

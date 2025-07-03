@@ -5,33 +5,32 @@ The agent is responsible for evaluating ideas based on specified criteria
 and context, providing scores and textual feedback.
 """
 import os
-from typing import Any # For model type, if not specifically known
+from typing import Any
+import google.generativeai as genai
 
-from google.adk.agents import Agent
-from google.adk.agents import Tool
+# Configure the Google GenerativeAI client
+api_key = os.getenv("GOOGLE_API_KEY")
+model_name = os.getenv("GOOGLE_GENAI_MODEL", "gemini-1.5-flash")
 
-# The Critic agent evaluates ideas, providing scores and constructive feedback.
-critic_agent: Agent = Agent(
-    model=os.environ["GOOGLE_GENAI_MODEL"],
-    instructions=(
-        "You are an expert critic. Evaluate the given ideas based on the"
-        " provided criteria and context. Provide constructive feedback and"
-        " identify potential weaknesses."
-    ),
-)
+if api_key:
+    genai.configure(api_key=api_key)
+    # Create the model instance
+    critic_model = genai.GenerativeModel(
+        model_name=model_name,
+        system_instruction=(
+            "You are an expert critic. Evaluate the given ideas based on the"
+            " provided criteria and context. Provide constructive feedback and"
+            " identify potential weaknesses."
+        )
+    )
+else:
+    critic_model = None
 
 
-@Tool(
-    name="evaluate_ideas",
-    description=(
-        "Evaluates a list of ideas based on given criteria and context,"
-        " providing constructive feedback in a structured JSON format."
-    ),
-)
-def evaluate_ideas(ideas: str, criteria: str, context: str) -> str:
-  """Evaluates ideas based on criteria and context using the critic_agent.
+def evaluate_ideas(ideas: str, criteria: str, context: str, temperature: float = 0.3) -> str:
+  """Evaluates ideas based on criteria and context using the critic model.
 
-  The agent is prompted to return a newline-separated list of JSON strings.
+  The model is prompted to return a newline-separated list of JSON strings.
   Each JSON string should contain 'score' and 'comment' for an idea,
   corresponding to the input order.
 
@@ -39,11 +38,12 @@ def evaluate_ideas(ideas: str, criteria: str, context: str) -> str:
     ideas: A string containing the ideas to be evaluated, typically newline-separated.
     criteria: The criteria against which the ideas should be evaluated.
     context: Additional context relevant for the evaluation.
+    temperature: Controls randomness in generation (0.0-1.0). Lower values increase consistency.
 
   Returns:
     A string from the LLM, expected to be newline-separated JSON objects,
     each representing an evaluation for an idea. Returns an empty string if
-    the agent provides no content.
+    the model provides no content.
   Raises:
     ValueError: If ideas, criteria, or context are empty or invalid.
   """
@@ -67,9 +67,17 @@ def evaluate_ideas(ideas: str, criteria: str, context: str) -> str:
       f"Context for evaluation:\n{context}\n\n"
       "Provide your JSON evaluations now (one per line, in the same order as the input ideas):"
   )
-  agent_response: Any = critic_agent.call(prompt=prompt)
-  if not isinstance(agent_response, str):
-    agent_response = str(agent_response) # Ensure it's a string
+  
+  if critic_model is None:
+    raise RuntimeError("GOOGLE_API_KEY not configured - cannot evaluate ideas")
+  
+  try:
+    generation_config = genai.types.GenerationConfig(temperature=temperature)
+    response = critic_model.generate_content(prompt, generation_config=generation_config)
+    agent_response = response.text if response.text else ""
+  except Exception as e:
+    # Return empty string on any API error - coordinator will handle this
+    agent_response = ""
 
   # If agent_response is empty or only whitespace, it will be returned as such.
   # The coordinator's parsing of json_evaluation_lines will correctly result
@@ -77,4 +85,3 @@ def evaluate_ideas(ideas: str, criteria: str, context: str) -> str:
   return agent_response
 
 
-critic_agent.add_tools([evaluate_ideas])

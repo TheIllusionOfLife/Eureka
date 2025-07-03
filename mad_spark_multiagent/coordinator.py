@@ -52,17 +52,46 @@ if not model_name:
 else:
     os.environ["GOOGLE_GENAI_MODEL"] = model_name
 
-from mad_spark_multiagent.agent_defs import (
-    idea_generator_agent,
-    critic_agent,
-    advocate_agent,
-    skeptic_agent,
-)
-from mad_spark_multiagent.utils import (
-    exponential_backoff_retry,
-    parse_json_with_fallback,
-    validate_evaluation_json,
-)
+try:
+    from mad_spark_multiagent.agent_defs.idea_generator import generate_ideas
+    from mad_spark_multiagent.agent_defs.critic import evaluate_ideas
+    from mad_spark_multiagent.agent_defs.advocate import advocate_idea
+    from mad_spark_multiagent.agent_defs.skeptic import criticize_idea
+except ImportError:
+    # Fallback for local development/testing
+    from agent_defs.idea_generator import generate_ideas
+    from agent_defs.critic import evaluate_ideas
+    from agent_defs.advocate import advocate_idea
+    from agent_defs.skeptic import criticize_idea
+try:
+    from mad_spark_multiagent.utils import (
+        exponential_backoff_retry,
+        parse_json_with_fallback,
+        validate_evaluation_json,
+    )
+    from mad_spark_multiagent.novelty_filter import NoveltyFilter
+    from mad_spark_multiagent.temperature_control import TemperatureManager
+    from mad_spark_multiagent.constants import (
+        DEFAULT_IDEA_TEMPERATURE,
+        DEFAULT_EVALUATION_TEMPERATURE, 
+        DEFAULT_ADVOCACY_TEMPERATURE,
+        DEFAULT_SKEPTICISM_TEMPERATURE
+    )
+except ImportError:
+    # Fallback for local development/testing
+    from utils import (
+        exponential_backoff_retry,
+        parse_json_with_fallback,
+        validate_evaluation_json,
+    )
+    from novelty_filter import NoveltyFilter
+    from temperature_control import TemperatureManager
+    from constants import (
+        DEFAULT_IDEA_TEMPERATURE,
+        DEFAULT_EVALUATION_TEMPERATURE, 
+        DEFAULT_ADVOCACY_TEMPERATURE,
+        DEFAULT_SKEPTICISM_TEMPERATURE
+    )
 # Removed unused imports - ADVOCATE_FAILED_PLACEHOLDER, SKEPTIC_FAILED_PLACEHOLDER
 # as agent tools already handle empty responses
 # from google.adk.agents import Agent # No longer needed directly for hints here
@@ -87,37 +116,33 @@ class CandidateData(TypedDict):
 
 # Create retry-wrapped versions of agent calls
 @exponential_backoff_retry(max_retries=3, initial_delay=2.0)
-def call_idea_generator_with_retry(topic: str, context: str) -> str:
-    """Call idea generator agent with retry logic."""
-    return idea_generator_agent.call_tool("generate_ideas", topic=topic, context=context)
+def call_idea_generator_with_retry(topic: str, context: str, temperature: float = 0.9) -> str:
+    """Call idea generator with retry logic."""
+    return generate_ideas(topic=topic, context=context, temperature=temperature)
 
 
 @exponential_backoff_retry(max_retries=3, initial_delay=2.0)
-def call_critic_with_retry(ideas: str, criteria: str, context: str) -> str:
-    """Call critic agent with retry logic."""
-    return critic_agent.call_tool(
-        "evaluate_ideas", ideas=ideas, criteria=criteria, context=context
-    )
+def call_critic_with_retry(ideas: str, criteria: str, context: str, temperature: float = 0.3) -> str:
+    """Call critic with retry logic."""
+    return evaluate_ideas(ideas=ideas, criteria=criteria, context=context, temperature=temperature)
 
 
 @exponential_backoff_retry(max_retries=2, initial_delay=1.0)
-def call_advocate_with_retry(idea: str, evaluation: str, context: str) -> str:
-    """Call advocate agent with retry logic."""
-    return advocate_agent.call_tool(
-        "advocate_idea", idea=idea, evaluation=evaluation, context=context
-    )
+def call_advocate_with_retry(idea: str, evaluation: str, context: str, temperature: float = 0.5) -> str:
+    """Call advocate with retry logic."""
+    return advocate_idea(idea=idea, evaluation=evaluation, context=context, temperature=temperature)
 
 
 @exponential_backoff_retry(max_retries=2, initial_delay=1.0)
-def call_skeptic_with_retry(idea: str, advocacy: str, context: str) -> str:
-    """Call skeptic agent with retry logic."""
-    return skeptic_agent.call_tool(
-        "criticize_idea", idea=idea, advocacy=advocacy, context=context
-    )
+def call_skeptic_with_retry(idea: str, advocacy: str, context: str, temperature: float = 0.5) -> str:
+    """Call skeptic with retry logic."""
+    return criticize_idea(idea=idea, advocacy=advocacy, context=context, temperature=temperature)
 
 
 def run_multistep_workflow(
-    theme: str, constraints: str, num_top_candidates: int = 2
+    theme: str, constraints: str, num_top_candidates: int = 2, 
+    enable_novelty_filter: bool = True, novelty_threshold: float = 0.8,
+    temperature_manager: Optional['TemperatureManager'] = None
 ) -> List[CandidateData]:
     """
     Runs the multi-step idea generation and refinement workflow.
@@ -127,11 +152,25 @@ def run_multistep_workflow(
     # raw_generated_ideas: str = "" # Type will be known after call
     parsed_ideas: List[str] = []
 
+    # Extract temperatures from temperature manager if provided
+    if temperature_manager:
+        idea_temp = temperature_manager.get_temperature_for_stage('idea_generation')
+        eval_temp = temperature_manager.get_temperature_for_stage('evaluation')
+        advocacy_temp = temperature_manager.get_temperature_for_stage('advocacy')
+        skepticism_temp = temperature_manager.get_temperature_for_stage('skepticism')
+        logging.debug(f"Using temperatures - Ideas: {idea_temp}, Eval: {eval_temp}, Advocacy: {advocacy_temp}, Skepticism: {skepticism_temp}")
+    else:
+        # Default temperatures
+        idea_temp = DEFAULT_IDEA_TEMPERATURE
+        eval_temp = DEFAULT_EVALUATION_TEMPERATURE
+        advocacy_temp = DEFAULT_ADVOCACY_TEMPERATURE
+        skepticism_temp = DEFAULT_SKEPTICISM_TEMPERATURE
+
     # 1. Generate Ideas
     try:
         logging.info(f"Generating ideas for theme '{theme}'...")
         raw_generated_ideas = call_idea_generator_with_retry(
-            topic=theme, context=constraints
+            topic=theme, context=constraints, temperature=idea_temp
         )
 
         parsed_ideas = [idea.strip() for idea in raw_generated_ideas.split("\n") if idea.strip()]
@@ -139,6 +178,21 @@ def run_multistep_workflow(
             logging.warning("No ideas were generated by IdeaGeneratorAgent.")
             return []
         logging.info(f"Generated {len(parsed_ideas)} raw ideas.")
+        
+        # 1.5. Apply Tier0 Novelty Filter (if enabled)
+        if enable_novelty_filter:
+            novelty_filter = NoveltyFilter(similarity_threshold=novelty_threshold)
+            filtered_ideas = novelty_filter.get_novel_ideas(parsed_ideas)
+            if len(filtered_ideas) < len(parsed_ideas):
+                logging.info(
+                    f"Novelty filter removed {len(parsed_ideas) - len(filtered_ideas)} "
+                    f"similar/duplicate ideas. Proceeding with {len(filtered_ideas)} novel ideas."
+                )
+            parsed_ideas = filtered_ideas
+            
+            if not parsed_ideas:
+                logging.warning("No novel ideas remained after novelty filtering.")
+                return []
     except Exception as e:
         logging.error(f"IdeaGeneratorAgent failed to generate ideas. Error: {str(e)}")
         return []
@@ -151,7 +205,8 @@ def run_multistep_workflow(
         raw_evaluations = call_critic_with_retry(
             ideas="\n".join(parsed_ideas),
             criteria=constraints,
-            context=theme
+            context=theme,
+            temperature=eval_temp
         )
         logging.debug(f"Raw evaluations received:\n{raw_evaluations}")
 
@@ -219,7 +274,8 @@ def run_multistep_workflow(
         try:
             logging.info(f"Advocating for idea: '{idea_text}'...")
             advocacy_output = call_advocate_with_retry(
-                idea=idea_text, evaluation=evaluation_detail, context=theme
+                idea=idea_text, evaluation=evaluation_detail, context=theme,
+                temperature=advocacy_temp
             )
         except Exception as e:
             logging.warning(f"AdvocateAgent failed for idea '{idea_text}'. Error: {str(e)}")
@@ -227,7 +283,8 @@ def run_multistep_workflow(
         try:
             logging.info(f"Skepticizing idea: '{idea_text}'...")
             skepticism_output = call_skeptic_with_retry(
-                idea=idea_text, advocacy=advocacy_output, context=theme
+                idea=idea_text, advocacy=advocacy_output, context=theme,
+                temperature=skepticism_temp
             )
         except Exception as e:
             logging.warning(f"SkepticAgent failed for idea '{idea_text}'. Error: {str(e)}")

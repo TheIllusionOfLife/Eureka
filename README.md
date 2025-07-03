@@ -16,9 +16,11 @@ An AI-powered idea generation and evaluation system using Google's Gemini API wi
 
 - **🏗️ Hybrid Architecture**: Three operational modes (Mock, Direct API, ADK Framework)
 - **🤖 Multi-Agent System**: IdeaGenerator, Critic, Advocate, and Skeptic agents
-- **🎛️ Temperature Control**: Adjustable creativity levels (0.1-1.0) across all agents
-- **🧪 Comprehensive Testing**: Unit, integration, CI/CD, and Docker testing
-- **📚 Complete Documentation**: Team guides, troubleshooting, and architectural decisions
+- **🌡️ Temperature Control**: Full preset system with stage-specific creativity control
+- **🔍 Novelty Filtering**: Lightweight duplicate detection and similarity filtering
+- **📚 Bookmark & Remix**: Persistent idea storage with tagging and remix capabilities
+- **🖥️ Enhanced CLI**: Comprehensive command-line interface with all Phase 1 features
+- **🧪 Production Ready**: Complete test coverage, CI/CD validation, and error handling
 
 #### Quick Start
 

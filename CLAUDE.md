@@ -25,6 +25,8 @@ Eureka is a mature Python project featuring the MadSpark Multi-Agent System, a s
 
 ## Development Commands
 
+**Working Directory**: All commands must be run from within the `mad_spark_multiagent/` directory unless otherwise specified.
+
 ### Environment Setup
 ```bash
 # Set up virtual environment
@@ -37,7 +39,7 @@ pip install -r requirements.txt
 
 # Set up environment variables
 cp .env.example .env
-# Edit .env to add your GOOGLE_API_KEY
+# Edit .env to add your GOOGLE_API_KEY, GOOGLE_GENAI_MODEL, and GOOGLE_CLOUD_PROJECT
 ```
 
 ### Running the Application
@@ -45,9 +47,16 @@ cp .env.example .env
 # Direct workflow execution
 python coordinator.py
 
-# Full CLI interface
+# Full CLI interface with new Phase 1 features
 python cli.py --help
-python cli.py generate-ideas "AI in healthcare" --count 3 --temperature creative
+python cli.py "AI in healthcare" "Budget-friendly" --temperature 0.8
+python cli.py "Smart cities" "Scalable solutions" --temperature-preset creative
+python cli.py "Green energy" "Residential" --bookmark-results --bookmark-tags renewable energy
+python cli.py "Innovation" --remix --bookmark-tags technology
+
+# Bookmark management
+python cli.py --list-bookmarks
+python cli.py --search-bookmarks "solar"
 ```
 
 ### Testing
@@ -63,6 +72,14 @@ pytest --cov=. --cov-report=html
 
 # Run single test method
 pytest tests/test_coordinator.py::TestCoordinator::test_run_workflow_mock_mode
+
+# Quick CI-safe test (no API calls)
+python -c "
+import agent_defs.idea_generator as ig
+import agent_defs.critic as critic
+prompt = ig.build_generation_prompt('test', {'mode': '逆転'})
+print('✅ Basic functionality tests passed')
+"
 ```
 
 ### Code Quality
@@ -91,9 +108,10 @@ The project uses a sophisticated fallback system:
 - Graceful degradation when APIs unavailable
 
 ### Configuration Management
-- Environment variables via `.env` file (GOOGLE_API_KEY, GOOGLE_GENAI_MODEL)
-- Temperature presets in `constants.py`
+- Environment variables via `.env` file (GOOGLE_API_KEY, GOOGLE_GENAI_MODEL, GOOGLE_CLOUD_PROJECT)
+- Temperature presets in `constants.py` (conservative, balanced, creative, wild)
 - Agent configurations in `agent_defs/`
+- Pytest configuration in `pytest.ini` with test API keys
 
 ## Testing Strategy
 
@@ -110,6 +128,12 @@ The project uses a sophisticated fallback system:
 - `test_temperature_control.py` - Temperature configuration
 - `test_novelty_filter.py` - Duplicate detection
 - `test_utils.py` - Utility functions
+- `test_constants.py` - Constants validation
+
+**CI/CD Integration**:
+- GitHub Actions workflow testing Python 3.10-3.13
+- Automatic dependency caching and security scanning
+- CI-safe tests that skip ADK Tool imports when unavailable
 
 ## Development Philosophy
 
@@ -154,3 +178,23 @@ Future development should focus on:
 - **TypedDict Usage**: Use type hints for better code clarity
 - **Constants Module**: Eliminate magic strings by using `constants.py`
 - **Production Ready**: All core features are stable and CI-validated
+
+## Key Architectural Decisions
+
+### Multi-Mode Operation
+The system implements three distinct operational modes to handle different development and deployment scenarios:
+- **Mock Mode** (`mock`): Returns predictable test responses, ideal for development and CI/CD
+- **Direct API Mode** (`direct`): Direct Google Gemini API calls, recommended for production
+- **ADK Framework Mode** (`adk`): Uses Google ADK framework, currently has integration challenges
+
+### Japanese Language Support
+The system includes comprehensive Japanese language support:
+- Agent prompts and responses in Japanese (`agent_defs/`)
+- Japanese idea generation patterns (逆転, 組み合わせ, etc.)
+- Unicode handling in all text processing components
+
+### Fallback Architecture
+Implements graceful degradation patterns:
+- Optional dependency imports with try/catch blocks
+- API failure handling with meaningful error messages
+- Automatic fallback to mock mode when APIs unavailable

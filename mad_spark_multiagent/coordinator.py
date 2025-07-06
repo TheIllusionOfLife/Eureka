@@ -9,6 +9,7 @@ import os
 import json
 import logging
 import time
+import datetime
 from typing import List, Dict, Any, Optional, TypedDict # Added TypedDict
 
 # --- Logging Configuration ---
@@ -69,6 +70,7 @@ try:
     )
     from mad_spark_multiagent.novelty_filter import NoveltyFilter
     from mad_spark_multiagent.temperature_control import TemperatureManager
+    from mad_spark_multiagent.enhanced_reasoning import ReasoningEngine
     from mad_spark_multiagent.constants import (
         DEFAULT_IDEA_TEMPERATURE,
         DEFAULT_EVALUATION_TEMPERATURE, 
@@ -84,6 +86,7 @@ except ImportError:
     )
     from novelty_filter import NoveltyFilter
     from temperature_control import TemperatureManager
+    from enhanced_reasoning import ReasoningEngine
     from constants import (
         DEFAULT_IDEA_TEMPERATURE,
         DEFAULT_EVALUATION_TEMPERATURE, 
@@ -215,11 +218,28 @@ def run_multistep_workflow(
     theme: str, constraints: str, num_top_candidates: int = 2, 
     enable_novelty_filter: bool = True, novelty_threshold: float = 0.8,
     temperature_manager: Optional['TemperatureManager'] = None,
-    verbose: bool = False
+    verbose: bool = False,
+    enhanced_reasoning: bool = False,
+    multi_dimensional_eval: bool = False,
+    reasoning_engine: Optional['ReasoningEngine'] = None
 ) -> List[CandidateData]:
     """
     Runs the multi-step idea generation and refinement workflow.
-    # ... (rest of docstring)
+    
+    Args:
+        theme: The main topic/theme for idea generation
+        constraints: Constraints or requirements for the ideas
+        num_top_candidates: Number of top ideas to select for detailed analysis
+        enable_novelty_filter: Whether to filter duplicate/similar ideas
+        novelty_threshold: Similarity threshold for novelty filtering
+        temperature_manager: Manager for controlling creativity levels
+        verbose: Enable verbose logging for detailed workflow visibility
+        enhanced_reasoning: Enable enhanced reasoning capabilities (Phase 2.1)
+        multi_dimensional_eval: Use multi-dimensional evaluation instead of simple scoring
+        reasoning_engine: Pre-initialized reasoning engine (optional)
+        
+    Returns:
+        List of CandidateData containing processed ideas with evaluations
     """
     final_candidates_data: List[CandidateData] = []
     # raw_generated_ideas: str = "" # Type will be known after call
@@ -238,6 +258,20 @@ def run_multistep_workflow(
         eval_temp = DEFAULT_EVALUATION_TEMPERATURE
         advocacy_temp = DEFAULT_ADVOCACY_TEMPERATURE
         skepticism_temp = DEFAULT_SKEPTICISM_TEMPERATURE
+
+    # Initialize enhanced reasoning engine if requested
+    engine = None
+    conversation_history = []
+    if enhanced_reasoning or multi_dimensional_eval:
+        if reasoning_engine:
+            engine = reasoning_engine
+        else:
+            engine = ReasoningEngine()
+        log_verbose_step(
+            "🧠 Enhanced Reasoning Initialized",
+            f"✅ Context Memory: {engine.context_memory.capacity} items\n✅ Multi-Dimensional Evaluation: {multi_dimensional_eval}\n✅ Logical Inference: Enabled",
+            verbose
+        )
 
     # 1. Generate Ideas
     try:
@@ -334,6 +368,29 @@ def run_multistep_workflow(
         logging.debug(f"Raw evaluations received:\n{raw_evaluations}")
         log_verbose_data("Raw Critic Response", raw_evaluations, verbose, max_length=800)
 
+        # Enhanced reasoning: Multi-dimensional evaluation if enabled
+        if multi_dimensional_eval and engine:
+            log_verbose_step(
+                "🧠 Enhanced Multi-Dimensional Evaluation",
+                f"📊 Evaluating {len(parsed_ideas)} ideas across 7 dimensions\n🔬 Using: Feasibility, Innovation, Impact, Cost-Effectiveness, Scalability, Risk, Timeline",
+                verbose
+            )
+            
+            multi_eval_start_time = time.time()
+            for idea in parsed_ideas:
+                # Store conversation context for enhanced reasoning
+                context_data = {
+                    'agent': 'IdeaGenerator',
+                    'input_data': f"Theme: {theme}, Constraints: {constraints}",
+                    'output_data': idea,
+                    'timestamp': str(datetime.datetime.now()),
+                    'metadata': {'temperature': idea_temp}
+                }
+                conversation_history.append(context_data)
+                
+            multi_eval_duration = time.time() - multi_eval_start_time
+            log_verbose_completion("Enhanced Evaluation", len(parsed_ideas), multi_eval_duration, verbose, "multi-dimensional evaluations")
+
         # Use robust JSON parsing with fallback strategies
         parsed_evaluations = parse_json_with_fallback(
             raw_evaluations, 
@@ -360,6 +417,31 @@ def run_multistep_workflow(
                 )
                 score = 0
                 critique = "Evaluation missing from critic response."
+
+            # Enhanced reasoning: Use multi-dimensional evaluation if enabled
+            if multi_dimensional_eval and engine:
+                try:
+                    context = {
+                        'theme': theme,
+                        'constraints': constraints,
+                        'idea_index': i,
+                        'total_ideas': len(parsed_ideas)
+                    }
+                    multi_eval_result = engine.multi_evaluator.evaluate_idea(idea_text, context)
+                    
+                    # Use multi-dimensional score instead of simple score
+                    score = multi_eval_result['weighted_score']
+                    
+                    # Enhance critique with multi-dimensional insights
+                    critique = f"{critique}\n\n🧠 Enhanced Analysis:\n{multi_eval_result['evaluation_summary']}"
+                    
+                    if verbose:
+                        print(f"📊 Multi-Dimensional Score for '{idea_text[:50]}...': {score:.2f}")
+                        print(f"   Confidence: {multi_eval_result['confidence_interval']:.3f}")
+                        
+                except Exception as e:
+                    logging.warning(f"Multi-dimensional evaluation failed for idea {i}: {e}")
+                    # Fall back to standard evaluation
 
             # Create the EvaluatedIdea dictionary matching the TypedDict
             evaluated_ideas_data.append({"text": idea_text, "score": score, "critique": critique})

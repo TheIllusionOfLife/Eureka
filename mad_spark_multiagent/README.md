@@ -50,15 +50,32 @@ This will use the sample `theme` and `constraints` defined in the `if __name__ =
 
 ## Project Structure
 
+### Core System
 - `agent_defs/`: Contains the definitions for individual agents (`idea_generator.py`, `critic.py`, `advocate.py`, `skeptic.py`).
   - `__init__.py`: Exports the agent instances.
-- `coordinator.py`: Orchestrates the agents and manages the overall workflow.
-- `enhanced_reasoning.py`: **NEW Phase 2.1** - Advanced reasoning system with context awareness and logical inference.
-- `cli.py`: Comprehensive command-line interface with all features.
+- `coordinator.py`: Orchestrates the agents and manages the overall workflow with enhanced reasoning integration.
+- `enhanced_reasoning.py`: **Phase 2.1** - Advanced reasoning system with context awareness and logical inference.
+- `cli.py`: Comprehensive command-line interface with all features including enhanced reasoning.
 - `tests/`: Comprehensive test suite including enhanced reasoning tests.
-- `requirements.txt`: Lists project dependencies (`google-generativeai`, `python-dotenv`, `pytest`).
-- `.env` (create this file locally, gitignored): For storing your `GOOGLE_API_KEY` and `GOOGLE_GENAI_MODEL`.
-- `README.md`: This file.
+
+### Supporting Modules
+- `temperature_control.py`: Temperature management system with presets
+- `novelty_filter.py`: Tier0 novelty filtering for duplicate detection
+- `bookmark_system.py`: Bookmark and remix functionality
+- `utils.py`: Utility functions and helper methods
+- `constants.py`: Project constants and configuration values
+
+### Documentation & Examples
+- `docs/`: Documentation files including user guides and verbose logging guide
+- `examples/`: Demo files and enhanced reasoning examples
+- `debug/`: Debug utilities and development tools
+- `temp/`: Temporary files and analysis outputs
+
+### Configuration
+- `requirements.txt`: Lists project dependencies
+- `.env` (create this file locally, gitignored): For storing your `GOOGLE_API_KEY` and `GOOGLE_GENAI_MODEL`
+- `pytest.ini`: Test configuration
+- `README.md`: This file
 
 ## How it Works
 
@@ -144,7 +161,7 @@ All Phase 1 features have been successfully implemented and are production-ready
 
 See [VERBOSE_LOGGING_GUIDE.md](VERBOSE_LOGGING_GUIDE.md) for complete documentation.
 
-### **Enhanced Reasoning (Phase 2.1)** 🚧 **IN PROGRESS**
+### **Enhanced Reasoning (Phase 2.1)** ✅ **COMPLETED & INTEGRATED**
 
 Phase 2.1 introduces sophisticated reasoning capabilities that enhance agent decision-making:
 
@@ -250,19 +267,19 @@ python cli.py "AI applications" "Practical" --novelty-threshold 0.6
 python cli.py "Healthcare" "Affordable" --output-format json --output-file results.json
 ```
 
-### Phase 2.1 Enhanced Reasoning (Coming Soon)
+### Phase 2.1 Enhanced Reasoning ✅ **NOW AVAILABLE**
 ```bash
 # Enable enhanced reasoning with context awareness
-python cli.py "AI healthcare" "Rural deployment" --enhanced-reasoning
+python cli.py "AI healthcare" "Rural deployment" --enhanced-reasoning --verbose
 
-# Use multi-dimensional evaluation
-python cli.py "Smart agriculture" "Sustainable" --multi-dimensional-eval
+# Use multi-dimensional evaluation (7 dimensions)
+python cli.py "Smart agriculture" "Sustainable" --multi-dimensional-eval --verbose
 
-# Enable logical inference chains
-python cli.py "Urban planning" "Community-focused" --logical-inference
+# Combine enhanced reasoning with multi-dimensional evaluation
+python cli.py "Urban planning" "Community-focused" --enhanced-reasoning --multi-dimensional-eval
 
-# Specify custom evaluation dimensions
-python cli.py "EdTech solutions" "K-12" --eval-dimensions feasibility,innovation,impact
+# Enhanced reasoning with temperature control
+python cli.py "EdTech solutions" "K-12" --enhanced-reasoning --temperature-preset creative
 ```
 
 ## Lessons Learned: PR #56 Verbose Logging Implementation

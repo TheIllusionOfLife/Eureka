@@ -10,6 +10,7 @@ import sys
 import os
 from typing import List, Dict, Any, Optional
 import logging
+from datetime import datetime
 
 # Import MadSpark components with fallback for local development
 try:
@@ -49,8 +50,6 @@ def setup_logging(verbose: bool = False):
     
     # Create logs directory if verbose mode is enabled
     if verbose:
-        import os
-        from datetime import datetime
         os.makedirs("logs", exist_ok=True)
         
         # Create timestamped log file for verbose mode

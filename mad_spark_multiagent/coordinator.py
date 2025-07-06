@@ -125,6 +125,25 @@ def log_verbose_data(label: str, data: str, verbose: bool = False, max_length: i
         log_data = data[:max_length] + ("..." if len(data) > max_length else "")
         logging.debug(f"VERBOSE_CONTENT: {log_data}")
 
+def log_verbose_completion(step_name: str, count: int, duration: float, verbose: bool = False, unit: str = "items"):
+    """Log completion status with timing information."""
+    if verbose:
+        print(f"✅ {step_name} Complete: Generated {count} {unit} in {duration:.2f}s")
+
+def log_verbose_sample_list(items: list, verbose: bool = False, max_display: int = 3, item_formatter=None):
+    """Log a sample of items from a list."""
+    if verbose and items:
+        print("📝 Sample Items:")
+        display_items = items[:max_display]
+        for i, item in enumerate(display_items, 1):
+            if item_formatter:
+                formatted_item = item_formatter(item)
+            else:
+                formatted_item = str(item)[:80] + ("..." if len(str(item)) > 80 else "")
+            print(f"  {i}. {formatted_item}")
+        if len(items) > max_display:
+            print(f"  ... and {len(items) - max_display} more items")
+
 
 # --- TypedDict Definitions ---
 class EvaluatedIdea(TypedDict):
@@ -220,13 +239,8 @@ def run_multistep_workflow(
         step_duration = time.time() - step_start_time
         logging.info(f"Generated {len(parsed_ideas)} raw ideas.")
         
-        if verbose:
-            print(f"✅ Step 1 Complete: Generated {len(parsed_ideas)} ideas in {step_duration:.2f}s")
-            print("📝 Sample Ideas:")
-            for i, idea in enumerate(parsed_ideas[:3], 1):
-                print(f"  {i}. {idea[:80]}...")
-            if len(parsed_ideas) > 3:
-                print(f"  ... and {len(parsed_ideas) - 3} more ideas")
+        log_verbose_completion("Step 1", len(parsed_ideas), step_duration, verbose, "ideas")
+        log_verbose_sample_list(parsed_ideas, verbose)
         
         # 1.5. Apply Tier0 Novelty Filter (if enabled)
         if enable_novelty_filter:
@@ -326,8 +340,8 @@ def run_multistep_workflow(
             # Create the EvaluatedIdea dictionary matching the TypedDict
             evaluated_ideas_data.append({"text": idea_text, "score": score, "critique": critique})
 
+        log_verbose_completion("Step 2", len(evaluated_ideas_data), eval_duration, verbose, "ideas")
         if verbose:
-            print(f"✅ Step 2 Complete: Evaluated {len(evaluated_ideas_data)} ideas in {eval_duration:.2f}s")
             print("📊 Sample Evaluations:")
             for i, eval_data in enumerate(evaluated_ideas_data[:3], 1):
                 print(f"  {i}. Score: {eval_data['score']}/10 - {eval_data['text'][:60]}...")
@@ -394,8 +408,7 @@ def run_multistep_workflow(
             advocate_duration = time.time() - advocate_start_time
             log_verbose_data(f"Raw Advocate Response for Idea #{idx}", advocacy_output, verbose, max_length=600)
             
-            if verbose:
-                print(f"✅ Advocacy Complete: Generated {len(advocacy_output)} characters in {advocate_duration:.2f}s")
+            log_verbose_completion("Advocacy", len(advocacy_output), advocate_duration, verbose, "characters")
                 
         except Exception as e:
             logging.warning(f"AdvocateAgent failed for idea '{idea_text}'. Error: {str(e)}")
@@ -419,8 +432,7 @@ def run_multistep_workflow(
             skeptic_duration = time.time() - skeptic_start_time
             log_verbose_data(f"Raw Skeptic Response for Idea #{idx}", skepticism_output, verbose, max_length=600)
             
-            if verbose:
-                print(f"✅ Skeptical Analysis Complete: Generated {len(skepticism_output)} characters in {skeptic_duration:.2f}s")
+            log_verbose_completion("Skeptical Analysis", len(skepticism_output), skeptic_duration, verbose, "characters")
                 
         except Exception as e:
             logging.warning(f"SkepticAgent failed for idea '{idea_text}'. Error: {str(e)}")

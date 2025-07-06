@@ -16,6 +16,10 @@ with patch('mad_spark_multiagent.coordinator.idea_generator_agent'), \
         call_critic_with_retry,
         call_advocate_with_retry,
         call_skeptic_with_retry,
+        log_verbose_step,
+        log_verbose_data,
+        log_verbose_completion,
+        log_verbose_sample_list,
     )
 
 
@@ -219,3 +223,106 @@ class TestRetryWrappers:
         mock_agent.call_tool.assert_called_once_with(
             "criticize_idea", idea="idea", advocacy="advocacy", context="context"
         )
+    
+    @patch('mad_spark_multiagent.coordinator.call_idea_generator_with_retry')
+    @patch('mad_spark_multiagent.coordinator.call_critic_with_retry')
+    @patch('mad_spark_multiagent.coordinator.call_advocate_with_retry')
+    @patch('mad_spark_multiagent.coordinator.call_skeptic_with_retry')
+    @patch('builtins.print')  # Mock print to capture verbose output
+    def test_verbose_logging_workflow(
+        self,
+        mock_print,
+        mock_skeptic,
+        mock_advocate,
+        mock_critic,
+        mock_idea_gen
+    ):
+        """Test that verbose logging produces expected output."""
+        # Setup mocks
+        mock_idea_gen.return_value = "Idea 1: Test idea"
+        mock_critic.return_value = '{"score": 8, "comment": "Good idea"}'
+        mock_advocate.return_value = "Strong support for this idea"
+        mock_skeptic.return_value = "Some concerns about feasibility"
+        
+        # Run workflow with verbose=True
+        results = run_multistep_workflow(
+            theme="Test Theme",
+            constraints="Test Constraints",
+            num_top_candidates=1,
+            verbose=True
+        )
+        
+        # Verify workflow completed successfully
+        assert len(results) == 1
+        assert results[0]["idea"] == "Idea 1: Test idea"
+        assert results[0]["initial_score"] == 8
+        
+        # Verify verbose output was generated
+        print_calls = [call.args[0] for call in mock_print.call_args_list]
+        verbose_outputs = [call for call in print_calls if isinstance(call, str)]
+        
+        # Check for key verbose logging elements
+        step_headers = [output for output in verbose_outputs if "STEP" in output and "=" in output]
+        completion_messages = [output for output in verbose_outputs if "Complete:" in output]
+        
+        # Should have multiple step headers and completion messages
+        assert len(step_headers) >= 3, f"Expected at least 3 step headers, got {len(step_headers)}"
+        assert len(completion_messages) >= 3, f"Expected at least 3 completion messages, got {len(completion_messages)}"
+        
+        # Verify specific verbose steps are present
+        all_output = " ".join(verbose_outputs)
+        assert "STEP 1: Idea Generation Agent" in all_output
+        assert "STEP 2: Critic Agent Evaluation" in all_output
+        assert "STEP 3.1: Processing Top Candidate" in all_output
+        assert "WORKFLOW COMPLETE" in all_output
+    
+    @patch('builtins.print')
+    @patch('mad_spark_multiagent.coordinator.logging')
+    def test_verbose_logging_functions(self, mock_logging, mock_print):
+        """Test the verbose logging helper functions."""
+        
+        # Test log_verbose_step
+        log_verbose_step("Test Step", "Test details", verbose=True)
+        mock_print.assert_called()
+        mock_logging.info.assert_called()
+        
+        # Test with verbose=False
+        mock_print.reset_mock()
+        mock_logging.reset_mock()
+        log_verbose_step("Test Step", "Test details", verbose=False)
+        mock_print.assert_not_called()
+        
+        # Test log_verbose_data with truncation
+        mock_print.reset_mock()
+        mock_logging.reset_mock()
+        long_data = "x" * 1000  # Longer than default max_length of 500
+        log_verbose_data("Test Data", long_data, verbose=True, max_length=100)
+        
+        # Should print truncated version
+        print_calls = mock_print.call_args_list
+        assert len(print_calls) > 0
+        # Check that truncation happened
+        printed_content = " ".join([str(call.args[0]) for call in print_calls])
+        assert "Truncated" in printed_content
+        
+        # Test log_verbose_completion
+        mock_print.reset_mock()
+        log_verbose_completion("Test Step", 5, 2.5, verbose=True, unit="items")
+        mock_print.assert_called_once()
+        call_args = mock_print.call_args[0][0]
+        assert "Test Step Complete" in call_args
+        assert "5 items" in call_args
+        assert "2.50s" in call_args
+        
+        # Test log_verbose_sample_list
+        mock_print.reset_mock()
+        test_items = ["Item 1", "Item 2", "Item 3", "Item 4", "Item 5"]
+        log_verbose_sample_list(test_items, verbose=True, max_display=3)
+        
+        # Should print sample items
+        print_calls = mock_print.call_args_list
+        assert len(print_calls) > 0
+        printed_content = " ".join([str(call.args[0]) for call in print_calls])
+        assert "Sample Items" in printed_content
+        assert "Item 1" in printed_content
+        assert "and 2 more items" in printed_content  # Since we have 5 items, showing 3

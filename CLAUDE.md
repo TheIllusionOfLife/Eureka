@@ -198,3 +198,102 @@ Implements graceful degradation patterns:
 - Optional dependency imports with try/catch blocks
 - API failure handling with meaningful error messages
 - Automatic fallback to mock mode when APIs unavailable
+
+## Pull Request Review Management
+
+### Critical Guidelines for Accessing PR Reviews
+
+**IMPORTANT**: When asked to address PR review comments, you MUST follow this systematic approach to ensure you get complete review content. Previous issues occurred due to incomplete review retrieval.
+
+#### 1. Systematic PR Review Fetching Process
+
+**Primary Method** (use this first):
+```bash
+# Step 1: Get PR number and verify context
+gh pr view --json number,headRepository
+
+# Step 2: Get all reviews in reverse order (latest first)
+gh pr view {PR_NUMBER} --json reviews | jq '.reviews | reverse | .[]'
+
+# Step 3: Extract specific review content (replace {INDEX} with 0, 1, 2...)
+gh pr view {PR_NUMBER} --json reviews | jq -r '.reviews[{INDEX}].body'
+```
+
+**Fallback Methods** (if primary fails):
+```bash
+# Method A: Use comments endpoint
+gh pr view {PR_NUMBER} --json comments | jq '.comments | reverse | .[]'
+
+# Method B: Try direct API access
+gh api /repos/{OWNER}/{REPO}/pulls/{PR_NUMBER}/reviews
+
+# Method C: Use text output with manual parsing
+gh pr view {PR_NUMBER} --comments
+```
+
+#### 2. Handling Truncation Issues
+
+**Always verify complete content**:
+- If output ends with `... [X lines truncated] ...`, the content is incomplete
+- Use JSON output format instead of text format
+- Extract review bodies individually using jq
+- For very long reviews, save to temporary files:
+
+```bash
+# Save full review to file for analysis
+gh pr view {PR_NUMBER} --json reviews | jq -r '.reviews[0].body' > /tmp/review.txt
+cat /tmp/review.txt
+```
+
+#### 3. Verification Checklist
+
+Before proceeding with fixes, ensure you have:
+- [ ] Complete review text (no truncation)
+- [ ] All reviewer names and their specific issues
+- [ ] Specific file/line references if mentioned
+- [ ] Critical vs. minor issue classification
+- [ ] Clear understanding of what needs to be fixed
+
+#### 4. Error Handling Protocol
+
+**If you get 404 errors**:
+1. Verify you're in the correct repository directory
+2. Check if PR number is correct: `gh pr list`
+3. Verify GitHub CLI authentication: `gh auth status`
+4. Try alternative endpoints or ask user for direct issue description
+
+**If reviews are incomplete**:
+1. DO NOT proceed with partial information
+2. Ask user to provide specific review content
+3. Explain what information you were unable to retrieve
+4. Request clarification on critical issues to address
+
+#### 5. Required Response Pattern
+
+When addressing PR reviews, always start with:
+```
+## Issues Identified from Reviews
+
+**Critical Issues:**
+- [List critical issues with reviewer attribution]
+
+**Minor Issues:**
+- [List minor issues with reviewer attribution]
+
+**Verification:** ✅ Complete review content retrieved
+```
+
+### Examples of Working Commands
+
+```bash
+# Get latest review from Gemini Code Assist
+gh pr view 56 --json reviews | jq -r '.reviews[-1].body'
+
+# Get review from specific reviewer
+gh pr view 56 --json reviews | jq -r '.reviews[] | select(.author.login=="cursor") | .body'
+
+# Get all reviews with metadata
+gh pr view 56 --json reviews | jq '.reviews[] | {author: .author.login, state: .state, body: .body}'
+```
+
+**Note**: This guidance was added after experiencing issues where incomplete review retrieval led to missing critical problems. Always ensure complete information before proceeding with fixes.

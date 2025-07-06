@@ -46,11 +46,35 @@ logger = logging.getLogger(__name__)
 def setup_logging(verbose: bool = False):
     """Setup logging configuration."""
     level = logging.DEBUG if verbose else logging.INFO
-    logging.basicConfig(
-        level=level,
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
-    )
+    
+    # Create logs directory if verbose mode is enabled
+    if verbose:
+        import os
+        from datetime import datetime
+        os.makedirs("logs", exist_ok=True)
+        
+        # Create timestamped log file for verbose mode
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        log_file = f"logs/madspark_verbose_{timestamp}.log"
+        
+        # Configure logging with both file and console output
+        logging.basicConfig(
+            level=level,
+            format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S',
+            handlers=[
+                logging.FileHandler(log_file),
+                logging.StreamHandler()
+            ]
+        )
+        
+        print(f"📁 Verbose logs will be saved to: {log_file}")
+    else:
+        logging.basicConfig(
+            level=level,
+            format='%(asctime)s - %(levelname)s - %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S'
+        )
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -322,7 +346,8 @@ def main():
             num_top_candidates=args.num_candidates,
             enable_novelty_filter=not args.disable_novelty_filter,
             novelty_threshold=args.novelty_threshold,
-            temperature_manager=temp_manager
+            temperature_manager=temp_manager,
+            verbose=args.verbose
         )
         
         if not results:

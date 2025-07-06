@@ -11,10 +11,22 @@ import logging
 import time
 from typing import List, Dict, Any, Optional, TypedDict # Added TypedDict
 
-# --- Logging Configuration ---
-# Note: Logging configuration is now handled by CLI to avoid conflicts
-# If running coordinator.py directly, basic logging will be set up below
-# --- End Logging Configuration ---
+# -------------------------------------------------------------
+# Ensure logging is configured before any module-level log calls
+# -------------------------------------------------------------
+# The coordinator is often imported by the CLI *before* the CLI has a
+# chance to configure logging.  As a safeguard, we set up a very small
+# default configuration **only if** the root logger has no handlers yet.
+# The CLI later re-configures logging with `force=True`, so this fallback
+# will be cleanly replaced and will not interfere with user-level
+# configuration.
+
+if not logging.getLogger().handlers:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
 
 # SECURITY NOTE: Storing API keys directly in environment variables is suitable for
 # local development but not recommended for production.

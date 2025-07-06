@@ -117,8 +117,14 @@ Examples:
   # High creativity with novelty filtering
   %(prog)s "Smart cities" "Scalable solutions" -tp creative --novelty-threshold 0.6
   
+  # Enhanced reasoning with multi-dimensional evaluation
+  %(prog)s "AI healthcare" "Rural deployment" --enhanced-reasoning --multi-dimensional-eval
+  
   # Generate ideas based on bookmarks (remix)
   %(prog)s "Green energy" --remix --bookmark-tags renewable
+  
+  # Verbose mode with enhanced reasoning for detailed analysis
+  %(prog)s "Sustainable agriculture" "Low-cost" --verbose --enhanced-reasoning
   
   # List saved bookmarks
   %(prog)s --list-bookmarks
@@ -213,6 +219,27 @@ Examples:
         '--remix-ids',
         nargs='*',
         help='Specific bookmark IDs to use for remix (default: use all)'
+    )
+    
+    # Enhanced reasoning (Phase 2.1)
+    reasoning_group = parser.add_argument_group('enhanced reasoning (Phase 2.1)')
+    
+    reasoning_group.add_argument(
+        '--enhanced-reasoning',
+        action='store_true',
+        help='Enable enhanced reasoning capabilities with context awareness'
+    )
+    
+    reasoning_group.add_argument(
+        '--multi-dimensional-eval',
+        action='store_true',
+        help='Use multi-dimensional evaluation (7 dimensions: feasibility, innovation, impact, cost-effectiveness, scalability, risk, timeline)'
+    )
+    
+    reasoning_group.add_argument(
+        '--logical-inference',
+        action='store_true',
+        help='Enable logical inference chains for enhanced reasoning'
     )
     
     # Output options
@@ -374,7 +401,9 @@ def main():
             enable_novelty_filter=not args.disable_novelty_filter,
             novelty_threshold=args.novelty_threshold,
             temperature_manager=temp_manager,
-            verbose=args.verbose
+            verbose=args.verbose,
+            enhanced_reasoning=args.enhanced_reasoning,
+            multi_dimensional_eval=args.multi_dimensional_eval
         )
         
         if not results:

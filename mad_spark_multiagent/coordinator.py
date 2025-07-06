@@ -153,6 +153,22 @@ def log_verbose_sample_list(items: list, verbose: bool = False, max_display: int
             print(f"  ... and {len(items) - max_display} more items")
 
 
+def log_agent_execution(step_name: str, agent_name: str, agent_emoji: str, description: str, 
+                       temperature: float, verbose: bool = False):
+    """Log the start of an agent execution with standardized format."""
+    if verbose:
+        details = f"{agent_emoji} Agent: {agent_name}\n🎯 {description}\n🌡️ Temperature: {temperature}"
+        log_verbose_step(step_name, details, verbose)
+
+
+def log_agent_completion(agent_name: str, response_data: str, step_number: str, 
+                        duration: float, verbose: bool = False, max_length: int = 600):
+    """Log the completion of an agent execution with response data."""
+    if verbose:
+        log_verbose_data(f"Raw {agent_name} Response for {step_number}", response_data, verbose, max_length)
+        log_verbose_completion(f"{agent_name} Analysis", len(response_data), duration, verbose, "characters")
+
+
 # --- TypedDict Definitions ---
 class EvaluatedIdea(TypedDict):
     """Structure for an idea after evaluation by the CriticAgent."""
@@ -401,9 +417,12 @@ def run_multistep_workflow(
         # Advocate Agent
         try:
             advocate_start_time = time.time()
-            log_verbose_step(
+            log_agent_execution(
                 f"STEP 3.{idx}a: Advocate Agent", 
-                f"✅ Agent: Advocate\n🎯 Building case for idea\n🌡️ Temperature: {advocacy_temp} (balanced persuasion)",
+                "Advocate", 
+                "✅", 
+                "Building case for idea (balanced persuasion)",
+                advocacy_temp,
                 verbose
             )
             
@@ -414,9 +433,7 @@ def run_multistep_workflow(
             )
             
             advocate_duration = time.time() - advocate_start_time
-            log_verbose_data(f"Raw Advocate Response for Idea #{idx}", advocacy_output, verbose, max_length=600)
-            
-            log_verbose_completion("Advocacy", len(advocacy_output), advocate_duration, verbose, "characters")
+            log_agent_completion("Advocate", advocacy_output, f"Idea #{idx}", advocate_duration, verbose)
                 
         except Exception as e:
             logging.warning(f"AdvocateAgent failed for idea '{idea_text}'. Error: {str(e)}")
@@ -425,9 +442,12 @@ def run_multistep_workflow(
         # Skeptic Agent
         try:
             skeptic_start_time = time.time()
-            log_verbose_step(
+            log_agent_execution(
                 f"STEP 3.{idx}b: Skeptic Agent", 
-                f"⚠️ Agent: Skeptic\n🎯 Analyzing risks and challenges\n🌡️ Temperature: {skepticism_temp} (balanced skepticism)",
+                "Skeptic", 
+                "⚠️", 
+                "Analyzing risks and challenges (balanced skepticism)",
+                skepticism_temp,
                 verbose
             )
             
@@ -438,9 +458,7 @@ def run_multistep_workflow(
             )
             
             skeptic_duration = time.time() - skeptic_start_time
-            log_verbose_data(f"Raw Skeptic Response for Idea #{idx}", skepticism_output, verbose, max_length=600)
-            
-            log_verbose_completion("Skeptical Analysis", len(skepticism_output), skeptic_duration, verbose, "characters")
+            log_agent_completion("Skeptic", skepticism_output, f"Idea #{idx}", skeptic_duration, verbose)
                 
         except Exception as e:
             logging.warning(f"SkepticAgent failed for idea '{idea_text}'. Error: {str(e)}")

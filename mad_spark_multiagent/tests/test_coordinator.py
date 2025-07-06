@@ -20,6 +20,8 @@ with patch('mad_spark_multiagent.coordinator.idea_generator_agent'), \
         log_verbose_data,
         log_verbose_completion,
         log_verbose_sample_list,
+        log_agent_execution,
+        log_agent_completion,
     )
 
 
@@ -326,3 +328,13 @@ class TestRetryWrappers:
         assert "Sample Items" in printed_content
         assert "Item 1" in printed_content
         assert "and 2 more items" in printed_content  # Since we have 5 items, showing 3
+        
+        # Test log_agent_execution
+        mock_print.reset_mock()
+        log_agent_execution("STEP 1", "TestAgent", "🤖", "Testing functionality", 0.7, verbose=True)
+        mock_print.assert_called()
+        
+        # Test log_agent_completion
+        mock_print.reset_mock()
+        log_agent_completion("TestAgent", "Test response data", "Idea #1", 2.5, verbose=True)
+        mock_print.assert_called()

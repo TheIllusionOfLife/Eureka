@@ -55,7 +55,28 @@ def setup_logging(verbose: bool = False):
     
     # Create logs directory if verbose mode is enabled
     if verbose:
-        os.makedirs("logs", exist_ok=True)
+        try:
+            os.makedirs("logs", exist_ok=True)
+        except PermissionError:
+            print("⚠️ Warning: Cannot create logs directory due to permissions. Logs will only go to console.")
+            # Fall back to console-only logging
+            logging.basicConfig(
+                level=level,
+                format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
+                datefmt='%Y-%m-%d %H:%M:%S',
+                force=True
+            )
+            return
+        except OSError as e:
+            print(f"⚠️ Warning: Cannot create logs directory: {e}. Logs will only go to console.")
+            # Fall back to console-only logging
+            logging.basicConfig(
+                level=level,
+                format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
+                datefmt='%Y-%m-%d %H:%M:%S',
+                force=True
+            )
+            return
         
         # Create timestamped log file for verbose mode
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

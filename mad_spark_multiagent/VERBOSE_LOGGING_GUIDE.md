@@ -196,4 +196,49 @@ grep -A 10 "Raw.*Response" analysis.log
 ✅ **Data flow tracking**: Understand how data moves between agents  
 ✅ **Error visibility**: Clear error reporting and context  
 
+## Log Management Best Practices
+
+### 📁 **Log File Organization**
+- Log files are automatically saved to `logs/madspark_verbose_YYYYMMDD_HHMMSS.log`
+- Each verbose run creates a separate timestamped file
+- Logs are stored in plain text format for easy analysis
+
+### 🧹 **Log Cleanup & Retention**
+Verbose logs can accumulate over time. Consider these practices:
+
+```bash
+# Clean up logs older than 7 days
+find logs/ -name "madspark_verbose_*.log" -mtime +7 -delete
+
+# Clean up logs larger than 100MB (very large runs)
+find logs/ -name "madspark_verbose_*.log" -size +100M -delete
+
+# Keep only the 10 most recent log files
+ls -t logs/madspark_verbose_*.log | tail -n +11 | xargs rm -f
+```
+
+### 💾 **Disk Space Management**
+- **Typical log size**: 50KB - 5MB per verbose run
+- **Large workflows**: Can generate 10MB+ logs with many candidates
+- **Recommendation**: Monitor `logs/` directory size regularly
+
+### 🔒 **Security Considerations**
+- Log files may contain sensitive information from API responses
+- Ensure proper file permissions: `chmod 600 logs/*.log`
+- Consider log rotation for production environments
+- Never commit log files to version control
+
+### ⚠️ **Error Handling**
+The system includes graceful fallback for log file creation issues:
+- **Permission errors**: Falls back to console-only logging
+- **Disk space issues**: Continues execution with console output
+- **Directory creation failures**: Shows warning and continues
+
+### 🚀 **Production Recommendations**
+For production or heavy usage:
+- Implement log rotation (daily/weekly)
+- Set up automated cleanup scripts
+- Monitor disk space usage
+- Consider centralized logging for multiple instances
+
 The enhanced verbose logging provides unprecedented visibility into the MadSpark multi-agent workflow, making it easy to understand, debug, and optimize the system's behavior.

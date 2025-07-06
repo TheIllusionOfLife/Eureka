@@ -109,18 +109,29 @@ def log_verbose_step(step_name: str, details: str = "", verbose: bool = False):
 
 def log_verbose_data(label: str, data: str, verbose: bool = False, max_length: int = 500):
     """Log verbose data with truncation for readability."""
-    if verbose:
-        msg = f"\n📊 {label}:\n{'-' * 40}\n"
-        if len(data) > max_length:
-            msg += f"{data[:max_length]}...\n\n[Truncated - Total length: {len(data)} characters]"
-        else:
-            msg += data
-        msg += f"\n{'-' * 40}"
-        print(msg)
-        logging.info(f"VERBOSE_DATA: {label} ({len(data)} characters)")
-        # Log truncated version to file
-        log_data = data[:max_length] + ("..." if len(data) > max_length else "")
-        logging.debug(f"VERBOSE_CONTENT: {log_data}")
+    if not verbose:
+        return  # Early exit to avoid any string operations
+    
+    # Use list for efficient string building
+    msg_parts = [f"\n📊 {label}:", "-" * 40]
+    
+    if len(data) > max_length:
+        msg_parts.extend([
+            data[:max_length] + "...",
+            "",
+            f"[Truncated - Total length: {len(data)} characters]"
+        ])
+        log_data = data[:max_length] + "..."
+    else:
+        msg_parts.append(data)
+        log_data = data
+    
+    msg_parts.append("-" * 40)
+    print("\n".join(msg_parts))
+    
+    logging.info(f"VERBOSE_DATA: {label} ({len(data)} characters)")
+    # Log truncated version to file
+    logging.debug(f"VERBOSE_CONTENT: {log_data}")
 
 def log_verbose_completion(step_name: str, count: int, duration: float, verbose: bool = False, unit: str = "items"):
     """Log completion status with timing information."""

@@ -48,6 +48,11 @@ def setup_logging(verbose: bool = False):
     """Setup logging configuration."""
     level = logging.DEBUG if verbose else logging.INFO
     
+    # Clear any existing handlers to ensure our configuration takes effect
+    root_logger = logging.getLogger()
+    for handler in root_logger.handlers[:]:
+        root_logger.removeHandler(handler)
+    
     # Create logs directory if verbose mode is enabled
     if verbose:
         os.makedirs("logs", exist_ok=True)
@@ -64,7 +69,8 @@ def setup_logging(verbose: bool = False):
             handlers=[
                 logging.FileHandler(log_file),
                 logging.StreamHandler()
-            ]
+            ],
+            force=True  # Force reconfiguration even if basicConfig was called before
         )
         
         print(f"📁 Verbose logs will be saved to: {log_file}")
@@ -72,7 +78,8 @@ def setup_logging(verbose: bool = False):
         logging.basicConfig(
             level=level,
             format='%(asctime)s - %(levelname)s - %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S'
+            datefmt='%Y-%m-%d %H:%M:%S',
+            force=True  # Force reconfiguration even if basicConfig was called before
         )
 
 

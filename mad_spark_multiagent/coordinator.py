@@ -12,11 +12,8 @@ import time
 from typing import List, Dict, Any, Optional, TypedDict # Added TypedDict
 
 # --- Logging Configuration ---
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
+# Note: Logging configuration is now handled by CLI to avoid conflicts
+# If running coordinator.py directly, basic logging will be set up below
 # --- End Logging Configuration ---
 
 # SECURITY NOTE: Storing API keys directly in environment variables is suitable for
@@ -463,6 +460,12 @@ def run_multistep_workflow(
     return final_candidates_data
 
 if __name__ == "__main__":
+    # Set up basic logging when running coordinator directly
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
     logging.info("Starting Mad Spark Multi-Agent Workflow...")
     sample_theme: str = "Sustainable Urban Living"
     sample_constraints: str = (

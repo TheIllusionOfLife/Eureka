@@ -221,6 +221,7 @@ def run_multistep_workflow(
     verbose: bool = False,
     enhanced_reasoning: bool = False,
     multi_dimensional_eval: bool = False,
+    logical_inference: bool = False,
     reasoning_engine: Optional['ReasoningEngine'] = None
 ) -> List[CandidateData]:
     """
@@ -236,6 +237,7 @@ def run_multistep_workflow(
         verbose: Enable verbose logging for detailed workflow visibility
         enhanced_reasoning: Enable enhanced reasoning capabilities (Phase 2.1)
         multi_dimensional_eval: Use multi-dimensional evaluation instead of simple scoring
+        logical_inference: Enable logical inference chains for enhanced reasoning
         reasoning_engine: Pre-initialized reasoning engine (optional)
         
     Returns:
@@ -262,14 +264,14 @@ def run_multistep_workflow(
     # Initialize enhanced reasoning engine if requested
     engine = None
     conversation_history = []
-    if enhanced_reasoning or multi_dimensional_eval:
+    if enhanced_reasoning or multi_dimensional_eval or logical_inference:
         if reasoning_engine:
             engine = reasoning_engine
         else:
             engine = ReasoningEngine()
         log_verbose_step(
             "🧠 Enhanced Reasoning Initialized",
-            f"✅ Context Memory: {engine.context_memory.capacity} items\n✅ Multi-Dimensional Evaluation: {multi_dimensional_eval}\n✅ Logical Inference: Enabled",
+            f"✅ Context Memory: {engine.context_memory.capacity} items\n✅ Multi-Dimensional Evaluation: {multi_dimensional_eval}\n✅ Logical Inference: {logical_inference}",
             verbose
         )
 
@@ -368,17 +370,16 @@ def run_multistep_workflow(
         logging.debug(f"Raw evaluations received:\n{raw_evaluations}")
         log_verbose_data("Raw Critic Response", raw_evaluations, verbose, max_length=800)
 
-        # Enhanced reasoning: Multi-dimensional evaluation if enabled
-        if multi_dimensional_eval and engine:
+        # Enhanced reasoning: Store conversation context if enabled
+        if enhanced_reasoning and engine:
             log_verbose_step(
-                "🧠 Enhanced Multi-Dimensional Evaluation",
-                f"📊 Evaluating {len(parsed_ideas)} ideas across 7 dimensions\n🔬 Using: Feasibility, Innovation, Impact, Cost-Effectiveness, Scalability, Risk, Timeline",
+                "🧠 Enhanced Reasoning Context Collection",
+                f"📝 Storing conversation context for {len(parsed_ideas)} ideas\n🔗 Building context memory for enhanced reasoning",
                 verbose
             )
             
-            multi_eval_start_time = time.time()
+            # Store conversation context for enhanced reasoning
             for idea in parsed_ideas:
-                # Store conversation context for enhanced reasoning
                 context_data = {
                     'agent': 'IdeaGenerator',
                     'input_data': f"Theme: {theme}, Constraints: {constraints}",
@@ -387,9 +388,6 @@ def run_multistep_workflow(
                     'metadata': {'temperature': idea_temp}
                 }
                 conversation_history.append(context_data)
-                
-            multi_eval_duration = time.time() - multi_eval_start_time
-            log_verbose_completion("Enhanced Evaluation", len(parsed_ideas), multi_eval_duration, verbose, "multi-dimensional evaluations")
 
         # Use robust JSON parsing with fallback strategies
         parsed_evaluations = parse_json_with_fallback(
@@ -427,7 +425,53 @@ def run_multistep_workflow(
                         'idea_index': i,
                         'total_ideas': len(parsed_ideas)
                     }
-                    multi_eval_result = engine.multi_evaluator.evaluate_idea(idea_text, context)
+                    
+                    # Use enhanced reasoning with conversation history if available
+                    if enhanced_reasoning and conversation_history:
+                        # Process with context awareness using the conversation history
+                        enhanced_input = {
+                            'idea': idea_text,
+                            'context': f"{theme} - {constraints}",
+                            'evaluation_context': context
+                        }
+                        enhanced_result = engine.process_with_context(enhanced_input, conversation_history)
+                        
+                        # Extract multi-dimensional evaluation from enhanced result
+                        if 'multi_dimensional_evaluation' in enhanced_result:
+                            multi_eval_result = enhanced_result['multi_dimensional_evaluation']
+                        else:
+                            # Fallback to direct multi-dimensional evaluation
+                            multi_eval_result = engine.multi_evaluator.evaluate_idea(idea_text, context)
+                    else:
+                        # Direct multi-dimensional evaluation without context awareness
+                        multi_eval_result = engine.multi_evaluator.evaluate_idea(idea_text, context)
+                    
+                    # Apply logical inference if enabled
+                    if logical_inference and engine:
+                        try:
+                            # Create logical premises from the evaluation
+                            premises = [
+                                f"The idea '{idea_text}' addresses {theme}",
+                                f"The constraints are: {constraints}",
+                                f"The feasibility score is {multi_eval_result.get('dimension_scores', {}).get('feasibility', 5)}/10"
+                            ]
+                            
+                            # Apply logical inference
+                            inference_result = engine.logical_inference.apply_inference_chain(
+                                premises, 
+                                f"Therefore, this idea is suitable for {theme}"
+                            )
+                            
+                            if inference_result and inference_result.get('conclusion_confidence', 0) > 0.5:
+                                # Enhance the critique with logical reasoning insights
+                                critique = f"{critique}\n\n🔗 Logical Analysis:\nConfidence: {inference_result['conclusion_confidence']:.2f}\nReasoning: {inference_result.get('reasoning_chain', 'Applied formal logical inference')}"
+                                
+                                if verbose:
+                                    print(f"🔗 Logical Inference for '{idea_text[:50]}...': Confidence {inference_result['conclusion_confidence']:.2f}")
+                                    
+                        except Exception as e:
+                            logging.warning(f"Logical inference failed for idea {i}: {e}")
+                            # Continue without logical inference
                     
                     # Use multi-dimensional score instead of simple score
                     score = multi_eval_result['weighted_score']

@@ -127,6 +127,23 @@ All Phase 1 features have been successfully implemented and are production-ready
 - Multiple output formats (JSON, text, summary)
 - Batch processing and result export capabilities
 
+### 5. **Production Verbose Logging** ✅ **NEW**
+- **Complete workflow transparency**: See every agent's input/output in real-time
+- **Step-by-step processing**: Visual indicators and timing for each workflow stage
+- **Raw response logging**: Full API responses from all agents (IdeaGenerator, Critic, Advocate, Skeptic)
+- **Auto-save capabilities**: Timestamped log files for analysis and debugging
+- **Performance monitoring**: Duration tracking and bottleneck identification
+
+```bash
+# Enable verbose logging for complete workflow visibility
+./venv/bin/python cli.py "your topic" "constraints" --verbose
+
+# Save detailed analysis to file
+./venv/bin/python cli.py "topic" "constraints" --verbose > analysis.log 2>&1
+```
+
+See [VERBOSE_LOGGING_GUIDE.md](VERBOSE_LOGGING_GUIDE.md) for complete documentation.
+
 ### **Enhanced Reasoning (Phase 2.1)** 🚧 **IN PROGRESS**
 
 Phase 2.1 introduces sophisticated reasoning capabilities that enhance agent decision-making:

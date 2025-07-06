@@ -10,6 +10,7 @@ import sys
 import os
 from typing import List, Dict, Any, Optional
 import logging
+from datetime import datetime
 
 # Import MadSpark components with fallback for local development
 try:
@@ -46,11 +47,61 @@ logger = logging.getLogger(__name__)
 def setup_logging(verbose: bool = False):
     """Setup logging configuration."""
     level = logging.DEBUG if verbose else logging.INFO
-    logging.basicConfig(
-        level=level,
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
-    )
+    
+    # Clear any existing handlers to ensure our configuration takes effect
+    root_logger = logging.getLogger()
+    for handler in root_logger.handlers[:]:
+        root_logger.removeHandler(handler)
+    
+    # Create logs directory if verbose mode is enabled
+    if verbose:
+        try:
+            os.makedirs("logs", exist_ok=True)
+        except PermissionError:
+            print("⚠️ Warning: Cannot create logs directory due to permissions. Logs will only go to console.")
+            # Fall back to console-only logging
+            logging.basicConfig(
+                level=level,
+                format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
+                datefmt='%Y-%m-%d %H:%M:%S',
+                force=True
+            )
+            return
+        except OSError as e:
+            print(f"⚠️ Warning: Cannot create logs directory: {e}. Logs will only go to console.")
+            # Fall back to console-only logging
+            logging.basicConfig(
+                level=level,
+                format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
+                datefmt='%Y-%m-%d %H:%M:%S',
+                force=True
+            )
+            return
+        
+        # Create timestamped log file for verbose mode
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        log_file = f"logs/madspark_verbose_{timestamp}.log"
+        
+        # Configure logging with both file and console output
+        logging.basicConfig(
+            level=level,
+            format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S',
+            handlers=[
+                logging.FileHandler(log_file),
+                logging.StreamHandler()
+            ],
+            force=True  # Force reconfiguration even if basicConfig was called before
+        )
+        
+        print(f"📁 Verbose logs will be saved to: {log_file}")
+    else:
+        logging.basicConfig(
+            level=level,
+            format='%(asctime)s - %(levelname)s - %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S',
+            force=True  # Force reconfiguration even if basicConfig was called before
+        )
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -322,7 +373,8 @@ def main():
             num_top_candidates=args.num_candidates,
             enable_novelty_filter=not args.disable_novelty_filter,
             novelty_threshold=args.novelty_threshold,
-            temperature_manager=temp_manager
+            temperature_manager=temp_manager,
+            verbose=args.verbose
         )
         
         if not results:

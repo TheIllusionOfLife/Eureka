@@ -8,14 +8,12 @@ refine ideas based on a given theme and constraints.
 import os
 import json
 import logging
+import time
 from typing import List, Dict, Any, Optional, TypedDict # Added TypedDict
 
 # --- Logging Configuration ---
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
+# Note: Logging configuration is now handled by CLI to avoid conflicts
+# If running coordinator.py directly, basic logging will be set up below
 # --- End Logging Configuration ---
 
 # SECURITY NOTE: Storing API keys directly in environment variables is suitable for
@@ -97,6 +95,80 @@ except ImportError:
 # from google.adk.agents import Agent # No longer needed directly for hints here
 
 
+def log_verbose_step(step_name: str, details: str = "", verbose: bool = False):
+    """Log verbose step information with visual indicators."""
+    if verbose:
+        msg = f"\n{'='*60}\n🔍 {step_name}\n{'='*60}"
+        if details:
+            msg += f"\n{details}"
+        msg += "\n"
+        print(msg)
+        logging.info(f"VERBOSE_STEP: {step_name}")
+        if details:
+            logging.info(f"VERBOSE_DETAILS: {details}")
+
+def log_verbose_data(label: str, data: str, verbose: bool = False, max_length: int = 500):
+    """Log verbose data with truncation for readability."""
+    if not verbose:
+        return  # Early exit to avoid any string operations
+    
+    # Use list for efficient string building
+    msg_parts = [f"\n📊 {label}:", "-" * 40]
+    
+    if len(data) > max_length:
+        msg_parts.extend([
+            data[:max_length] + "...",
+            "",
+            f"[Truncated - Total length: {len(data)} characters]"
+        ])
+        log_data = data[:max_length] + "..."
+    else:
+        msg_parts.append(data)
+        log_data = data
+    
+    msg_parts.append("-" * 40)
+    print("\n".join(msg_parts))
+    
+    logging.info(f"VERBOSE_DATA: {label} ({len(data)} characters)")
+    # Log truncated version to file
+    logging.debug(f"VERBOSE_CONTENT: {log_data}")
+
+def log_verbose_completion(step_name: str, count: int, duration: float, verbose: bool = False, unit: str = "items"):
+    """Log completion status with timing information."""
+    if verbose:
+        print(f"✅ {step_name} Complete: Generated {count} {unit} in {duration:.2f}s")
+
+def log_verbose_sample_list(items: list, verbose: bool = False, max_display: int = 3, item_formatter=None):
+    """Log a sample of items from a list."""
+    if verbose and items:
+        print("📝 Sample Items:")
+        display_items = items[:max_display]
+        for i, item in enumerate(display_items, 1):
+            if item_formatter:
+                formatted_item = item_formatter(item)
+            else:
+                formatted_item = str(item)[:80] + ("..." if len(str(item)) > 80 else "")
+            print(f"  {i}. {formatted_item}")
+        if len(items) > max_display:
+            print(f"  ... and {len(items) - max_display} more items")
+
+
+def log_agent_execution(step_name: str, agent_name: str, agent_emoji: str, description: str, 
+                       temperature: float, verbose: bool = False):
+    """Log the start of an agent execution with standardized format."""
+    if verbose:
+        details = f"{agent_emoji} Agent: {agent_name}\n🎯 {description}\n🌡️ Temperature: {temperature}"
+        log_verbose_step(step_name, details, verbose)
+
+
+def log_agent_completion(agent_name: str, response_data: str, step_number: str, 
+                        duration: float, verbose: bool = False, max_length: int = 600):
+    """Log the completion of an agent execution with response data."""
+    if verbose:
+        log_verbose_data(f"Raw {agent_name} Response for {step_number}", response_data, verbose, max_length)
+        log_verbose_completion(f"{agent_name} Analysis", len(response_data), duration, verbose, "characters")
+
+
 # --- TypedDict Definitions ---
 class EvaluatedIdea(TypedDict):
     """Structure for an idea after evaluation by the CriticAgent."""
@@ -142,7 +214,8 @@ def call_skeptic_with_retry(idea: str, advocacy: str, context: str, temperature:
 def run_multistep_workflow(
     theme: str, constraints: str, num_top_candidates: int = 2, 
     enable_novelty_filter: bool = True, novelty_threshold: float = 0.8,
-    temperature_manager: Optional['TemperatureManager'] = None
+    temperature_manager: Optional['TemperatureManager'] = None,
+    verbose: bool = False
 ) -> List[CandidateData]:
     """
     Runs the multi-step idea generation and refinement workflow.
@@ -168,26 +241,56 @@ def run_multistep_workflow(
 
     # 1. Generate Ideas
     try:
+        step_start_time = time.time()
+        log_verbose_step(
+            "STEP 1: Idea Generation Agent", 
+            f"💡 Agent: IdeaGenerator\n🎯 Theme: {theme}\n📋 Constraints: {constraints}\n🌡️ Temperature: {idea_temp} (high creativity)",
+            verbose
+        )
+        
         logging.info(f"Generating ideas for theme '{theme}'...")
         raw_generated_ideas = call_idea_generator_with_retry(
             topic=theme, context=constraints, temperature=idea_temp
         )
-
+        
+        log_verbose_data("Raw IdeaGenerator Response", raw_generated_ideas, verbose, max_length=1000)
+        
         parsed_ideas = [idea.strip() for idea in raw_generated_ideas.split("\n") if idea.strip()]
         if not parsed_ideas:
             logging.warning("No ideas were generated by IdeaGeneratorAgent.")
             return []
+        
+        step_duration = time.time() - step_start_time
         logging.info(f"Generated {len(parsed_ideas)} raw ideas.")
+        
+        log_verbose_completion("Step 1", len(parsed_ideas), step_duration, verbose, "ideas")
+        log_verbose_sample_list(parsed_ideas, verbose)
         
         # 1.5. Apply Tier0 Novelty Filter (if enabled)
         if enable_novelty_filter:
+            filter_start_time = time.time()
+            log_verbose_step(
+                "STEP 1.5: Novelty Filtering", 
+                f"🔍 Filter: NoveltyFilter\n📊 Input: {len(parsed_ideas)} ideas\n🎯 Similarity Threshold: {novelty_threshold}",
+                verbose
+            )
+            
             novelty_filter = NoveltyFilter(similarity_threshold=novelty_threshold)
             filtered_ideas = novelty_filter.get_novel_ideas(parsed_ideas)
+            
+            filter_duration = time.time() - filter_start_time
+            removed_count = len(parsed_ideas) - len(filtered_ideas)
+            
             if len(filtered_ideas) < len(parsed_ideas):
                 logging.info(
-                    f"Novelty filter removed {len(parsed_ideas) - len(filtered_ideas)} "
+                    f"Novelty filter removed {removed_count} "
                     f"similar/duplicate ideas. Proceeding with {len(filtered_ideas)} novel ideas."
                 )
+                
+            if verbose:
+                print(f"✅ Filtering Complete: Removed {removed_count} duplicates in {filter_duration:.2f}s")
+                print(f"📊 Final: {len(filtered_ideas)} novel ideas")
+                
             parsed_ideas = filtered_ideas
             
             if not parsed_ideas:
@@ -201,14 +304,35 @@ def run_multistep_workflow(
     # raw_evaluations: str = "" # Type will be known after call
     evaluated_ideas_data: List[EvaluatedIdea] = []
     try:
+        eval_start_time = time.time()
+        log_verbose_step(
+            "STEP 2: Critic Agent Evaluation", 
+            f"🔍 Agent: Critic\n📊 Input: {len(parsed_ideas)} ideas\n🎯 Criteria: {constraints}\n📝 Context: {theme}\n🌡️ Temperature: {eval_temp} (analytical mode)",
+            verbose
+        )
+        
         logging.info(f"Evaluating {len(parsed_ideas)} ideas...")
+        ideas_for_critic = "\n".join(parsed_ideas)
+        
+        if verbose:
+            print("📤 Input to Critic Agent:")
+            print(f"Ideas ({len(parsed_ideas)} total):")
+            for i, idea in enumerate(parsed_ideas[:3], 1):
+                print(f"  {i}. {idea[:80]}...")
+            if len(parsed_ideas) > 3:
+                print(f"  ... and {len(parsed_ideas) - 3} more ideas")
+            print()
+        
         raw_evaluations = call_critic_with_retry(
-            ideas="\n".join(parsed_ideas),
+            ideas=ideas_for_critic,
             criteria=constraints,
             context=theme,
             temperature=eval_temp
         )
+        
+        eval_duration = time.time() - eval_start_time
         logging.debug(f"Raw evaluations received:\n{raw_evaluations}")
+        log_verbose_data("Raw Critic Response", raw_evaluations, verbose, max_length=800)
 
         # Use robust JSON parsing with fallback strategies
         parsed_evaluations = parse_json_with_fallback(
@@ -240,9 +364,20 @@ def run_multistep_workflow(
             # Create the EvaluatedIdea dictionary matching the TypedDict
             evaluated_ideas_data.append({"text": idea_text, "score": score, "critique": critique})
 
+        log_verbose_completion("Step 2", len(evaluated_ideas_data), eval_duration, verbose, "ideas")
+        if verbose:
+            print("📊 Sample Evaluations:")
+            for i, eval_data in enumerate(evaluated_ideas_data[:3], 1):
+                print(f"  {i}. Score: {eval_data['score']}/10 - {eval_data['text'][:60]}...")
+                print(f"     Critique: {eval_data['critique'][:80]}...")
 
         evaluated_ideas_data.sort(key=lambda x: x["score"], reverse=True) # Can use x["score"] if TypedDict guarantees it
         top_candidates: List[EvaluatedIdea] = evaluated_ideas_data[:num_top_candidates]
+        
+        if verbose:
+            print(f"\n🎯 Selected Top {num_top_candidates} Candidates:")
+            for i, candidate in enumerate(top_candidates, 1):
+                print(f"  {i}. Score: {candidate['score']}/10 - {candidate['text'][:60]}...")
 
         if not top_candidates and parsed_ideas:
              logging.info("No ideas were selected as top candidates "
@@ -265,27 +400,66 @@ def run_multistep_workflow(
             return []
 
     # 3. Advocate and Criticize for top N candidates
-    for candidate in top_candidates: # candidate is now TypedDict EvaluatedIdea
+    for idx, candidate in enumerate(top_candidates, 1): # candidate is now TypedDict EvaluatedIdea
         idea_text: str = candidate["text"] # Direct access if TypedDict guarantees
         evaluation_detail: str = candidate["critique"] # Direct access
         advocacy_output: str = "N/A"
         skepticism_output: str = "N/A"
+        
+        log_verbose_step(
+            f"STEP 3.{idx}: Processing Top Candidate #{idx}", 
+            f"💡 Idea: {idea_text[:100]}...\n📊 Score: {candidate['score']}/10\n📝 Critique: {evaluation_detail[:100]}...",
+            verbose
+        )
+        
         logging.info(f"Processing candidate: {idea_text} (Score: {candidate['score']})")
+        
+        # Advocate Agent
         try:
+            advocate_start_time = time.time()
+            log_agent_execution(
+                f"STEP 3.{idx}a: Advocate Agent", 
+                "Advocate", 
+                "✅", 
+                "Building case for idea (balanced persuasion)",
+                advocacy_temp,
+                verbose
+            )
+            
             logging.info(f"Advocating for idea: '{idea_text}'...")
             advocacy_output = call_advocate_with_retry(
                 idea=idea_text, evaluation=evaluation_detail, context=theme,
                 temperature=advocacy_temp
             )
+            
+            advocate_duration = time.time() - advocate_start_time
+            log_agent_completion("Advocate", advocacy_output, f"Idea #{idx}", advocate_duration, verbose)
+                
         except Exception as e:
             logging.warning(f"AdvocateAgent failed for idea '{idea_text}'. Error: {str(e)}")
             advocacy_output = "Advocacy not available due to agent error."
+            
+        # Skeptic Agent
         try:
+            skeptic_start_time = time.time()
+            log_agent_execution(
+                f"STEP 3.{idx}b: Skeptic Agent", 
+                "Skeptic", 
+                "⚠️", 
+                "Analyzing risks and challenges (balanced skepticism)",
+                skepticism_temp,
+                verbose
+            )
+            
             logging.info(f"Skepticizing idea: '{idea_text}'...")
             skepticism_output = call_skeptic_with_retry(
                 idea=idea_text, advocacy=advocacy_output, context=theme,
                 temperature=skepticism_temp
             )
+            
+            skeptic_duration = time.time() - skeptic_start_time
+            log_agent_completion("Skeptic", skepticism_output, f"Idea #{idx}", skeptic_duration, verbose)
+                
         except Exception as e:
             logging.warning(f"SkepticAgent failed for idea '{idea_text}'. Error: {str(e)}")
             skepticism_output = "Skepticism not available due to agent error."
@@ -298,10 +472,29 @@ def run_multistep_workflow(
             "advocacy": advocacy_output,
             "skepticism": skepticism_output,
         })
+        
+        if verbose:
+            print(f"✅ Candidate #{idx} Processing Complete")
+            print(f"📊 Final data: {len(advocacy_output)} chars advocacy, {len(skepticism_output)} chars skepticism")
+            
         logging.info(f"Finished processing for: {idea_text}")
+    
+    # Final Summary
+    if verbose:
+        log_verbose_step(
+            "WORKFLOW COMPLETE", 
+            f"🎉 Multi-Agent Processing Finished\n📊 Generated {len(final_candidates_data)} complete candidates\n⏱️ All agents executed successfully",
+            verbose
+        )
     return final_candidates_data
 
 if __name__ == "__main__":
+    # Set up basic logging when running coordinator directly
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
     logging.info("Starting Mad Spark Multi-Agent Workflow...")
     sample_theme: str = "Sustainable Urban Living"
     sample_constraints: str = (

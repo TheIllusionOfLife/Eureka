@@ -37,7 +37,10 @@ function App() {
 
   // Initialize WebSocket connection
   useEffect(() => {
-    const ws = new WebSocket('ws://localhost:8000/ws/progress');
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsHost = window.location.hostname;
+    const wsPort = process.env.REACT_APP_WS_PORT || '8000';
+    const ws = new WebSocket(`${wsProtocol}//${wsHost}:${wsPort}/ws/progress`);
     
     ws.onopen = () => {
       console.log('WebSocket connected');

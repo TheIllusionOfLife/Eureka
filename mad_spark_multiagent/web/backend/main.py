@@ -19,22 +19,34 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-# Add parent directory to path for MadSpark imports
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
+# Import MadSpark modules using relative imports
 try:
-    from coordinator import run_multistep_workflow, CandidateData
-    from temperature_control import TemperatureManager
-    from enhanced_reasoning import ReasoningEngine
-    from constants import (
+    # Try relative imports first (when run as package)
+    from ...coordinator import run_multistep_workflow, CandidateData
+    from ...temperature_control import TemperatureManager
+    from ...enhanced_reasoning import ReasoningEngine
+    from ...constants import (
         DEFAULT_IDEA_TEMPERATURE,
         DEFAULT_EVALUATION_TEMPERATURE,
         TEMPERATURE_PRESETS
     )
-    from bookmark_system import BookmarkSystem
-except ImportError as e:
-    logging.error(f"Failed to import MadSpark modules: {e}")
-    raise
+    from ...bookmark_system import BookmarkSystem
+except ImportError:
+    # Fallback for development when run directly
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    try:
+        from coordinator import run_multistep_workflow, CandidateData
+        from temperature_control import TemperatureManager
+        from enhanced_reasoning import ReasoningEngine
+        from constants import (
+            DEFAULT_IDEA_TEMPERATURE,
+            DEFAULT_EVALUATION_TEMPERATURE,
+            TEMPERATURE_PRESETS
+        )
+        from bookmark_system import BookmarkSystem
+    except ImportError as e:
+        logging.error(f"Failed to import MadSpark modules: {e}")
+        raise
 
 # Configure logging
 logging.basicConfig(
@@ -153,7 +165,8 @@ class WebSocketManager:
             for connection in self.active_connections:
                 try:
                     await connection.send_text(json.dumps(update))
-                except:
+                except RuntimeError:
+                    # WebSocket connection closed
                     disconnected.append(connection)
             
             # Clean up disconnected connections

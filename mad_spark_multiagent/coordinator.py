@@ -431,6 +431,7 @@ def run_multistep_workflow(
                     }
                     
                     # Use enhanced reasoning with conversation history if available
+                    multi_eval_result = None
                     if enhanced_reasoning and conversation_history:
                         # Process with context awareness using the conversation history
                         enhanced_input = {
@@ -443,11 +444,9 @@ def run_multistep_workflow(
                         # Extract multi-dimensional evaluation from enhanced result
                         if 'multi_dimensional_evaluation' in enhanced_result:
                             multi_eval_result = enhanced_result['multi_dimensional_evaluation']
-                        else:
-                            # Fallback to direct multi-dimensional evaluation
-                            multi_eval_result = engine.multi_evaluator.evaluate_idea(idea_text, context)
-                    else:
-                        # Direct multi-dimensional evaluation without context awareness
+                    
+                    # Fallback to direct multi-dimensional evaluation if not obtained from enhanced processing
+                    if multi_eval_result is None:
                         multi_eval_result = engine.multi_evaluator.evaluate_idea(idea_text, context)
                     
                     # Use multi-dimensional score instead of simple score
@@ -475,7 +474,7 @@ def run_multistep_workflow(
                     ]
                     
                     # Apply logical inference
-                    inference_result = engine.logical_inference.apply_inference_chain(
+                    inference_result = engine.generate_inference_chain(
                         premises, 
                         f"Therefore, this idea is suitable for {theme}"
                     )

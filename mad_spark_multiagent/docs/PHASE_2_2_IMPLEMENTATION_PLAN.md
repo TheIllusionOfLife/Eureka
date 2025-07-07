@@ -38,9 +38,13 @@
   # backend/main.py
   from fastapi import FastAPI, WebSocket
   from fastapi.middleware.cors import CORSMiddleware
-  import sys, os
-  sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-  from coordinator import run_multistep_workflow
+  
+  # Option 1: Install mad_spark_multiagent as editable package
+  # pip install -e ../
+  from mad_spark_multiagent.coordinator import run_multistep_workflow
+  
+  # Option 2: Use relative imports if backend is within project structure
+  # from ..coordinator import run_multistep_workflow
   
   app = FastAPI(title="MadSpark API", version="2.2.0")
   

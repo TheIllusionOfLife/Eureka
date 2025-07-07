@@ -329,25 +329,45 @@ gh pr view 56 --json reviews | jq '.reviews[] | {author: .author.login, state: .
 ### Architecture Patterns
 - **Full-Stack Structure**: FastAPI backend + React TypeScript frontend
 - **Real-time Communication**: WebSocket for progress updates using asyncio
+  - Events: progress updates, workflow completion, error notifications
+  - Message format: `{"type": "progress", "message": "...", "progress": 0.0-1.0, "timestamp": "..."}`
+  - Client connection: `/ws/progress` endpoint with auto-reconnection
 - **Export Strategy**: Centralized ExportManager with format-specific methods
+- **Integration**: Web interface calls same `coordinator.py` workflow as CLI, shared state via FastAPI global variables
+
+### File Organization
+```
+web/
+├── backend/main.py          - FastAPI server with WebSocket support
+├── frontend/src/App.tsx     - React TypeScript application
+├── frontend/package.json    - Frontend dependencies  
+└── docker-compose.yml       - Container orchestration (backend:8000, frontend:3000, redis:6379)
+```
 
 ### Common Tasks
-- **Run Web Interface**: `cd web && docker-compose up`
+- **Run Web Interface**: `cd web && docker-compose up` (starts all services)
 - **Test Export**: `python cli.py 'theme' 'constraints' --export all`
+  - Supported formats: JSON, CSV, Markdown, PDF
+  - Files saved to: `exports/` directory with timestamps
+  - Exports: Complete workflow results including all agent responses
 - **WebSocket Debugging**: Check `/ws/progress` endpoint and browser console
+- **API Documentation**: Available at `http://localhost:8000/docs` (FastAPI auto-generated)
 
 ### Testing Approach
 - **Export Tests**: Comprehensive test suite in `test_export_utils.py`
-- **WebSocket Tests**: Manual testing required - automated tests pending
+- **WebSocket Tests**: Manual testing required - automated tests pending (plan: pytest-asyncio)
 - **Frontend Tests**: React Testing Library setup pending
+- **Integration Tests**: Need tests for frontend/backend API communication
 
 ### Dependencies
-- **Frontend**: React 18, TypeScript, Tailwind CSS, axios
-- **Backend**: FastAPI, uvicorn, python-multipart, reportlab (optional)
-- **Infrastructure**: Docker, Redis (for future caching)
+- **Frontend**: React 18.2.0, TypeScript ^4.8, Tailwind CSS 3.x, axios ^1.0
+- **Backend**: FastAPI ^0.104, uvicorn ^0.24, python-multipart ^0.0.6
+- **Optional**: reportlab ^4.0 (for PDF export - fallback message if unavailable)
+- **Infrastructure**: Docker, Redis 7-alpine (for future caching)
 
 ### Known Gotchas
 - **WebSocket Broadcasting**: Must handle exceptions in async functions for consistent returns
 - **Docker Environment**: React needs explicit `REACT_APP_*` environment variables
 - **Export Memory**: PDF generation can be memory-intensive for large datasets
-- **CORS Configuration**: Currently allows all origins in development
+- **CORS Configuration**: Currently allows specific origins (e.g., `localhost:3000`) in development. In production, it is strongly recommended to whitelist specific domains to prevent unauthorized cross-origin requests and enhance security.
+- **Volume Mounts**: Frontend hot-reload requires `node_modules` volume exclusion in docker-compose

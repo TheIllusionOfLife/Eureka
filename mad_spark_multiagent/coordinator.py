@@ -374,7 +374,7 @@ def run_multistep_workflow(
         log_verbose_data("Raw Critic Response", raw_evaluations, verbose, max_length=800)
 
         # Enhanced reasoning: Store conversation context if enabled
-        # Note: conversation_history is used later in multi-dimensional evaluation (line ~439)
+        # Note: conversation_history is consumed in process_with_context() calls during multi-dimensional evaluation
         if enhanced_reasoning and engine:
             log_verbose_step(
                 "🧠 Enhanced Reasoning Context Collection",
@@ -459,7 +459,7 @@ def run_multistep_workflow(
                         print(f"📊 Multi-Dimensional Score for '{idea_text[:50]}...': {score:.2f}")
                         print(f"   Confidence: {multi_eval_result['confidence_interval']:.3f}")
                         
-                except Exception as e:
+                except (AttributeError, KeyError, TypeError, ValueError) as e:
                     logging.warning(f"Multi-dimensional evaluation failed for idea {i}: {e}")
                     # Fall back to standard evaluation
 
@@ -479,14 +479,14 @@ def run_multistep_workflow(
                         f"Therefore, this idea is suitable for {theme}"
                     )
                     
-                    if inference_result and inference_result.get('conclusion_confidence', 0) > LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD:
+                    if inference_result and inference_result.get('confidence_score', 0) > LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD:
                         # Enhance the critique with logical reasoning insights
-                        critique = f"{critique}\n\n🔗 Logical Analysis:\nConfidence: {inference_result['conclusion_confidence']:.2f}\nReasoning: {inference_result.get('reasoning_chain', 'Applied formal logical inference')}"
+                        critique = f"{critique}\n\n🔗 Logical Analysis:\nConfidence: {inference_result['confidence_score']:.2f}\nReasoning: {inference_result.get('inference_conclusion', 'Applied formal logical inference')}"
                         
                         if verbose:
-                            print(f"🔗 Logical Inference for '{idea_text[:50]}...': Confidence {inference_result['conclusion_confidence']:.2f}")
+                            print(f"🔗 Logical Inference for '{idea_text[:50]}...': Confidence {inference_result['confidence_score']:.2f}")
                             
-                except Exception as e:
+                except (AttributeError, KeyError, TypeError, ValueError) as e:
                     logging.warning(f"Logical inference failed for idea {i}: {e}")
                     # Continue without logical inference
 

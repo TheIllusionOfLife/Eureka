@@ -26,6 +26,7 @@ try:
         list_bookmarks_cli,
         remix_with_bookmarks
     )
+    from mad_spark_multiagent.export_utils import ExportManager, create_metadata_from_args
 except ImportError:
     # Fallback for local development/testing
     from coordinator import run_multistep_workflow
@@ -40,6 +41,7 @@ except ImportError:
         list_bookmarks_cli,
         remix_with_bookmarks
     )
+    from export_utils import ExportManager, create_metadata_from_args
 
 logger = logging.getLogger(__name__)
 
@@ -263,6 +265,26 @@ Examples:
         help='Enable verbose logging'
     )
     
+    # Export options (Phase 2.2)
+    export_group = parser.add_argument_group('export options (Phase 2.2)')
+    
+    export_group.add_argument(
+        '--export',
+        choices=['json', 'csv', 'markdown', 'pdf', 'all'],
+        help='Export results to specified format'
+    )
+    
+    export_group.add_argument(
+        '--export-dir',
+        default='exports',
+        help='Directory for exported files (default: exports)'
+    )
+    
+    export_group.add_argument(
+        '--export-filename',
+        help='Base filename for exports (timestamp will be added if not specified)'
+    )
+    
     return parser
 
 
@@ -426,6 +448,39 @@ def main():
                     tags=args.bookmark_tags or []
                 )
                 logger.info(f"Bookmarked result as {bookmark_id}")
+        
+        # Export results if requested (Phase 2.2)
+        if args.export:
+            try:
+                export_manager = ExportManager(args.export_dir)
+                metadata = create_metadata_from_args(args, results)
+                
+                if args.export == 'all':
+                    exported_files = export_manager.export_all_formats(
+                        results, metadata, args.export_filename
+                    )
+                    print(f"\n📁 Export Results:")
+                    for format_name, file_path in exported_files.items():
+                        if file_path.startswith("Error:") or file_path.startswith("Not available"):
+                            print(f"  {format_name.upper()}: {file_path}")
+                        else:
+                            print(f"  {format_name.upper()}: {file_path}")
+                else:
+                    # Single format export
+                    if args.export == 'json':
+                        file_path = export_manager.export_to_json(results, metadata, args.export_filename)
+                    elif args.export == 'csv':
+                        file_path = export_manager.export_to_csv(results, metadata, args.export_filename)
+                    elif args.export == 'markdown':
+                        file_path = export_manager.export_to_markdown(results, metadata, args.export_filename)
+                    elif args.export == 'pdf':
+                        file_path = export_manager.export_to_pdf(results, metadata, args.export_filename)
+                    
+                    print(f"\n📄 Exported to {args.export.upper()}: {file_path}")
+                    
+            except Exception as e:
+                logger.error(f"Export failed: {e}")
+                print(f"❌ Export failed: {e}")
         
         # Format and output results
         formatted_output = format_results(results, args.output_format)

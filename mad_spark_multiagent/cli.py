@@ -5,6 +5,7 @@ with all Phase 1 features including temperature control, novelty filtering,
 and bookmark management.
 """
 import argparse
+import asyncio
 import json
 import sys
 import os
@@ -15,6 +16,7 @@ from datetime import datetime
 # Import MadSpark components with fallback for local development
 try:
     from mad_spark_multiagent.coordinator import run_multistep_workflow
+    from mad_spark_multiagent.async_coordinator import run_async_workflow
     from mad_spark_multiagent.temperature_control import (
         TemperatureManager, 
         add_temperature_arguments,
@@ -30,6 +32,7 @@ try:
 except ImportError:
     # Fallback for local development/testing
     from coordinator import run_multistep_workflow
+    from async_coordinator import run_async_workflow
     from temperature_control import (
         TemperatureManager, 
         add_temperature_arguments,
@@ -170,6 +173,12 @@ Examples:
         type=float,
         default=0.8,
         help='Threshold for novelty filter similarity detection (0.0-1.0, default: 0.8)'
+    )
+    
+    workflow_group.add_argument(
+        '--async',
+        action='store_true',
+        help='Use async execution for better performance (Phase 2.3)'
     )
     
     # Temperature control
@@ -416,18 +425,39 @@ def main():
     logger.info(f"Constraints: {args.constraints}")
     
     try:
-        results = run_multistep_workflow(
-            theme=args.theme,
-            constraints=args.constraints,
-            num_top_candidates=args.num_candidates,
-            enable_novelty_filter=not args.disable_novelty_filter,
-            novelty_threshold=args.novelty_threshold,
-            temperature_manager=temp_manager,
-            verbose=args.verbose,
-            enhanced_reasoning=args.enhanced_reasoning,
-            multi_dimensional_eval=args.multi_dimensional_eval,
-            logical_inference=args.logical_inference
-        )
+        if hasattr(args, 'async') and args.async:
+            # Use async execution
+            logger.info("Using async execution for better performance")
+            
+            async def run_async():
+                return await run_async_workflow(
+                    theme=args.theme,
+                    constraints=args.constraints,
+                    num_top_candidates=args.num_candidates,
+                    enable_novelty_filter=not args.disable_novelty_filter,
+                    novelty_threshold=args.novelty_threshold,
+                    temperature_manager=temp_manager,
+                    verbose=args.verbose,
+                    enhanced_reasoning=args.enhanced_reasoning,
+                    multi_dimensional_eval=args.multi_dimensional_eval,
+                    logical_inference=args.logical_inference
+                )
+            
+            results = asyncio.run(run_async())
+        else:
+            # Use synchronous execution
+            results = run_multistep_workflow(
+                theme=args.theme,
+                constraints=args.constraints,
+                num_top_candidates=args.num_candidates,
+                enable_novelty_filter=not args.disable_novelty_filter,
+                novelty_threshold=args.novelty_threshold,
+                temperature_manager=temp_manager,
+                verbose=args.verbose,
+                enhanced_reasoning=args.enhanced_reasoning,
+                multi_dimensional_eval=args.multi_dimensional_eval,
+                logical_inference=args.logical_inference
+            )
         
         if not results:
             print("No ideas were generated. Check the logs for details.")

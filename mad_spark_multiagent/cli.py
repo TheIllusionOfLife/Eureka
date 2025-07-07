@@ -461,22 +461,22 @@ def main():
                     )
                     print(f"\n📁 Export Results:")
                     for format_name, file_path in exported_files.items():
-                        if file_path.startswith("Error:") or file_path.startswith("Not available"):
-                            print(f"  {format_name.upper()}: {file_path}")
-                        else:
-                            print(f"  {format_name.upper()}: {file_path}")
+                        print(f"  {format_name.upper()}: {file_path}")
                 else:
-                    # Single format export
-                    if args.export == 'json':
-                        file_path = export_manager.export_to_json(results, metadata, args.export_filename)
-                    elif args.export == 'csv':
-                        file_path = export_manager.export_to_csv(results, metadata, args.export_filename)
-                    elif args.export == 'markdown':
-                        file_path = export_manager.export_to_markdown(results, metadata, args.export_filename)
-                    elif args.export == 'pdf':
-                        file_path = export_manager.export_to_pdf(results, metadata, args.export_filename)
+                    # Single format export - using dictionary mapping for maintainability
+                    export_methods = {
+                        'json': export_manager.export_to_json,
+                        'csv': export_manager.export_to_csv,
+                        'markdown': export_manager.export_to_markdown,
+                        'pdf': export_manager.export_to_pdf,
+                    }
                     
-                    print(f"\n📄 Exported to {args.export.upper()}: {file_path}")
+                    export_method = export_methods.get(args.export)
+                    if export_method:
+                        file_path = export_method(results, metadata, args.export_filename)
+                        print(f"\n📄 Exported to {args.export.upper()}: {file_path}")
+                    else:
+                        logger.error(f"Unsupported export format: {args.export}")
                     
             except Exception as e:
                 logger.error(f"Export failed: {e}")

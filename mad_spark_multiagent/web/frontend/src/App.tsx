@@ -33,7 +33,6 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<ProgressUpdate | null>(null);
-  const [wsConnection, setWsConnection] = useState<WebSocket | null>(null);
 
   // Initialize WebSocket connection
   useEffect(() => {
@@ -44,7 +43,6 @@ function App() {
     
     ws.onopen = () => {
       console.log('WebSocket connected');
-      setWsConnection(ws);
     };
     
     ws.onmessage = (event) => {
@@ -60,7 +58,6 @@ function App() {
     
     ws.onclose = () => {
       console.log('WebSocket disconnected');
-      setWsConnection(null);
     };
     
     ws.onerror = (error) => {
@@ -79,7 +76,9 @@ function App() {
     setProgress(null);
 
     try {
-      const response = await axios.post<ApiResponse>('/api/generate-ideas', formData);
+      // Use environment variable for API URL in Docker/production environments
+      const apiUrl = process.env.REACT_APP_API_URL || '';
+      const response = await axios.post<ApiResponse>(`${apiUrl}/api/generate-ideas`, formData);
       
       if (response.data.status === 'success') {
         setResults(response.data.results);

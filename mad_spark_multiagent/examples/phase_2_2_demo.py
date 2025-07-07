@@ -12,7 +12,6 @@ Run this demo to see the new features in action.
 import os
 import sys
 import subprocess
-import time
 from pathlib import Path
 
 # Add parent directory to path for imports

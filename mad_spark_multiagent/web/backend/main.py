@@ -153,25 +153,37 @@ class WebSocketManager:
         logger.info(f"WebSocket disconnected. Active connections: {len(self.active_connections)}")
     
     async def send_progress_update(self, message: str, progress: float = 0.0):
-        """Send progress update to all connected clients."""
-        if self.active_connections:
-            update = {
-                "type": "progress",
-                "message": message,
-                "progress": progress,
-                "timestamp": datetime.now().isoformat()
-            }
-            disconnected = []
-            for connection in self.active_connections:
-                try:
-                    await connection.send_text(json.dumps(update))
-                except RuntimeError:
-                    # WebSocket connection closed
-                    disconnected.append(connection)
+        """Send progress update to all connected clients using concurrent broadcasting."""
+        if not self.active_connections:
+            return
             
-            # Clean up disconnected connections
-            for conn in disconnected:
-                self.disconnect(conn)
+        update = {
+            "type": "progress",
+            "message": message,
+            "progress": progress,
+            "timestamp": datetime.now().isoformat()
+        }
+        update_json = json.dumps(update)
+        
+        # Use concurrent sending to improve performance with many clients
+        async def send_to_client(connection):
+            try:
+                await connection.send_text(update_json)
+                return connection, True
+            except RuntimeError:
+                # WebSocket connection closed
+                return connection, False
+        
+        # Send to all connections concurrently
+        results = await asyncio.gather(
+            *[send_to_client(conn) for conn in self.active_connections],
+            return_exceptions=True
+        )
+        
+        # Clean up disconnected connections (avoid modification during iteration)
+        disconnected = [conn for conn, success in results if not success]
+        for conn in disconnected:
+            self.disconnect(conn)
 
 
 # Global WebSocket manager

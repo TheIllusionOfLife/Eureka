@@ -32,6 +32,13 @@ class ExportManager:
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)
         
+    def _get_output_filepath(self, filename: Optional[str], extension: str) -> Path:
+        """Generate output filepath with timestamp if filename not provided."""
+        if filename is None:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"madspark_results_{timestamp}.{extension}"
+        return self.output_dir / filename
+        
     def export_to_json(
         self, 
         results: List[CandidateData], 
@@ -39,11 +46,7 @@ class ExportManager:
         filename: Optional[str] = None
     ) -> str:
         """Export results to JSON format."""
-        if filename is None:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"madspark_results_{timestamp}.json"
-        
-        filepath = self.output_dir / filename
+        filepath = self._get_output_filepath(filename, "json")
         
         export_data = {
             "metadata": {
@@ -67,11 +70,7 @@ class ExportManager:
         filename: Optional[str] = None
     ) -> str:
         """Export results to CSV format."""
-        if filename is None:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"madspark_results_{timestamp}.csv"
-        
-        filepath = self.output_dir / filename
+        filepath = self._get_output_filepath(filename, "csv")
         
         with open(filepath, 'w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
@@ -114,11 +113,7 @@ class ExportManager:
         filename: Optional[str] = None
     ) -> str:
         """Export results to Markdown format."""
-        if filename is None:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"madspark_results_{timestamp}.md"
-        
-        filepath = self.output_dir / filename
+        filepath = self._get_output_filepath(filename, "md")
         
         with open(filepath, 'w', encoding='utf-8') as f:
             # Write header
@@ -173,11 +168,7 @@ class ExportManager:
                 "PDF export requires reportlab. Install with: pip install reportlab"
             )
         
-        if filename is None:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"madspark_results_{timestamp}.pdf"
-        
-        filepath = self.output_dir / filename
+        filepath = self._get_output_filepath(filename, "pdf")
         
         # Create PDF document
         doc = SimpleDocTemplate(str(filepath), pagesize=A4)

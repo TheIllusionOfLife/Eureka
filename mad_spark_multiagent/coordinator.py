@@ -63,6 +63,7 @@ except ImportError:
     from agent_defs.advocate import advocate_idea
     from agent_defs.skeptic import criticize_idea
 try:
+    # Primary imports for package installation
     from mad_spark_multiagent.utils import (
         exponential_backoff_retry,
         parse_json_with_fallback,
@@ -75,10 +76,11 @@ try:
         DEFAULT_IDEA_TEMPERATURE,
         DEFAULT_EVALUATION_TEMPERATURE, 
         DEFAULT_ADVOCACY_TEMPERATURE,
-        DEFAULT_SKEPTICISM_TEMPERATURE
+        DEFAULT_SKEPTICISM_TEMPERATURE,
+        LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD
     )
 except ImportError:
-    # Fallback for local development/testing
+    # Fallback imports for local development/testing (not duplicate - different import paths)
     from utils import (
         exponential_backoff_retry,
         parse_json_with_fallback,
@@ -91,7 +93,8 @@ except ImportError:
         DEFAULT_IDEA_TEMPERATURE,
         DEFAULT_EVALUATION_TEMPERATURE, 
         DEFAULT_ADVOCACY_TEMPERATURE,
-        DEFAULT_SKEPTICISM_TEMPERATURE
+        DEFAULT_SKEPTICISM_TEMPERATURE,
+        LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD
     )
 # Removed unused imports - ADVOCATE_FAILED_PLACEHOLDER, SKEPTIC_FAILED_PLACEHOLDER
 # as agent tools already handle empty responses
@@ -217,11 +220,12 @@ def call_skeptic_with_retry(idea: str, advocacy: str, context: str, temperature:
 def run_multistep_workflow(
     theme: str, constraints: str, num_top_candidates: int = 2, 
     enable_novelty_filter: bool = True, novelty_threshold: float = 0.8,
-    temperature_manager: Optional['TemperatureManager'] = None,
+    temperature_manager: Optional[TemperatureManager] = None,
     verbose: bool = False,
     enhanced_reasoning: bool = False,
     multi_dimensional_eval: bool = False,
-    reasoning_engine: Optional['ReasoningEngine'] = None
+    logical_inference: bool = False,
+    reasoning_engine: Optional[ReasoningEngine] = None
 ) -> List[CandidateData]:
     """
     Runs the multi-step idea generation and refinement workflow.
@@ -236,6 +240,7 @@ def run_multistep_workflow(
         verbose: Enable verbose logging for detailed workflow visibility
         enhanced_reasoning: Enable enhanced reasoning capabilities (Phase 2.1)
         multi_dimensional_eval: Use multi-dimensional evaluation instead of simple scoring
+        logical_inference: Enable logical inference chains for enhanced reasoning
         reasoning_engine: Pre-initialized reasoning engine (optional)
         
     Returns:
@@ -262,14 +267,14 @@ def run_multistep_workflow(
     # Initialize enhanced reasoning engine if requested
     engine = None
     conversation_history = []
-    if enhanced_reasoning or multi_dimensional_eval:
+    if enhanced_reasoning or multi_dimensional_eval or logical_inference:
         if reasoning_engine:
             engine = reasoning_engine
         else:
             engine = ReasoningEngine()
         log_verbose_step(
             "🧠 Enhanced Reasoning Initialized",
-            f"✅ Context Memory: {engine.context_memory.capacity} items\n✅ Multi-Dimensional Evaluation: {multi_dimensional_eval}\n✅ Logical Inference: Enabled",
+            f"✅ Context Memory: {engine.context_memory.capacity} items\n✅ Multi-Dimensional Evaluation: {multi_dimensional_eval}\n✅ Logical Inference: {logical_inference}",
             verbose
         )
 
@@ -368,17 +373,18 @@ def run_multistep_workflow(
         logging.debug(f"Raw evaluations received:\n{raw_evaluations}")
         log_verbose_data("Raw Critic Response", raw_evaluations, verbose, max_length=800)
 
-        # Enhanced reasoning: Multi-dimensional evaluation if enabled
-        if multi_dimensional_eval and engine:
+        # Enhanced reasoning: Store conversation context if enabled and pre-process context
+        # Note: conversation_history is consumed in process_with_context() calls during multi-dimensional evaluation
+        enhanced_reasoning_cache = None
+        if enhanced_reasoning and engine:
             log_verbose_step(
-                "🧠 Enhanced Multi-Dimensional Evaluation",
-                f"📊 Evaluating {len(parsed_ideas)} ideas across 7 dimensions\n🔬 Using: Feasibility, Innovation, Impact, Cost-Effectiveness, Scalability, Risk, Timeline",
+                "🧠 Enhanced Reasoning Context Collection",
+                f"📝 Storing conversation context for {len(parsed_ideas)} ideas\n🔗 Building context memory for enhanced reasoning",
                 verbose
             )
             
-            multi_eval_start_time = time.time()
+            # Store conversation context for enhanced reasoning (used in process_with_context calls)
             for idea in parsed_ideas:
-                # Store conversation context for enhanced reasoning
                 context_data = {
                     'agent': 'IdeaGenerator',
                     'input_data': f"Theme: {theme}, Constraints: {constraints}",
@@ -387,9 +393,14 @@ def run_multistep_workflow(
                     'metadata': {'temperature': idea_temp}
                 }
                 conversation_history.append(context_data)
-                
-            multi_eval_duration = time.time() - multi_eval_start_time
-            log_verbose_completion("Enhanced Evaluation", len(parsed_ideas), multi_eval_duration, verbose, "multi-dimensional evaluations")
+            
+            # Pre-process enhanced reasoning context once (performance optimization)
+            if conversation_history:
+                enhanced_input = {
+                    'context': f"{theme} - {constraints}",
+                    'agent': 'multi_evaluator'
+                }
+                enhanced_reasoning_cache = engine.process_with_context(enhanced_input, conversation_history)
 
         # Use robust JSON parsing with fallback strategies
         parsed_evaluations = parse_json_with_fallback(
@@ -421,13 +432,31 @@ def run_multistep_workflow(
             # Enhanced reasoning: Use multi-dimensional evaluation if enabled
             if multi_dimensional_eval and engine:
                 try:
+                    # Create comprehensive evaluation context for enhanced reasoning
+                    # MultiDimensionalEvaluator expects budget, timeline, and other context keys
                     context = {
                         'theme': theme,
                         'constraints': constraints,
                         'idea_index': i,
-                        'total_ideas': len(parsed_ideas)
+                        'total_ideas': len(parsed_ideas),
+                        'budget': 'medium',  # Default budget level for evaluation
+                        'timeline': 'flexible',  # Default timeline expectation  
+                        'priority': 'high',  # Default priority level
+                        'resources': 'available',  # Default resource assumption
+                        'technical_complexity': 'moderate'  # Default complexity level
                     }
-                    multi_eval_result = engine.multi_evaluator.evaluate_idea(idea_text, context)
+                    
+                    # Use enhanced reasoning with cached context if available
+                    if enhanced_reasoning and enhanced_reasoning_cache:
+                        # Use pre-processed enhanced reasoning context (performance optimized)
+                        enhanced_context = context.copy()
+                        enhanced_context['enhanced_reasoning'] = enhanced_reasoning_cache.get('enhanced_reasoning', '')
+                        enhanced_context['context_awareness_score'] = enhanced_reasoning_cache.get('context_awareness_score', 0)
+                        
+                        multi_eval_result = engine.multi_evaluator.evaluate_idea(idea_text, enhanced_context)
+                    else:
+                        # Direct multi-dimensional evaluation without context awareness
+                        multi_eval_result = engine.multi_evaluator.evaluate_idea(idea_text, context)
                     
                     # Use multi-dimensional score instead of simple score
                     score = multi_eval_result['weighted_score']
@@ -439,9 +468,36 @@ def run_multistep_workflow(
                         print(f"📊 Multi-Dimensional Score for '{idea_text[:50]}...': {score:.2f}")
                         print(f"   Confidence: {multi_eval_result['confidence_interval']:.3f}")
                         
-                except Exception as e:
-                    logging.warning(f"Multi-dimensional evaluation failed for idea {i}: {e}")
+                except (AttributeError, KeyError, TypeError, ValueError) as e:
+                    logging.warning(f"Multi-dimensional evaluation failed for idea {i} ('{idea_text[:50]}...'): {type(e).__name__}: {e}")
                     # Fall back to standard evaluation
+
+            # Enhanced reasoning: Apply logical inference if enabled (independent of multi-dimensional eval)
+            if logical_inference and engine:
+                try:
+                    # Create logical premises from the evaluation
+                    premises = [
+                        f"The idea '{idea_text}' addresses {theme}",
+                        f"The constraints are: {constraints}",
+                        f"The evaluation score is {score}/10"
+                    ]
+                    
+                    # Apply logical inference
+                    inference_result = engine.generate_inference_chain(
+                        premises, 
+                        f"Therefore, this idea is suitable for {theme}"
+                    )
+                    
+                    if inference_result and inference_result.get('confidence_score', 0) > LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD:
+                        # Enhance the critique with logical reasoning insights
+                        critique = f"{critique}\n\n🔗 Logical Analysis:\nConfidence: {inference_result['confidence_score']:.2f}\nReasoning: {inference_result.get('inference_conclusion', 'Applied formal logical inference')}"
+                        
+                        if verbose:
+                            print(f"🔗 Logical Inference for '{idea_text[:50]}...': Confidence {inference_result['confidence_score']:.2f}")
+                            
+                except (AttributeError, KeyError, TypeError, ValueError) as e:
+                    logging.warning(f"Logical inference failed for idea {i} ('{idea_text[:50]}...'): {type(e).__name__}: {e}")
+                    # Continue without logical inference
 
             # Create the EvaluatedIdea dictionary matching the TypedDict
             evaluated_ideas_data.append({"text": idea_text, "score": score, "critique": critique})

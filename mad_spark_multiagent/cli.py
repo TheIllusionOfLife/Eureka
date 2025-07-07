@@ -403,7 +403,8 @@ def main():
             temperature_manager=temp_manager,
             verbose=args.verbose,
             enhanced_reasoning=args.enhanced_reasoning,
-            multi_dimensional_eval=args.multi_dimensional_eval
+            multi_dimensional_eval=args.multi_dimensional_eval,
+            logical_inference=args.logical_inference
         )
         
         if not results:

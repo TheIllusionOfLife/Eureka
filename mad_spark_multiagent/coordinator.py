@@ -373,6 +373,7 @@ def run_multistep_workflow(
         log_verbose_data("Raw Critic Response", raw_evaluations, verbose, max_length=800)
 
         # Enhanced reasoning: Store conversation context if enabled
+        # Note: conversation_history is used later in multi-dimensional evaluation (line ~439)
         if enhanced_reasoning and engine:
             log_verbose_step(
                 "🧠 Enhanced Reasoning Context Collection",
@@ -380,7 +381,7 @@ def run_multistep_workflow(
                 verbose
             )
             
-            # Store conversation context for enhanced reasoning
+            # Store conversation context for enhanced reasoning (used in process_with_context calls)
             for idea in parsed_ideas:
                 context_data = {
                     'agent': 'IdeaGenerator',

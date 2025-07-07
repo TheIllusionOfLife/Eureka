@@ -75,7 +75,8 @@ try:
         DEFAULT_IDEA_TEMPERATURE,
         DEFAULT_EVALUATION_TEMPERATURE, 
         DEFAULT_ADVOCACY_TEMPERATURE,
-        DEFAULT_SKEPTICISM_TEMPERATURE
+        DEFAULT_SKEPTICISM_TEMPERATURE,
+        LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD
     )
 except ImportError:
     # Fallback for local development/testing
@@ -91,7 +92,8 @@ except ImportError:
         DEFAULT_IDEA_TEMPERATURE,
         DEFAULT_EVALUATION_TEMPERATURE, 
         DEFAULT_ADVOCACY_TEMPERATURE,
-        DEFAULT_SKEPTICISM_TEMPERATURE
+        DEFAULT_SKEPTICISM_TEMPERATURE,
+        LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD
     )
 # Removed unused imports - ADVOCATE_FAILED_PLACEHOLDER, SKEPTIC_FAILED_PLACEHOLDER
 # as agent tools already handle empty responses
@@ -446,33 +448,6 @@ def run_multistep_workflow(
                         # Direct multi-dimensional evaluation without context awareness
                         multi_eval_result = engine.multi_evaluator.evaluate_idea(idea_text, context)
                     
-                    # Apply logical inference if enabled
-                    if logical_inference and engine:
-                        try:
-                            # Create logical premises from the evaluation
-                            premises = [
-                                f"The idea '{idea_text}' addresses {theme}",
-                                f"The constraints are: {constraints}",
-                                f"The feasibility score is {multi_eval_result.get('dimension_scores', {}).get('feasibility', 5)}/10"
-                            ]
-                            
-                            # Apply logical inference
-                            inference_result = engine.logical_inference.apply_inference_chain(
-                                premises, 
-                                f"Therefore, this idea is suitable for {theme}"
-                            )
-                            
-                            if inference_result and inference_result.get('conclusion_confidence', 0) > 0.5:
-                                # Enhance the critique with logical reasoning insights
-                                critique = f"{critique}\n\n🔗 Logical Analysis:\nConfidence: {inference_result['conclusion_confidence']:.2f}\nReasoning: {inference_result.get('reasoning_chain', 'Applied formal logical inference')}"
-                                
-                                if verbose:
-                                    print(f"🔗 Logical Inference for '{idea_text[:50]}...': Confidence {inference_result['conclusion_confidence']:.2f}")
-                                    
-                        except Exception as e:
-                            logging.warning(f"Logical inference failed for idea {i}: {e}")
-                            # Continue without logical inference
-                    
                     # Use multi-dimensional score instead of simple score
                     score = multi_eval_result['weighted_score']
                     
@@ -486,6 +461,33 @@ def run_multistep_workflow(
                 except Exception as e:
                     logging.warning(f"Multi-dimensional evaluation failed for idea {i}: {e}")
                     # Fall back to standard evaluation
+
+            # Enhanced reasoning: Apply logical inference if enabled (independent of multi-dimensional eval)
+            if logical_inference and engine:
+                try:
+                    # Create logical premises from the evaluation
+                    premises = [
+                        f"The idea '{idea_text}' addresses {theme}",
+                        f"The constraints are: {constraints}",
+                        f"The evaluation score is {score}/10"
+                    ]
+                    
+                    # Apply logical inference
+                    inference_result = engine.logical_inference.apply_inference_chain(
+                        premises, 
+                        f"Therefore, this idea is suitable for {theme}"
+                    )
+                    
+                    if inference_result and inference_result.get('conclusion_confidence', 0) > LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD:
+                        # Enhance the critique with logical reasoning insights
+                        critique = f"{critique}\n\n🔗 Logical Analysis:\nConfidence: {inference_result['conclusion_confidence']:.2f}\nReasoning: {inference_result.get('reasoning_chain', 'Applied formal logical inference')}"
+                        
+                        if verbose:
+                            print(f"🔗 Logical Inference for '{idea_text[:50]}...': Confidence {inference_result['conclusion_confidence']:.2f}")
+                            
+                except Exception as e:
+                    logging.warning(f"Logical inference failed for idea {i}: {e}")
+                    # Continue without logical inference
 
             # Create the EvaluatedIdea dictionary matching the TypedDict
             evaluated_ideas_data.append({"text": idea_text, "score": score, "critique": critique})

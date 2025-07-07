@@ -95,12 +95,13 @@ class ExportManager:
             
             # Write data
             for result in results:
+                result_dict = dict(result)  # Convert to dict for safe access
                 row = [
-                    result["idea"],
-                    result["initial_score"],
-                    result["initial_critique"],
-                    result["advocacy"],
-                    result["skepticism"]
+                    result_dict["idea"],
+                    result_dict["initial_score"],
+                    result_dict["initial_critique"],
+                    result_dict["advocacy"],
+                    result_dict["skepticism"]
                 ]
                 writer.writerow(row)
         
@@ -140,19 +141,20 @@ class ExportManager:
             
             # Write results
             for i, result in enumerate(results, 1):
+                result_dict = dict(result)  # Convert to dict for safe access
                 f.write(f"## 💡 Idea #{i}\n\n")
-                f.write(f"**Score:** {result['initial_score']}/10 ⭐\n\n")
+                f.write(f"**Score:** {result_dict['initial_score']}/10 ⭐\n\n")
                 f.write(f"### Description\n\n")
-                f.write(f"{result['idea']}\n\n")
+                f.write(f"{result_dict['idea']}\n\n")
                 
                 f.write(f"### 🔍 Initial Critique\n\n")
-                f.write(f"{result['initial_critique']}\n\n")
+                f.write(f"{result_dict['initial_critique']}\n\n")
                 
                 f.write(f"### ✅ Advocacy\n\n")
-                f.write(f"{result['advocacy']}\n\n")
+                f.write(f"{result_dict['advocacy']}\n\n")
                 
                 f.write(f"### ⚠️ Skeptical Analysis\n\n")
-                f.write(f"{result['skepticism']}\n\n")
+                f.write(f"{result_dict['skepticism']}\n\n")
                 
                 if i < len(results):
                     f.write("---\n\n")
@@ -243,29 +245,30 @@ class ExportManager:
         
         # Results
         for i, result in enumerate(results, 1):
+            result_dict = dict(result)  # Convert to dict for safe access
             # Idea header
             story.append(Paragraph(f"💡 Idea #{i}", heading_style))
-            story.append(Paragraph(f"Score: {result['initial_score']}/10 ⭐", subheading_style))
+            story.append(Paragraph(f"Score: {result_dict['initial_score']}/10 ⭐", subheading_style))
             story.append(Spacer(1, 10))
             
             # Idea description
             story.append(Paragraph("<b>Description:</b>", styles['Normal']))
-            story.append(Paragraph(result['idea'], styles['Normal']))
+            story.append(Paragraph(result_dict['idea'], styles['Normal']))
             story.append(Spacer(1, 10))
             
             # Critique
             story.append(Paragraph("<b>🔍 Initial Critique:</b>", styles['Normal']))
-            story.append(Paragraph(result['initial_critique'], styles['Normal']))
+            story.append(Paragraph(result_dict['initial_critique'], styles['Normal']))
             story.append(Spacer(1, 10))
             
             # Advocacy
             story.append(Paragraph("<b>✅ Advocacy:</b>", styles['Normal']))
-            story.append(Paragraph(result['advocacy'], styles['Normal']))
+            story.append(Paragraph(result_dict['advocacy'], styles['Normal']))
             story.append(Spacer(1, 10))
             
             # Skepticism
             story.append(Paragraph("<b>⚠️ Skeptical Analysis:</b>", styles['Normal']))
-            story.append(Paragraph(result['skepticism'], styles['Normal']))
+            story.append(Paragraph(result_dict['skepticism'], styles['Normal']))
             
             if i < len(results):
                 story.append(Spacer(1, 30))

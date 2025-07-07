@@ -373,8 +373,9 @@ def run_multistep_workflow(
         logging.debug(f"Raw evaluations received:\n{raw_evaluations}")
         log_verbose_data("Raw Critic Response", raw_evaluations, verbose, max_length=800)
 
-        # Enhanced reasoning: Store conversation context if enabled
+        # Enhanced reasoning: Store conversation context if enabled and pre-process context
         # Note: conversation_history is consumed in process_with_context() calls during multi-dimensional evaluation
+        enhanced_reasoning_cache = None
         if enhanced_reasoning and engine:
             log_verbose_step(
                 "🧠 Enhanced Reasoning Context Collection",
@@ -392,6 +393,14 @@ def run_multistep_workflow(
                     'metadata': {'temperature': idea_temp}
                 }
                 conversation_history.append(context_data)
+            
+            # Pre-process enhanced reasoning context once (performance optimization)
+            if conversation_history:
+                enhanced_input = {
+                    'context': f"{theme} - {constraints}",
+                    'agent': 'multi_evaluator'
+                }
+                enhanced_reasoning_cache = engine.process_with_context(enhanced_input, conversation_history)
 
         # Use robust JSON parsing with fallback strategies
         parsed_evaluations = parse_json_with_fallback(
@@ -423,28 +432,26 @@ def run_multistep_workflow(
             # Enhanced reasoning: Use multi-dimensional evaluation if enabled
             if multi_dimensional_eval and engine:
                 try:
+                    # Create comprehensive evaluation context for enhanced reasoning
+                    # MultiDimensionalEvaluator expects budget, timeline, and other context keys
                     context = {
                         'theme': theme,
                         'constraints': constraints,
                         'idea_index': i,
-                        'total_ideas': len(parsed_ideas)
+                        'total_ideas': len(parsed_ideas),
+                        'budget': 'medium',  # Default budget level for evaluation
+                        'timeline': 'flexible',  # Default timeline expectation  
+                        'priority': 'high',  # Default priority level
+                        'resources': 'available',  # Default resource assumption
+                        'technical_complexity': 'moderate'  # Default complexity level
                     }
                     
-                    # Use enhanced reasoning with conversation history if available
-                    if enhanced_reasoning and conversation_history:
-                        # Process with context awareness using the conversation history
-                        enhanced_input = {
-                            'idea': idea_text,
-                            'context': f"{theme} - {constraints}",
-                            'evaluation_context': context
-                        }
-                        enhanced_result = engine.process_with_context(enhanced_input, conversation_history)
-                        
-                        # Perform multi-dimensional evaluation with enhanced context
-                        # Use the enhanced reasoning output to improve evaluation context
+                    # Use enhanced reasoning with cached context if available
+                    if enhanced_reasoning and enhanced_reasoning_cache:
+                        # Use pre-processed enhanced reasoning context (performance optimized)
                         enhanced_context = context.copy()
-                        enhanced_context['enhanced_reasoning'] = enhanced_result.get('enhanced_reasoning', '')
-                        enhanced_context['context_awareness_score'] = enhanced_result.get('context_awareness_score', 0)
+                        enhanced_context['enhanced_reasoning'] = enhanced_reasoning_cache.get('enhanced_reasoning', '')
+                        enhanced_context['context_awareness_score'] = enhanced_reasoning_cache.get('context_awareness_score', 0)
                         
                         multi_eval_result = engine.multi_evaluator.evaluate_idea(idea_text, enhanced_context)
                     else:

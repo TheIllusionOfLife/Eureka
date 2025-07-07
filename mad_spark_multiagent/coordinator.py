@@ -220,12 +220,12 @@ def call_skeptic_with_retry(idea: str, advocacy: str, context: str, temperature:
 def run_multistep_workflow(
     theme: str, constraints: str, num_top_candidates: int = 2, 
     enable_novelty_filter: bool = True, novelty_threshold: float = 0.8,
-    temperature_manager: Optional['TemperatureManager'] = None,
+    temperature_manager: Optional[TemperatureManager] = None,
     verbose: bool = False,
     enhanced_reasoning: bool = False,
     multi_dimensional_eval: bool = False,
     logical_inference: bool = False,
-    reasoning_engine: Optional['ReasoningEngine'] = None
+    reasoning_engine: Optional[ReasoningEngine] = None
 ) -> List[CandidateData]:
     """
     Runs the multi-step idea generation and refinement workflow.
@@ -460,7 +460,7 @@ def run_multistep_workflow(
                         print(f"   Confidence: {multi_eval_result['confidence_interval']:.3f}")
                         
                 except (AttributeError, KeyError, TypeError, ValueError) as e:
-                    logging.warning(f"Multi-dimensional evaluation failed for idea {i}: {e}")
+                    logging.warning(f"Multi-dimensional evaluation failed for idea {i} ('{idea_text[:50]}...'): {type(e).__name__}: {e}")
                     # Fall back to standard evaluation
 
             # Enhanced reasoning: Apply logical inference if enabled (independent of multi-dimensional eval)
@@ -487,7 +487,7 @@ def run_multistep_workflow(
                             print(f"🔗 Logical Inference for '{idea_text[:50]}...': Confidence {inference_result['confidence_score']:.2f}")
                             
                 except (AttributeError, KeyError, TypeError, ValueError) as e:
-                    logging.warning(f"Logical inference failed for idea {i}: {e}")
+                    logging.warning(f"Logical inference failed for idea {i} ('{idea_text[:50]}...'): {type(e).__name__}: {e}")
                     # Continue without logical inference
 
             # Create the EvaluatedIdea dictionary matching the TypedDict

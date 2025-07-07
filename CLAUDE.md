@@ -322,3 +322,32 @@ gh pr view 56 --json reviews | jq '.reviews[] | {author: .author.login, state: .
 ```
 
 **Note**: This guidance was added after experiencing issues where incomplete review retrieval led to missing critical problems. Always ensure complete information before proceeding with fixes.
+
+
+## Web Interface & Export Features (Phase 2.2)
+
+### Architecture Patterns
+- **Full-Stack Structure**: FastAPI backend + React TypeScript frontend
+- **Real-time Communication**: WebSocket for progress updates using asyncio
+- **Export Strategy**: Centralized ExportManager with format-specific methods
+
+### Common Tasks
+- **Run Web Interface**: `cd web && docker-compose up`
+- **Test Export**: `python cli.py 'theme' 'constraints' --export all`
+- **WebSocket Debugging**: Check `/ws/progress` endpoint and browser console
+
+### Testing Approach
+- **Export Tests**: Comprehensive test suite in `test_export_utils.py`
+- **WebSocket Tests**: Manual testing required - automated tests pending
+- **Frontend Tests**: React Testing Library setup pending
+
+### Dependencies
+- **Frontend**: React 18, TypeScript, Tailwind CSS, axios
+- **Backend**: FastAPI, uvicorn, python-multipart, reportlab (optional)
+- **Infrastructure**: Docker, Redis (for future caching)
+
+### Known Gotchas
+- **WebSocket Broadcasting**: Must handle exceptions in async functions for consistent returns
+- **Docker Environment**: React needs explicit `REACT_APP_*` environment variables
+- **Export Memory**: PDF generation can be memory-intensive for large datasets
+- **CORS Configuration**: Currently allows all origins in development

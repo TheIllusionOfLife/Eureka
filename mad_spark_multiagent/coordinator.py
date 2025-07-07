@@ -63,6 +63,7 @@ except ImportError:
     from agent_defs.advocate import advocate_idea
     from agent_defs.skeptic import criticize_idea
 try:
+    # Primary imports for package installation
     from mad_spark_multiagent.utils import (
         exponential_backoff_retry,
         parse_json_with_fallback,
@@ -79,7 +80,7 @@ try:
         LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD
     )
 except ImportError:
-    # Fallback for local development/testing
+    # Fallback imports for local development/testing (not duplicate - different import paths)
     from utils import (
         exponential_backoff_retry,
         parse_json_with_fallback,

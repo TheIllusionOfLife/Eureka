@@ -170,17 +170,18 @@ class WebSocketManager:
             try:
                 await connection.send_text(update_json)
                 return connection, True
-            except RuntimeError:
-                # WebSocket connection closed
+            except Exception as e:
+                # Catch all exceptions to ensure we always return a tuple
+                logger.debug(f"WebSocket send failed for connection: {e}")
                 return connection, False
         
         # Send to all connections concurrently
         results = await asyncio.gather(
             *[send_to_client(conn) for conn in self.active_connections],
-            return_exceptions=True
+            return_exceptions=False  # Changed to False since we handle exceptions in send_to_client
         )
         
-        # Clean up disconnected connections (avoid modification during iteration)
+        # Clean up disconnected connections
         disconnected = [conn for conn, success in results if not success]
         for conn in disconnected:
             self.disconnect(conn)

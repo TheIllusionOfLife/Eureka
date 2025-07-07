@@ -431,7 +431,6 @@ def run_multistep_workflow(
                     }
                     
                     # Use enhanced reasoning with conversation history if available
-                    multi_eval_result = None
                     if enhanced_reasoning and conversation_history:
                         # Process with context awareness using the conversation history
                         enhanced_input = {
@@ -441,12 +440,15 @@ def run_multistep_workflow(
                         }
                         enhanced_result = engine.process_with_context(enhanced_input, conversation_history)
                         
-                        # Extract multi-dimensional evaluation from enhanced result
-                        if 'multi_dimensional_evaluation' in enhanced_result:
-                            multi_eval_result = enhanced_result['multi_dimensional_evaluation']
-                    
-                    # Fallback to direct multi-dimensional evaluation if not obtained from enhanced processing
-                    if multi_eval_result is None:
+                        # Perform multi-dimensional evaluation with enhanced context
+                        # Use the enhanced reasoning output to improve evaluation context
+                        enhanced_context = context.copy()
+                        enhanced_context['enhanced_reasoning'] = enhanced_result.get('enhanced_reasoning', '')
+                        enhanced_context['context_awareness_score'] = enhanced_result.get('context_awareness_score', 0)
+                        
+                        multi_eval_result = engine.multi_evaluator.evaluate_idea(idea_text, enhanced_context)
+                    else:
+                        # Direct multi-dimensional evaluation without context awareness
                         multi_eval_result = engine.multi_evaluator.evaluate_idea(idea_text, context)
                     
                     # Use multi-dimensional score instead of simple score

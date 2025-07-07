@@ -305,13 +305,13 @@ async def test_run_async_workflow_integration():
     mock_advocacy = "Strong support"
     mock_skepticism = "Minor concerns"
     
-    with patch('mad_spark_multiagent.agent_defs.idea_generator.generate_ideas',
+    with patch('agent_defs.idea_generator.generate_ideas',
                return_value=mock_ideas):
         with patch('agent_defs.critic.evaluate_ideas',
                    return_value=mock_evaluations):
-            with patch('mad_spark_multiagent.agent_defs.advocate.advocate_idea',
+            with patch('agent_defs.advocate.advocate_idea',
                        return_value=mock_advocacy):
-                with patch('mad_spark_multiagent.agent_defs.skeptic.criticize_idea',
+                with patch('agent_defs.skeptic.criticize_idea',
                            return_value=mock_skepticism):
                     # Test with temperature manager
                     temp_manager = TemperatureManager()

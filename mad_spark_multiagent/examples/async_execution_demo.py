@@ -80,7 +80,10 @@ async def main():
     print(f"Synchronous time:  {sync_duration:.2f}s")
     print(f"Asynchronous time: {async_duration:.2f}s")
     print(f"Speedup factor:     {speedup:.2f}x")
-    print(f"Time saved:         {sync_duration - async_duration:.2f}s ({(1 - async_duration/sync_duration)*100:.1f}%)")
+    if sync_duration > 0:
+        print(f"Time saved:         {sync_duration - async_duration:.2f}s ({(1 - async_duration/sync_duration)*100:.1f}%)")
+    else:
+        print(f"Time saved:         {sync_duration - async_duration:.2f}s")
     
     # 4. Display results
     print("\n4. TOP IDEAS GENERATED")

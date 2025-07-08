@@ -425,39 +425,31 @@ def main():
     logger.info(f"Constraints: {args.constraints}")
     
     try:
+        # Extract common workflow arguments to avoid duplication
+        workflow_kwargs = {
+            "theme": args.theme,
+            "constraints": args.constraints,
+            "num_top_candidates": args.num_candidates,
+            "enable_novelty_filter": not args.disable_novelty_filter,
+            "novelty_threshold": args.novelty_threshold,
+            "temperature_manager": temp_manager,
+            "verbose": args.verbose,
+            "enhanced_reasoning": args.enhanced_reasoning,
+            "multi_dimensional_eval": args.multi_dimensional_eval,
+            "logical_inference": args.logical_inference
+        }
+
         if hasattr(args, 'async') and args.async:
             # Use async execution
             logger.info("Using async execution for better performance")
             
             async def run_async():
-                return await run_async_workflow(
-                    theme=args.theme,
-                    constraints=args.constraints,
-                    num_top_candidates=args.num_candidates,
-                    enable_novelty_filter=not args.disable_novelty_filter,
-                    novelty_threshold=args.novelty_threshold,
-                    temperature_manager=temp_manager,
-                    verbose=args.verbose,
-                    enhanced_reasoning=args.enhanced_reasoning,
-                    multi_dimensional_eval=args.multi_dimensional_eval,
-                    logical_inference=args.logical_inference
-                )
+                return await run_async_workflow(**workflow_kwargs)
             
             results = asyncio.run(run_async())
         else:
             # Use synchronous execution
-            results = run_multistep_workflow(
-                theme=args.theme,
-                constraints=args.constraints,
-                num_top_candidates=args.num_candidates,
-                enable_novelty_filter=not args.disable_novelty_filter,
-                novelty_threshold=args.novelty_threshold,
-                temperature_manager=temp_manager,
-                verbose=args.verbose,
-                enhanced_reasoning=args.enhanced_reasoning,
-                multi_dimensional_eval=args.multi_dimensional_eval,
-                logical_inference=args.logical_inference
-            )
+            results = run_multistep_workflow(**workflow_kwargs)
         
         if not results:
             print("No ideas were generated. Check the logs for details.")

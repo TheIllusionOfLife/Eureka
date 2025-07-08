@@ -6,7 +6,6 @@ improving performance by running multiple agent calls in parallel.
 import asyncio
 import logging
 from typing import List, Optional, Callable, TypedDict, Awaitable
-from datetime import datetime
 
 from coordinator import (
     EvaluatedIdea,
@@ -356,14 +355,13 @@ class AsyncCoordinator:
         
         # Create tasks for all candidates
         tasks = []
-        for idx, candidate in enumerate(candidates):
+        for candidate in candidates:
             task = asyncio.create_task(
                 self._process_single_candidate(
                     candidate,
                     theme,
                     advocacy_temp,
-                    skepticism_temp,
-                    idx + 1
+                    skepticism_temp
                 )
             )
             tasks.append(task)
@@ -388,8 +386,7 @@ class AsyncCoordinator:
         candidate: EvaluatedIdea,
         theme: str,
         advocacy_temp: float,
-        skepticism_temp: float,
-        idx: int
+        skepticism_temp: float
     ) -> Optional[CandidateData]:
         """Process a single candidate with advocacy and skepticism."""
         idea_text = candidate["text"]
@@ -408,13 +405,11 @@ class AsyncCoordinator:
         
         # For skepticism, we need the advocacy result first
         # But we can start it as soon as advocacy completes
-        advocacy_error = None
         try:
             advocacy_output = await advocacy_task
         except Exception as e:
             logger.warning(f"Advocacy failed for idea '{idea_text[:50]}...': {e}")
             advocacy_output = "Advocacy not available due to error"
-            advocacy_error = str(e)
             partial_failures.append({
                 "stage": "advocacy",
                 "error": str(e),
@@ -422,7 +417,6 @@ class AsyncCoordinator:
             })
             
         # Now run skepticism with the advocacy output
-        skepticism_error = None
         try:
             skepticism_output = await self._run_with_semaphore(
                 async_criticize_idea(
@@ -435,7 +429,6 @@ class AsyncCoordinator:
         except Exception as e:
             logger.warning(f"Skepticism failed for idea '{idea_text[:50]}...': {e}")
             skepticism_output = "Skepticism not available due to error"
-            skepticism_error = str(e)
             partial_failures.append({
                 "stage": "skepticism",
                 "error": str(e),

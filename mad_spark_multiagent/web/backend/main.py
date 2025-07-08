@@ -342,6 +342,18 @@ async def generate_ideas_async(request: IdeaGenerationRequest):
             request.logical_inference
         ) else None
         
+        # Parse and validate MAX_CONCURRENT_AGENTS environment variable
+        max_concurrent_agents = 10  # default
+        env_val = os.getenv("MAX_CONCURRENT_AGENTS", "10")
+        if env_val.isdigit():
+            parsed_val = int(env_val)
+            if parsed_val > 0:
+                max_concurrent_agents = parsed_val
+            else:
+                logger.warning(f"MAX_CONCURRENT_AGENTS must be > 0, got {parsed_val}. Using default: 10")
+        else:
+            logger.warning(f"MAX_CONCURRENT_AGENTS must be a positive integer, got '{env_val}'. Using default: 10")
+        
         # Run the async workflow
         results = await run_async_workflow(
             theme=request.theme,
@@ -356,7 +368,7 @@ async def generate_ideas_async(request: IdeaGenerationRequest):
             logical_inference=request.logical_inference,
             reasoning_engine=reasoning_eng,
             progress_callback=progress_callback,
-            max_concurrent_agents=int(os.getenv("MAX_CONCURRENT_AGENTS", "10")) if os.getenv("MAX_CONCURRENT_AGENTS", "10").isdigit() else 10  # Configurable concurrency with validation
+            max_concurrent_agents=max_concurrent_agents
         )
         
         processing_time = (datetime.now() - start_time).total_seconds()

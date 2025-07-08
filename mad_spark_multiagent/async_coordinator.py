@@ -250,8 +250,48 @@ class AsyncCoordinator:
                     score = 0
                     critique = "Evaluation missing"
                     
-                # Enhanced reasoning processing would go here (similar to coordinator.py)
-                # For now, keeping it simple for the async implementation
+                # Enhanced reasoning: Apply multi-dimensional evaluation if enabled
+                if multi_dimensional_eval and engine:
+                    try:
+                        multi_eval_result = engine.multi_dimensional_evaluate(
+                            idea=idea_text,
+                            context={"theme": theme, "constraints": constraints},
+                            prior_score=score
+                        )
+                        
+                        # Use multi-dimensional score instead of simple score
+                        score = multi_eval_result['weighted_score']
+                        
+                        # Enhance critique with multi-dimensional insights
+                        critique = f"{critique}\n\n🧠 Enhanced Analysis:\n{multi_eval_result['evaluation_summary']}"
+                        
+                    except (AttributeError, KeyError, TypeError, ValueError) as e:
+                        logger.warning(f"Multi-dimensional evaluation failed for idea {i}: {e}")
+                        # Fall back to standard evaluation
+                
+                # Enhanced reasoning: Apply logical inference if enabled
+                if logical_inference and engine:
+                    try:
+                        # Create logical premises from the evaluation
+                        premises = [
+                            f"The idea '{idea_text}' addresses {theme}",
+                            f"The constraints are: {constraints}",
+                            f"The evaluation score is {score}/10"
+                        ]
+                        
+                        # Apply logical inference
+                        inference_result = engine.generate_inference_chain(
+                            premises, 
+                            f"Therefore, this idea is suitable for {theme}"
+                        )
+                        
+                        if inference_result and inference_result.get('confidence_score', 0) > LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD:
+                            # Enhance the critique with logical reasoning insights
+                            critique = f"{critique}\n\n🔗 Logical Analysis:\nConfidence: {inference_result['confidence_score']:.2f}\nReasoning: {inference_result.get('inference_conclusion', 'Applied formal logical inference')}"
+                            
+                    except (AttributeError, KeyError, TypeError, ValueError) as e:
+                        logger.warning(f"Logical inference failed for idea {i}: {e}")
+                        # Continue without logical inference
                 
                 evaluated_ideas_data.append({
                     "text": idea_text,

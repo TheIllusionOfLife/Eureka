@@ -23,11 +23,11 @@ class TestAsyncExecution:
         # Create a coordinator
         coordinator = AsyncCoordinator()
         
-        # Mock the agent functions at module level
-        with patch('async_coordinator.generate_ideas') as mock_gen:
-            with patch('async_coordinator.evaluate_ideas') as mock_eval:
-                with patch('async_coordinator.advocate_idea') as mock_adv:
-                    with patch('async_coordinator.criticize_idea') as mock_crit:
+        # Mock the retry-wrapped agent functions at module level
+        with patch('async_coordinator.generate_ideas_with_retry') as mock_gen:
+            with patch('async_coordinator.evaluate_ideas_with_retry') as mock_eval:
+                with patch('async_coordinator.advocate_idea_with_retry') as mock_adv:
+                    with patch('async_coordinator.criticize_idea_with_retry') as mock_crit:
                         # Set return values
                         mock_gen.return_value = "Idea 1\nIdea 2\nIdea 3"
                         mock_eval.return_value = '{"score": 8, "comment": "Good"}\n{"score": 7, "comment": "Fair"}\n{"score": 9, "comment": "Excellent"}'
@@ -94,11 +94,11 @@ class TestAsyncExecution:
         
         coordinator = AsyncCoordinator(progress_callback=callback)
         
-        # Mock all agent functions
-        with patch('async_coordinator.generate_ideas', return_value="Idea 1"):
-            with patch('async_coordinator.evaluate_ideas', return_value='{"score": 8, "comment": "Good"}'):
-                with patch('async_coordinator.advocate_idea', return_value="Support"):
-                    with patch('async_coordinator.criticize_idea', return_value="Concern"):
+        # Mock all retry-wrapped agent functions
+        with patch('async_coordinator.generate_ideas_with_retry', return_value="Idea 1"):
+            with patch('async_coordinator.evaluate_ideas_with_retry', return_value='{"score": 8, "comment": "Good"}'):
+                with patch('async_coordinator.advocate_idea_with_retry', return_value="Support"):
+                    with patch('async_coordinator.criticize_idea_with_retry', return_value="Concern"):
                         await coordinator.run_workflow(
                             theme="test",
                             constraints="test",
@@ -116,8 +116,8 @@ class TestAsyncExecution:
         """Test that errors are properly propagated."""
         coordinator = AsyncCoordinator()
         
-        # Mock generate_ideas to raise an error
-        with patch('async_coordinator.generate_ideas', side_effect=RuntimeError("API Error")):
+        # Mock generate_ideas_with_retry to raise an error
+        with patch('async_coordinator.generate_ideas_with_retry', side_effect=RuntimeError("API Error")):
             with pytest.raises(RuntimeError) as exc_info:
                 await coordinator.run_workflow(
                     theme="test",
@@ -171,10 +171,10 @@ class TestAsyncExecution:
                 return f"{name} result"
             return wrapper
         
-        with patch('async_coordinator.generate_ideas', side_effect=capture_temp('generate')):
-            with patch('async_coordinator.evaluate_ideas', side_effect=capture_temp('evaluate')):
-                with patch('async_coordinator.advocate_idea', side_effect=capture_temp('advocate')):
-                    with patch('async_coordinator.criticize_idea', side_effect=capture_temp('criticize')):
+        with patch('async_coordinator.generate_ideas_with_retry', side_effect=capture_temp('generate')):
+            with patch('async_coordinator.evaluate_ideas_with_retry', side_effect=capture_temp('evaluate')):
+                with patch('async_coordinator.advocate_idea_with_retry', side_effect=capture_temp('advocate')):
+                    with patch('async_coordinator.criticize_idea_with_retry', side_effect=capture_temp('criticize')):
                         results = await run_async_workflow(
                             theme="test",
                             constraints="test",

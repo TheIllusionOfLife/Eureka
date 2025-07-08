@@ -230,29 +230,54 @@ Implements graceful degradation patterns:
 
 **IMPORTANT**: When asked to address PR review comments, you MUST follow this systematic approach to ensure you get complete review content. Previous issues occurred due to incomplete review retrieval.
 
-#### 1. Systematic PR Review Fetching Process
+#### 1. Mandatory Two-Phase Review Check Protocol
 
-**Primary Method** (use this first):
+**CRITICAL**: You MUST follow this exact protocol to prevent missing reviews. The two-phase approach ensures complete discovery before any filtering.
+
+**Phase 1: Complete Discovery (NO FILTERING)**
 ```bash
-# Step 1: Get PR number and verify context
-gh pr view --json number,headRepository
+# Step 1: Get PR context and auto-detect variables
+PR_NUM=$(gh pr view --json number | jq -r '.number')
+REPO=$(gh repo view --json owner,name | jq -r '.owner.login + "/" + .name')
 
-# Step 2: Get all reviews in reverse order (latest first)
-gh pr view {PR_NUMBER} --json reviews | jq '.reviews | reverse | .[]'
+echo "📊 Analyzing PR #${PR_NUM} in ${REPO}"
+echo ""
 
-# Step 3: Extract specific review content (replace {INDEX} with 0, 1, 2...)
-gh pr view {PR_NUMBER} --json reviews | jq -r '.reviews[{INDEX}].body'
+# Step 2: Check ALL three review sources systematically
+echo "=== 📝 PR COMMENTS (General Discussion) ==="
+gh api "/repos/${REPO}/issues/${PR_NUM}/comments" | jq -r '.[] | .body'
+
+echo ""
+echo "=== 📋 PR REVIEWS (Formal Reviews) ==="
+gh api "/repos/${REPO}/pulls/${PR_NUM}/reviews" | jq -r '.[] | .body // "No summary"'
+
+echo ""
+echo "=== 💬 LINE COMMENTS (Code-Specific) ==="
+gh api "/repos/${REPO}/pulls/${PR_NUM}/comments" | jq -r '.[] | .body'
+
+echo ""
+echo "✅ Phase 1 Complete: All review sources checked"
 ```
 
-**Fallback Methods** (if primary fails):
+**Phase 2: Timestamp Filtering (Only After Complete Discovery)**
 ```bash
-# Method A: Use comments endpoint
+# Only apply timestamp filtering AFTER Phase 1 is complete
+TIMESTAMP="$(git log -1 --format="%cd" --date=iso)"
+echo "🕒 Checking for new feedback since: ${TIMESTAMP}"
+
+# Apply same checks with timestamp filter
+gh api "/repos/${REPO}/issues/${PR_NUM}/comments" | jq -r '.[] | select(.created_at > "'$TIMESTAMP'") | .body'
+gh api "/repos/${REPO}/pulls/${PR_NUM}/comments" | jq -r '.[] | select(.created_at > "'$TIMESTAMP'") | .body'
+gh api "/repos/${REPO}/pulls/${PR_NUM}/reviews" | jq -r '.[] | select(.submitted_at > "'$TIMESTAMP'") | .body // "No summary"'
+```
+
+**Fallback Methods** (if API fails):
+```bash
+# Method A: Use gh pr view commands
 gh pr view {PR_NUMBER} --json comments | jq '.comments | reverse | .[]'
+gh pr view {PR_NUMBER} --json reviews | jq '.reviews | reverse | .[]'
 
-# Method B: Try direct API access
-gh api /repos/{OWNER}/{REPO}/pulls/{PR_NUMBER}/reviews
-
-# Method C: Use text output with manual parsing
+# Method B: Manual text parsing (last resort)
 gh pr view {PR_NUMBER} --comments
 ```
 
@@ -270,14 +295,26 @@ gh pr view {PR_NUMBER} --json reviews | jq -r '.reviews[0].body' > /tmp/review.t
 cat /tmp/review.txt
 ```
 
-#### 3. Verification Checklist
+#### 3. Mandatory Verification Checklist
 
-Before proceeding with fixes, ensure you have:
-- [ ] Complete review text (no truncation)
-- [ ] All reviewer names and their specific issues
-- [ ] Specific file/line references if mentioned
-- [ ] Critical vs. minor issue classification
+**CRITICAL**: Complete this checklist before proceeding with ANY fixes:
+
+**Review Completeness:**
+- [ ] Phase 1 complete discovery executed (all 3 sources checked)
+- [ ] Complete review text retrieved (no truncation warnings)
+- [ ] All reviewer names identified with attribution
+- [ ] Total count verified: X comments, Y reviews, Z line comments
+
+**Content Analysis:**
+- [ ] Critical vs. medium vs. minor issues classified
+- [ ] Specific file/line references documented
 - [ ] Clear understanding of what needs to be fixed
+- [ ] Dependencies between issues identified
+
+**Quality Gates:**
+- [ ] No filtering applied until complete discovery finished
+- [ ] No "... [X lines truncated] ..." warnings in output
+- [ ] All three review sources returned content or explicit "no content" message
 
 #### 4. Error Handling Protocol
 
@@ -321,7 +358,51 @@ gh pr view 56 --json reviews | jq -r '.reviews[] | select(.author.login=="cursor
 gh pr view 56 --json reviews | jq '.reviews[] | {author: .author.login, state: .state, body: .body}'
 ```
 
-**Note**: This guidance was added after experiencing issues where incomplete review retrieval led to missing critical problems. Always ensure complete information before proceeding with fixes.
+#### 6. Systematic Preventive Measures
+
+**Root Cause Prevention**: Based on analysis of systematic review failures, implement these safeguards:
+
+**A. Two-Phase Discovery Protocol**
+- NEVER apply timestamp filtering until Phase 1 complete discovery is finished
+- Always use auto-detection patterns instead of manual PR number entry
+- Verify all three review sources return content or explicit "no content" message
+
+**B. Content Verification Standards**
+- Use JSON extraction over text parsing to prevent truncation
+- Save large reviews to temp files: `/tmp/review_$REVIEWER.txt`
+- Implement reviewer attribution tracking: "Fixed Copilot ✅ Gemini ✅ Claude ✅"
+
+**C. Quality Gates**
+```bash
+# Verification command to run before proceeding
+verify_review_completeness() {
+    local comments_count=$(gh api "/repos/${REPO}/issues/${PR_NUM}/comments" | jq '. | length')
+    local reviews_count=$(gh api "/repos/${REPO}/pulls/${PR_NUM}/reviews" | jq '. | length')  
+    local line_comments_count=$(gh api "/repos/${REPO}/pulls/${PR_NUM}/comments" | jq '. | length')
+    
+    echo "📊 Review Discovery Summary:"
+    echo "   PR Comments: ${comments_count}"
+    echo "   PR Reviews: ${reviews_count}"
+    echo "   Line Comments: ${line_comments_count}"
+    echo "   Total Issues: $((comments_count + reviews_count + line_comments_count))"
+    
+    if [[ $((comments_count + reviews_count + line_comments_count)) -eq 0 ]]; then
+        echo "⚠️  WARNING: No reviews found - verify this is correct"
+        return 1
+    fi
+    
+    echo "✅ Review completeness verified"
+    return 0
+}
+```
+
+**D. Implementation Quality Standards**
+- Use clear, testable validation logic over complex one-liners
+- Include comprehensive edge case handling (zero, negative, non-numeric values)
+- Add logging for debugging and verification
+- Test with various input scenarios before committing
+
+**Note**: This guidance was added after experiencing systematic review failures where incomplete review retrieval led to missing critical problems. The two-phase protocol prevents premature filtering and ensures comprehensive issue discovery.
 
 
 ## Web Interface & Export Features (Phase 2.2)

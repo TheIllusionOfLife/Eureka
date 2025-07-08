@@ -5,7 +5,7 @@ improving performance by running multiple agent calls in parallel.
 """
 import asyncio
 import logging
-from typing import List, Dict, Any, Optional, Callable, TypedDict
+from typing import List, Optional, Callable, TypedDict, Awaitable
 from datetime import datetime
 
 from coordinator import (
@@ -34,18 +34,44 @@ logger = logging.getLogger(__name__)
 
 
 # Type alias for progress callback
-ProgressCallback = Callable[[str, float], asyncio.Future]
+ProgressCallback = Callable[[str, float], Awaitable[None]]
+
+
+# Create retry-wrapped versions of agent functions
+@exponential_backoff_retry(max_retries=3, initial_delay=2.0)
+def generate_ideas_with_retry(topic: str, context: str, temperature: float) -> str:
+    """Generate ideas with retry logic."""
+    return generate_ideas(topic, context, temperature)
+
+
+@exponential_backoff_retry(max_retries=3, initial_delay=2.0)
+def evaluate_ideas_with_retry(ideas: str, criteria: str, context: str, temperature: float) -> str:
+    """Evaluate ideas with retry logic."""
+    return evaluate_ideas(ideas, criteria, context, temperature)
+
+
+@exponential_backoff_retry(max_retries=2, initial_delay=1.0)
+def advocate_idea_with_retry(idea: str, evaluation: str, context: str, temperature: float) -> str:
+    """Advocate for idea with retry logic."""
+    return advocate_idea(idea, evaluation, context, temperature)
+
+
+@exponential_backoff_retry(max_retries=2, initial_delay=1.0)
+def criticize_idea_with_retry(idea: str, advocacy: str, context: str, temperature: float) -> str:
+    """Criticize idea with retry logic."""
+    return criticize_idea(idea, advocacy, context, temperature)
 
 
 async def async_generate_ideas(topic: str, context: str, temperature: float = 0.9) -> str:
-    """Async wrapper for idea generation.
+    """Async wrapper for idea generation with retry logic.
     
     Runs the synchronous generate_ideas function in a thread pool to avoid blocking.
+    Includes exponential backoff retry for resilience.
     """
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     return await loop.run_in_executor(
         None, 
-        generate_ideas,
+        generate_ideas_with_retry,
         topic,
         context,
         temperature
@@ -53,14 +79,15 @@ async def async_generate_ideas(topic: str, context: str, temperature: float = 0.
 
 
 async def async_evaluate_ideas(ideas: str, criteria: str, context: str, temperature: float = 0.3) -> str:
-    """Async wrapper for idea evaluation.
+    """Async wrapper for idea evaluation with retry logic.
     
     Runs the synchronous evaluate_ideas function in a thread pool to avoid blocking.
+    Includes exponential backoff retry for resilience.
     """
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     return await loop.run_in_executor(
         None,
-        evaluate_ideas,
+        evaluate_ideas_with_retry,
         ideas,
         criteria,
         context,
@@ -69,14 +96,15 @@ async def async_evaluate_ideas(ideas: str, criteria: str, context: str, temperat
 
 
 async def async_advocate_idea(idea: str, evaluation: str, context: str, temperature: float = 0.5) -> str:
-    """Async wrapper for idea advocacy.
+    """Async wrapper for idea advocacy with retry logic.
     
     Runs the synchronous advocate_idea function in a thread pool to avoid blocking.
+    Includes exponential backoff retry for resilience.
     """
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     return await loop.run_in_executor(
         None,
-        advocate_idea,
+        advocate_idea_with_retry,
         idea,
         evaluation,
         context,
@@ -85,14 +113,15 @@ async def async_advocate_idea(idea: str, evaluation: str, context: str, temperat
 
 
 async def async_criticize_idea(idea: str, advocacy: str, context: str, temperature: float = 0.5) -> str:
-    """Async wrapper for idea criticism/skepticism.
+    """Async wrapper for idea criticism/skepticism with retry logic.
     
     Runs the synchronous criticize_idea function in a thread pool to avoid blocking.
+    Includes exponential backoff retry for resilience.
     """
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     return await loop.run_in_executor(
         None,
-        criticize_idea,
+        criticize_idea_with_retry,
         idea,
         advocacy,
         context,
@@ -297,7 +326,7 @@ class AsyncCoordinator:
         idea_text = candidate["text"]
         evaluation_detail = candidate["critique"]
         
-        # Run advocacy and skepticism in parallel for this candidate
+        # Run advocacy first, then skepticism (sequential for single candidate)
         advocacy_task = self._run_with_semaphore(
             async_advocate_idea(
                 idea=idea_text,

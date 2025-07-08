@@ -176,14 +176,14 @@ def log_agent_completion(agent_name: str, response_data: str, step_number: str,
 
 
 # --- TypedDict Definitions ---
-class EvaluatedIdea(TypedDict, total=False):
+class EvaluatedIdea(TypedDict):
     """Structure for an idea after evaluation by the CriticAgent."""
     text: str       # The original idea text
     score: int      # Score assigned by the critic
     critique: str   # Textual critique from the critic
     multi_dimensional_evaluation: Optional[Dict[str, Any]]  # Multi-dimensional evaluation data
 
-class CandidateData(TypedDict, total=False):
+class CandidateData(TypedDict):
     """Structure for the final data compiled for each candidate idea."""
     idea: str
     initial_score: int

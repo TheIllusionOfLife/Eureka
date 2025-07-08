@@ -49,9 +49,28 @@ const RadarChartComponent: React.FC<RadarChartProps> = ({ data, title }) => {
     return descriptions[dimension] || '';
   };
 
-  // Calculate overall score
-  const overallScore = data.reduce((sum, item) => sum + item.score, 0) / data.length;
+  // Calculate overall score (handle empty data)
+  const overallScore = data.length > 0 ? data.reduce((sum, item) => sum + item.score, 0) / data.length : 0;
   const scoreColor = overallScore >= 7 ? 'text-green-600' : overallScore >= 5 ? 'text-yellow-600' : 'text-red-600';
+
+  // Handle empty data case
+  if (data.length === 0) {
+    return (
+      <div className="bg-white p-4 rounded-lg shadow">
+        {title && (
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+          </div>
+        )}
+        <div className="flex items-center justify-center h-64 text-gray-500">
+          <div className="text-center">
+            <p className="text-lg mb-2">No evaluation data available</p>
+            <p className="text-sm">Multi-dimensional evaluation will appear here when available.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white p-4 rounded-lg shadow">

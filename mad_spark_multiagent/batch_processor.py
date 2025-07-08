@@ -8,6 +8,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Tuple
@@ -21,6 +22,28 @@ from export_utils import ExportManager
 from constants import DEFAULT_NUM_TOP_CANDIDATES
 
 logger = logging.getLogger(__name__)
+
+
+def sanitize_filename(text: str, max_length: int = 30) -> str:
+    """Sanitize text for use in filenames.
+    
+    Args:
+        text: Text to sanitize
+        max_length: Maximum length of sanitized text
+        
+    Returns:
+        Sanitized filename component
+    """
+    # Replace spaces with underscores
+    sanitized = text.replace(' ', '_')
+    # Remove/replace dangerous characters
+    sanitized = re.sub(r'[<>:"/\\|?*\x00-\x1f]', '', sanitized)
+    # Remove multiple consecutive underscores
+    sanitized = re.sub(r'_+', '_', sanitized)
+    # Trim length and remove trailing underscores
+    sanitized = sanitized[:max_length].rstrip('_')
+    # Ensure we have at least something
+    return sanitized or 'untitled'
 
 
 class BatchItem:
@@ -439,7 +462,7 @@ class BatchProcessor:
                 }
                 
                 # Export to multiple formats
-                base_filename = f"batch_{batch_id}_item_{i+1}_{item.theme.replace(' ', '_')[:30]}"
+                base_filename = f"batch_{batch_id}_item_{i+1}_{sanitize_filename(item.theme)}"
                 
                 # JSON export
                 json_path = self.export_manager.export_to_json(

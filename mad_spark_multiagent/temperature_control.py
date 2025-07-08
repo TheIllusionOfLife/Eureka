@@ -8,6 +8,7 @@ import argparse
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
 import logging
+from errors import TemperatureError, ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +81,7 @@ class TemperatureManager:
         """
         if preset_name not in cls.PRESETS:
             available = ", ".join(cls.PRESETS.keys())
-            raise ValueError(f"Unknown preset '{preset_name}'. Available: {available}")
+            raise TemperatureError(f"Unknown preset '{preset_name}'. Available: {available}")
         
         return cls(cls.PRESETS[preset_name])
     
@@ -206,7 +207,7 @@ def create_temperature_manager_from_args(args: argparse.Namespace) -> Temperatur
     
     if hasattr(args, 'temperature') and args.temperature is not None:
         if not 0.0 <= args.temperature <= 1.0:
-            raise ValueError("Temperature must be between 0.0 and 1.0")
+            raise TemperatureError("Temperature must be between 0.0 and 1.0")
         logger.info(f"Using base temperature: {args.temperature}")
         return TemperatureManager.from_base_temperature(args.temperature)
     

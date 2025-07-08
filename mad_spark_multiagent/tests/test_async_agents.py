@@ -28,7 +28,7 @@ class TestAsyncAgentExecution:
         """Test async idea generation with mock."""
         mock_response = "Idea 1: Solar panels\nIdea 2: Wind turbines\nIdea 3: Hydroelectric"
         
-        with patch('agent_defs.idea_generator.generate_ideas', 
+        with patch('async_coordinator.generate_ideas_with_retry', 
                    return_value=mock_response):
             result = await async_generate_ideas(
                 topic="renewable energy",
@@ -47,7 +47,7 @@ class TestAsyncAgentExecution:
 {"score": 7, "comment": "Good scalability"}
 {"score": 9, "comment": "High impact potential"}"""
         
-        with patch('agent_defs.critic.evaluate_ideas',
+        with patch('async_coordinator.evaluate_ideas_with_retry',
                    return_value=mock_response):
             result = await async_evaluate_ideas(
                 ideas="Idea 1\nIdea 2\nIdea 3",
@@ -81,9 +81,9 @@ class TestAsyncAgentExecution:
             call_times.append(('evaluate_end', time.time()))
             return mock_eval_response
         
-        with patch('agent_defs.idea_generator.generate_ideas',
+        with patch('async_coordinator.generate_ideas_with_retry',
                    side_effect=lambda *args, **kwargs: mock_idea_response):
-            with patch('agent_defs.critic.evaluate_ideas',
+            with patch('async_coordinator.evaluate_ideas_with_retry',
                        side_effect=lambda *args, **kwargs: mock_eval_response):
                 # Create async wrapper functions that add delays
                 async def async_gen(*args, **kwargs):
@@ -124,13 +124,13 @@ class TestAsyncAgentExecution:
         mock_advocacy = "This solution offers sustainable energy..."
         mock_skepticism = "Implementation challenges include..."
         
-        with patch('agent_defs.idea_generator.generate_ideas',
+        with patch('async_coordinator.generate_ideas_with_retry',
                    return_value=mock_ideas):
-            with patch('agent_defs.critic.evaluate_ideas',
+            with patch('async_coordinator.evaluate_ideas_with_retry',
                        return_value=mock_evaluations):
-                with patch('agent_defs.advocate.advocate_idea',
+                with patch('async_coordinator.advocate_idea_with_retry',
                            return_value=mock_advocacy):
-                    with patch('agent_defs.skeptic.criticize_idea',
+                    with patch('async_coordinator.criticize_idea_with_retry',
                                return_value=mock_skepticism):
                         results = await coordinator.run_workflow(
                             theme="renewable energy",
@@ -196,7 +196,7 @@ class TestAsyncAgentExecution:
         coordinator = AsyncCoordinator()
         
         # Mock a failing agent
-        with patch('agent_defs.idea_generator.generate_ideas',
+        with patch('async_coordinator.generate_ideas_with_retry',
                    side_effect=Exception("API Error")):
             with pytest.raises(Exception) as exc_info:
                 await coordinator.run_workflow(
@@ -217,13 +217,13 @@ class TestAsyncAgentExecution:
         coordinator = AsyncCoordinator(progress_callback=progress_callback)
         
         # Mock responses
-        with patch('agent_defs.idea_generator.generate_ideas',
+        with patch('async_coordinator.generate_ideas_with_retry',
                    return_value="Idea 1\nIdea 2"):
-            with patch('agent_defs.critic.evaluate_ideas',
+            with patch('async_coordinator.evaluate_ideas_with_retry',
                        return_value='{"score": 8, "comment": "Good"}\n{"score": 7, "comment": "Fair"}'):
-                with patch('agent_defs.advocate.advocate_idea',
+                with patch('async_coordinator.advocate_idea_with_retry',
                            return_value="Great idea"):
-                    with patch('agent_defs.skeptic.criticize_idea',
+                    with patch('async_coordinator.criticize_idea_with_retry',
                                return_value="Some concerns"):
                         await coordinator.run_workflow(
                             theme="test",
@@ -305,13 +305,13 @@ async def test_run_async_workflow_integration():
     mock_advocacy = "Strong support"
     mock_skepticism = "Minor concerns"
     
-    with patch('agent_defs.idea_generator.generate_ideas',
+    with patch('async_coordinator.generate_ideas_with_retry',
                return_value=mock_ideas):
-        with patch('agent_defs.critic.evaluate_ideas',
+        with patch('async_coordinator.evaluate_ideas_with_retry',
                    return_value=mock_evaluations):
-            with patch('agent_defs.advocate.advocate_idea',
+            with patch('async_coordinator.advocate_idea_with_retry',
                        return_value=mock_advocacy):
-                with patch('agent_defs.skeptic.criticize_idea',
+                with patch('async_coordinator.criticize_idea_with_retry',
                            return_value=mock_skepticism):
                     # Test with temperature manager
                     temp_manager = TemperatureManager()

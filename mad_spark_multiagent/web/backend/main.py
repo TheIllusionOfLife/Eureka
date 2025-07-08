@@ -23,7 +23,7 @@ from pydantic import BaseModel, Field
 try:
     # Try relative imports first (when run as package)
     from ...coordinator import run_multistep_workflow, CandidateData
-    from ...async_coordinator import run_async_workflow
+    from ...async_coordinator import AsyncCoordinator
     from ...temperature_control import TemperatureManager
     from ...enhanced_reasoning import ReasoningEngine
     from ...constants import (
@@ -32,12 +32,13 @@ try:
         TEMPERATURE_PRESETS
     )
     from ...bookmark_system import BookmarkSystem
+    from ...cache_manager import CacheManager, CacheConfig
 except ImportError:
     # Fallback for development when run directly
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     try:
         from coordinator import run_multistep_workflow, CandidateData
-        from async_coordinator import run_async_workflow
+        from async_coordinator import AsyncCoordinator
         from temperature_control import TemperatureManager
         from enhanced_reasoning import ReasoningEngine
         from constants import (
@@ -46,6 +47,7 @@ except ImportError:
             TEMPERATURE_PRESETS
         )
         from bookmark_system import BookmarkSystem
+        from cache_manager import CacheManager, CacheConfig
     except ImportError as e:
         logging.error(f"Failed to import MadSpark modules: {e}")
         raise
@@ -57,16 +59,54 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
+def format_results_for_frontend(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Format results to match frontend expectations, especially multi-dimensional evaluation."""
+    formatted_results = []
+    for result in results:
+        formatted_result = dict(result)
+        
+        # Transform multi_dimensional_evaluation if present
+        if 'multi_dimensional_evaluation' in formatted_result and formatted_result['multi_dimensional_evaluation']:
+            multi_eval = formatted_result['multi_dimensional_evaluation']
+            
+            # Extract dimension scores
+            dimension_scores = multi_eval.get('dimension_scores', {})
+            
+            # Format for frontend
+            formatted_result['multi_dimensional_evaluation'] = {
+                'scores': {
+                    'feasibility': dimension_scores.get('feasibility', 5),
+                    'innovation': dimension_scores.get('innovation', 5),
+                    'impact': dimension_scores.get('impact', 5),
+                    'cost_effectiveness': dimension_scores.get('cost_effectiveness', 5),
+                    'scalability': dimension_scores.get('scalability', 5),
+                    'risk_assessment': dimension_scores.get('risk_assessment', 5),
+                    'timeline': dimension_scores.get('timeline', 5)
+                },
+                'overall_score': multi_eval.get('weighted_score', 5),
+                'confidence_interval': {
+                    'lower': multi_eval.get('weighted_score', 5) - multi_eval.get('confidence_interval', 1),
+                    'upper': multi_eval.get('weighted_score', 5) + multi_eval.get('confidence_interval', 1)
+                }
+            }
+        
+        formatted_results.append(formatted_result)
+    
+    return formatted_results
+
+
 # Global variables for MadSpark components
 temp_manager: Optional[TemperatureManager] = None
 reasoning_engine: Optional[ReasoningEngine] = None
 bookmark_system: Optional[BookmarkSystem] = None
+cache_manager: Optional[CacheManager] = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize and cleanup MadSpark components."""
-    global temp_manager, reasoning_engine, bookmark_system
+    global temp_manager, reasoning_engine, bookmark_system, cache_manager
     
     # Startup
     logger.info("Initializing MadSpark backend services...")
@@ -74,6 +114,16 @@ async def lifespan(app: FastAPI):
         temp_manager = TemperatureManager()
         reasoning_engine = ReasoningEngine()
         bookmark_system = BookmarkSystem()
+        
+        # Initialize cache manager
+        cache_config = CacheConfig(
+            redis_url=os.getenv("REDIS_URL", "redis://localhost:6379/0"),
+            ttl_seconds=int(os.getenv("CACHE_TTL", "3600")),
+            max_cache_size_mb=int(os.getenv("CACHE_MAX_SIZE_MB", "100"))
+        )
+        cache_manager = CacheManager(cache_config)
+        await cache_manager.initialize()
+        
         logger.info("✅ MadSpark backend initialized successfully")
     except Exception as e:
         logger.error(f"❌ Failed to initialize MadSpark backend: {e}")
@@ -83,6 +133,8 @@ async def lifespan(app: FastAPI):
     
     # Cleanup
     logger.info("Shutting down MadSpark backend services...")
+    if cache_manager:
+        await cache_manager.close()
 
 
 # Initialize FastAPI app
@@ -305,7 +357,7 @@ async def generate_ideas(request: IdeaGenerationRequest):
         return IdeaGenerationResponse(
             status="success",
             message=f"Generated {len(results)} ideas successfully",
-            results=[dict(result) for result in results],
+            results=format_results_for_frontend(results),
             processing_time=processing_time,
             timestamp=start_time.isoformat()
         )
@@ -354,8 +406,15 @@ async def generate_ideas_async(request: IdeaGenerationRequest):
         else:
             logger.warning(f"MAX_CONCURRENT_AGENTS must be a positive integer, got '{env_val}'. Using default: 10")
         
+        # Create async coordinator with cache
+        async_coordinator = AsyncCoordinator(
+            max_concurrent_agents=max_concurrent_agents,
+            progress_callback=progress_callback,
+            cache_manager=cache_manager
+        )
+        
         # Run the async workflow
-        results = await run_async_workflow(
+        results = await async_coordinator.run_workflow(
             theme=request.theme,
             constraints=request.constraints,
             num_top_candidates=request.num_top_candidates,
@@ -366,9 +425,7 @@ async def generate_ideas_async(request: IdeaGenerationRequest):
             enhanced_reasoning=request.enhanced_reasoning,
             multi_dimensional_eval=request.multi_dimensional_eval,
             logical_inference=request.logical_inference,
-            reasoning_engine=reasoning_eng,
-            progress_callback=progress_callback,
-            max_concurrent_agents=max_concurrent_agents
+            reasoning_engine=reasoning_eng
         )
         
         processing_time = (datetime.now() - start_time).total_seconds()
@@ -376,7 +433,7 @@ async def generate_ideas_async(request: IdeaGenerationRequest):
         return IdeaGenerationResponse(
             status="success",
             message=f"Generated {len(results)} ideas successfully (async)",
-            results=[dict(result) for result in results],
+            results=format_results_for_frontend(results),
             processing_time=processing_time,
             timestamp=start_time.isoformat()
         )
@@ -424,6 +481,52 @@ async def create_bookmark(request: BookmarkRequest):
         )
     except Exception as e:
         logger.error(f"Failed to create bookmark: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/cache/stats")
+async def get_cache_stats():
+    """Get cache statistics."""
+    try:
+        if not cache_manager:
+            return {
+                "status": "disabled",
+                "message": "Cache manager not initialized"
+            }
+        
+        stats = await cache_manager.get_cache_stats()
+        return stats
+        
+    except Exception as e:
+        logger.error(f"Failed to get cache stats: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/cache/invalidate")
+async def invalidate_cache(pattern: Optional[str] = None):
+    """Invalidate cache entries matching pattern."""
+    try:
+        if not cache_manager:
+            return {
+                "status": "error",
+                "message": "Cache manager not initialized"
+            }
+        
+        if pattern:
+            deleted = await cache_manager.invalidate_cache(pattern)
+            return {
+                "status": "success",
+                "message": f"Invalidated {deleted} cache entries matching pattern: {pattern}"
+            }
+        else:
+            success = await cache_manager.clear_all_cache()
+            return {
+                "status": "success" if success else "error",
+                "message": "All cache cleared" if success else "Failed to clear cache"
+            }
+            
+    except Exception as e:
+        logger.error(f"Failed to invalidate cache: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

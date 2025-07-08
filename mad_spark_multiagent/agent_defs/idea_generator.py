@@ -7,6 +7,11 @@ and contextual information.
 import os
 from typing import Any
 import google.generativeai as genai
+from errors import IdeaGenerationError, ValidationError, ConfigurationError
+
+# Prompt constants to avoid duplication
+IDEA_GENERATION_INSTRUCTION = "generate a list of diverse and creative ideas"
+SYSTEM_INSTRUCTION = f"You are an expert idea generator. Given a topic and some context, {IDEA_GENERATION_INSTRUCTION}."
 
 
 def build_generation_prompt(topic: str, context: str) -> str:
@@ -20,7 +25,7 @@ def build_generation_prompt(topic: str, context: str) -> str:
     A formatted prompt string to be used by the idea generator agent.
   """
   return (
-      f"Use the context below to generate a list of diverse and creative ideas"
+      f"Use the context below to {IDEA_GENERATION_INSTRUCTION}"
       f" on the topic of {topic}. Make sure the ideas are actionable and"
       f" innovative.\n\nContext:\n{context}\n\nIdeas:"
   )
@@ -35,10 +40,7 @@ if api_key:
     # Create the model instance
     idea_generator_model = genai.GenerativeModel(
         model_name=model_name,
-        system_instruction=(
-            "You are an expert idea generator. Given a topic and some context,"
-            " generate a list of diverse and creative ideas."
-        )
+        system_instruction=SYSTEM_INSTRUCTION
     )
 else:
     idea_generator_model = None
@@ -59,14 +61,14 @@ def generate_ideas(topic: str, context: str, temperature: float = 0.9) -> str:
     ValueError: If topic or context are empty or invalid.
   """
   if not isinstance(topic, str) or not topic.strip():
-    raise ValueError("Input 'topic' to generate_ideas must be a non-empty string.")
+    raise ValidationError("Input 'topic' to generate_ideas must be a non-empty string.")
   if not isinstance(context, str) or not context.strip():
-    raise ValueError("Input 'context' to generate_ideas must be a non-empty string.")
+    raise ValidationError("Input 'context' to generate_ideas must be a non-empty string.")
 
   prompt: str = build_generation_prompt(topic=topic, context=context)
   
   if idea_generator_model is None:
-    raise RuntimeError("GOOGLE_API_KEY not configured - cannot generate ideas")
+    raise ConfigurationError("GOOGLE_API_KEY not configured - cannot generate ideas")
   
   try:
     generation_config = genai.types.GenerationConfig(temperature=temperature)

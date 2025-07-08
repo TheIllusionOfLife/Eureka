@@ -16,7 +16,7 @@ from datetime import datetime
 # Import MadSpark components with fallback for local development
 try:
     from mad_spark_multiagent.coordinator import run_multistep_workflow
-    from mad_spark_multiagent.async_coordinator import run_async_workflow
+    from mad_spark_multiagent.async_coordinator import AsyncCoordinator
     from mad_spark_multiagent.temperature_control import (
         TemperatureManager, 
         add_temperature_arguments,
@@ -29,10 +29,11 @@ try:
         remix_with_bookmarks
     )
     from mad_spark_multiagent.export_utils import ExportManager, create_metadata_from_args
+    from mad_spark_multiagent.cache_manager import CacheManager, CacheConfig
 except ImportError:
     # Fallback for local development/testing
     from coordinator import run_multistep_workflow
-    from async_coordinator import run_async_workflow
+    from async_coordinator import AsyncCoordinator
     from temperature_control import (
         TemperatureManager, 
         add_temperature_arguments,
@@ -45,6 +46,15 @@ except ImportError:
         remix_with_bookmarks
     )
     from export_utils import ExportManager, create_metadata_from_args
+    from cache_manager import CacheManager, CacheConfig
+
+# Import interactive mode after the try/except blocks
+try:
+    from mad_spark_multiagent.interactive_mode import run_interactive_mode
+    from mad_spark_multiagent.batch_processor import BatchProcessor, create_sample_batch_file
+except ImportError:
+    from interactive_mode import run_interactive_mode
+    from batch_processor import BatchProcessor, create_sample_batch_file
 
 logger = logging.getLogger(__name__)
 
@@ -136,6 +146,13 @@ Examples:
   
   # Show temperature presets
   %(prog)s --list-presets
+  
+  # Batch processing
+  %(prog)s --create-sample-batch csv
+  %(prog)s --batch sample_batch.csv --batch-concurrent 5
+  
+  # Interactive mode
+  %(prog)s --interactive
         """
     )
     
@@ -150,6 +167,42 @@ Examples:
         'constraints',
         nargs='?',
         help='Constraints and criteria for idea generation'
+    )
+    
+    # Interactive mode
+    parser.add_argument(
+        '--interactive', '-i',
+        action='store_true',
+        help='Run in interactive mode with step-by-step guidance'
+    )
+    
+    # Batch processing
+    batch_group = parser.add_argument_group('batch processing')
+    
+    batch_group.add_argument(
+        '--batch',
+        metavar='FILE',
+        help='Process multiple themes from CSV or JSON file'
+    )
+    
+    batch_group.add_argument(
+        '--batch-concurrent',
+        type=int,
+        default=3,
+        metavar='N',
+        help='Maximum concurrent batch items (default: 3)'
+    )
+    
+    batch_group.add_argument(
+        '--batch-export-dir',
+        default='batch_exports',
+        help='Directory for batch export results (default: batch_exports)'
+    )
+    
+    batch_group.add_argument(
+        '--create-sample-batch',
+        choices=['csv', 'json'],
+        help='Create a sample batch file and exit'
     )
     
     # Workflow options
@@ -179,6 +232,12 @@ Examples:
         '--async',
         action='store_true',
         help='Use async execution for better performance (Phase 2.3)'
+    )
+    
+    workflow_group.add_argument(
+        '--enable-cache',
+        action='store_true',
+        help='Enable Redis caching for faster repeated queries (requires Redis)'
     )
     
     # Temperature control
@@ -386,6 +445,99 @@ def main():
         print(TemperatureManager.describe_presets())
         return
     
+    # Handle create sample batch file
+    if args.create_sample_batch:
+        filename = f"sample_batch.{args.create_sample_batch}"
+        create_sample_batch_file(filename, args.create_sample_batch)
+        print(f"✅ Created sample batch file: {filename}")
+        print(f"You can now run: python {sys.argv[0]} --batch {filename}")
+        return
+    
+    # Handle interactive mode
+    if args.interactive:
+        try:
+            session_data = run_interactive_mode()
+            # Update args with interactive session data
+            args.theme = session_data['theme']
+            args.constraints = session_data['constraints']
+            
+            # Update args with config from interactive session
+            config = session_data['config']
+            for key, value in config.items():
+                if hasattr(args, key):
+                    setattr(args, key, value)
+                    
+            # Continue with normal workflow
+        except KeyboardInterrupt:
+            print("\n\n❌ Interactive session cancelled.")
+            return
+        except Exception as e:
+            print(f"\n❌ Error in interactive mode: {e}")
+            return
+    
+    # Handle batch processing
+    if args.batch:
+        try:
+            logger.info(f"Starting batch processing from: {args.batch}")
+            
+            # Create batch processor
+            processor = BatchProcessor(
+                max_concurrent=args.batch_concurrent,
+                use_async=hasattr(args, 'async') and getattr(args, 'async'),
+                enable_cache=args.enable_cache,
+                export_dir=args.batch_export_dir,
+                verbose=args.verbose
+            )
+            
+            # Load batch items
+            if args.batch.endswith('.csv'):
+                batch_items = processor.load_batch_from_csv(args.batch)
+            elif args.batch.endswith('.json'):
+                batch_items = processor.load_batch_from_json(args.batch)
+            else:
+                print(f"❌ Unsupported batch file format. Use .csv or .json")
+                sys.exit(1)
+                
+            print(f"📋 Loaded {len(batch_items)} items for batch processing")
+            
+            # Prepare workflow options
+            workflow_options = {
+                "enable_novelty_filter": not args.disable_novelty_filter,
+                "novelty_threshold": args.novelty_threshold,
+                "verbose": args.verbose,
+                "enhanced_reasoning": args.enhanced_reasoning,
+                "multi_dimensional_eval": args.multi_dimensional_eval,
+                "logical_inference": args.logical_inference
+            }
+            
+            # Process batch
+            print("🚀 Starting batch processing...")
+            start_time = datetime.now()
+            
+            summary = processor.process_batch(batch_items, workflow_options)
+            
+            # Export results
+            batch_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+            exported_files = processor.export_batch_results(batch_items, batch_id)
+            report_path = processor.create_batch_report(batch_items, batch_id)
+            
+            # Print summary
+            print(f"\n✅ Batch processing completed!")
+            print(f"⏱️  Total time: {summary['total_processing_time']:.2f}s")
+            print(f"📊 Results: {summary['completed']} completed, {summary['failed']} failed")
+            print(f"📁 Exports saved to: {args.batch_export_dir}/")
+            print(f"📄 Report: {report_path}")
+            
+            return
+            
+        except FileNotFoundError:
+            print(f"❌ Batch file not found: {args.batch}")
+            sys.exit(1)
+        except Exception as e:
+            logger.error(f"Batch processing failed: {e}")
+            print(f"❌ Batch processing failed: {e}")
+            sys.exit(1)
+    
     # Validate main workflow arguments
     if not args.theme:
         if args.remix:
@@ -439,12 +591,33 @@ def main():
             "logical_inference": args.logical_inference
         }
 
-        if hasattr(args, 'async') and args.async:
+        if hasattr(args, 'async') and getattr(args, 'async'):
             # Use async execution
             logger.info("Using async execution for better performance")
             
             async def run_async():
-                return await run_async_workflow(**workflow_kwargs)
+                # Initialize cache manager if enabled
+                cache_manager = None
+                if hasattr(args, 'enable_cache') and args.enable_cache:
+                    cache_config = CacheConfig(
+                        redis_url=os.getenv("REDIS_URL", "redis://localhost:6379/0"),
+                        ttl_seconds=int(os.getenv("CACHE_TTL", "3600"))
+                    )
+                    cache_manager = CacheManager(cache_config)
+                    await cache_manager.initialize()
+                    logger.info("Cache enabled for async execution")
+                
+                # Create async coordinator
+                async_coordinator = AsyncCoordinator(
+                    max_concurrent_agents=int(os.getenv("MAX_CONCURRENT_AGENTS", "10")),
+                    cache_manager=cache_manager
+                )
+                
+                try:
+                    return await async_coordinator.run_workflow(**workflow_kwargs)
+                finally:
+                    if cache_manager:
+                        await cache_manager.close()
             
             results = asyncio.run(run_async())
         else:

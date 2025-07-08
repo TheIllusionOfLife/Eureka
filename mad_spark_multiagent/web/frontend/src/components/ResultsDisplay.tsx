@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { IdeaResult } from '../App';
+import RadarChartComponent from './RadarChart';
 
 interface ResultsDisplayProps {
   results: IdeaResult[];
@@ -86,8 +87,11 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results }) => {
               {/* Initial Critique */}
               <div className="border rounded-lg">
                 <button
+                  type="button"
                   onClick={() => toggleSection(index, 'critique')}
                   className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+                  aria-expanded={expandedSections[`${index}-critique`]}
+                  aria-controls={`critique-content-${index}`}
                 >
                   <span className="font-medium text-gray-900">
                     🔍 Initial Critique
@@ -99,12 +103,14 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results }) => {
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
+                    aria-label="Toggle initial critique section"
                   >
+                    <title>Toggle initial critique section</title>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
                 {expandedSections[`${index}-critique`] && (
-                  <div className="px-4 pb-3 text-gray-700 critique-text">
+                  <div id={`critique-content-${index}`} className="px-4 pb-3 text-gray-700 critique-text">
                     {result.initial_critique}
                   </div>
                 )}
@@ -113,8 +119,11 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results }) => {
               {/* Advocacy */}
               <div className="border rounded-lg">
                 <button
+                  type="button"
                   onClick={() => toggleSection(index, 'advocacy')}
                   className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+                  aria-expanded={expandedSections[`${index}-advocacy`]}
+                  aria-controls={`advocacy-content-${index}`}
                 >
                   <span className="font-medium text-gray-900">
                     ✅ Advocacy
@@ -126,12 +135,14 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results }) => {
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
+                    aria-label="Toggle advocacy section"
                   >
+                    <title>Toggle advocacy section</title>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
                 {expandedSections[`${index}-advocacy`] && (
-                  <div className="px-4 pb-3 text-gray-700 critique-text">
+                  <div id={`advocacy-content-${index}`} className="px-4 pb-3 text-gray-700 critique-text">
                     {result.advocacy}
                   </div>
                 )}
@@ -140,8 +151,11 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results }) => {
               {/* Skepticism */}
               <div className="border rounded-lg">
                 <button
+                  type="button"
                   onClick={() => toggleSection(index, 'skepticism')}
                   className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+                  aria-expanded={expandedSections[`${index}-skepticism`]}
+                  aria-controls={`skepticism-content-${index}`}
                 >
                   <span className="font-medium text-gray-900">
                     ⚠️ Skeptical Analysis
@@ -153,16 +167,68 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results }) => {
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
+                    aria-label="Toggle skeptical analysis section"
                   >
+                    <title>Toggle skeptical analysis section</title>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
                 {expandedSections[`${index}-skepticism`] && (
-                  <div className="px-4 pb-3 text-gray-700 critique-text">
+                  <div id={`skepticism-content-${index}`} className="px-4 pb-3 text-gray-700 critique-text">
                     {result.skepticism}
                   </div>
                 )}
               </div>
+
+              {/* Multi-dimensional Evaluation */}
+              {result.multi_dimensional_evaluation && (
+                <div className="border rounded-lg">
+                  <button
+                    type="button"
+                    onClick={() => toggleSection(index, 'multidim')}
+                    className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+                  >
+                    <span className="font-medium text-gray-900">
+                      📊 Multi-Dimensional Evaluation
+                    </span>
+                    <svg
+                      className={`h-5 w-5 text-gray-500 transition-transform ${
+                        expandedSections[`${index}-multidim`] ? 'rotate-180' : ''
+                      }`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      aria-label="Toggle multi-dimensional evaluation section"
+                    >
+                      <title>Toggle multi-dimensional evaluation section</title>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {expandedSections[`${index}-multidim`] && (
+                    <div className="p-4">
+                      <RadarChartComponent
+                        data={[
+                          { dimension: 'Feasibility', score: result.multi_dimensional_evaluation.scores.feasibility, fullMark: 10 },
+                          { dimension: 'Innovation', score: result.multi_dimensional_evaluation.scores.innovation, fullMark: 10 },
+                          { dimension: 'Impact', score: result.multi_dimensional_evaluation.scores.impact, fullMark: 10 },
+                          { dimension: 'Cost Effectiveness', score: result.multi_dimensional_evaluation.scores.cost_effectiveness, fullMark: 10 },
+                          { dimension: 'Scalability', score: result.multi_dimensional_evaluation.scores.scalability, fullMark: 10 },
+                          { dimension: 'Risk Assessment', score: result.multi_dimensional_evaluation.scores.risk_assessment, fullMark: 10 },
+                          { dimension: 'Timeline', score: result.multi_dimensional_evaluation.scores.timeline, fullMark: 10 }
+                        ]}
+                      />
+                      <div className="mt-3 text-sm text-gray-600">
+                        <p>
+                          <strong>Overall Score:</strong> {result.multi_dimensional_evaluation.overall_score.toFixed(1)}/10
+                        </p>
+                        <p>
+                          <strong>Confidence Interval:</strong> {result.multi_dimensional_evaluation.confidence_interval.lower.toFixed(1)} - {result.multi_dimensional_evaluation.confidence_interval.upper.toFixed(1)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Action Buttons */}

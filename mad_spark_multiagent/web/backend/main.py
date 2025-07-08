@@ -23,6 +23,7 @@ from pydantic import BaseModel, Field
 try:
     # Try relative imports first (when run as package)
     from ...coordinator import run_multistep_workflow, CandidateData
+    from ...async_coordinator import run_async_workflow
     from ...temperature_control import TemperatureManager
     from ...enhanced_reasoning import ReasoningEngine
     from ...constants import (
@@ -36,6 +37,7 @@ except ImportError:
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     try:
         from coordinator import run_multistep_workflow, CandidateData
+        from async_coordinator import run_async_workflow
         from temperature_control import TemperatureManager
         from enhanced_reasoning import ReasoningEngine
         from constants import (
@@ -310,6 +312,77 @@ async def generate_ideas(request: IdeaGenerationRequest):
         
     except Exception as e:
         logger.error(f"Idea generation failed: {e}")
+        await ws_manager.send_progress_update(f"Error: {str(e)}", 0.0)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/generate-ideas-async", response_model=IdeaGenerationResponse)
+async def generate_ideas_async(request: IdeaGenerationRequest):
+    """Generate ideas using the async MadSpark workflow for better performance."""
+    start_time = datetime.now()
+    
+    try:
+        # Define progress callback
+        async def progress_callback(message: str, progress: float):
+            await ws_manager.send_progress_update(message, progress)
+        
+        # Setup temperature manager
+        if request.temperature_preset:
+            temp_mgr = TemperatureManager(preset=request.temperature_preset)
+        elif request.temperature:
+            temp_mgr = TemperatureManager()
+            temp_mgr.set_all_temperatures(request.temperature)
+        else:
+            temp_mgr = temp_manager
+        
+        # Setup reasoning engine if needed
+        reasoning_eng = reasoning_engine if (
+            request.enhanced_reasoning or 
+            request.multi_dimensional_eval or 
+            request.logical_inference
+        ) else None
+        
+        # Parse and validate MAX_CONCURRENT_AGENTS environment variable
+        max_concurrent_agents = 10  # default
+        env_val = os.getenv("MAX_CONCURRENT_AGENTS", "10")
+        if env_val.isdigit():
+            parsed_val = int(env_val)
+            if parsed_val > 0:
+                max_concurrent_agents = parsed_val
+            else:
+                logger.warning(f"MAX_CONCURRENT_AGENTS must be > 0, got {parsed_val}. Using default: 10")
+        else:
+            logger.warning(f"MAX_CONCURRENT_AGENTS must be a positive integer, got '{env_val}'. Using default: 10")
+        
+        # Run the async workflow
+        results = await run_async_workflow(
+            theme=request.theme,
+            constraints=request.constraints,
+            num_top_candidates=request.num_top_candidates,
+            enable_novelty_filter=request.enable_novelty_filter,
+            novelty_threshold=request.novelty_threshold,
+            temperature_manager=temp_mgr,
+            verbose=request.verbose,
+            enhanced_reasoning=request.enhanced_reasoning,
+            multi_dimensional_eval=request.multi_dimensional_eval,
+            logical_inference=request.logical_inference,
+            reasoning_engine=reasoning_eng,
+            progress_callback=progress_callback,
+            max_concurrent_agents=max_concurrent_agents
+        )
+        
+        processing_time = (datetime.now() - start_time).total_seconds()
+        
+        return IdeaGenerationResponse(
+            status="success",
+            message=f"Generated {len(results)} ideas successfully (async)",
+            results=[dict(result) for result in results],
+            processing_time=processing_time,
+            timestamp=start_time.isoformat()
+        )
+        
+    except Exception as e:
+        logger.error(f"Async idea generation failed: {e}")
         await ws_manager.send_progress_update(f"Error: {str(e)}", 0.0)
         raise HTTPException(status_code=500, detail=str(e))
 

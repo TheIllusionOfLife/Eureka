@@ -192,7 +192,6 @@ Each project directory contains its own README with specific setup instructions.
 - **Concurrent Processing**: Semaphore-controlled async agent calls prevent API rate limits while maximizing throughput
 - **Real-time Updates**: Progress callback system enables responsive web interfaces
 - **Resource Management**: Proper cleanup and cancellation handling ensures robust operation
-
 ## License
 
 See [LICENSE](LICENSE) file for details.

@@ -123,6 +123,14 @@ class TemperatureManager:
         
         return stage_mapping.get(stage, self.config.base_temperature)
     
+    def get_overall_temperature(self) -> float:
+        """Get the overall/base temperature setting.
+        
+        Returns:
+            The base temperature value
+        """
+        return self.config.base_temperature
+    
     def describe_settings(self) -> str:
         """Get a human-readable description of current settings."""
         return (

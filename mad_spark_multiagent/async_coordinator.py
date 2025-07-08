@@ -175,157 +175,177 @@ class AsyncCoordinator:
         
         This is the async equivalent of run_multistep_workflow from coordinator.py
         """
-        await self._send_progress("Starting multi-agent workflow", 0.0)
+        # Track all tasks for cleanup in case of cancellation
+        active_tasks = []
         
-        # Extract temperatures
-        if temperature_manager:
-            idea_temp = temperature_manager.get_temperature_for_stage('idea_generation')
-            eval_temp = temperature_manager.get_temperature_for_stage('evaluation')
-            advocacy_temp = temperature_manager.get_temperature_for_stage('advocacy')
-            skepticism_temp = temperature_manager.get_temperature_for_stage('skepticism')
-        else:
-            idea_temp = DEFAULT_IDEA_TEMPERATURE
-            eval_temp = DEFAULT_EVALUATION_TEMPERATURE
-            advocacy_temp = DEFAULT_ADVOCACY_TEMPERATURE
-            skepticism_temp = DEFAULT_SKEPTICISM_TEMPERATURE
-            
-        # Initialize enhanced reasoning if needed
-        engine = None
-        if enhanced_reasoning or multi_dimensional_eval or logical_inference:
-            engine = reasoning_engine or ReasoningEngine()
-            
-        # Step 1: Generate Ideas (async)
-        await self._send_progress("Generating ideas...", 0.1)
         try:
-            raw_generated_ideas = await async_generate_ideas(
-                topic=theme,
-                context=constraints,
-                temperature=idea_temp
-            )
+            await self._send_progress("Starting multi-agent workflow", 0.0)
             
-            parsed_ideas = [idea.strip() for idea in raw_generated_ideas.split("\n") if idea.strip()]
-            if not parsed_ideas:
-                logger.warning("No ideas were generated")
-                return []
+            # Extract temperatures
+            if temperature_manager:
+                idea_temp = temperature_manager.get_temperature_for_stage('idea_generation')
+                eval_temp = temperature_manager.get_temperature_for_stage('evaluation')
+                advocacy_temp = temperature_manager.get_temperature_for_stage('advocacy')
+                skepticism_temp = temperature_manager.get_temperature_for_stage('skepticism')
+            else:
+                idea_temp = DEFAULT_IDEA_TEMPERATURE
+                eval_temp = DEFAULT_EVALUATION_TEMPERATURE
+                advocacy_temp = DEFAULT_ADVOCACY_TEMPERATURE
+                skepticism_temp = DEFAULT_SKEPTICISM_TEMPERATURE
                 
-            await self._send_progress(f"Generated {len(parsed_ideas)} ideas", 0.3)
-            
-        except Exception as e:
-            logger.error(f"Idea generation failed: {e}")
-            raise
-            
-        # Step 1.5: Apply novelty filter if enabled
-        if enable_novelty_filter:
-            novelty_filter = NoveltyFilter(similarity_threshold=novelty_threshold)
-            filtered_ideas = novelty_filter.get_novel_ideas(parsed_ideas)
-            if len(filtered_ideas) < len(parsed_ideas):
-                logger.info(f"Novelty filter removed {len(parsed_ideas) - len(filtered_ideas)} duplicates")
-            parsed_ideas = filtered_ideas
-            
-        # Step 2: Evaluate Ideas (async)
-        await self._send_progress("Evaluating ideas...", 0.4)
-        try:
-            ideas_for_critic = "\n".join(parsed_ideas)
-            raw_evaluations = await async_evaluate_ideas(
-                ideas=ideas_for_critic,
-                criteria=constraints,
-                context=theme,
-                temperature=eval_temp
-            )
-            
-            # Parse evaluations
-            parsed_evaluations = parse_json_with_fallback(
-                raw_evaluations,
-                expected_count=len(parsed_ideas)
-            )
-            
-            # Build evaluated ideas list
-            evaluated_ideas_data: List[EvaluatedIdea] = []
-            for i, idea_text in enumerate(parsed_ideas):
-                if i < len(parsed_evaluations):
-                    eval_data = validate_evaluation_json(parsed_evaluations[i])
-                    score = eval_data["score"]
-                    critique = eval_data["comment"]
-                else:
-                    score = 0
-                    critique = "Evaluation missing"
+            # Initialize enhanced reasoning if needed
+            engine = None
+            if enhanced_reasoning or multi_dimensional_eval or logical_inference:
+                engine = reasoning_engine or ReasoningEngine()
+                
+            # Step 1: Generate Ideas (async)
+            await self._send_progress("Generating ideas...", 0.1)
+            try:
+                raw_generated_ideas = await async_generate_ideas(
+                    topic=theme,
+                    context=constraints,
+                    temperature=idea_temp
+                )
+                
+                parsed_ideas = [idea.strip() for idea in raw_generated_ideas.split("\n") if idea.strip()]
+                if not parsed_ideas:
+                    logger.warning("No ideas were generated")
+                    return []
                     
-                # Enhanced reasoning: Apply multi-dimensional evaluation if enabled
-                if multi_dimensional_eval and engine:
-                    try:
-                        multi_eval_result = engine.multi_dimensional_evaluate(
-                            idea=idea_text,
-                            context={"theme": theme, "constraints": constraints},
-                            prior_score=score
-                        )
-                        
-                        # Use multi-dimensional score instead of simple score
-                        score = multi_eval_result['weighted_score']
-                        
-                        # Enhance critique with multi-dimensional insights
-                        critique = f"{critique}\n\n🧠 Enhanced Analysis:\n{multi_eval_result['evaluation_summary']}"
-                        
-                    except (AttributeError, KeyError, TypeError, ValueError) as e:
-                        logger.warning(f"Multi-dimensional evaluation failed for idea {i}: {e}")
-                        # Fall back to standard evaluation
+                await self._send_progress(f"Generated {len(parsed_ideas)} ideas", 0.3)
                 
-                # Enhanced reasoning: Apply logical inference if enabled
-                if logical_inference and engine:
-                    try:
-                        # Create logical premises from the evaluation
-                        premises = [
-                            f"The idea '{idea_text}' addresses {theme}",
-                            f"The constraints are: {constraints}",
-                            f"The evaluation score is {score}/10"
-                        ]
+            except Exception as e:
+                logger.error(f"Idea generation failed: {e}")
+                raise
+                
+            # Step 1.5: Apply novelty filter if enabled
+            if enable_novelty_filter:
+                novelty_filter = NoveltyFilter(similarity_threshold=novelty_threshold)
+                filtered_ideas = novelty_filter.get_novel_ideas(parsed_ideas)
+                if len(filtered_ideas) < len(parsed_ideas):
+                    logger.info(f"Novelty filter removed {len(parsed_ideas) - len(filtered_ideas)} duplicates")
+                parsed_ideas = filtered_ideas
+                
+            # Step 2: Evaluate Ideas (async)
+            await self._send_progress("Evaluating ideas...", 0.4)
+            try:
+                ideas_for_critic = "\n".join(parsed_ideas)
+                raw_evaluations = await async_evaluate_ideas(
+                    ideas=ideas_for_critic,
+                    criteria=constraints,
+                    context=theme,
+                    temperature=eval_temp
+                )
+                
+                # Parse evaluations
+                parsed_evaluations = parse_json_with_fallback(
+                    raw_evaluations,
+                    expected_count=len(parsed_ideas)
+                )
+                
+                # Build evaluated ideas list
+                evaluated_ideas_data: List[EvaluatedIdea] = []
+                for i, idea_text in enumerate(parsed_ideas):
+                    if i < len(parsed_evaluations):
+                        eval_data = validate_evaluation_json(parsed_evaluations[i])
+                        score = eval_data["score"]
+                        critique = eval_data["comment"]
+                    else:
+                        score = 0
+                        critique = "Evaluation missing"
                         
-                        # Apply logical inference
-                        inference_result = engine.generate_inference_chain(
-                            premises, 
-                            f"Therefore, this idea is suitable for {theme}"
-                        )
-                        
-                        if inference_result and inference_result.get('confidence_score', 0) > LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD:
-                            # Enhance the critique with logical reasoning insights
-                            critique = f"{critique}\n\n🔗 Logical Analysis:\nConfidence: {inference_result['confidence_score']:.2f}\nReasoning: {inference_result.get('inference_conclusion', 'Applied formal logical inference')}"
+                    # Enhanced reasoning: Apply multi-dimensional evaluation if enabled
+                    if multi_dimensional_eval and engine:
+                        try:
+                            multi_eval_result = engine.multi_dimensional_evaluate(
+                                idea=idea_text,
+                                context={"theme": theme, "constraints": constraints},
+                                prior_score=score
+                            )
                             
-                    except (AttributeError, KeyError, TypeError, ValueError) as e:
-                        logger.warning(f"Logical inference failed for idea {i}: {e}")
-                        # Continue without logical inference
+                            # Use multi-dimensional score instead of simple score
+                            score = multi_eval_result['weighted_score']
+                            
+                            # Enhance critique with multi-dimensional insights
+                            critique = f"{critique}\n\n🧠 Enhanced Analysis:\n{multi_eval_result['evaluation_summary']}"
+                            
+                        except (AttributeError, KeyError, TypeError, ValueError) as e:
+                            logger.warning(f"Multi-dimensional evaluation failed for idea {i}: {e}")
+                            # Fall back to standard evaluation
+                    
+                    # Enhanced reasoning: Apply logical inference if enabled
+                    if logical_inference and engine:
+                        try:
+                            # Create logical premises from the evaluation
+                            premises = [
+                                f"The idea '{idea_text}' addresses {theme}",
+                                f"The constraints are: {constraints}",
+                                f"The evaluation score is {score}/10"
+                            ]
+                            
+                            # Apply logical inference
+                            inference_result = engine.generate_inference_chain(
+                                premises, 
+                                f"Therefore, this idea is suitable for {theme}"
+                            )
+                            
+                            if inference_result and inference_result.get('confidence_score', 0) > LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD:
+                                # Enhance the critique with logical reasoning insights
+                                critique = f"{critique}\n\n🔗 Logical Analysis:\nConfidence: {inference_result['confidence_score']:.2f}\nReasoning: {inference_result.get('inference_conclusion', 'Applied formal logical inference')}"
+                                
+                        except (AttributeError, KeyError, TypeError, ValueError) as e:
+                            logger.warning(f"Logical inference failed for idea {i}: {e}")
+                            # Continue without logical inference
+                    
+                    evaluated_ideas_data.append({
+                        "text": idea_text,
+                        "score": score,
+                        "critique": critique
+                    })
+                    
+                # Sort and select top candidates
+                evaluated_ideas_data.sort(key=lambda x: x["score"], reverse=True)
+                top_candidates = evaluated_ideas_data[:num_top_candidates]
                 
-                evaluated_ideas_data.append({
-                    "text": idea_text,
-                    "score": score,
-                    "critique": critique
-                })
+                await self._send_progress(f"Selected {len(top_candidates)} top candidates", 0.6)
                 
-            # Sort and select top candidates
-            evaluated_ideas_data.sort(key=lambda x: x["score"], reverse=True)
-            top_candidates = evaluated_ideas_data[:num_top_candidates]
+            except Exception as e:
+                logger.error(f"Evaluation failed: {e}")
+                raise
+                
+            # Step 3: Process top candidates with advocacy and skepticism
+            final_candidates = await self.process_top_candidates(
+                top_candidates,
+                theme,
+                advocacy_temp,
+                skepticism_temp,
+                active_tasks
+            )
             
-            await self._send_progress(f"Selected {len(top_candidates)} top candidates", 0.6)
+            await self._send_progress("Workflow completed successfully!", 1.0)
+            return final_candidates
             
-        except Exception as e:
-            logger.error(f"Evaluation failed: {e}")
+        except asyncio.CancelledError:
+            # Clean up any pending tasks
+            logger.info("Workflow cancelled, cleaning up pending tasks...")
+            for task in active_tasks:
+                if not task.done():
+                    task.cancel()
+            # Wait for all tasks to complete cancellation
+            await asyncio.gather(*active_tasks, return_exceptions=True)
             raise
-            
-        # Step 3: Process top candidates with advocacy and skepticism
-        final_candidates = await self.process_top_candidates(
-            top_candidates,
-            theme,
-            advocacy_temp,
-            skepticism_temp
-        )
-        
-        await self._send_progress("Workflow completed successfully!", 1.0)
-        return final_candidates
+        except Exception as e:
+            # Log the error but don't cancel other tasks unless it's a cancellation
+            logger.error(f"Workflow failed with error: {e}")
+            raise
         
     async def process_top_candidates(
         self,
         candidates: List[EvaluatedIdea],
         theme: str,
         advocacy_temp: float = DEFAULT_ADVOCACY_TEMPERATURE,
-        skepticism_temp: float = DEFAULT_SKEPTICISM_TEMPERATURE
+        skepticism_temp: float = DEFAULT_SKEPTICISM_TEMPERATURE,
+        active_tasks: Optional[List[asyncio.Task]] = None
     ) -> List[CandidateData]:
         """Process top candidates with parallel advocacy and skepticism.
         
@@ -337,20 +357,29 @@ class AsyncCoordinator:
         # Create tasks for all candidates
         tasks = []
         for idx, candidate in enumerate(candidates):
-            task = self._process_single_candidate(
-                candidate,
-                theme,
-                advocacy_temp,
-                skepticism_temp,
-                idx + 1
+            task = asyncio.create_task(
+                self._process_single_candidate(
+                    candidate,
+                    theme,
+                    advocacy_temp,
+                    skepticism_temp,
+                    idx + 1
+                )
             )
             tasks.append(task)
+            # Track in active_tasks if provided (for cancellation cleanup)
+            if active_tasks is not None:
+                active_tasks.append(task)
             
         # Run all tasks concurrently with semaphore limiting
-        processed_candidates = await asyncio.gather(*tasks)
+        processed_candidates = await asyncio.gather(*tasks, return_exceptions=True)
         
-        # Filter out any None results (from errors)
-        final_candidates = [c for c in processed_candidates if c is not None]
+        # Filter out any None results or exceptions
+        for result in processed_candidates:
+            if isinstance(result, Exception):
+                logger.error(f"Candidate processing failed with exception: {result}")
+            elif result is not None:
+                final_candidates.append(result)
         
         return final_candidates
         
@@ -365,6 +394,7 @@ class AsyncCoordinator:
         """Process a single candidate with advocacy and skepticism."""
         idea_text = candidate["text"]
         evaluation_detail = candidate["critique"]
+        partial_failures = []
         
         # Run advocacy first, then skepticism (sequential for single candidate)
         advocacy_task = self._run_with_semaphore(
@@ -378,13 +408,21 @@ class AsyncCoordinator:
         
         # For skepticism, we need the advocacy result first
         # But we can start it as soon as advocacy completes
+        advocacy_error = None
         try:
             advocacy_output = await advocacy_task
         except Exception as e:
             logger.warning(f"Advocacy failed for idea '{idea_text[:50]}...': {e}")
             advocacy_output = "Advocacy not available due to error"
+            advocacy_error = str(e)
+            partial_failures.append({
+                "stage": "advocacy",
+                "error": str(e),
+                "error_type": type(e).__name__
+            })
             
         # Now run skepticism with the advocacy output
+        skepticism_error = None
         try:
             skepticism_output = await self._run_with_semaphore(
                 async_criticize_idea(
@@ -397,15 +435,27 @@ class AsyncCoordinator:
         except Exception as e:
             logger.warning(f"Skepticism failed for idea '{idea_text[:50]}...': {e}")
             skepticism_output = "Skepticism not available due to error"
+            skepticism_error = str(e)
+            partial_failures.append({
+                "stage": "skepticism",
+                "error": str(e),
+                "error_type": type(e).__name__
+            })
             
-        # Build the final candidate data
-        return {
+        # Build the final candidate data with partial failure tracking
+        result = {
             "idea": idea_text,
             "initial_score": candidate["score"],
             "initial_critique": evaluation_detail,
             "advocacy": advocacy_output,
             "skepticism": skepticism_output
         }
+        
+        # Only include partial_failures if there were any
+        if partial_failures:
+            result["partial_failures"] = partial_failures
+            
+        return result
 
 
 async def run_async_workflow(

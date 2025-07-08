@@ -356,7 +356,7 @@ async def generate_ideas_async(request: IdeaGenerationRequest):
             logical_inference=request.logical_inference,
             reasoning_engine=reasoning_eng,
             progress_callback=progress_callback,
-            max_concurrent_agents=int(os.getenv("MAX_CONCURRENT_AGENTS", "10"))  # Configurable concurrency
+            max_concurrent_agents=int(os.getenv("MAX_CONCURRENT_AGENTS", "10")) if os.getenv("MAX_CONCURRENT_AGENTS", "10").isdigit() else 10  # Configurable concurrency with validation
         )
         
         processing_time = (datetime.now() - start_time).total_seconds()

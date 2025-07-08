@@ -11,6 +11,22 @@ export interface IdeaResult {
   initial_critique: string;
   advocacy: string;
   skepticism: string;
+  multi_dimensional_evaluation?: {
+    scores: {
+      feasibility: number;
+      innovation: number;
+      impact: number;
+      cost_effectiveness: number;
+      scalability: number;
+      risk_assessment: number;
+      timeline: number;
+    };
+    overall_score: number;
+    confidence_interval: {
+      lower: number;
+      upper: number;
+    };
+  };
 }
 
 export interface ApiResponse {

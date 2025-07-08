@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { IdeaResult } from '../App';
+import RadarChartComponent from './RadarChart';
 
 interface ResultsDisplayProps {
   results: IdeaResult[];
@@ -163,6 +164,53 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results }) => {
                   </div>
                 )}
               </div>
+
+              {/* Multi-dimensional Evaluation */}
+              {result.multi_dimensional_evaluation && (
+                <div className="border rounded-lg">
+                  <button
+                    onClick={() => toggleSection(index, 'multidim')}
+                    className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+                  >
+                    <span className="font-medium text-gray-900">
+                      📊 Multi-Dimensional Evaluation
+                    </span>
+                    <svg
+                      className={`h-5 w-5 text-gray-500 transition-transform ${
+                        expandedSections[`${index}-multidim`] ? 'rotate-180' : ''
+                      }`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {expandedSections[`${index}-multidim`] && (
+                    <div className="p-4">
+                      <RadarChartComponent
+                        data={[
+                          { dimension: 'Feasibility', score: result.multi_dimensional_evaluation.scores.feasibility, fullMark: 10 },
+                          { dimension: 'Innovation', score: result.multi_dimensional_evaluation.scores.innovation, fullMark: 10 },
+                          { dimension: 'Impact', score: result.multi_dimensional_evaluation.scores.impact, fullMark: 10 },
+                          { dimension: 'Cost Effectiveness', score: result.multi_dimensional_evaluation.scores.cost_effectiveness, fullMark: 10 },
+                          { dimension: 'Scalability', score: result.multi_dimensional_evaluation.scores.scalability, fullMark: 10 },
+                          { dimension: 'Risk Assessment', score: result.multi_dimensional_evaluation.scores.risk_assessment, fullMark: 10 },
+                          { dimension: 'Timeline', score: result.multi_dimensional_evaluation.scores.timeline, fullMark: 10 }
+                        ]}
+                      />
+                      <div className="mt-3 text-sm text-gray-600">
+                        <p>
+                          <strong>Overall Score:</strong> {result.multi_dimensional_evaluation.overall_score.toFixed(1)}/10
+                        </p>
+                        <p>
+                          <strong>Confidence Interval:</strong> {result.multi_dimensional_evaluation.confidence_interval.lower.toFixed(1)} - {result.multi_dimensional_evaluation.confidence_interval.upper.toFixed(1)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Action Buttons */}

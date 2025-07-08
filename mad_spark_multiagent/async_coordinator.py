@@ -5,7 +5,7 @@ improving performance by running multiple agent calls in parallel.
 """
 import asyncio
 import logging
-from typing import List, Optional, Callable, TypedDict, Awaitable
+from typing import List, Optional, Callable, TypedDict, Awaitable, Dict, Any
 
 from coordinator import (
     EvaluatedIdea,
@@ -21,6 +21,7 @@ from utils import exponential_backoff_retry
 from novelty_filter import NoveltyFilter
 from temperature_control import TemperatureManager
 from enhanced_reasoning import ReasoningEngine
+from cache_manager import CacheManager, CacheConfig
 from constants import (
     DEFAULT_IDEA_TEMPERATURE,
     DEFAULT_EVALUATION_TEMPERATURE,
@@ -61,20 +62,35 @@ def criticize_idea_with_retry(idea: str, advocacy: str, context: str, temperatur
     return criticize_idea(idea, advocacy, context, temperature)
 
 
-async def async_generate_ideas(topic: str, context: str, temperature: float = 0.9) -> str:
+async def async_generate_ideas(topic: str, context: str, temperature: float = 0.9, cache_manager: Optional[CacheManager] = None) -> str:
     """Async wrapper for idea generation with retry logic.
     
     Runs the synchronous generate_ideas function in a thread pool to avoid blocking.
     Includes exponential backoff retry for resilience.
     """
+    # Check cache first
+    if cache_manager:
+        prompt = f"Topic: {topic}\nContext: {context}"
+        cached = await cache_manager.get_cached_agent_response("idea_generator", prompt)
+        if cached:
+            logger.debug("Using cached idea generation response")
+            return cached
+    
     loop = asyncio.get_running_loop()
-    return await loop.run_in_executor(
+    result = await loop.run_in_executor(
         None, 
         generate_ideas_with_retry,
         topic,
         context,
         temperature
     )
+    
+    # Cache the result
+    if cache_manager:
+        prompt = f"Topic: {topic}\nContext: {context}"
+        await cache_manager.cache_agent_response("idea_generator", prompt, result)
+    
+    return result
 
 
 async def async_evaluate_ideas(ideas: str, criteria: str, context: str, temperature: float = 0.3) -> str:
@@ -134,17 +150,20 @@ class AsyncCoordinator:
     def __init__(
         self,
         max_concurrent_agents: int = 10,
-        progress_callback: Optional[ProgressCallback] = None
+        progress_callback: Optional[ProgressCallback] = None,
+        cache_manager: Optional[CacheManager] = None
     ):
         """Initialize the async coordinator.
         
         Args:
             max_concurrent_agents: Maximum number of concurrent agent calls
             progress_callback: Optional async callback for progress updates
+            cache_manager: Optional cache manager for result caching
         """
         self.max_concurrent_agents = max_concurrent_agents
         self.progress_callback = progress_callback
         self.semaphore = asyncio.Semaphore(max_concurrent_agents)
+        self.cache_manager = cache_manager
         
     async def _send_progress(self, message: str, progress: float):
         """Send progress update if callback is configured."""
@@ -174,6 +193,26 @@ class AsyncCoordinator:
         
         This is the async equivalent of run_multistep_workflow from coordinator.py
         """
+        # Check cache first if enabled
+        if self.cache_manager:
+            cache_options = {
+                "num_top_candidates": num_top_candidates,
+                "enable_novelty_filter": enable_novelty_filter,
+                "novelty_threshold": novelty_threshold,
+                "enhanced_reasoning": enhanced_reasoning,
+                "multi_dimensional_eval": multi_dimensional_eval,
+                "logical_inference": logical_inference,
+                "temperature": temperature_manager.get_overall_temperature() if temperature_manager else DEFAULT_IDEA_TEMPERATURE
+            }
+            
+            cached_result = await self.cache_manager.get_cached_workflow(
+                theme, constraints, cache_options
+            )
+            
+            if cached_result:
+                await self._send_progress("Retrieved from cache", 1.0)
+                return cached_result.get("candidates", [])
+        
         # Track all tasks for cleanup in case of cancellation
         active_tasks = []
         
@@ -203,7 +242,8 @@ class AsyncCoordinator:
                 raw_generated_ideas = await async_generate_ideas(
                     topic=theme,
                     context=constraints,
-                    temperature=idea_temp
+                    temperature=idea_temp,
+                    cache_manager=self.cache_manager
                 )
                 
                 parsed_ideas = [idea.strip() for idea in raw_generated_ideas.split("\n") if idea.strip()]
@@ -322,6 +362,26 @@ class AsyncCoordinator:
             )
             
             await self._send_progress("Workflow completed successfully!", 1.0)
+            
+            # Cache the result if cache manager is available
+            if self.cache_manager:
+                cache_options = {
+                    "num_top_candidates": num_top_candidates,
+                    "enable_novelty_filter": enable_novelty_filter,
+                    "novelty_threshold": novelty_threshold,
+                    "enhanced_reasoning": enhanced_reasoning,
+                    "multi_dimensional_eval": multi_dimensional_eval,
+                    "logical_inference": logical_inference,
+                    "temperature": temperature_manager.get_overall_temperature() if temperature_manager else DEFAULT_IDEA_TEMPERATURE
+                }
+                
+                await self.cache_manager.cache_workflow_result(
+                    theme,
+                    constraints,
+                    cache_options,
+                    {"candidates": final_candidates}
+                )
+            
             return final_candidates
             
         except asyncio.CancelledError:

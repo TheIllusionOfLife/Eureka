@@ -176,19 +176,21 @@ def log_agent_completion(agent_name: str, response_data: str, step_number: str,
 
 
 # --- TypedDict Definitions ---
-class EvaluatedIdea(TypedDict):
+class EvaluatedIdea(TypedDict, total=False):
     """Structure for an idea after evaluation by the CriticAgent."""
     text: str       # The original idea text
     score: int      # Score assigned by the critic
     critique: str   # Textual critique from the critic
+    multi_dimensional_evaluation: Optional[Dict[str, Any]]  # Multi-dimensional evaluation data
 
-class CandidateData(TypedDict):
+class CandidateData(TypedDict, total=False):
     """Structure for the final data compiled for each candidate idea."""
     idea: str
     initial_score: int
     initial_critique: str
     advocacy: str
     skepticism: str
+    multi_dimensional_evaluation: Optional[Dict[str, Any]]
 # --- End TypedDict Definitions ---
 
 
@@ -429,6 +431,9 @@ def run_multistep_workflow(
                 score = 0
                 critique = "Evaluation missing from critic response."
 
+            # Initialize multi_eval_result for this idea
+            multi_eval_result = None
+            
             # Enhanced reasoning: Use multi-dimensional evaluation if enabled
             if multi_dimensional_eval and engine:
                 try:
@@ -500,7 +505,13 @@ def run_multistep_workflow(
                     # Continue without logical inference
 
             # Create the EvaluatedIdea dictionary matching the TypedDict
-            evaluated_ideas_data.append({"text": idea_text, "score": score, "critique": critique})
+            evaluated_idea = {"text": idea_text, "score": score, "critique": critique}
+            
+            # Add multi-dimensional evaluation if available
+            if multi_eval_result is not None:
+                evaluated_idea["multi_dimensional_evaluation"] = multi_eval_result
+                
+            evaluated_ideas_data.append(evaluated_idea)
 
         log_verbose_completion("Step 2", len(evaluated_ideas_data), eval_duration, verbose, "ideas")
         if verbose:
@@ -603,13 +614,19 @@ def run_multistep_workflow(
             skepticism_output = "Skepticism not available due to agent error."
 
         # Create the CandidateData dictionary matching the TypedDict
-        final_candidates_data.append({
+        candidate_data = {
             "idea": idea_text,
             "initial_score": candidate["score"], # Direct access
             "initial_critique": evaluation_detail,
             "advocacy": advocacy_output,
             "skepticism": skepticism_output,
-        })
+        }
+        
+        # Add multi-dimensional evaluation if available
+        if "multi_dimensional_evaluation" in candidate:
+            candidate_data["multi_dimensional_evaluation"] = candidate["multi_dimensional_evaluation"]
+            
+        final_candidates_data.append(candidate_data)
         
         if verbose:
             print(f"✅ Candidate #{idx} Processing Complete")

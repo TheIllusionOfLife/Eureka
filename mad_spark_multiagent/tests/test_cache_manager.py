@@ -5,7 +5,10 @@ import json
 from unittest.mock import AsyncMock, patch, MagicMock
 from datetime import datetime
 
-from cache_manager import CacheManager, CacheConfig
+try:
+    from mad_spark_multiagent.cache_manager import CacheManager, CacheConfig
+except ImportError:
+    from cache_manager import CacheManager, CacheConfig
 
 
 class TestCacheManager:

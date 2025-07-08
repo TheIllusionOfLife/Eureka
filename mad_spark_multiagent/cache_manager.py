@@ -283,12 +283,25 @@ class CacheManager:
             if pattern:
                 # Add prefix to pattern
                 full_pattern = f"{self.config.key_prefix}:{pattern}"
-                keys = await self.redis_client.keys(full_pattern)
                 
-                if keys:
-                    deleted = await self.redis_client.delete(*keys)
-                    logger.info(f"Invalidated {deleted} cache entries")
-                    return deleted
+                # Use SCAN instead of KEYS for better performance
+                deleted_count = 0
+                keys_to_delete = []
+                
+                async for key in self.redis_client.scan_iter(match=full_pattern):
+                    keys_to_delete.append(key)
+                    
+                    # Delete in batches of 100 for efficiency
+                    if len(keys_to_delete) >= 100:
+                        deleted_count += await self.redis_client.delete(*keys_to_delete)
+                        keys_to_delete = []
+                
+                # Delete remaining keys
+                if keys_to_delete:
+                    deleted_count += await self.redis_client.delete(*keys_to_delete)
+                    
+                logger.info(f"Invalidated {deleted_count} cache entries")
+                return deleted_count
             
             return 0
             
@@ -328,15 +341,22 @@ class CacheManager:
             db_size = await self.redis_client.dbsize()
             
             # Get pattern counts
-            workflow_keys = await self.redis_client.keys(f"{self.config.key_prefix}:workflow:*")
-            agent_keys = await self.redis_client.keys(f"{self.config.key_prefix}:agent:*")
+            # Count workflow keys using SCAN
+            workflow_count = 0
+            async for _ in self.redis_client.scan_iter(match=f"{self.config.key_prefix}:workflow:*"):
+                workflow_count += 1
+                
+            # Count agent keys using SCAN
+            agent_count = 0
+            async for _ in self.redis_client.scan_iter(match=f"{self.config.key_prefix}:agent:*"):
+                agent_count += 1
             
             return {
                 "status": "connected",
                 "memory_used": info.get("used_memory_human", "0"),
                 "total_keys": db_size,
-                "workflow_keys": len(workflow_keys),
-                "agent_keys": len(agent_keys),
+                "workflow_keys": workflow_count,
+                "agent_keys": agent_count,
                 "connected_clients": info.get("connected_clients", 0),
                 "hit_rate": self._calculate_hit_rate(info),
                 "config": asdict(self.config)
@@ -365,7 +385,7 @@ class CacheManager:
         return (hits / total) * 100
     
     async def _enforce_size_limit(self):
-        """Enforce cache size limit by removing oldest entries."""
+        """Enforce cache size limit using LRU-based eviction strategy."""
         if not self.is_connected:
             return
             
@@ -374,29 +394,55 @@ class CacheManager:
             used_memory_mb = info.get("used_memory", 0) / (1024 * 1024)
             
             if used_memory_mb > self.config.max_cache_size_mb:
-                # Get all keys with TTL
+                # Use Redis SCAN for memory-efficient iteration
                 pattern = f"{self.config.key_prefix}:*"
-                keys = await self.redis_client.keys(pattern)
+                cursor = 0
+                keys_to_check = []
                 
-                if not keys:
+                # Scan keys in batches to avoid memory overload
+                while True:
+                    cursor, batch_keys = await self.redis_client.scan(
+                        cursor, match=pattern, count=100
+                    )
+                    keys_to_check.extend(batch_keys)
+                    
+                    # Limit to checking first 1000 keys for efficiency
+                    if cursor == 0 or len(keys_to_check) >= 1000:
+                        break
+                
+                if not keys_to_check:
                     return
                 
-                # Get TTLs for all keys
-                ttls = []
-                for key in keys:
-                    ttl = await self.redis_client.ttl(key)
-                    if ttl > 0:
-                        ttls.append((key, ttl))
+                # Get access times using pipeline for efficiency
+                pipe = self.redis_client.pipeline()
+                for key in keys_to_check:
+                    pipe.object("idletime", key)
                 
-                # Sort by TTL (ascending) and delete shortest TTL first
-                ttls.sort(key=lambda x: x[1])
+                idle_times = await pipe.execute()
                 
-                # Delete 10% of keys
-                to_delete = max(1, len(ttls) // 10)
-                for key, _ in ttls[:to_delete]:
-                    await self.redis_client.delete(key)
+                # Create list of (key, idle_time) tuples
+                key_idle_pairs = [
+                    (key, idle_time) 
+                    for key, idle_time in zip(keys_to_check, idle_times)
+                    if idle_time is not None
+                ]
                 
-                logger.info(f"Enforced size limit: deleted {to_delete} keys")
+                # Sort by idle time (descending) - longest idle first
+                key_idle_pairs.sort(key=lambda x: x[1], reverse=True)
+                
+                # Delete 10% of least recently used keys
+                to_delete = max(1, len(key_idle_pairs) // 10)
+                
+                # Use pipeline for batch deletion
+                pipe = self.redis_client.pipeline()
+                for key, idle_time in key_idle_pairs[:to_delete]:
+                    pipe.delete(key)
+                await pipe.execute()
+                
+                logger.info(
+                    f"Enforced size limit: deleted {to_delete} LRU keys "
+                    f"(oldest idle: {key_idle_pairs[0][1] if key_idle_pairs else 0}s)"
+                )
                 
         except Exception as e:
             logger.error(f"Failed to enforce size limit: {e}")

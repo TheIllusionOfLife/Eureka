@@ -169,6 +169,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results }) => {
               {result.multi_dimensional_evaluation && (
                 <div className="border rounded-lg">
                   <button
+                    type="button"
                     onClick={() => toggleSection(index, 'multidim')}
                     className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
                   >
@@ -182,7 +183,9 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results }) => {
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
+                      aria-label="Toggle multi-dimensional evaluation section"
                     >
+                      <title>Toggle multi-dimensional evaluation section</title>
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                   </button>

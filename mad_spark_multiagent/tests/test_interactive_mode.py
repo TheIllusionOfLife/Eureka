@@ -4,8 +4,12 @@ import pytest
 from unittest.mock import Mock, patch, MagicMock
 import sys
 
-from interactive_mode import InteractiveSession, run_interactive_mode
-from temperature_control import TemperatureManager
+try:
+    from mad_spark_multiagent.interactive_mode import InteractiveSession, run_interactive_mode
+    from mad_spark_multiagent.temperature_control import TemperatureManager
+except ImportError:
+    from interactive_mode import InteractiveSession, run_interactive_mode
+    from temperature_control import TemperatureManager
 
 
 class TestInteractiveMode:
@@ -171,3 +175,58 @@ class TestInteractiveMode:
         assert "Top candidates: 2" in output
         assert "Novelty filter: Yes" in output
         assert "Enhanced reasoning: Yes" in output
+        
+    @patch('builtins.input')
+    def test_get_choice_invalid_inputs(self, mock_input):
+        """Test choice selection with invalid inputs."""
+        session = InteractiveSession()
+        options = [
+            ("opt1", "Option 1"),
+            ("opt2", "Option 2")
+        ]
+        
+        # Test invalid inputs followed by valid choice
+        mock_input.side_effect = ["invalid", "0", "10", "2"]
+        result = session.get_choice("Select option", options)
+        assert result == "opt2"
+        assert mock_input.call_count == 4
+        
+    @patch('builtins.input')
+    def test_configure_temperature_invalid_values(self, mock_input):
+        """Test temperature configuration with invalid values."""
+        session = InteractiveSession()
+        
+        with patch.object(session, 'get_choice', return_value='custom'):
+            # Mock temperature inputs with invalid values first
+            mock_input.side_effect = [
+                "invalid",  # Invalid idea temp
+                "-1",       # Too low
+                "3.0",      # Too high
+                "0.8",      # Valid idea temp
+                "0.3",      # Valid eval temp
+                "0.6",      # Valid advocacy temp
+                "0.5"       # Valid skepticism temp
+            ]
+            
+            temp_manager = session.configure_temperature()
+            
+            # Verify valid values were eventually accepted
+            assert temp_manager.config.idea_generation == 0.8
+            assert temp_manager.config.evaluation == 0.3
+            
+    @patch('builtins.input')
+    def test_collect_theme_empty_input(self, mock_input):
+        """Test theme collection with empty inputs."""
+        session = InteractiveSession()
+        
+        # Mock empty theme followed by valid input
+        mock_input.side_effect = [
+            "",                    # Empty theme (invalid)
+            "AI in healthcare",    # Valid theme
+            "Budget-friendly",     # Constraints
+            "y"                    # Confirm
+        ]
+        
+        theme, constraints = session.collect_theme_and_constraints()
+        assert theme == "AI in healthcare"
+        assert constraints == "Budget-friendly"

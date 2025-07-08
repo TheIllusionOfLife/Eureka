@@ -6,6 +6,7 @@ an interactive experience over command-line arguments.
 
 import os
 import sys
+import logging
 from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime
 
@@ -16,6 +17,8 @@ from constants import (
     DEFAULT_NUM_TOP_CANDIDATES,
     DEFAULT_NOVELTY_THRESHOLD
 )
+
+logger = logging.getLogger(__name__)
 
 
 class InteractiveSession:
@@ -30,7 +33,8 @@ class InteractiveSession:
         
     def clear_screen(self):
         """Clear the terminal screen."""
-        os.system('clear' if os.name == 'posix' else 'cls')
+        # Use ANSI escape sequences for safer screen clearing
+        print('\033[2J\033[H', end='')
         
     def print_header(self):
         """Print the MadSpark header."""
@@ -146,25 +150,38 @@ class InteractiveSession:
         if choice == "custom":
             print("\n🎛️  Set custom temperatures (0.0 = very conservative, 1.5 = very creative)")
             
-            idea_temp = float(self.get_input_with_default(
+            # Helper function to get validated temperature
+            def get_valid_temperature(prompt: str, default: float) -> float:
+                while True:
+                    try:
+                        value = self.get_input_with_default(prompt, str(default))
+                        temp = float(value)
+                        if not (0.0 <= temp <= 2.0):
+                            print("❌ Temperature must be between 0.0 and 2.0")
+                            continue
+                        return temp
+                    except ValueError:
+                        print("❌ Invalid number. Please enter a valid temperature value.")
+            
+            idea_temp = get_valid_temperature(
                 "Idea generation temperature",
-                str(DEFAULT_IDEA_TEMPERATURE)
-            ))
+                DEFAULT_IDEA_TEMPERATURE
+            )
             
-            eval_temp = float(self.get_input_with_default(
+            eval_temp = get_valid_temperature(
                 "Evaluation temperature",
-                str(self.temp_manager.get_temperature_for_stage('evaluation'))
-            ))
+                self.temp_manager.get_temperature_for_stage('evaluation')
+            )
             
-            advocacy_temp = float(self.get_input_with_default(
+            advocacy_temp = get_valid_temperature(
                 "Advocacy temperature",
-                str(self.temp_manager.get_temperature_for_stage('advocacy'))
-            ))
+                self.temp_manager.get_temperature_for_stage('advocacy')
+            )
             
-            skepticism_temp = float(self.get_input_with_default(
+            skepticism_temp = get_valid_temperature(
                 "Skepticism temperature",
-                str(self.temp_manager.get_temperature_for_stage('skepticism'))
-            ))
+                self.temp_manager.get_temperature_for_stage('skepticism')
+            )
             
             # Create custom temperature configuration
             custom_config = TemperatureConfig(
@@ -354,10 +371,13 @@ class InteractiveSession:
         }
         
         import json
-        with open(filename, 'w') as f:
-            json.dump(session_data, f, indent=2)
-            
-        print(f"\n💾 Session configuration saved to: {filename}")
+        try:
+            with open(filename, 'w') as f:
+                json.dump(session_data, f, indent=2)
+            print(f"\n💾 Session configuration saved to: {filename}")
+        except IOError as e:
+            print(f"\n❌ Failed to save session configuration: {e}")
+            logger.error(f"Failed to save session to {filename}: {e}")
         
     def run(self) -> Dict[str, Any]:
         """Run the interactive session and return configuration."""
@@ -367,10 +387,14 @@ class InteractiveSession:
         if os.path.exists("last_session.json"):
             if self.get_yes_no("📂 Load previous session configuration?", default=False):
                 import json
-                with open("last_session.json", 'r') as f:
-                    session_data = json.load(f)
-                print("✅ Previous session loaded!")
-                return session_data
+                try:
+                    with open("last_session.json", 'r') as f:
+                        session_data = json.load(f)
+                    print("✅ Previous session loaded!")
+                    return session_data
+                except (IOError, json.JSONDecodeError) as e:
+                    print(f"❌ Failed to load previous session: {e}")
+                    logger.error(f"Failed to load last_session.json: {e}")
         
         # Collect configuration
         theme, constraints = self.collect_theme_and_constraints()
@@ -396,12 +420,20 @@ class InteractiveSession:
             
             # Also save as last session
             import json
-            with open("last_session.json", 'w') as f:
-                json.dump({
-                    "theme": theme,
-                    "constraints": constraints,
-                    "config": config
-                }, f)
+            try:
+                # Create a serializable copy of the config
+                serializable_config = config.copy()
+                # The TemperatureManager object is not serializable, so remove it
+                serializable_config.pop('temperature_manager', None)
+                
+                with open("last_session.json", 'w') as f:
+                    json.dump({
+                        "theme": theme,
+                        "constraints": constraints,
+                        "config": serializable_config
+                    }, f)
+            except IOError as e:
+                logger.error(f"Failed to save last_session.json: {e}")
         
         return {
             "theme": theme,

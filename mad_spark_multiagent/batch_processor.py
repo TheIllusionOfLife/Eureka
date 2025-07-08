@@ -141,6 +141,11 @@ class BatchProcessor:
                     except ValueError:
                         logger.warning(f"Invalid num_candidates: {row['num_candidates']}, using default")
                 
+                # Validate required fields
+                if 'theme' not in row or not row['theme']:
+                    logger.warning(f"Skipping row {reader.line_num}: missing required 'theme' field")
+                    continue
+                    
                 item = BatchItem(
                     theme=row['theme'],
                     constraints=row.get('constraints', ''),
@@ -177,7 +182,12 @@ class BatchProcessor:
             data = json.load(f)
             
         batch_items = []
-        for item_data in data:
+        for i, item_data in enumerate(data):
+            # Validate required fields
+            if 'theme' not in item_data or not item_data['theme']:
+                logger.warning(f"Skipping item {i}: missing required 'theme' field")
+                continue
+                
             item = BatchItem(
                 theme=item_data['theme'],
                 constraints=item_data.get('constraints', ''),

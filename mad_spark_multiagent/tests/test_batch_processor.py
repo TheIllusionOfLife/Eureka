@@ -8,7 +8,10 @@ from pathlib import Path
 from unittest.mock import Mock, patch, AsyncMock
 import asyncio
 
-from batch_processor import BatchItem, BatchProcessor, create_sample_batch_file
+try:
+    from mad_spark_multiagent.batch_processor import BatchItem, BatchProcessor, create_sample_batch_file
+except ImportError:
+    from batch_processor import BatchItem, BatchProcessor, create_sample_batch_file
 
 
 class TestBatchItem:

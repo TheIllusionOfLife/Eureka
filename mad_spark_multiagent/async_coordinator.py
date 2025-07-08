@@ -365,16 +365,7 @@ class AsyncCoordinator:
             
             # Cache the result if cache manager is available
             if self.cache_manager:
-                cache_options = {
-                    "num_top_candidates": num_top_candidates,
-                    "enable_novelty_filter": enable_novelty_filter,
-                    "novelty_threshold": novelty_threshold,
-                    "enhanced_reasoning": enhanced_reasoning,
-                    "multi_dimensional_eval": multi_dimensional_eval,
-                    "logical_inference": logical_inference,
-                    "temperature": temperature_manager.get_overall_temperature() if temperature_manager else DEFAULT_IDEA_TEMPERATURE
-                }
-                
+                # Reuse the cache_options from the beginning of the method
                 await self.cache_manager.cache_workflow_result(
                     theme,
                     constraints,

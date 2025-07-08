@@ -176,8 +176,9 @@ Examples:
     )
     
     workflow_group.add_argument(
-        '--async',
+        '--async-mode',
         action='store_true',
+        dest='async_mode',
         help='Use async execution for better performance (Phase 2.3)'
     )
     
@@ -439,7 +440,7 @@ def main():
             "logical_inference": args.logical_inference
         }
 
-        if hasattr(args, 'async') and args.async:
+        if hasattr(args, 'async_mode') and args.async_mode:
             # Use async execution
             logger.info("Using async execution for better performance")
             

@@ -115,8 +115,8 @@ Each project directory contains its own README with specific setup instructions.
 ### Last Updated: 2025-07-08 18:30 JST
 
 #### Recently Completed
-- ✅ **PR #66**: Phase 2.3 - Async Agent Execution for Performance & Scalability - Major performance milestone with 1.5-2x speedup through concurrent agent processing
 - ✅ **PR #67**: Session documentation and handover improvements - Final PR merge after repository CI resolution
+- ✅ **PR #66**: Phase 2.3 - Async Agent Execution for Performance & Scalability - Major performance milestone with 1.5-2x speedup through concurrent agent processing
 - ✅ **PR #65**: Comprehensive Phase 2.2 documentation improvements - Enhanced project documentation and web interface patterns  
 - ✅ **Enhanced Slash Commands**: Updated `/fix_pr` and `/fix_pr_since_commit` with two-phase discovery protocol preventing systematic review failures
 - ✅ **Critical CLI Fix**: Resolved Python reserved keyword conflict (`--async` → `--async-mode`) preventing syntax errors
@@ -156,26 +156,26 @@ Each project directory contains its own README with specific setup instructions.
    - Estimate: Small (1 day)
 
 #### Known Issues / Blockers
-- **None Currently**: All critical issues resolved, CI passing, no blockers for next development
+- **Blockers**: All critical issues resolved, CI passing, no blockers for next development
 - **Technical Debt**: Some older test files could benefit from async patterns but not blocking
 - **Performance**: Large workflows could benefit from database persistence (Redis addresses this)
 
 #### Session Learnings
 
-**Major Technical Discoveries**:
+##### Major Technical Discoveries
 - **Two-Phase Review Discovery**: Systematic approach prevents missing PR feedback (Phase 1: complete discovery → Phase 2: timestamp filtering)
 - **Reserved Keyword Avoidance**: Python reserved words as CLI args cause SyntaxError, use descriptive names with `dest` parameter
 - **Async Test Mocking**: Mock retry-wrapped functions (`*_with_retry`) not original sync functions for async workflows
 - **Comprehensive PR Review**: Three distinct sources (comments, reviews, line comments) must ALL be checked systematically
 - **CI Budget Constraints**: Private repositories can hit GitHub Actions budget limits; public repositories resolve CI testing issues
 
-**Architecture Decisions**:
+##### Architecture Decisions
 - **Async-First Performance**: Phase 2.3 establishes concurrent processing as foundation for future scalability
 - **Retry Logic Integration**: Exponential backoff retry properly integrated into async workflow maintaining resilience
 - **Feature Parity Maintained**: Async workflow supports all Phase 2.1 enhanced reasoning features
 - **Progressive Enhancement**: Opt-in async mode preserves backward compatibility
 
-**Process Improvements**:
+##### Process Improvements
 - **Enhanced Slash Commands**: `/fix_pr` commands now include preventive measures based on failure analysis
 - **Systematic CI Validation**: Always verify CI passes before concluding work is complete
 - **Configuration Evolution**: Global CLAUDE.md patterns accumulate cross-project learnings

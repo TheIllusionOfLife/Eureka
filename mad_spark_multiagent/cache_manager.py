@@ -140,10 +140,18 @@ class CacheManager:
                 "options": options
             }
             
+            try:
+                cache_json = json.dumps(cache_data)
+            except (TypeError, ValueError) as e:
+                # Handle non-serializable objects
+                logger.warning(f"Failed to serialize cache data: {e}")
+                # Try with custom encoder for datetime objects
+                cache_json = json.dumps(cache_data, default=str)
+            
             await self.redis_client.setex(
                 key,
                 self.config.ttl_seconds,
-                json.dumps(cache_data)
+                cache_json
             )
             
             # Check cache size limit
@@ -222,10 +230,18 @@ class CacheManager:
                 "agent": agent_name
             }
             
+            try:
+                cache_json = json.dumps(cache_data)
+            except (TypeError, ValueError) as e:
+                # Handle non-serializable objects
+                logger.warning(f"Failed to serialize agent response: {e}")
+                # Try with custom encoder for datetime objects
+                cache_json = json.dumps(cache_data, default=str)
+            
             await self.redis_client.setex(
                 key,
                 ttl,
-                json.dumps(cache_data)
+                cache_json
             )
             
             logger.debug(f"Cached agent response: {key}")
@@ -310,7 +326,7 @@ class CacheManager:
             return 0
     
     async def clear_all_cache(self) -> bool:
-        """Clear all cache entries.
+        """Clear all MadSpark cache entries only.
         
         Returns:
             True if cleared successfully
@@ -319,8 +335,16 @@ class CacheManager:
             return False
             
         try:
-            await self.redis_client.flushdb()
-            logger.info("Cleared all cache entries")
+            # IMPORTANT: Only delete MadSpark keys, not the entire database
+            pattern = f"{self.config.key_prefix}:*"
+            deleted_count = 0
+            
+            # Use SCAN to find all MadSpark keys
+            async for key in self.redis_client.scan_iter(match=pattern):
+                await self.redis_client.delete(key)
+                deleted_count += 1
+            
+            logger.info(f"Cleared {deleted_count} MadSpark cache entries")
             return True
             
         except Exception as e:

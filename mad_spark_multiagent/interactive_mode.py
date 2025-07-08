@@ -6,6 +6,7 @@ an interactive experience over command-line arguments.
 
 import os
 import sys
+import json
 import logging
 from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime
@@ -370,7 +371,6 @@ class InteractiveSession:
             "timestamp": datetime.now().isoformat()
         }
         
-        import json
         try:
             with open(filename, 'w') as f:
                 json.dump(session_data, f, indent=2)
@@ -386,7 +386,6 @@ class InteractiveSession:
         # Check if user wants to load previous session
         if os.path.exists("last_session.json"):
             if self.get_yes_no("📂 Load previous session configuration?", default=False):
-                import json
                 try:
                     with open("last_session.json", 'r') as f:
                         session_data = json.load(f)
@@ -419,7 +418,6 @@ class InteractiveSession:
             self.save_session_config(theme, constraints, config)
             
             # Also save as last session
-            import json
             try:
                 # Create a serializable copy of the config
                 serializable_config = config.copy()

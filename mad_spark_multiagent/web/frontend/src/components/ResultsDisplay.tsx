@@ -87,8 +87,11 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results }) => {
               {/* Initial Critique */}
               <div className="border rounded-lg">
                 <button
+                  type="button"
                   onClick={() => toggleSection(index, 'critique')}
                   className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+                  aria-expanded={expandedSections[`${index}-critique`]}
+                  aria-controls={`critique-content-${index}`}
                 >
                   <span className="font-medium text-gray-900">
                     🔍 Initial Critique
@@ -100,12 +103,14 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results }) => {
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
+                    aria-label="Toggle initial critique section"
                   >
+                    <title>Toggle initial critique section</title>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
                 {expandedSections[`${index}-critique`] && (
-                  <div className="px-4 pb-3 text-gray-700 critique-text">
+                  <div id={`critique-content-${index}`} className="px-4 pb-3 text-gray-700 critique-text">
                     {result.initial_critique}
                   </div>
                 )}
@@ -114,8 +119,11 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results }) => {
               {/* Advocacy */}
               <div className="border rounded-lg">
                 <button
+                  type="button"
                   onClick={() => toggleSection(index, 'advocacy')}
                   className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+                  aria-expanded={expandedSections[`${index}-advocacy`]}
+                  aria-controls={`advocacy-content-${index}`}
                 >
                   <span className="font-medium text-gray-900">
                     ✅ Advocacy
@@ -127,12 +135,14 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results }) => {
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
+                    aria-label="Toggle advocacy section"
                   >
+                    <title>Toggle advocacy section</title>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
                 {expandedSections[`${index}-advocacy`] && (
-                  <div className="px-4 pb-3 text-gray-700 critique-text">
+                  <div id={`advocacy-content-${index}`} className="px-4 pb-3 text-gray-700 critique-text">
                     {result.advocacy}
                   </div>
                 )}
@@ -141,8 +151,11 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results }) => {
               {/* Skepticism */}
               <div className="border rounded-lg">
                 <button
+                  type="button"
                   onClick={() => toggleSection(index, 'skepticism')}
                   className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+                  aria-expanded={expandedSections[`${index}-skepticism`]}
+                  aria-controls={`skepticism-content-${index}`}
                 >
                   <span className="font-medium text-gray-900">
                     ⚠️ Skeptical Analysis
@@ -154,12 +167,14 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results }) => {
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
+                    aria-label="Toggle skeptical analysis section"
                   >
+                    <title>Toggle skeptical analysis section</title>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
                 {expandedSections[`${index}-skepticism`] && (
-                  <div className="px-4 pb-3 text-gray-700 critique-text">
+                  <div id={`skepticism-content-${index}`} className="px-4 pb-3 text-gray-700 critique-text">
                     {result.skepticism}
                   </div>
                 )}

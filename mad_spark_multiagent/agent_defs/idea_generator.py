@@ -19,6 +19,20 @@ IDEA_GENERATION_INSTRUCTION = "generate a list of diverse and creative ideas"
 SYSTEM_INSTRUCTION = f"You are an expert idea generator. Given a topic and some context, {IDEA_GENERATION_INSTRUCTION}."
 
 
+def _validate_non_empty_string(value: Any, param_name: str) -> None:
+  """Validates that a value is a non-empty string.
+  
+  Args:
+    value: The value to validate.
+    param_name: The parameter name for error messages.
+    
+  Raises:
+    ValidationError: If the value is not a non-empty string.
+  """
+  if not isinstance(value, str) or not value.strip():
+    raise ValidationError(f"Input '{param_name}' must be a non-empty string.")
+
+
 def build_generation_prompt(topic: str, context: str) -> str:
   """Builds a prompt for generating ideas based on a topic and context.
 
@@ -65,10 +79,8 @@ def generate_ideas(topic: str, context: str, temperature: float = 0.9) -> str:
   Raises:
     ValueError: If topic or context are empty or invalid.
   """
-  if not isinstance(topic, str) or not topic.strip():
-    raise ValidationError("Input 'topic' to generate_ideas must be a non-empty string.")
-  if not isinstance(context, str) or not context.strip():
-    raise ValidationError("Input 'context' to generate_ideas must be a non-empty string.")
+  _validate_non_empty_string(topic, 'topic')
+  _validate_non_empty_string(context, 'context')
 
   prompt: str = build_generation_prompt(topic=topic, context=context)
   
@@ -161,16 +173,11 @@ def improve_idea(
     ConfigurationError: If API key is not configured.
   """
   # Validate inputs
-  if not isinstance(original_idea, str) or not original_idea.strip():
-    raise ValidationError("Input 'original_idea' must be a non-empty string.")
-  if not isinstance(critique, str) or not critique.strip():
-    raise ValidationError("Input 'critique' must be a non-empty string.")
-  if not isinstance(advocacy_points, str) or not advocacy_points.strip():
-    raise ValidationError("Input 'advocacy_points' must be a non-empty string.")
-  if not isinstance(skeptic_points, str) or not skeptic_points.strip():
-    raise ValidationError("Input 'skeptic_points' must be a non-empty string.")
-  if not isinstance(theme, str) or not theme.strip():
-    raise ValidationError("Input 'theme' must be a non-empty string.")
+  _validate_non_empty_string(original_idea, 'original_idea')
+  _validate_non_empty_string(critique, 'critique')
+  _validate_non_empty_string(advocacy_points, 'advocacy_points')
+  _validate_non_empty_string(skeptic_points, 'skeptic_points')
+  _validate_non_empty_string(theme, 'theme')
   
   prompt: str = build_improvement_prompt(
       original_idea=original_idea,

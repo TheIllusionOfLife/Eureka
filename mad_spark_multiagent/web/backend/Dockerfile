@@ -6,7 +6,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the MadSpark parent directory
+# Copy the backend code
 COPY . .
 
 # The command is specified in docker-compose.yml

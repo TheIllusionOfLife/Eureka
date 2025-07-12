@@ -60,6 +60,10 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results }) => {
       critique: result.initial_critique,
       advocacy: result.advocacy,
       skepticism: result.skepticism,
+      improved_idea: result.improved_idea,
+      improved_score: result.improved_score,
+      improved_critique: result.improved_critique,
+      score_delta: result.score_delta,
       timestamp: new Date().toISOString()
     };
     

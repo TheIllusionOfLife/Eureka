@@ -5,6 +5,7 @@ The agent is responsible for critically analyzing ideas, challenging assumptions
 and identifying potential flaws or risks.
 """
 import os
+import logging
 from typing import Any
 import google.generativeai as genai
 
@@ -89,7 +90,8 @@ def criticize_idea(idea: str, advocacy: str, context: str, temperature: float = 
     response = skeptic_model.generate_content(prompt, generation_config=generation_config)
     agent_response = response.text if response.text else ""
   except Exception as e:
-    # Return empty string on any API error - coordinator will handle this
+    # Log the full error for better debugging
+    logging.error(f"Error calling Gemini API in criticize_idea: {e}", exc_info=True)
     agent_response = ""
 
   if not agent_response.strip():

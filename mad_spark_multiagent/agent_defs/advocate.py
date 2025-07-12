@@ -5,6 +5,7 @@ The agent is responsible for constructing persuasive arguments in favor of
 an idea, considering its evaluation and context.
 """
 import os
+import logging
 from typing import Any
 import google.generativeai as genai
 
@@ -83,7 +84,8 @@ def advocate_idea(idea: str, evaluation: str, context: str, temperature: float =
     response = advocate_model.generate_content(prompt, generation_config=generation_config)
     agent_response = response.text if response.text else ""
   except Exception as e:
-    # Return empty string on any API error - coordinator will handle this
+    # Log the full error for better debugging
+    logging.error(f"Error calling Gemini API in advocate_idea: {e}", exc_info=True)
     agent_response = ""
 
   if not agent_response.strip():

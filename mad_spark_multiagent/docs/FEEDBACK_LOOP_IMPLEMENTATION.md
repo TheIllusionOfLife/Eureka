@@ -9,7 +9,7 @@ Feature: Feedback Loop Enhancement for MadSpark
 The current MadSpark system generates ideas through a linear, single-pass process where Advocate and Skeptic outputs are merely displayed without influencing the final result. This leads to mundane outputs even with the "Wild" temperature preset, as valuable agent insights don't contribute to idea improvement.
 
 ## Original Concept Analysis
-The original MadSpark concept (see `/Users/yuyamukai/Desktop/MadSpark_original_concept.txt`) envisioned:
+The original MadSpark concept envisioned:
 1. **Genetic Algorithm (GA)** evolution across multiple generations
 2. **MAP-Elites** for 2D diversity preservation (fun_score × novelty_score)
 3. **Structured Debate** between Advocate and Skeptic with AI judge

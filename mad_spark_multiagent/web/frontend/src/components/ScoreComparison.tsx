@@ -1,4 +1,5 @@
 import React from 'react';
+import { MAX_IDEA_SCORE } from '../constants';
 
 interface ScoreComparisonProps {
   originalScore: number;
@@ -7,7 +8,7 @@ interface ScoreComparisonProps {
 }
 
 const ScoreComparison: React.FC<ScoreComparisonProps> = ({ originalScore, improvedScore, delta }) => {
-  const maxScore = 10;
+  const maxScore = MAX_IDEA_SCORE;
   const originalPercentage = (originalScore / maxScore) * 100;
   const improvedPercentage = (improvedScore / maxScore) * 100;
   

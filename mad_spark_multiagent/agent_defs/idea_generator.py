@@ -5,9 +5,14 @@ The agent is responsible for generating novel ideas based on a given topic
 and contextual information.
 """
 import os
+import logging
 from typing import Any
 import google.generativeai as genai
-from errors import IdeaGenerationError, ValidationError, ConfigurationError
+try:
+    from mad_spark_multiagent.errors import IdeaGenerationError, ValidationError, ConfigurationError
+except ImportError:
+    # Fallback for local development/testing
+    from errors import IdeaGenerationError, ValidationError, ConfigurationError
 
 # Prompt constants to avoid duplication
 IDEA_GENERATION_INSTRUCTION = "generate a list of diverse and creative ideas"
@@ -75,7 +80,8 @@ def generate_ideas(topic: str, context: str, temperature: float = 0.9) -> str:
     response = idea_generator_model.generate_content(prompt, generation_config=generation_config)
     agent_response = response.text if response.text else ""
   except Exception as e:
-    # Return empty string on any API error - coordinator will handle this
+    # Log the full error for better debugging
+    logging.error(f"Error calling Gemini API: {e}", exc_info=True)
     agent_response = ""
 
   # If agent_response is empty or only whitespace, it will be returned as such.
@@ -178,7 +184,8 @@ def improve_idea(
     response = idea_generator_model.generate_content(prompt, generation_config=generation_config)
     agent_response = response.text if response.text else ""
   except Exception as e:
-    # Return empty string on any API error - coordinator will handle this
+    # Log the full error for better debugging
+    logging.error(f"Error calling Gemini API: {e}", exc_info=True)
     agent_response = ""
   
   return agent_response

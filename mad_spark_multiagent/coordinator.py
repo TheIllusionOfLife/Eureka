@@ -52,13 +52,13 @@ else:
     os.environ["GOOGLE_GENAI_MODEL"] = model_name
 
 try:
-    from mad_spark_multiagent.agent_defs.idea_generator import generate_ideas
+    from mad_spark_multiagent.agent_defs.idea_generator import generate_ideas, improve_idea
     from mad_spark_multiagent.agent_defs.critic import evaluate_ideas
     from mad_spark_multiagent.agent_defs.advocate import advocate_idea
     from mad_spark_multiagent.agent_defs.skeptic import criticize_idea
 except ImportError:
     # Fallback for local development/testing
-    from agent_defs.idea_generator import generate_ideas
+    from agent_defs.idea_generator import generate_ideas, improve_idea
     from agent_defs.critic import evaluate_ideas
     from agent_defs.advocate import advocate_idea
     from agent_defs.skeptic import criticize_idea
@@ -191,6 +191,10 @@ class CandidateData(TypedDict):
     advocacy: str
     skepticism: str
     multi_dimensional_evaluation: Optional[Dict[str, Any]]
+    improved_idea: str
+    improved_score: float
+    improved_critique: str
+    score_delta: float
 # --- End TypedDict Definitions ---
 
 
@@ -217,6 +221,26 @@ def call_advocate_with_retry(idea: str, evaluation: str, context: str, temperatu
 def call_skeptic_with_retry(idea: str, advocacy: str, context: str, temperature: float = 0.5) -> str:
     """Call skeptic with retry logic."""
     return criticize_idea(idea=idea, advocacy=advocacy, context=context, temperature=temperature)
+
+
+@exponential_backoff_retry(max_retries=3, initial_delay=2.0)
+def call_improve_idea_with_retry(
+    original_idea: str, 
+    critique: str, 
+    advocacy_points: str, 
+    skeptic_points: str, 
+    theme: str,
+    temperature: float = 0.9
+) -> str:
+    """Call improve_idea with retry logic."""
+    return improve_idea(
+        original_idea=original_idea,
+        critique=critique,
+        advocacy_points=advocacy_points,
+        skeptic_points=skeptic_points,
+        theme=theme,
+        temperature=temperature
+    )
 
 
 def run_multistep_workflow(
@@ -613,6 +637,87 @@ def run_multistep_workflow(
             logging.warning(f"SkepticAgent failed for idea '{idea_text}'. Error: {str(e)}")
             skepticism_output = "Skepticism not available due to agent error."
 
+        # Step 4: Generate Improved Idea
+        improved_idea_text = ""
+        improved_score = 0.0
+        improved_critique = ""
+        
+        try:
+            improve_start_time = time.time()
+            log_verbose_step(
+                f"STEP 4.{idx}: Idea Improvement", 
+                f"💡 Original Idea: {idea_text[:100]}...\n🔄 Using feedback from all agents to generate improved version",
+                verbose
+            )
+            
+            logging.info(f"Improving idea based on feedback: '{idea_text}'...")
+            improved_idea_text = call_improve_idea_with_retry(
+                original_idea=idea_text,
+                critique=evaluation_detail,
+                advocacy_points=advocacy_output,
+                skeptic_points=skepticism_output,
+                theme=theme,
+                temperature=idea_temp
+            )
+            
+            improve_duration = time.time() - improve_start_time
+            log_verbose_data("Improved Idea", improved_idea_text, verbose, max_length=600)
+            
+            if verbose:
+                print(f"✅ Improvement Complete: Generated improved idea in {improve_duration:.2f}s")
+                
+        except Exception as e:
+            logging.warning(f"Idea improvement failed for '{idea_text}'. Error: {str(e)}")
+            improved_idea_text = idea_text  # Fallback to original
+            
+        # Step 5: Re-evaluate Improved Idea
+        if improved_idea_text and improved_idea_text != idea_text:
+            try:
+                reeval_start_time = time.time()
+                log_verbose_step(
+                    f"STEP 5.{idx}: Re-evaluation of Improved Idea", 
+                    f"🔍 Agent: Critic\n📊 Evaluating improved version\n🌡️ Temperature: {eval_temp}",
+                    verbose
+                )
+                
+                # Call critic with improved idea
+                improved_raw_eval = call_critic_with_retry(
+                    ideas=improved_idea_text,
+                    criteria=constraints,
+                    context=theme + "\n[This is an improved version based on feedback]",
+                    temperature=eval_temp
+                )
+                
+                # Parse the evaluation
+                improved_evaluations = parse_json_with_fallback(improved_raw_eval, expected_count=1)
+                if improved_evaluations:
+                    eval_data = validate_evaluation_json(improved_evaluations[0])
+                    improved_score = float(eval_data["score"])
+                    improved_critique = eval_data["comment"]
+                else:
+                    # Fallback if parsing fails
+                    improved_score = float(candidate["score"])
+                    improved_critique = "Re-evaluation failed - using original score"
+                    
+                reeval_duration = time.time() - reeval_start_time
+                
+                if verbose:
+                    print(f"✅ Re-evaluation Complete in {reeval_duration:.2f}s")
+                    print(f"📊 Score comparison: {candidate['score']}/10 → {improved_score}/10 (Δ{improved_score - candidate['score']:+.1f})")
+                    
+            except Exception as e:
+                logging.warning(f"Re-evaluation failed for improved idea. Error: {str(e)}")
+                improved_score = float(candidate["score"])
+                improved_critique = "Re-evaluation not available due to error"
+        else:
+            # No improvement generated, use original values
+            improved_idea_text = idea_text
+            improved_score = float(candidate["score"])
+            improved_critique = evaluation_detail
+
+        # Calculate score delta
+        score_delta = improved_score - candidate["score"]
+
         # Create the CandidateData dictionary matching the TypedDict
         candidate_data = {
             "idea": idea_text,
@@ -620,6 +725,10 @@ def run_multistep_workflow(
             "initial_critique": evaluation_detail,
             "advocacy": advocacy_output,
             "skepticism": skepticism_output,
+            "improved_idea": improved_idea_text,
+            "improved_score": improved_score,
+            "improved_critique": improved_critique,
+            "score_delta": score_delta
         }
         
         # Add multi-dimensional evaluation if available
@@ -631,6 +740,7 @@ def run_multistep_workflow(
         if verbose:
             print(f"✅ Candidate #{idx} Processing Complete")
             print(f"📊 Final data: {len(advocacy_output)} chars advocacy, {len(skepticism_output)} chars skepticism")
+            print(f"📈 Score improvement: {candidate['score']}/10 → {improved_score}/10 (Δ{score_delta:+.1f})")
             
         logging.info(f"Finished processing for: {idea_text}")
     

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from './api';
 import IdeaGenerationForm from './components/IdeaGenerationForm';
 import ResultsDisplay from './components/ResultsDisplay';
 import ProgressIndicator from './components/ProgressIndicator';
@@ -11,6 +11,10 @@ export interface IdeaResult {
   initial_critique: string;
   advocacy: string;
   skepticism: string;
+  improved_idea: string;
+  improved_score: number;
+  improved_critique: string;
+  score_delta: number;
   multi_dimensional_evaluation?: {
     scores: {
       feasibility: number;
@@ -92,9 +96,7 @@ function App() {
     setProgress(null);
 
     try {
-      // Use environment variable for API URL in Docker/production environments
-      const apiUrl = process.env.REACT_APP_API_URL || '';
-      const response = await axios.post<ApiResponse>(`${apiUrl}/api/generate-ideas`, formData);
+      const response = await api.post<ApiResponse>('/api/generate-ideas', formData);
       
       if (response.data.status === 'success') {
         setResults(response.data.results);

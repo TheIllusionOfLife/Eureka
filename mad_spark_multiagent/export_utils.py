@@ -30,7 +30,12 @@ class ExportManager:
     def __init__(self, output_dir: str = "exports"):
         """Initialize export manager with output directory."""
         self.output_dir = Path(output_dir)
-        self.output_dir.mkdir(exist_ok=True)
+        try:
+            self.output_dir.mkdir(exist_ok=True, parents=True)
+        except PermissionError:
+            raise PermissionError(f"Permission denied: Cannot create export directory '{output_dir}'")
+        except OSError as e:
+            raise OSError(f"Failed to create export directory '{output_dir}': {e}")
         
     def _get_output_filepath(self, filename: Optional[str], extension: str) -> Path:
         """Generate output filepath with timestamp if filename not provided."""

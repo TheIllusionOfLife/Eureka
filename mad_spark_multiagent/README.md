@@ -1,8 +1,41 @@
 # MadSpark Multi-Agent System
 
-[![Phase](https://img.shields.io/badge/Phase-2.1%20Complete-success)](#project-status) [![Architecture](https://img.shields.io/badge/Architecture-Enhanced%20Reasoning-purple)](#enhanced-reasoning-phase-21) [![Testing](https://img.shields.io/badge/Testing-95%25%20Coverage-success)](#testing) [![Next](https://img.shields.io/badge/Next-Phase%202.2%20Web%20Interface-orange)](#roadmap)
+[![Phase](https://img.shields.io/badge/Phase-2.1%20Complete-success)](#project-status) [![Architecture](https://img.shields.io/badge/Architecture-Feedback%20Loop%20Enhancement-blue)](#feedback-loop-enhancement) [![Testing](https://img.shields.io/badge/Testing-95%25%20Coverage-success)](#testing) [![Next](https://img.shields.io/badge/Next-Genetic%20Algorithm-orange)](#roadmap)
 
 This project implements a sophisticated multi-agent system for idea generation and refinement using Google's Gemini API with advanced reasoning capabilities. It includes specialized agents for idea generation, criticism, advocacy, and skepticism, orchestrated by a coordinator enhanced with context-aware reasoning, logical inference, and multi-dimensional evaluation.
+
+## 🚀 NEW: Feedback Loop Enhancement
+
+The system now implements a **feedback loop mechanism** where agent outputs are used to generate improved ideas:
+
+### Previous Flow (Static):
+```
+IdeaGen → Critic(score₁) → Advocate → Skeptic → [END - just display]
+```
+
+### New Flow (Dynamic Improvement):
+```
+IdeaGen → Critic(score₁) → Advocate → Skeptic → IdeaGen_v2 → Critic(score₂) → [Display with comparison]
+```
+
+### Key Features:
+- **Structured Agent Outputs**: Advocate and Skeptic now output bullet-point lists for clear, actionable feedback
+- **Idea Improvement**: Ideas are regenerated based on all agent feedback, maintaining strengths while addressing weaknesses
+- **Score Comparison**: Visual comparison between original and improved scores with delta indicators
+- **Transparent Process**: Users see both original and improved ideas with full critique history
+
+### Example Output:
+```
+Original Idea: AI-powered personal assistant for elderly care
+Score: 6.5/10
+
+[Advocate Points] → [Skeptic Concerns] → [Improvement Process]
+
+Improved Idea: Privacy-first AI companion with local processing and family oversight
+Score: 8.2/10 (↑ +1.7 points, 26% improvement)
+```
+
+This enhancement addresses the limitation where valuable agent insights were only displayed without influencing the final output, resulting in more refined and robust ideas.
 
 ## Prerequisites
 
@@ -118,6 +151,12 @@ The test suite includes:
 - Mock-based testing to avoid actual API calls
 
 ## Project Status
+
+### 🆕 Feedback Loop Enhancement ✅ **JUST IMPLEMENTED**
+- Agent outputs now drive idea improvement instead of just being displayed
+- Structured bullet-point feedback from Advocate and Skeptic agents
+- Automatic idea regeneration incorporating all feedback
+- Score comparison visualization showing improvement metrics
 
 ### Phase 1 "Quick Wins" Features ✅ **COMPLETED**
 
@@ -451,6 +490,14 @@ python -c "from enhanced_reasoning import ReasoningEngine; engine = ReasoningEng
 ```
 
 ## Roadmap
+
+### 🧬 **Phase 2: Genetic Algorithm Implementation** (Next - High Priority)
+**Timeline**: 2-3 weeks | **Focus**: Evolutionary Idea Optimization
+- **GA Population**: Use improved ideas (post-feedback) as initial population
+- **Fitness Function**: Critic scores + diversity metrics
+- **Crossover Operations**: Blend strengths from different ideas
+- **Mutation Operations**: Apply conceptual shifts based on Skeptic's concerns
+- **MAP-Elites Integration**: Preserve diversity across fun × novelty dimensions
 
 ### 🚀 **Phase 2.2: Advanced User Experience** (Next - High Priority)
 **Timeline**: 3 weeks | **Focus**: Usability & Web Interface

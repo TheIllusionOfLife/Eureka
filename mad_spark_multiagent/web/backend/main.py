@@ -19,38 +19,30 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-# Import MadSpark modules using relative imports
+# Import MadSpark modules
+# Add the parent directory to the path for imports
+madspark_path = os.environ.get('MADSPARK_PATH', '/madspark')
+if os.path.exists(madspark_path):
+    sys.path.insert(0, madspark_path)
+else:
+    # Fallback for local development
+    parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    sys.path.insert(0, parent_dir)
+
 try:
-    # Try relative imports first (when run as package)
-    from ...coordinator import run_multistep_workflow, CandidateData
-    from ...async_coordinator import AsyncCoordinator
-    from ...temperature_control import TemperatureManager
-    from ...enhanced_reasoning import ReasoningEngine
-    from ...constants import (
+    from coordinator import run_multistep_workflow, CandidateData
+    from async_coordinator import AsyncCoordinator
+    from temperature_control import TemperatureManager
+    from enhanced_reasoning import ReasoningEngine
+    from constants import (
         DEFAULT_IDEA_TEMPERATURE,
-        DEFAULT_EVALUATION_TEMPERATURE,
-        TEMPERATURE_PRESETS
+        DEFAULT_EVALUATION_TEMPERATURE
     )
-    from ...bookmark_system import BookmarkSystem
-    from ...cache_manager import CacheManager, CacheConfig
-except ImportError:
-    # Fallback for development when run directly
-    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    try:
-        from coordinator import run_multistep_workflow, CandidateData
-        from async_coordinator import AsyncCoordinator
-        from temperature_control import TemperatureManager
-        from enhanced_reasoning import ReasoningEngine
-        from constants import (
-            DEFAULT_IDEA_TEMPERATURE,
-            DEFAULT_EVALUATION_TEMPERATURE,
-            TEMPERATURE_PRESETS
-        )
-        from bookmark_system import BookmarkSystem
-        from cache_manager import CacheManager, CacheConfig
-    except ImportError as e:
-        logging.error(f"Failed to import MadSpark modules: {e}")
-        raise
+    from bookmark_system import BookmarkManager
+    from cache_manager import CacheManager, CacheConfig
+except ImportError as e:
+    logging.error(f"Failed to import MadSpark modules: {e}")
+    raise
 
 # Configure logging
 logging.basicConfig(
@@ -99,7 +91,7 @@ def format_results_for_frontend(results: List[Dict[str, Any]]) -> List[Dict[str,
 # Global variables for MadSpark components
 temp_manager: Optional[TemperatureManager] = None
 reasoning_engine: Optional[ReasoningEngine] = None
-bookmark_system: Optional[BookmarkSystem] = None
+bookmark_system: Optional[BookmarkManager] = None
 cache_manager: Optional[CacheManager] = None
 
 
@@ -113,7 +105,7 @@ async def lifespan(app: FastAPI):
     try:
         temp_manager = TemperatureManager()
         reasoning_engine = ReasoningEngine()
-        bookmark_system = BookmarkSystem()
+        bookmark_system = BookmarkManager()
         
         # Initialize cache manager
         cache_config = CacheConfig(
@@ -293,9 +285,21 @@ async def health_check():
 async def get_temperature_presets():
     """Get available temperature presets."""
     try:
+        # Convert TemperatureConfig objects to dicts for JSON serialization
+        presets_dict = {}
+        for name, config in TemperatureManager.PRESETS.items():
+            presets_dict[name] = {
+                "base_temperature": config.base_temperature,
+                "idea_generation": config.idea_generation,
+                "evaluation": config.evaluation,
+                "advocacy": config.advocacy,
+                "skepticism": config.skepticism,
+                "description": f"{name.capitalize()} temperature settings"
+            }
+        
         return {
             "status": "success",
-            "presets": TEMPERATURE_PRESETS,
+            "presets": presets_dict,
             "default": "balanced"
         }
     except Exception as e:
@@ -314,10 +318,9 @@ async def generate_ideas(request: IdeaGenerationRequest):
         
         # Setup temperature manager
         if request.temperature_preset:
-            temp_mgr = TemperatureManager(preset=request.temperature_preset)
+            temp_mgr = TemperatureManager.from_preset(request.temperature_preset)
         elif request.temperature:
-            temp_mgr = TemperatureManager()
-            temp_mgr.set_all_temperatures(request.temperature)
+            temp_mgr = TemperatureManager.from_base_temperature(request.temperature)
         else:
             temp_mgr = temp_manager
         
@@ -380,10 +383,9 @@ async def generate_ideas_async(request: IdeaGenerationRequest):
         
         # Setup temperature manager
         if request.temperature_preset:
-            temp_mgr = TemperatureManager(preset=request.temperature_preset)
+            temp_mgr = TemperatureManager.from_preset(request.temperature_preset)
         elif request.temperature:
-            temp_mgr = TemperatureManager()
-            temp_mgr.set_all_temperatures(request.temperature)
+            temp_mgr = TemperatureManager.from_base_temperature(request.temperature)
         else:
             temp_mgr = temp_manager
         

@@ -5,6 +5,7 @@ The agent is responsible for critically analyzing ideas, challenging assumptions
 and identifying potential flaws or risks.
 """
 import os
+import logging
 from typing import Any
 import google.generativeai as genai
 
@@ -25,9 +26,9 @@ if api_key:
         model_name=model_name,
         system_instruction=(
             "You are a devil's advocate. Given an idea, the arguments for it, and"
-            " context, critically analyze the idea. Identify potential flaws,"
-            " risks, and unintended consequences. Challenge assumptions and present"
-            " counterarguments."
+            " context, critically analyze the idea. List specific concerns, risks,"
+            " and flaws as bullet points. Be direct and critical. Focus on concrete"
+            " problems and potential failures."
         )
     )
 else:
@@ -62,9 +63,23 @@ def criticize_idea(idea: str, advocacy: str, context: str, temperature: float = 
       f"Here's an idea:\n{idea}\n\n"
       f"Here's the case made for it:\n{advocacy}\n\n"
       f"And the context:\n{context}\n\n"
-      "Play devil's advocate. Critically analyze the idea, identify "
-      "potential flaws, risks, and unintended consequences. Challenge "
-      "assumptions and present counterarguments."
+      "Play devil's advocate. Format your critical analysis as follows:\n\n"
+      "CRITICAL FLAWS:\n"
+      "• [specific flaw 1]\n"
+      "• [specific flaw 2]\n"
+      "• [continue listing major problems]\n\n"
+      "RISKS & CHALLENGES:\n"
+      "• [risk 1 and its impact]\n"
+      "• [risk 2 and its impact]\n"
+      "• [continue listing risks]\n\n"
+      "QUESTIONABLE ASSUMPTIONS:\n"
+      "• [assumption 1 that may be wrong]\n"
+      "• [assumption 2 that needs validation]\n"
+      "• [continue challenging assumptions]\n\n"
+      "MISSING CONSIDERATIONS:\n"
+      "• [important factor not addressed]\n"
+      "• [overlooked consequence]\n"
+      "• [continue listing gaps]"
   )
   
   if skeptic_model is None:
@@ -75,7 +90,8 @@ def criticize_idea(idea: str, advocacy: str, context: str, temperature: float = 
     response = skeptic_model.generate_content(prompt, generation_config=generation_config)
     agent_response = response.text if response.text else ""
   except Exception as e:
-    # Return empty string on any API error - coordinator will handle this
+    # Log the full error for better debugging
+    logging.error(f"Error calling Gemini API in criticize_idea: {e}", exc_info=True)
     agent_response = ""
 
   if not agent_response.strip():

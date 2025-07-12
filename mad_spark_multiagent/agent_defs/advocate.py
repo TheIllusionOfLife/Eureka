@@ -5,6 +5,7 @@ The agent is responsible for constructing persuasive arguments in favor of
 an idea, considering its evaluation and context.
 """
 import os
+import logging
 from typing import Any
 import google.generativeai as genai
 
@@ -25,8 +26,9 @@ if api_key:
         model_name=model_name,
         system_instruction=(
             "You are a persuasive advocate. Given an idea, its evaluation, and"
-            " context, build a strong case for the idea, highlighting its"
-            " strengths and potential benefits."
+            " context, build a strong case for the idea. List key strengths and"
+            " benefits as bullet points. Be direct and concise. Focus on specific"
+            " advantages and opportunities."
         )
     )
 else:
@@ -59,9 +61,19 @@ def advocate_idea(idea: str, evaluation: str, context: str, temperature: float =
       f"Here's an idea:\n{idea}\n\n"
       f"Here's its evaluation:\n{evaluation}\n\n"
       f"And the context:\n{context}\n\n"
-      "Based on this, build a strong case for the idea, focusing on its "
-      "strengths and potential benefits. Address any criticisms from the "
-      "evaluation constructively."
+      "Build a strong case for this idea. Format your response as follows:\n\n"
+      "STRENGTHS:\n"
+      "• [specific strength 1]\n"
+      "• [specific strength 2]\n"
+      "• [continue listing key strengths]\n\n"
+      "OPPORTUNITIES:\n"
+      "• [opportunity 1]\n"
+      "• [opportunity 2]\n"
+      "• [continue listing potential opportunities]\n\n"
+      "ADDRESSING CONCERNS:\n"
+      "• [how criticism 1 can be mitigated]\n"
+      "• [how criticism 2 can be addressed]\n"
+      "• [continue addressing key concerns from the evaluation]"
   )
   
   if advocate_model is None:
@@ -72,7 +84,8 @@ def advocate_idea(idea: str, evaluation: str, context: str, temperature: float =
     response = advocate_model.generate_content(prompt, generation_config=generation_config)
     agent_response = response.text if response.text else ""
   except Exception as e:
-    # Return empty string on any API error - coordinator will handle this
+    # Log the full error for better debugging
+    logging.error(f"Error calling Gemini API in advocate_idea: {e}", exc_info=True)
     agent_response = ""
 
   if not agent_response.strip():

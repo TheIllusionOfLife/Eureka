@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api';
 
 interface FormData {
   theme: string;
@@ -7,7 +7,7 @@ interface FormData {
   num_top_candidates: number;
   enable_novelty_filter: boolean;
   novelty_threshold: number;
-  temperature_preset: string;
+  temperature_preset: string | null;
   temperature: number | null;
   enhanced_reasoning: boolean;
   multi_dimensional_eval: boolean;
@@ -52,8 +52,9 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({ onSubmit, isLoa
   useEffect(() => {
     const loadPresets = async () => {
       try {
-        const response = await axios.get('/api/temperature-presets');
-        if (response.data.status === 'success') {
+        const response = await api.get('/api/temperature-presets');
+        console.log('Temperature presets response:', response.data);
+        if (response.data.status === 'success' && response.data.presets) {
           setTemperaturePresets(response.data.presets);
         }
       } catch (error) {
@@ -89,7 +90,7 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({ onSubmit, isLoa
     onSubmit(submissionData);
   };
 
-  const selectedPreset = temperaturePresets[formData.temperature_preset];
+  const selectedPreset = formData.temperature_preset ? temperaturePresets[formData.temperature_preset] : null;
 
   return (
     <div className="bg-white shadow rounded-lg p-6">
@@ -171,15 +172,25 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({ onSubmit, isLoa
             {!useCustomTemperature && (
               <select
                 name="temperature_preset"
-                value={formData.temperature_preset}
+                value={formData.temperature_preset || 'balanced'}
                 onChange={handleInputChange}
                 className="ml-6 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
               >
-                {Object.entries(temperaturePresets).map(([key, preset]) => (
-                  <option key={key} value={key}>
-                    {key.charAt(0).toUpperCase() + key.slice(1)} - {preset.description}
-                  </option>
-                ))}
+                <option value="">Select a preset...</option>
+                {Object.keys(temperaturePresets).length > 0 ? (
+                  Object.entries(temperaturePresets).map(([key, preset]) => (
+                    <option key={key} value={key}>
+                      {key.charAt(0).toUpperCase() + key.slice(1)} - {(preset as any).description || `${key} preset`}
+                    </option>
+                  ))
+                ) : (
+                  <>
+                    <option value="conservative">Conservative - Low creativity, focused ideas</option>
+                    <option value="balanced">Balanced - Moderate creativity (default)</option>
+                    <option value="creative">Creative - High creativity, innovative ideas</option>
+                    <option value="wild">Wild - Maximum creativity, experimental ideas</option>
+                  </>
+                )}
               </select>
             )}
 
@@ -222,67 +233,87 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({ onSubmit, isLoa
         {/* Enhanced Features */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-3">
-            Enhanced Features (Phase 2.1)
+            Enhanced Features
           </label>
-          <div className="space-y-2">
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="enhanced_reasoning"
-                name="enhanced_reasoning"
-                checked={formData.enhanced_reasoning}
-                onChange={handleInputChange}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              />
-              <label htmlFor="enhanced_reasoning" className="ml-2 text-sm text-gray-700">
-                Enhanced Reasoning (context-aware agents)
-              </label>
+          <div className="space-y-3">
+            <div>
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="enhanced_reasoning"
+                  name="enhanced_reasoning"
+                  checked={formData.enhanced_reasoning}
+                  onChange={handleInputChange}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="enhanced_reasoning" className="ml-2 text-sm text-gray-700 font-medium">
+                  Enhanced Reasoning
+                </label>
+              </div>
+              <p className="ml-6 mt-1 text-xs text-gray-500">
+                Enables context-aware agents that reference conversation history for more informed and coherent decisions
+              </p>
             </div>
             
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="multi_dimensional_eval"
-                name="multi_dimensional_eval"
-                checked={formData.multi_dimensional_eval}
-                onChange={handleInputChange}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              />
-              <label htmlFor="multi_dimensional_eval" className="ml-2 text-sm text-gray-700">
-                Multi-Dimensional Evaluation (7-dimension scoring)
-              </label>
+            <div>
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="multi_dimensional_eval"
+                  name="multi_dimensional_eval"
+                  checked={formData.multi_dimensional_eval}
+                  onChange={handleInputChange}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="multi_dimensional_eval" className="ml-2 text-sm text-gray-700 font-medium">
+                  Multi-Dimensional Evaluation
+                </label>
+              </div>
+              <p className="ml-6 mt-1 text-xs text-gray-500">
+                Analyzes ideas across 7 dimensions: feasibility, innovation, impact, cost-effectiveness, scalability, risk, and timeline with visual radar charts
+              </p>
             </div>
             
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="logical_inference"
-                name="logical_inference"
-                checked={formData.logical_inference}
-                onChange={handleInputChange}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              />
-              <label htmlFor="logical_inference" className="ml-2 text-sm text-gray-700">
-                Logical Inference (formal reasoning chains)
-              </label>
+            <div>
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="logical_inference"
+                  name="logical_inference"
+                  checked={formData.logical_inference}
+                  onChange={handleInputChange}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="logical_inference" className="ml-2 text-sm text-gray-700 font-medium">
+                  Logical Inference
+                </label>
+              </div>
+              <p className="ml-6 mt-1 text-xs text-gray-500">
+                Applies formal reasoning chains with confidence scoring and consistency analysis for more rigorous idea validation
+              </p>
             </div>
           </div>
         </div>
 
         {/* Novelty Filter */}
         <div>
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="enable_novelty_filter"
-              name="enable_novelty_filter"
-              checked={formData.enable_novelty_filter}
-              onChange={handleInputChange}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-            />
-            <label htmlFor="enable_novelty_filter" className="ml-2 text-sm text-gray-700">
-              Enable Novelty Filter
-            </label>
+          <div>
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="enable_novelty_filter"
+                name="enable_novelty_filter"
+                checked={formData.enable_novelty_filter}
+                onChange={handleInputChange}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label htmlFor="enable_novelty_filter" className="ml-2 text-sm text-gray-700 font-medium">
+                Enable Novelty Filter
+              </label>
+            </div>
+            <p className="ml-6 mt-1 text-xs text-gray-500">
+              Filters out duplicate or overly similar ideas to ensure diverse and unique suggestions
+            </p>
           </div>
           
           {formData.enable_novelty_filter && (
@@ -306,18 +337,23 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({ onSubmit, isLoa
         </div>
 
         {/* Verbose Mode */}
-        <div className="flex items-center">
-          <input
-            type="checkbox"
-            id="verbose"
-            name="verbose"
-            checked={formData.verbose}
-            onChange={handleInputChange}
-            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-          />
-          <label htmlFor="verbose" className="ml-2 text-sm text-gray-700">
-            Verbose Mode (detailed logging)
-          </label>
+        <div>
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="verbose"
+              name="verbose"
+              checked={formData.verbose}
+              onChange={handleInputChange}
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+            <label htmlFor="verbose" className="ml-2 text-sm text-gray-700 font-medium">
+              Verbose Mode
+            </label>
+          </div>
+          <p className="ml-6 mt-1 text-xs text-gray-500">
+            Provides detailed logging and step-by-step progress information during idea generation
+          </p>
         </div>
 
         {/* Submit Button */}

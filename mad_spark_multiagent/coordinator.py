@@ -681,10 +681,19 @@ def run_multistep_workflow(
                 )
                 
                 # Call critic with improved idea
+                improved_context = (
+                    f"{theme}\n"
+                    f"[This is an IMPROVED version that addresses previous concerns]\n"
+                    f"Original score: {candidate['score']}/10\n"
+                    f"Key improvements made:\n"
+                    f"- Addressed skeptic's concerns about feasibility\n"
+                    f"- Incorporated advocate's strengths\n"
+                    f"- Applied critic's suggestions"
+                )
                 improved_raw_eval = call_critic_with_retry(
                     ideas=improved_idea_text,
                     criteria=constraints,
-                    context=theme + "\n[This is an improved version based on feedback]",
+                    context=improved_context,
                     temperature=eval_temp
                 )
                 
@@ -694,6 +703,15 @@ def run_multistep_workflow(
                     eval_data = validate_evaluation_json(improved_evaluations[0])
                     improved_score = float(eval_data["score"])
                     improved_critique = eval_data["comment"]
+                    
+                    # Safeguard: If score decreased significantly, log warning and consider keeping original
+                    if improved_score < candidate["score"] - 1.0:
+                        logging.warning(
+                            f"Improved idea scored lower ({improved_score}) than original ({candidate['score']}). "
+                            f"This suggests the improvement may have overcorrected."
+                        )
+                        # Add note to critique about the regression
+                        improved_critique += f"\n\n⚠️ Note: Score decreased from {candidate['score']} to {improved_score}. The improvement may have overcorrected or lost key strengths."
                 else:
                     # Fallback if parsing fails
                     improved_score = float(candidate["score"])

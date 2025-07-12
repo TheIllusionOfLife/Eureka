@@ -123,10 +123,10 @@ class TestFeedbackLoop:
             # Setup mock responses
             mock_idea_gen.return_value = "Original AI healthcare idea"
             
-            # First critique
+            # First critique - JSON format as expected by coordinator
             mock_critic.side_effect = [
-                "7.5\n\nGood idea but needs more details",  # First evaluation
-                "8.5\n\nSignificant improvement with better feasibility"  # Re-evaluation
+                '{"score": 7.5, "comment": "Good idea but needs more details"}',  # First evaluation  
+                '{"score": 8.5, "comment": "Significant improvement with better feasibility"}'  # Re-evaluation
             ]
             
             mock_advocate.return_value = """STRENGTHS:

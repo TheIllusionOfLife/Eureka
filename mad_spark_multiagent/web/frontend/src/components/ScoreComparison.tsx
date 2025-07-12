@@ -64,7 +64,7 @@ const ScoreComparison: React.FC<ScoreComparisonProps> = ({ originalScore, improv
         <span className={`text-lg font-semibold ${getDeltaColor()}`}>
           {getDeltaSymbol()} {delta > 0 ? '+' : ''}{delta.toFixed(1)} points
         </span>
-        {delta > 0 && (
+        {delta > 0 && originalScore > 0 && (
           <p className="text-sm text-gray-600 mt-1">
             {((delta / originalScore) * 100).toFixed(0)}% improvement
           </p>

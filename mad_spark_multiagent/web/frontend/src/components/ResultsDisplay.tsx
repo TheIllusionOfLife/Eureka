@@ -362,27 +362,30 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results }) => {
             {/* Action Buttons */}
             <div className="mt-4 flex space-x-3">
               <button 
+                type="button"
                 onClick={() => handleBookmark(index)}
                 className={`inline-flex items-center px-3 py-2 border ${bookmarkedIdeas.has(index) ? 'border-blue-500 bg-blue-50' : 'border-gray-300'} shadow-sm text-sm leading-4 font-medium rounded-md ${bookmarkedIdeas.has(index) ? 'text-blue-700' : 'text-gray-700'} bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}>
-                <svg className="h-4 w-4 mr-1.5" fill={bookmarkedIdeas.has(index) ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-4 w-4 mr-1.5" fill={bookmarkedIdeas.has(index) ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
                 </svg>
                 {bookmarkedIdeas.has(index) ? 'Bookmarked' : 'Bookmark'}
               </button>
               
               <button 
+                type="button"
                 onClick={() => handleShare(result, index)}
                 className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                <svg className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
                 </svg>
                 Share
               </button>
               
               <button 
+                type="button"
                 onClick={() => handleExport(result, index)}
                 className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                <svg className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
                 Export

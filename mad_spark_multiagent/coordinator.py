@@ -186,7 +186,7 @@ class EvaluatedIdea(TypedDict):
 class CandidateData(TypedDict):
     """Structure for the final data compiled for each candidate idea."""
     idea: str
-    initial_score: int
+    initial_score: float
     initial_critique: str
     advocacy: str
     skepticism: str

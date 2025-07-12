@@ -6,10 +6,17 @@ interface MarkdownRendererProps {
 }
 
 const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, className = '' }) => {
-  // Simple markdown to HTML conversion
+  // Simple markdown to HTML conversion with XSS protection
   const renderMarkdown = (text: string) => {
+    // Basic XSS protection: escape potentially dangerous characters
+    let safeText = text
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#x27;')
+      .replace(/\//g, '&#x2F;');
     // Preserve line breaks
-    let html = text.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br />');
+    let html = safeText.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br />');
     
     // Bold text
     html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');

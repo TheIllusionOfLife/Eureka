@@ -167,10 +167,10 @@ All Phase 2 features have been successfully implemented, tested, and merged to m
 
 **Phase 2.1 - Enhanced Reasoning Integration**:
 - **Context-Aware Agents**: Agents reference conversation history for informed decisions
-- **Multi-Dimensional Evaluation**: 7-dimension assessment framework (feasibility, innovation, impact, cost-effectiveness, scalability, risk, timeline)
+- **Multi-Dimensional Evaluation**: 7-dimension assessment framework (feasibility, innovation, impact, cost-effectiveness, scalability, risk, timeline) - NOW A CORE FEATURE, ALWAYS ACTIVE
 - **Logical Inference Engine**: Formal reasoning chains with confidence scoring and consistency analysis
 - **Agent Memory System**: Persistent context storage with intelligent similarity search
-- **CLI Integration**: New flags `--enhanced-reasoning`, `--multi-dimensional-eval`, `--logical-inference`
+- **CLI Integration**: New flags `--enhanced-reasoning`, `--logical-inference` (multi-dimensional eval is now always enabled)
 
 **Phase 2.2-2.3 - Performance & User Experience**:
 - **Redis Caching**: LRU eviction with production-safe SCAN operations
@@ -438,6 +438,60 @@ web/
 - **WebSocket Tests**: Manual testing required - automated tests pending (plan: pytest-asyncio)
 - **Frontend Tests**: React Testing Library setup pending
 - **Integration Tests**: Need tests for frontend/backend API communication
+- **Web UI Testing**: Use Playwright MCP server for comprehensive end-to-end testing
+
+#### Web Interface Testing with Playwright MCP
+
+**IMPORTANT**: For testing the web interface functionality, use the Playwright MCP server instead of manual browser testing. This provides automated, repeatable testing of the React frontend.
+
+**Prerequisites**:
+- Web interface running: `cd web && docker-compose up`
+- Backend healthy: `curl http://localhost:8000/api/health`
+- Frontend accessible: `http://localhost:3000`
+
+**Testing Commands**:
+```bash
+# Navigate to web interface
+mcp__playwright__playwright_navigate(url="http://localhost:3000")
+
+# Fill form fields
+mcp__playwright__playwright_fill(selector="input[name='theme']", value="Your test theme")
+mcp__playwright__playwright_fill(selector="textarea[name='constraints']", value="Your constraints")
+mcp__playwright__playwright_select(selector="select[name='temperature_preset']", value="balanced")
+
+# Enable enhanced features
+mcp__playwright__playwright_click(selector="input[name='enhanced_reasoning']")
+mcp__playwright__playwright_click(selector="input[name='multi_dimensional_eval']")
+
+# Submit and capture results
+mcp__playwright__playwright_click(selector="button[type='submit']")
+mcp__playwright__playwright_screenshot(name="test_results", fullPage=true, savePng=true)
+
+# Test expandable sections
+mcp__playwright__playwright_click(selector="button:has-text('Toggle multi-dimensional evaluation section')")
+```
+
+**Key Test Scenarios**:
+1. **Form Submission**: Verify all form fields accept input correctly
+2. **Feature Toggles**: Test enhanced reasoning, multi-dimensional eval, logical inference
+3. **Real-time Progress**: Monitor WebSocket progress updates during generation
+4. **Results Display**: Verify idea generation, scoring, and feedback loop enhancements
+5. **Expandable Content**: Test toggle buttons for critiques, advocacy, skeptical analysis
+6. **Score Comparison**: Validate feedback loop showing original vs improved scores
+7. **Multi-dimensional Charts**: Confirm radar chart visualization displays correctly
+
+**Error Handling**:
+- Check browser console logs: `mcp__playwright__playwright_console_logs(type="error")`
+- Monitor WebSocket errors and 500 responses
+- Verify backend processing warnings don't break functionality
+- Test graceful degradation when API calls fail
+
+**Benefits of Playwright MCP Testing**:
+- Automated screenshots for visual regression testing
+- Programmatic interaction with complex React components
+- Real browser environment testing (not just unit tests)
+- Consistent, repeatable test execution
+- Integration with Claude Code workflow
 
 ### Dependencies
 - **Frontend**: React 18.2.0, TypeScript ^4.8, Tailwind CSS 3.x, axios ^1.0

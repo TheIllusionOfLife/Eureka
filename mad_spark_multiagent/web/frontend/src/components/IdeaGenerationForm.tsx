@@ -40,7 +40,7 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({ onSubmit, isLoa
     temperature_preset: 'balanced',
     temperature: null,
     enhanced_reasoning: false,
-    multi_dimensional_eval: false,
+    multi_dimensional_eval: true,  // Always enabled
     logical_inference: false,
     verbose: false,
   });
@@ -252,25 +252,6 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({ onSubmit, isLoa
               </div>
               <p className="ml-6 mt-1 text-xs text-gray-500">
                 Enables context-aware agents that reference conversation history for more informed and coherent decisions
-              </p>
-            </div>
-            
-            <div>
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="multi_dimensional_eval"
-                  name="multi_dimensional_eval"
-                  checked={formData.multi_dimensional_eval}
-                  onChange={handleInputChange}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label htmlFor="multi_dimensional_eval" className="ml-2 text-sm text-gray-700 font-medium">
-                  Multi-Dimensional Evaluation
-                </label>
-              </div>
-              <p className="ml-6 mt-1 text-xs text-gray-500">
-                Analyzes ideas across 7 dimensions: feasibility, innovation, impact, cost-effectiveness, scalability, risk, and timeline with visual radar charts
               </p>
             </div>
             

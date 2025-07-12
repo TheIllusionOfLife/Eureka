@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { IdeaResult } from '../App';
 import RadarChartComponent from './RadarChart';
+import ComparisonRadarChart from './ComparisonRadarChart';
 import MarkdownRenderer from './MarkdownRenderer';
 import ScoreComparison from './ScoreComparison';
 
@@ -334,25 +335,81 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results }) => {
                   </button>
                   {expandedSections[`${index}-multidim`] && (
                     <div className="p-4">
-                      <RadarChartComponent
-                        data={[
-                          { dimension: 'Feasibility', score: result.multi_dimensional_evaluation.scores.feasibility, fullMark: 10 },
-                          { dimension: 'Innovation', score: result.multi_dimensional_evaluation.scores.innovation, fullMark: 10 },
-                          { dimension: 'Impact', score: result.multi_dimensional_evaluation.scores.impact, fullMark: 10 },
-                          { dimension: 'Cost Effectiveness', score: result.multi_dimensional_evaluation.scores.cost_effectiveness, fullMark: 10 },
-                          { dimension: 'Scalability', score: result.multi_dimensional_evaluation.scores.scalability, fullMark: 10 },
-                          { dimension: 'Risk Assessment', score: result.multi_dimensional_evaluation.scores.risk_assessment, fullMark: 10 },
-                          { dimension: 'Timeline', score: result.multi_dimensional_evaluation.scores.timeline, fullMark: 10 }
-                        ]}
-                      />
-                      <div className="mt-3 text-sm text-gray-600">
-                        <p>
-                          <strong>Overall Score:</strong> {result.multi_dimensional_evaluation.overall_score.toFixed(1)}/10
-                        </p>
-                        <p>
-                          <strong>Confidence Interval:</strong> {result.multi_dimensional_evaluation.confidence_interval.lower.toFixed(1)} - {result.multi_dimensional_evaluation.confidence_interval.upper.toFixed(1)}
-                        </p>
-                      </div>
+                      {/* Use comparison chart if both original and improved evaluations exist */}
+                      {result.improved_multi_dimensional_evaluation ? (
+                        <ComparisonRadarChart
+                          title="Original vs Improved Idea Comparison"
+                          originalLabel="Original Idea"
+                          improvedLabel="Improved Idea"
+                          data={[
+                            { 
+                              dimension: 'Feasibility', 
+                              original: result.multi_dimensional_evaluation.scores.feasibility, 
+                              improved: result.improved_multi_dimensional_evaluation.scores.feasibility, 
+                              fullMark: 10 
+                            },
+                            { 
+                              dimension: 'Innovation', 
+                              original: result.multi_dimensional_evaluation.scores.innovation, 
+                              improved: result.improved_multi_dimensional_evaluation.scores.innovation, 
+                              fullMark: 10 
+                            },
+                            { 
+                              dimension: 'Impact', 
+                              original: result.multi_dimensional_evaluation.scores.impact, 
+                              improved: result.improved_multi_dimensional_evaluation.scores.impact, 
+                              fullMark: 10 
+                            },
+                            { 
+                              dimension: 'Cost Effectiveness', 
+                              original: result.multi_dimensional_evaluation.scores.cost_effectiveness, 
+                              improved: result.improved_multi_dimensional_evaluation.scores.cost_effectiveness, 
+                              fullMark: 10 
+                            },
+                            { 
+                              dimension: 'Scalability', 
+                              original: result.multi_dimensional_evaluation.scores.scalability, 
+                              improved: result.improved_multi_dimensional_evaluation.scores.scalability, 
+                              fullMark: 10 
+                            },
+                            { 
+                              dimension: 'Risk Assessment', 
+                              original: result.multi_dimensional_evaluation.scores.risk_assessment, 
+                              improved: result.improved_multi_dimensional_evaluation.scores.risk_assessment, 
+                              fullMark: 10 
+                            },
+                            { 
+                              dimension: 'Timeline', 
+                              original: result.multi_dimensional_evaluation.scores.timeline, 
+                              improved: result.improved_multi_dimensional_evaluation.scores.timeline, 
+                              fullMark: 10 
+                            }
+                          ]}
+                        />
+                      ) : (
+                        /* Fallback to single chart if only original evaluation exists */
+                        <>
+                          <RadarChartComponent
+                            data={[
+                              { dimension: 'Feasibility', score: result.multi_dimensional_evaluation.scores.feasibility, fullMark: 10 },
+                              { dimension: 'Innovation', score: result.multi_dimensional_evaluation.scores.innovation, fullMark: 10 },
+                              { dimension: 'Impact', score: result.multi_dimensional_evaluation.scores.impact, fullMark: 10 },
+                              { dimension: 'Cost Effectiveness', score: result.multi_dimensional_evaluation.scores.cost_effectiveness, fullMark: 10 },
+                              { dimension: 'Scalability', score: result.multi_dimensional_evaluation.scores.scalability, fullMark: 10 },
+                              { dimension: 'Risk Assessment', score: result.multi_dimensional_evaluation.scores.risk_assessment, fullMark: 10 },
+                              { dimension: 'Timeline', score: result.multi_dimensional_evaluation.scores.timeline, fullMark: 10 }
+                            ]}
+                          />
+                          <div className="mt-3 text-sm text-gray-600">
+                            <p>
+                              <strong>Overall Score:</strong> {result.multi_dimensional_evaluation.overall_score.toFixed(1)}/10
+                            </p>
+                            <p>
+                              <strong>Confidence Interval:</strong> {result.multi_dimensional_evaluation.confidence_interval.lower.toFixed(1)} - {result.multi_dimensional_evaluation.confidence_interval.upper.toFixed(1)}
+                            </p>
+                          </div>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>

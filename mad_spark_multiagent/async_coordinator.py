@@ -354,6 +354,7 @@ class AsyncCoordinator:
                 raise
                 
             # Step 3: Process top candidates with advocacy and skepticism
+            await self._send_progress(f"Processing {len(top_candidates)} candidates with advocacy and skepticism...", 0.7)
             final_candidates = await self.process_top_candidates(
                 top_candidates,
                 theme,
@@ -379,15 +380,27 @@ class AsyncCoordinator:
         except asyncio.CancelledError:
             # Clean up any pending tasks
             logger.info("Workflow cancelled, cleaning up pending tasks...")
+            await self._send_progress("Workflow cancelled by user", 0.0)
             for task in active_tasks:
                 if not task.done():
                     task.cancel()
             # Wait for all tasks to complete cancellation
             await asyncio.gather(*active_tasks, return_exceptions=True)
             raise
+        except asyncio.TimeoutError:
+            logger.error("Workflow timed out")
+            await self._send_progress("Workflow timed out", 0.0)
+            raise
         except Exception as e:
-            # Log the error but don't cancel other tasks unless it's a cancellation
-            logger.error(f"Workflow failed with error: {e}")
+            # Log the error with full details for debugging
+            import traceback
+            error_details = {
+                "error": str(e),
+                "type": type(e).__name__,
+                "traceback": traceback.format_exc()
+            }
+            logger.error(f"Workflow failed with error: {error_details}")
+            await self._send_progress(f"Workflow failed: {str(e)}", 0.0)
             raise
         
     async def process_top_candidates(
@@ -422,14 +435,19 @@ class AsyncCoordinator:
                 active_tasks.append(task)
             
         # Run all tasks concurrently with semaphore limiting
+        await self._send_progress(f"Running advocacy and skepticism for {len(tasks)} candidates...", 0.8)
         processed_candidates = await asyncio.gather(*tasks, return_exceptions=True)
         
         # Filter out any None results or exceptions
+        successful_candidates = 0
         for result in processed_candidates:
             if isinstance(result, Exception):
                 logger.error(f"Candidate processing failed with exception: {result}")
             elif result is not None:
                 final_candidates.append(result)
+                successful_candidates += 1
+        
+        await self._send_progress(f"Completed processing {successful_candidates} candidates", 0.9)
         
         return final_candidates
         

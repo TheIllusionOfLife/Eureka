@@ -31,6 +31,22 @@ export interface IdeaResult {
       upper: number;
     };
   };
+  improved_multi_dimensional_evaluation?: {
+    scores: {
+      feasibility: number;
+      innovation: number;
+      impact: number;
+      cost_effectiveness: number;
+      scalability: number;
+      risk_assessment: number;
+      timeline: number;
+    };
+    overall_score: number;
+    confidence_interval: {
+      lower: number;
+      upper: number;
+    };
+  };
 }
 
 export interface ApiResponse {
@@ -53,6 +69,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<ProgressUpdate | null>(null);
+  const [lastFormData, setLastFormData] = useState<any>(null);
 
   // Initialize WebSocket connection
   useEffect(() => {
@@ -90,25 +107,60 @@ function App() {
   }, []);
 
   const handleIdeaGeneration = async (formData: any) => {
+    setLastFormData(formData); // Store for retry functionality
     setIsLoading(true);
     setError(null);
     setResults([]);
     setProgress(null);
 
     try {
+      console.log('Starting idea generation with data:', formData);
       const response = await api.post<ApiResponse>('/api/generate-ideas', formData);
       
+      console.log('API response received:', response.status, response.data?.status);
+      
       if (response.data.status === 'success') {
-        setResults(response.data.results);
+        console.log('Setting results:', response.data.results?.length, 'ideas');
+        setResults(response.data.results || []);
+        
+        // Validate that we actually have results
+        if (!response.data.results || response.data.results.length === 0) {
+          setError('No ideas were generated. Please try with different parameters.');
+        }
       } else {
-        setError(response.data.message);
+        setError(response.data.message || 'Failed to generate ideas');
       }
     } catch (err: any) {
-      const errorMessage = err.response?.data?.detail || err.message || 'An error occurred';
+      console.error('Idea generation error:', err);
+      
+      let errorMessage = 'An unexpected error occurred';
+      
+      if (err.code === 'ECONNABORTED' || err.message.includes('timeout')) {
+        errorMessage = 'Request timed out. The idea generation is taking longer than expected. Please try with fewer candidates or simpler constraints.';
+      } else if (err.response?.status === 408) {
+        errorMessage = 'Request timed out after 10 minutes. Please try with fewer candidates or simpler constraints.';
+      } else if (err.response?.status >= 500) {
+        errorMessage = `Server error (${err.response.status}): ${err.response?.data?.detail || err.response?.data?.error || 'Internal server error'}`;
+      } else if (err.response?.data?.detail) {
+        if (typeof err.response.data.detail === 'object') {
+          errorMessage = `Error: ${err.response.data.detail.error || err.response.data.detail.type || 'Unknown error'}`;
+        } else {
+          errorMessage = err.response.data.detail;
+        }
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
       setError(errorMessage);
     } finally {
       setIsLoading(false);
       setProgress(null);
+    }
+  };
+
+  const handleRetry = () => {
+    if (lastFormData) {
+      handleIdeaGeneration(lastFormData);
     }
   };
 
@@ -161,13 +213,27 @@ function App() {
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                     </svg>
                   </div>
-                  <div className="ml-3">
+                  <div className="ml-3 flex-1">
                     <h3 className="text-sm font-medium text-red-800">
                       Error
                     </h3>
                     <div className="mt-2 text-sm text-red-700">
                       <p>{error}</p>
                     </div>
+                    {lastFormData && (
+                      <div className="mt-3">
+                        <button
+                          onClick={handleRetry}
+                          disabled={isLoading}
+                          className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                          {isLoading ? 'Retrying...' : 'Try Again'}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

@@ -1,0 +1,1 @@
+"""MadSpark Multi-Agent System."""

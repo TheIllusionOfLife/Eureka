@@ -290,17 +290,20 @@ def run_multistep_workflow(
         advocacy_temp = DEFAULT_ADVOCACY_TEMPERATURE
         skepticism_temp = DEFAULT_SKEPTICISM_TEMPERATURE
 
-    # Initialize enhanced reasoning engine if requested
+    # Initialize enhanced reasoning engine - always initialize for multi-dimensional evaluation
     engine = None
     conversation_history = []
-    if enhanced_reasoning or multi_dimensional_eval or logical_inference:
-        if reasoning_engine:
-            engine = reasoning_engine
-        else:
-            engine = ReasoningEngine()
+    # Always create reasoning engine for multi-dimensional evaluation (now a core feature)
+    if reasoning_engine:
+        engine = reasoning_engine
+    else:
+        engine = ReasoningEngine()
+    
+    # Log initialization details
+    if enhanced_reasoning or logical_inference or verbose:
         log_verbose_step(
             "🧠 Enhanced Reasoning Initialized",
-            f"✅ Context Memory: {engine.context_memory.capacity} items\n✅ Multi-Dimensional Evaluation: {multi_dimensional_eval}\n✅ Logical Inference: {logical_inference}",
+            f"✅ Context Memory: {engine.context_memory.capacity} items\n✅ Multi-Dimensional Evaluation: Always Active (Core Feature)\n✅ Logical Inference: {logical_inference}",
             verbose
         )
 
@@ -458,8 +461,8 @@ def run_multistep_workflow(
             # Initialize multi_eval_result for this idea
             multi_eval_result = None
             
-            # Enhanced reasoning: Use multi-dimensional evaluation if enabled
-            if multi_dimensional_eval and engine:
+            # Always perform multi-dimensional evaluation (now a core feature)
+            if engine:
                 try:
                     # Create comprehensive evaluation context for enhanced reasoning
                     # MultiDimensionalEvaluator expects budget, timeline, and other context keys

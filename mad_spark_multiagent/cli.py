@@ -300,10 +300,12 @@ Examples:
         help='Enable enhanced reasoning capabilities with context awareness'
     )
     
+    # Multi-dimensional evaluation is now always enabled
+    # Keeping the argument for backward compatibility but it has no effect
     reasoning_group.add_argument(
         '--multi-dimensional-eval',
         action='store_true',
-        help='Use multi-dimensional evaluation (7 dimensions: feasibility, innovation, impact, cost-effectiveness, scalability, risk, timeline)'
+        help='(DEPRECATED: Always enabled) Multi-dimensional evaluation across 7 dimensions is now a core feature'
     )
     
     reasoning_group.add_argument(
@@ -506,7 +508,7 @@ def main():
                 "novelty_threshold": args.novelty_threshold,
                 "verbose": args.verbose,
                 "enhanced_reasoning": args.enhanced_reasoning,
-                "multi_dimensional_eval": args.multi_dimensional_eval,
+                "multi_dimensional_eval": True,  # Always enabled as a core feature
                 "logical_inference": args.logical_inference
             }
             
@@ -587,7 +589,7 @@ def main():
             "temperature_manager": temp_manager,
             "verbose": args.verbose,
             "enhanced_reasoning": args.enhanced_reasoning,
-            "multi_dimensional_eval": args.multi_dimensional_eval,
+            "multi_dimensional_eval": True,  # Always enabled as a core feature
             "logical_inference": args.logical_inference
         }
 

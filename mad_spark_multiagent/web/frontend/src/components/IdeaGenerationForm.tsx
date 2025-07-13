@@ -13,6 +13,7 @@ interface FormData {
   multi_dimensional_eval: boolean;
   logical_inference: boolean;
   verbose: boolean;
+  show_detailed_results: boolean;
 }
 
 interface TemperaturePreset {
@@ -43,6 +44,7 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({ onSubmit, isLoa
     multi_dimensional_eval: true,  // Always enabled
     logical_inference: false,
     verbose: false,
+    show_detailed_results: false,
   });
 
   const [temperaturePresets, setTemperaturePresets] = useState<TemperaturePreset>({});
@@ -338,6 +340,26 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({ onSubmit, isLoa
           </div>
           <p className="ml-6 mt-1 text-xs text-gray-500">
             Provides detailed logging and step-by-step progress information during idea generation
+          </p>
+        </div>
+
+        {/* Show Detailed Results */}
+        <div>
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="show_detailed_results"
+              name="show_detailed_results"
+              checked={formData.show_detailed_results}
+              onChange={handleInputChange}
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+            <label htmlFor="show_detailed_results" className="ml-2 text-sm text-gray-700 font-medium">
+              Show Detailed Results
+            </label>
+          </div>
+          <p className="ml-6 mt-1 text-xs text-gray-500">
+            Display original ideas, critiques, advocacy, and skepticism alongside improved ideas (by default, only improved ideas and evaluation are shown)
           </p>
         </div>
 

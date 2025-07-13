@@ -70,6 +70,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<ProgressUpdate | null>(null);
   const [lastFormData, setLastFormData] = useState<any>(null);
+  const [showDetailedResults, setShowDetailedResults] = useState(false);
 
   // Initialize WebSocket connection
   useEffect(() => {
@@ -108,6 +109,7 @@ function App() {
 
   const handleIdeaGeneration = async (formData: any) => {
     setLastFormData(formData); // Store for retry functionality
+    setShowDetailedResults(formData.show_detailed_results || false); // Store the preference
     setIsLoading(true);
     setError(null);
     setResults([]);
@@ -242,7 +244,7 @@ function App() {
 
           {/* Right Column - Results */}
           <div>
-            <ResultsDisplay results={results} />
+            <ResultsDisplay results={results} showDetailedResults={showDetailedResults} />
           </div>
         </div>
       </main>

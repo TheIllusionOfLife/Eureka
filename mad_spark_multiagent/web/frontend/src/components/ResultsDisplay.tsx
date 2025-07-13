@@ -7,9 +7,10 @@ import ScoreComparison from './ScoreComparison';
 
 interface ResultsDisplayProps {
   results: IdeaResult[];
+  showDetailedResults?: boolean;
 }
 
-const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results }) => {
+const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, showDetailedResults = false }) => {
   const [selectedTab, setSelectedTab] = useState<number>(0);
   const [expandedSections, setExpandedSections] = useState<{[key: string]: boolean}>({});
   const [bookmarkedIdeas, setBookmarkedIdeas] = useState<Set<number>>(new Set());
@@ -120,43 +121,47 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results }) => {
       <div className="divide-y divide-gray-200">
         {results.map((result, index) => (
           <div key={index} className="p-6 fade-in">
-            {/* Original Idea */}
-            <div className="mb-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                💡 Original Idea #{index + 1}
-              </h3>
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <MarkdownRenderer 
-                    content={result.idea} 
-                    className="text-gray-700 mb-4 leading-relaxed"
-                  />
-                </div>
-                
-                {/* Original Score Badge */}
-                <div className="ml-4 flex-shrink-0">
-                  <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium text-white ${getScoreColor(result.initial_score)}`}>
-                    <span className="mr-1">⭐</span>
-                    {result.initial_score}/10
+            {/* Original Idea - Only show if detailed results enabled */}
+            {showDetailedResults && (
+              <>
+                <div className="mb-6">
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    💡 Original Idea #{index + 1}
+                  </h3>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <MarkdownRenderer 
+                        content={result.idea} 
+                        className="text-gray-700 mb-4 leading-relaxed"
+                      />
+                    </div>
+                    
+                    {/* Original Score Badge */}
+                    <div className="ml-4 flex-shrink-0">
+                      <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium text-white ${getScoreColor(result.initial_score)}`}>
+                        <span className="mr-1">⭐</span>
+                        {result.initial_score}/10
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1 text-center">
+                        {getScoreLabel(result.initial_score)}
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-xs text-gray-500 mt-1 text-center">
-                    {getScoreLabel(result.initial_score)}
-                  </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Score Comparison */}
-            <ScoreComparison
-              originalScore={result.initial_score}
-              improvedScore={result.improved_score}
-              delta={result.score_delta}
-            />
+                {/* Score Comparison - Only show if detailed results enabled */}
+                <ScoreComparison
+                  originalScore={result.initial_score}
+                  improvedScore={result.improved_score}
+                  delta={result.score_delta}
+                />
+              </>
+            )}
 
             {/* Improved Idea */}
-            <div className="mt-6 p-4 bg-green-50 rounded-lg border border-green-200">
+            <div className={`${showDetailedResults ? 'mt-6' : ''} p-4 bg-green-50 rounded-lg border border-green-200`}>
               <h3 className="text-lg font-medium text-green-900 mb-2">
-                🚀 Improved Idea
+                🚀 Improved Idea #{index + 1}
               </h3>
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -179,11 +184,96 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results }) => {
               </div>
             </div>
 
+            {/* Multi-dimensional Evaluation - Show immediately after improved idea when not showing detailed results */}
+            {!showDetailedResults && result.multi_dimensional_evaluation && (
+              <div className="mt-4 border rounded-lg p-4">
+                <h4 className="font-medium text-gray-900 mb-3">📊 Multi-Dimensional Evaluation</h4>
+                {/* Use comparison chart if both original and improved evaluations exist */}
+                {result.improved_multi_dimensional_evaluation ? (
+                  <ComparisonRadarChart
+                    title="Original vs Improved Idea Comparison"
+                    originalLabel="Original Idea"
+                    improvedLabel="Improved Idea"
+                    data={[
+                      { 
+                        dimension: 'Feasibility', 
+                        original: result.multi_dimensional_evaluation.dimension_scores?.feasibility || 5, 
+                        improved: result.improved_multi_dimensional_evaluation.dimension_scores?.feasibility || 5, 
+                        fullMark: 10 
+                      },
+                      { 
+                        dimension: 'Innovation', 
+                        original: result.multi_dimensional_evaluation.dimension_scores?.innovation || 5, 
+                        improved: result.improved_multi_dimensional_evaluation.dimension_scores?.innovation || 5, 
+                        fullMark: 10 
+                      },
+                      { 
+                        dimension: 'Impact', 
+                        original: result.multi_dimensional_evaluation.dimension_scores?.impact || 5, 
+                        improved: result.improved_multi_dimensional_evaluation.dimension_scores?.impact || 5, 
+                        fullMark: 10 
+                      },
+                      { 
+                        dimension: 'Cost Effectiveness', 
+                        original: result.multi_dimensional_evaluation.dimension_scores?.cost_effectiveness || 5, 
+                        improved: result.improved_multi_dimensional_evaluation.dimension_scores?.cost_effectiveness || 5, 
+                        fullMark: 10 
+                      },
+                      { 
+                        dimension: 'Scalability', 
+                        original: result.multi_dimensional_evaluation.dimension_scores?.scalability || 5, 
+                        improved: result.improved_multi_dimensional_evaluation.dimension_scores?.scalability || 5, 
+                        fullMark: 10 
+                      },
+                      { 
+                        dimension: 'Risk Assessment', 
+                        original: result.multi_dimensional_evaluation.dimension_scores?.risk_assessment || 5, 
+                        improved: result.improved_multi_dimensional_evaluation.dimension_scores?.risk_assessment || 5, 
+                        fullMark: 10 
+                      },
+                      { 
+                        dimension: 'Timeline', 
+                        original: result.multi_dimensional_evaluation.dimension_scores?.timeline || 5, 
+                        improved: result.improved_multi_dimensional_evaluation.dimension_scores?.timeline || 5, 
+                        fullMark: 10 
+                      }
+                    ]}
+                  />
+                ) : (
+                  /* Fallback to single chart if only original evaluation exists */
+                  <>
+                    <RadarChartComponent
+                      data={[
+                        { dimension: 'Feasibility', score: result.multi_dimensional_evaluation.dimension_scores?.feasibility || 5, fullMark: 10 },
+                        { dimension: 'Innovation', score: result.multi_dimensional_evaluation.dimension_scores?.innovation || 5, fullMark: 10 },
+                        { dimension: 'Impact', score: result.multi_dimensional_evaluation.dimension_scores?.impact || 5, fullMark: 10 },
+                        { dimension: 'Cost Effectiveness', score: result.multi_dimensional_evaluation.dimension_scores?.cost_effectiveness || 5, fullMark: 10 },
+                        { dimension: 'Scalability', score: result.multi_dimensional_evaluation.dimension_scores?.scalability || 5, fullMark: 10 },
+                        { dimension: 'Risk Assessment', score: result.multi_dimensional_evaluation.dimension_scores?.risk_assessment || 5, fullMark: 10 },
+                        { dimension: 'Timeline', score: result.multi_dimensional_evaluation.dimension_scores?.timeline || 5, fullMark: 10 }
+                      ]}
+                    />
+                    <div className="mt-3 text-sm text-gray-600">
+                      <p>
+                        <strong>Overall Score:</strong> {(result.multi_dimensional_evaluation.overall_score || 0).toFixed(1)}/10
+                      </p>
+                      <p>
+                        <strong>Confidence:</strong> {result.multi_dimensional_evaluation.confidence_interval ? 
+                          `${result.multi_dimensional_evaluation.confidence_interval.lower.toFixed(1)} - ${result.multi_dimensional_evaluation.confidence_interval.upper.toFixed(1)}` : 
+                          'N/A'}
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
             {/* Expandable Sections */}
-            <div className="space-y-3">
-              {/* Initial Critique */}
-              <div className="border rounded-lg">
-                <button
+            <div className="space-y-3 mt-4">
+              {/* Initial Critique - Only show if detailed results enabled */}
+              {showDetailedResults && (
+                <div className="border rounded-lg">
+                  <button
                   type="button"
                   onClick={() => toggleSection(index, 'critique')}
                   className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
@@ -211,10 +301,12 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results }) => {
                     <MarkdownRenderer content={result.initial_critique} />
                   </div>
                 )}
-              </div>
+                </div>
+              )}
 
-              {/* Advocacy */}
-              <div className="border rounded-lg">
+              {/* Advocacy - Only show if detailed results enabled */}
+              {showDetailedResults && (
+                <div className="border rounded-lg">
                 <button
                   type="button"
                   onClick={() => toggleSection(index, 'advocacy')}
@@ -243,10 +335,12 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results }) => {
                     <MarkdownRenderer content={result.advocacy} />
                   </div>
                 )}
-              </div>
+                </div>
+              )}
 
-              {/* Skepticism */}
-              <div className="border rounded-lg">
+              {/* Skepticism - Only show if detailed results enabled */}
+              {showDetailedResults && (
+                <div className="border rounded-lg">
                 <button
                   type="button"
                   onClick={() => toggleSection(index, 'skepticism')}
@@ -275,10 +369,12 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results }) => {
                     <MarkdownRenderer content={result.skepticism} />
                   </div>
                 )}
-              </div>
+                </div>
+              )}
 
-              {/* Improved Critique */}
-              <div className="border rounded-lg">
+              {/* Improved Critique - Only show if detailed results enabled */}
+              {showDetailedResults && (
+                <div className="border rounded-lg">
                 <button
                   type="button"
                   onClick={() => toggleSection(index, 'improved-critique')}
@@ -307,10 +403,11 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results }) => {
                     <MarkdownRenderer content={result.improved_critique} />
                   </div>
                 )}
-              </div>
+                </div>
+              )}
 
-              {/* Multi-dimensional Evaluation */}
-              {result.multi_dimensional_evaluation && (
+              {/* Multi-dimensional Evaluation - Show as expandable only in detailed mode */}
+              {showDetailedResults && result.multi_dimensional_evaluation && (
                 <div className="border rounded-lg">
                   <button
                     type="button"

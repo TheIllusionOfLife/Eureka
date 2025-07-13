@@ -214,7 +214,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, showDetailedRe
               {expandedSections[`${index}-improved`] && (
                 <div id={`improved-content-${index}`} className="p-4 pt-0">
                   <MarkdownRenderer 
-                    content={useMemo(() => cleanImprovedIdea(result.improved_idea || ''), [result.improved_idea])} 
+                    content={cleanImprovedIdea(result.improved_idea || '')} 
                     className="text-gray-700 leading-relaxed"
                   />
                 </div>

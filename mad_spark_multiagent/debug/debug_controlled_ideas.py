@@ -14,7 +14,16 @@ try:
 except ImportError:
     pass
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types
+
+# Import constants
+try:
+    from mad_spark_multiagent.constants import DEFAULT_GOOGLE_GENAI_MODEL, DEBUG_DEFAULT_TEMPERATURE
+except ImportError:
+    # Define fallback values for standalone usage
+    DEFAULT_GOOGLE_GENAI_MODEL = "gemini-2.5-flash"
+    DEBUG_DEFAULT_TEMPERATURE = 0.9
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
@@ -22,20 +31,20 @@ logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 def generate_specific_number_of_ideas(topic: str, constraints: str, num_ideas: int = 10, temperature: float = 0.9):
     """Generate a specific number of ideas"""
     
-    # Configure the API
+    # Configure the API using new SDK pattern
     api_key = os.getenv("GOOGLE_API_KEY")
-    model_name = os.getenv("GOOGLE_GENAI_MODEL", "gemini-2.0-flash")
+    model_name = os.getenv("GOOGLE_GENAI_MODEL", DEFAULT_GOOGLE_GENAI_MODEL)
     
     if not api_key:
         raise RuntimeError("GOOGLE_API_KEY not configured")
     
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel(
-        model_name=model_name,
-        system_instruction=(
-            f"You are an expert idea generator. Generate exactly {num_ideas} diverse and creative ideas. "
-            f"Present them as a numbered list with clear, actionable descriptions."
-        )
+    # Initialize client with new SDK
+    client = genai.Client(api_key=api_key)
+    
+    # System instruction
+    system_instruction = (
+        f"You are an expert idea generator. Generate exactly {num_ideas} diverse and creative ideas. "
+        f"Present them as a numbered list with clear, actionable descriptions."
     )
     
     # Custom prompt with specific number
@@ -46,8 +55,16 @@ def generate_specific_number_of_ideas(topic: str, constraints: str, num_ideas: i
         f"Each idea should be actionable and innovative.\n\nIdeas:"
     )
     
-    generation_config = genai.types.GenerationConfig(temperature=temperature)
-    response = model.generate_content(prompt, generation_config=generation_config)
+    # Generate content using new SDK pattern
+    config = types.GenerateContentConfig(
+        temperature=temperature,
+        system_instruction=system_instruction
+    )
+    response = client.models.generate_content(
+        model=model_name,
+        contents=prompt,
+        config=config
+    )
     
     return response.text if response.text else ""
 
@@ -70,7 +87,7 @@ def debug_controlled_generation():
                 topic=topic, 
                 constraints=constraints, 
                 num_ideas=num_ideas,
-                temperature=0.9
+                temperature=DEBUG_DEFAULT_TEMPERATURE
             )
             
             # Parse the response

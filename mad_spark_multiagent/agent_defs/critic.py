@@ -6,28 +6,25 @@ and context, providing scores and textual feedback.
 """
 import os
 from typing import Any
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
-# Configure the Google GenerativeAI client
-api_key = os.getenv("GOOGLE_API_KEY")
-model_name = os.getenv("GOOGLE_GENAI_MODEL", "gemini-1.5-flash")
+try:
+    from mad_spark_multiagent.errors import ConfigurationError
+    from mad_spark_multiagent.agent_defs.genai_client import get_genai_client, get_model_name
+    from mad_spark_multiagent.constants import CRITIC_SYSTEM_INSTRUCTION, DEFAULT_CRITIC_TEMPERATURE
+except ImportError:
+    # Fallback for local development/testing
+    from errors import ConfigurationError
+    from agent_defs.genai_client import get_genai_client, get_model_name
+    from constants import CRITIC_SYSTEM_INSTRUCTION, DEFAULT_CRITIC_TEMPERATURE
 
-if api_key:
-    genai.configure(api_key=api_key)
-    # Create the model instance
-    critic_model = genai.GenerativeModel(
-        model_name=model_name,
-        system_instruction=(
-            "You are an expert critic. Evaluate the given ideas based on the"
-            " provided criteria and context. Provide constructive feedback and"
-            " identify potential weaknesses."
-        )
-    )
-else:
-    critic_model = None
+# Configure the Google GenAI client
+critic_client = get_genai_client()
+model_name = get_model_name()
 
 
-def evaluate_ideas(ideas: str, criteria: str, context: str, temperature: float = 0.3) -> str:
+def evaluate_ideas(ideas: str, criteria: str, context: str, temperature: float = DEFAULT_CRITIC_TEMPERATURE) -> str:
   """Evaluates ideas based on criteria and context using the critic model.
 
   The model is prompted to return a newline-separated list of JSON strings.
@@ -68,12 +65,19 @@ def evaluate_ideas(ideas: str, criteria: str, context: str, temperature: float =
       "Provide your JSON evaluations now (one per line, in the same order as the input ideas):"
   )
   
-  if critic_model is None:
-    raise RuntimeError("GOOGLE_API_KEY not configured - cannot evaluate ideas")
+  if critic_client is None:
+    raise ConfigurationError("GOOGLE_API_KEY not configured - cannot evaluate ideas")
   
   try:
-    generation_config = genai.types.GenerationConfig(temperature=temperature)
-    response = critic_model.generate_content(prompt, generation_config=generation_config)
+    config = types.GenerateContentConfig(
+        temperature=temperature,
+        system_instruction=CRITIC_SYSTEM_INSTRUCTION
+    )
+    response = critic_client.models.generate_content(
+        model=model_name,
+        contents=prompt,
+        config=config
+    )
     agent_response = response.text if response.text else ""
   except Exception as e:
     # Return empty string on any API error - coordinator will handle this

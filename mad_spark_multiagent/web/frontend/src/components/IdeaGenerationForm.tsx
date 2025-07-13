@@ -34,7 +34,7 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({ onSubmit, isLoa
   const [formData, setFormData] = useState<FormData>({
     theme: '',
     constraints: '',
-    num_top_candidates: 2,
+    num_top_candidates: 3,
     enable_novelty_filter: true,
     novelty_threshold: 0.8,
     temperature_preset: 'balanced',
@@ -81,11 +81,16 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({ onSubmit, isLoa
     e.preventDefault();
     
     // Prepare submission data
-    const submissionData = {
+    const submissionData: any = {
       ...formData,
       temperature: useCustomTemperature ? formData.temperature : null,
       temperature_preset: useCustomTemperature ? null : formData.temperature_preset,
     };
+    
+    // Remove constraints field if it's empty to allow backend default
+    if (!submissionData.constraints || submissionData.constraints.trim() === '') {
+      delete submissionData.constraints;
+    }
     
     onSubmit(submissionData);
   };
@@ -117,12 +122,11 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({ onSubmit, isLoa
         {/* Constraints */}
         <div>
           <label htmlFor="constraints" className="block text-sm font-medium text-gray-700">
-            Constraints *
+            Constraints (Optional)
           </label>
           <textarea
             id="constraints"
             name="constraints"
-            required
             rows={3}
             value={formData.constraints}
             onChange={handleInputChange}
@@ -341,7 +345,7 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({ onSubmit, isLoa
         <div>
           <button
             type="submit"
-            disabled={isLoading || !formData.theme || !formData.constraints}
+            disabled={isLoading || !formData.theme}
             className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? (

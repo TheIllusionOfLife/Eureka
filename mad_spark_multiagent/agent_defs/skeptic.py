@@ -7,32 +7,22 @@ and identifying potential flaws or risks.
 import os
 import logging
 from typing import Any
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 try:
-    from mad_spark_multiagent.constants import SKEPTIC_EMPTY_RESPONSE
+    from mad_spark_multiagent.constants import SKEPTIC_EMPTY_RESPONSE, SKEPTIC_SYSTEM_INSTRUCTION
+    from mad_spark_multiagent.errors import ConfigurationError
+    from mad_spark_multiagent.agent_defs.genai_client import get_genai_client, get_model_name
 except ImportError:
     # Fallback for local development/testing
-    from constants import SKEPTIC_EMPTY_RESPONSE
+    from constants import SKEPTIC_EMPTY_RESPONSE, SKEPTIC_SYSTEM_INSTRUCTION
+    from errors import ConfigurationError
+    from agent_defs.genai_client import get_genai_client, get_model_name
 
-# Configure the Google GenerativeAI client
-api_key = os.getenv("GOOGLE_API_KEY")
-model_name = os.getenv("GOOGLE_GENAI_MODEL", "gemini-1.5-flash")
-
-if api_key:
-    genai.configure(api_key=api_key)
-    # Create the model instance
-    skeptic_model = genai.GenerativeModel(
-        model_name=model_name,
-        system_instruction=(
-            "You are a devil's advocate. Given an idea, the arguments for it, and"
-            " context, critically analyze the idea. List specific concerns, risks,"
-            " and flaws as bullet points. Be direct and critical. Focus on concrete"
-            " problems and potential failures."
-        )
-    )
-else:
-    skeptic_model = None
+# Configure the Google GenAI client
+skeptic_client = get_genai_client()
+model_name = get_model_name()
 
 
 def criticize_idea(idea: str, advocacy: str, context: str, temperature: float = 0.5) -> str:
@@ -82,12 +72,19 @@ def criticize_idea(idea: str, advocacy: str, context: str, temperature: float = 
       "• [continue listing gaps]"
   )
   
-  if skeptic_model is None:
-    raise RuntimeError("GOOGLE_API_KEY not configured - cannot criticize ideas")
+  if skeptic_client is None:
+    raise ConfigurationError("GOOGLE_API_KEY not configured - cannot criticize ideas")
   
   try:
-    generation_config = genai.types.GenerationConfig(temperature=temperature)
-    response = skeptic_model.generate_content(prompt, generation_config=generation_config)
+    config = types.GenerateContentConfig(
+        temperature=temperature,
+        system_instruction=SKEPTIC_SYSTEM_INSTRUCTION
+    )
+    response = skeptic_client.models.generate_content(
+        model=model_name,
+        contents=prompt,
+        config=config
+    )
     agent_response = response.text if response.text else ""
   except Exception as e:
     # Log the full error for better debugging

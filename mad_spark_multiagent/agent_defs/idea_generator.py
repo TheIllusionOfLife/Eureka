@@ -7,16 +7,42 @@ and contextual information.
 import os
 import logging
 from typing import Any
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 try:
     from mad_spark_multiagent.errors import IdeaGenerationError, ValidationError, ConfigurationError
 except ImportError:
     # Fallback for local development/testing
     from errors import IdeaGenerationError, ValidationError, ConfigurationError
 
-# Prompt constants to avoid duplication
-IDEA_GENERATION_INSTRUCTION = "generate a list of diverse and creative ideas"
-SYSTEM_INSTRUCTION = f"You are an expert idea generator. Given a topic and some context, {IDEA_GENERATION_INSTRUCTION}."
+# Import prompt constants from constants module
+try:
+    from mad_spark_multiagent.constants import IDEA_GENERATION_INSTRUCTION, IDEA_GENERATOR_SYSTEM_INSTRUCTION as SYSTEM_INSTRUCTION
+except ImportError:
+    # Fallback for local development/testing
+    from constants import IDEA_GENERATION_INSTRUCTION, IDEA_GENERATOR_SYSTEM_INSTRUCTION as SYSTEM_INSTRUCTION
+
+# Safety settings for constructive feedback generation
+# These relaxed thresholds are necessary to prevent overly aggressive content
+# filtering when processing critical feedback and improvement suggestions
+_IMPROVER_SAFETY_SETTINGS = [
+    types.SafetySetting(
+        category="HARM_CATEGORY_HARASSMENT",
+        threshold="BLOCK_ONLY_HIGH"
+    ),
+    types.SafetySetting(
+        category="HARM_CATEGORY_HATE_SPEECH", 
+        threshold="BLOCK_ONLY_HIGH"
+    ),
+    types.SafetySetting(
+        category="HARM_CATEGORY_SEXUALLY_EXPLICIT",
+        threshold="BLOCK_ONLY_HIGH"
+    ),
+    types.SafetySetting(
+        category="HARM_CATEGORY_DANGEROUS_CONTENT",
+        threshold="BLOCK_ONLY_HIGH"
+    )
+]
 
 
 def _validate_non_empty_string(value: Any, param_name: str) -> None:
@@ -50,19 +76,15 @@ def build_generation_prompt(topic: str, context: str) -> str:
   )
 
 
-# Configure the Google GenerativeAI client
-api_key = os.getenv("GOOGLE_API_KEY")
-model_name = os.getenv("GOOGLE_GENAI_MODEL", "gemini-1.5-flash")
+# Configure the Google GenAI client
+try:
+    from mad_spark_multiagent.agent_defs.genai_client import get_genai_client, get_model_name
+except ImportError:
+    # Fallback for local development/testing
+    from agent_defs.genai_client import get_genai_client, get_model_name
 
-if api_key:
-    genai.configure(api_key=api_key)
-    # Create the model instance
-    idea_generator_model = genai.GenerativeModel(
-        model_name=model_name,
-        system_instruction=SYSTEM_INSTRUCTION
-    )
-else:
-    idea_generator_model = None
+idea_generator_client = get_genai_client()
+model_name = get_model_name()
 
 
 def generate_ideas(topic: str, context: str, temperature: float = 0.9) -> str:
@@ -84,12 +106,20 @@ def generate_ideas(topic: str, context: str, temperature: float = 0.9) -> str:
 
   prompt: str = build_generation_prompt(topic=topic, context=context)
   
-  if idea_generator_model is None:
+  if idea_generator_client is None:
     raise ConfigurationError("GOOGLE_API_KEY not configured - cannot generate ideas")
   
   try:
-    generation_config = genai.types.GenerationConfig(temperature=temperature)
-    response = idea_generator_model.generate_content(prompt, generation_config=generation_config)
+    # Create the generation config with system instruction
+    config = types.GenerateContentConfig(
+        temperature=temperature,
+        system_instruction=SYSTEM_INSTRUCTION
+    )
+    response = idea_generator_client.models.generate_content(
+        model=model_name,
+        contents=prompt,
+        config=config
+    )
     agent_response = response.text if response.text else ""
   except Exception as e:
     # Log the full error for better debugging
@@ -123,25 +153,51 @@ def build_improvement_prompt(
     A formatted prompt string for idea improvement.
   """
   return (
-      f"Please help refine an idea based on constructive feedback from multiple perspectives.\n\n"
-      f"CONTEXT: {theme}\n\n"
-      f"CURRENT IDEA:\n{original_idea}\n\n"
-      f"EVALUATION FEEDBACK:\n{critique}\n\n"
-      f"POSITIVE ASPECTS TO PRESERVE:\n{advocacy_points}\n\n"
-      f"AREAS FOR IMPROVEMENT:\n{skeptic_points}\n\n"
-      f"Please create an enhanced version that:\n"
-      f"1. Builds on the strengths mentioned in the positive aspects\n"
-      f"2. Addresses the improvement areas with practical solutions\n"
-      f"3. Incorporates constructive suggestions from the evaluation\n"
-      f"4. Maintains creativity while improving feasibility\n"
-      f"5. Offers specific enhancements to the original concept\n\n"
-      f"GUIDANCE: Focus on evolution rather than replacement. The goal is to:\n"
-      f"• Retain what makes the idea valuable and innovative\n"
-      f"• Add practical solutions for identified challenges\n"
-      f"• Enhance implementation approach and viability\n\n"
-      f"Please present the refined idea as a clear, actionable concept that builds constructively on the original foundation.\n\n"
-      f"ENHANCED IDEA:"
+      f"You are helping to enhance an innovative idea based on comprehensive feedback.\n\n"
+      f"ORIGINAL THEME: {theme}\n\n"
+      f"ORIGINAL IDEA:\n{original_idea}\n\n"
+      f"EVALUATION CRITERIA AND FEEDBACK:\n{critique}\n"
+      f"Pay special attention to the specific scores and criteria mentioned above. "
+      f"Your improved version should directly address any low-scoring areas while maintaining high-scoring aspects.\n\n"
+      f"STRENGTHS TO PRESERVE AND BUILD UPON:\n{advocacy_points}\n\n"
+      f"CONCERNS TO ADDRESS WITH SOLUTIONS:\n{skeptic_points}\n\n"
+      f"Generate an IMPROVED version of this idea that:\n"
+      f"1. SPECIFICALLY addresses each evaluation criterion from the professional review\n"
+      f"2. Maintains and amplifies the identified strengths\n"
+      f"3. Provides concrete solutions for each concern raised\n"
+      f"4. Remains bold, creative, and ambitious\n"
+      f"5. Shows clear improvements in the areas that scored lower\n\n"
+      f"IMPORTANT GUIDELINES:\n"
+      f"- If feasibility scored low, add specific implementation steps\n"
+      f"- If innovation scored low, add unique differentiating features\n"
+      f"- If cost-effectiveness scored low, optimize resource usage\n"
+      f"- If scalability scored low, design for growth\n"
+      f"- Keep all positive aspects while fixing weaknesses\n\n"
+      f"ENHANCED CONCEPT:"
   )
+
+
+def _generate_fallback_improvement(original_idea: str, reason: str, advocacy_points: str = "") -> str:
+  """Generate a fallback improvement message based on the reason for fallback.
+  
+  Args:
+    original_idea: The original idea to improve.
+    reason: The reason for using fallback ('safety', 'recitation', 'empty', etc.).
+    advocacy_points: Optional advocacy points to include in some templates.
+    
+  Returns:
+    A formatted fallback improvement message.
+  """
+  templates = {
+      "safety": f"Enhanced version of: {original_idea}\n\nKey improvements based on multi-agent feedback:\n- Preserved strengths: {advocacy_points[:100]}{'...' if len(advocacy_points) > 100 else ''}\n- Incorporated professional insights for enhancement\n- Enhanced practical implementation approach\n- Addressed thoughtful considerations with solutions",
+      "recitation": f"Refined approach: {original_idea}\n\nOptimizations based on feedback:\n- Leveraged identified strengths\n- Incorporated professional insights\n- Enhanced practical implementation\n- Improved scalability and resource efficiency",
+      "empty": f"Improved: {original_idea}\n\nEnhancements based on analysis:\n- Built upon positive strengths\n- Incorporated professional insights\n- Optimized implementation approach\n- Enhanced cost-effectiveness and viability",
+      "no_candidates": f"Enhanced: {original_idea}\n\nKey improvements from multi-agent analysis:\n- Preserved core innovation strengths\n- Addressed thoughtful considerations\n- Enhanced practical implementation\n- Improved scalability and cost optimization",
+      "content_filtered": f"Optimized version: {original_idea}\n\nImprovements based on multi-agent feedback:\n- Enhanced feasibility with thoughtful considerations\n- Better resource efficiency from positive insights\n- Practical implementation approach incorporating professional analysis",
+      "value_error": f"Modified: {original_idea}\n\nEnhancements from feedback synthesis:\n- Improved approach based on professional insights\n- Better implementation incorporating strengths\n- Enhanced viability addressing opportunities",
+      "general_error": f"Updated: {original_idea}\n\nImprovements from multi-agent analysis:\n- Refined implementation based on professional insights\n- Enhanced approach incorporating positive strengths\n- Better execution strategy addressing thoughtful considerations"
+  }
+  return templates.get(reason, templates["general_error"])
 
 
 def improve_idea(
@@ -186,12 +242,22 @@ def improve_idea(
       theme=theme
   )
   
-  if idea_generator_model is None:
+  if idea_generator_client is None:
     raise ConfigurationError("GOOGLE_API_KEY not configured - cannot improve ideas")
   
   try:
-    generation_config = genai.types.GenerationConfig(temperature=temperature)
-    response = idea_generator_model.generate_content(prompt, generation_config=generation_config)
+    # Create the generation config with module-level safety settings
+    config = types.GenerateContentConfig(
+        temperature=temperature,
+        system_instruction=SYSTEM_INSTRUCTION,
+        safety_settings=_IMPROVER_SAFETY_SETTINGS
+    )
+    
+    response = idea_generator_client.models.generate_content(
+        model=model_name,
+        contents=prompt,
+        config=config
+    )
     
     # Check for content filtering or blocked responses
     if hasattr(response, 'candidates') and response.candidates:
@@ -200,31 +266,31 @@ def improve_idea(
       
       if finish_reason == 1:  # SAFETY (content filtered)
         logging.warning("Gemini API response was filtered for safety. Using fallback improvement.")
-        agent_response = f"Enhanced version of: {original_idea}\n\nKey improvements based on feedback:\n- Addressed feasibility concerns\n- Incorporated suggested optimizations\n- Enhanced practical implementation approach"
+        agent_response = _generate_fallback_improvement(original_idea, "safety", advocacy_points)
       elif finish_reason == 3:  # RECITATION (potential copyright issues)
         logging.warning("Gemini API response was blocked for recitation. Using fallback improvement.")
-        agent_response = f"Refined approach: {original_idea}\n\nOptimizations:\n- Better resource utilization\n- Improved scalability\n- Enhanced user experience"
+        agent_response = _generate_fallback_improvement(original_idea, "recitation")
       elif response.text:
         agent_response = response.text
       else:
         logging.warning("Gemini API returned empty response. Using fallback improvement.")
-        agent_response = f"Improved: {original_idea}\n\nEnhancements:\n- Optimized implementation\n- Better cost-effectiveness\n- Increased viability"
+        agent_response = _generate_fallback_improvement(original_idea, "empty")
     else:
       logging.warning("Gemini API returned no candidates. Using fallback improvement.")
-      agent_response = f"Enhanced: {original_idea}\n\nKey improvements:\n- Practical implementation focus\n- Cost optimization\n- Scalability considerations"
+      agent_response = _generate_fallback_improvement(original_idea, "no_candidates")
       
   except ValueError as e:
     # Handle specific content filtering errors
     if "response.text" in str(e) and "finish_reason" in str(e):
       logging.warning(f"Gemini API content filtered: {e}. Using fallback improvement.")
-      agent_response = f"Optimized version: {original_idea}\n\nImprovements:\n- Enhanced feasibility\n- Better resource efficiency\n- Practical implementation approach"
+      agent_response = _generate_fallback_improvement(original_idea, "content_filtered")
     else:
       logging.error(f"Gemini API ValueError: {e}", exc_info=True)
-      agent_response = f"Modified: {original_idea}\n\nEnhancements:\n- Improved approach\n- Better implementation\n- Enhanced viability"
+      agent_response = _generate_fallback_improvement(original_idea, "value_error")
   except Exception as e:
     # Log the full error for better debugging
     logging.error(f"Error calling Gemini API: {e}", exc_info=True)
-    agent_response = f"Updated: {original_idea}\n\nImprovements:\n- Refined implementation\n- Enhanced approach\n- Better execution strategy"
+    agent_response = _generate_fallback_improvement(original_idea, "general_error")
   
   return agent_response
 

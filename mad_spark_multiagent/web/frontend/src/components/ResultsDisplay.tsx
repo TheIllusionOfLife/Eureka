@@ -15,6 +15,18 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, showDetailedRe
   const [expandedSections, setExpandedSections] = useState<{[key: string]: boolean}>({});
   const [bookmarkedIdeas, setBookmarkedIdeas] = useState<Set<number>>(new Set());
 
+  // Auto-expand improved ideas and multi-dimensional evaluation when results change
+  React.useEffect(() => {
+    if (results.length > 0) {
+      const newExpandedSections: {[key: string]: boolean} = {};
+      results.forEach((_, index) => {
+        newExpandedSections[`${index}-improved`] = true;
+        newExpandedSections[`${index}-multidim-simple`] = true;
+      });
+      setExpandedSections(prev => ({ ...prev, ...newExpandedSections }));
+    }
+  }, [results]);
+
   const toggleSection = (ideaIndex: number, section: string) => {
     const key = `${ideaIndex}-${section}`;
     setExpandedSections(prev => ({
@@ -158,36 +170,84 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, showDetailedRe
               </>
             )}
 
-            {/* Improved Idea */}
-            <div className={`${showDetailedResults ? 'mt-6' : ''} p-4 bg-green-50 rounded-lg border border-green-200`}>
-              <h3 className="text-lg font-medium text-green-900 mb-2">
-                🚀 Improved Idea #{index + 1}
-              </h3>
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <MarkdownRenderer 
-                    content={result.improved_idea} 
-                    className="text-gray-700 mb-4 leading-relaxed"
-                  />
+            {/* Improved Idea - Now collapsible */}
+            <div className={`${showDetailedResults ? 'mt-6' : ''} border rounded-lg bg-green-50 border-green-200`}>
+              <button
+                type="button"
+                onClick={() => toggleSection(index, 'improved')}
+                className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-green-100 transition-colors rounded-t-lg"
+                aria-expanded={expandedSections[`${index}-improved`]}
+                aria-controls={`improved-content-${index}`}
+              >
+                <div className="flex items-center justify-between flex-1">
+                  <span className="text-lg font-medium text-green-900">
+                    🚀 Improved Idea #{index + 1}
+                  </span>
+                  
+                  {/* Score Badge in header */}
+                  <div className="flex items-center mr-4">
+                    <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium text-white ${getScoreColor(result.improved_score || 0)}`}>
+                      <span className="mr-1">⭐</span>
+                      {(result.improved_score || 0).toFixed(1)}/10
+                    </div>
+                    <div className="text-xs text-gray-500 ml-2">
+                      {getScoreLabel(result.improved_score || 0)}
+                    </div>
+                  </div>
                 </div>
                 
-                {/* Improved Score Badge */}
-                <div className="ml-4 flex-shrink-0">
-                  <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium text-white ${getScoreColor(result.improved_score || 0)}`}>
-                    <span className="mr-1">⭐</span>
-                    {(result.improved_score || 0).toFixed(1)}/10
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1 text-center">
-                    {getScoreLabel(result.improved_score || 0)}
-                  </div>
+                <svg
+                  className={`h-5 w-5 text-green-700 transition-transform ${
+                    expandedSections[`${index}-improved`] ? 'rotate-180' : ''
+                  }`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  aria-label="Toggle improved idea section"
+                >
+                  <title>Toggle improved idea section</title>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              
+              {expandedSections[`${index}-improved`] && (
+                <div id={`improved-content-${index}`} className="p-4 pt-0">
+                  <MarkdownRenderer 
+                    content={result.improved_idea} 
+                    className="text-gray-700 leading-relaxed"
+                  />
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Multi-dimensional Evaluation - Show immediately after improved idea when not showing detailed results */}
             {!showDetailedResults && result.multi_dimensional_evaluation && (
-              <div className="mt-4 border rounded-lg p-4">
-                <h4 className="font-medium text-gray-900 mb-3">📊 Multi-Dimensional Evaluation</h4>
+              <div className="mt-4 border rounded-lg">
+                <button
+                  type="button"
+                  onClick={() => toggleSection(index, 'multidim-simple')}
+                  className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-gray-50 transition-colors rounded-t-lg"
+                  aria-expanded={expandedSections[`${index}-multidim-simple`] !== false}
+                  aria-controls={`multidim-simple-content-${index}`}
+                >
+                  <span className="font-medium text-gray-900">
+                    📊 Multi-Dimensional Evaluation
+                  </span>
+                  <svg
+                    className={`h-5 w-5 text-gray-500 transition-transform ${
+                      expandedSections[`${index}-multidim-simple`] !== false ? 'rotate-180' : ''
+                    }`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    aria-label="Toggle multi-dimensional evaluation"
+                  >
+                    <title>Toggle multi-dimensional evaluation</title>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {expandedSections[`${index}-multidim-simple`] !== false && (
+                  <div id={`multidim-simple-content-${index}`} className="p-4">
                 {/* Use comparison chart if both original and improved evaluations exist */}
                 {result.improved_multi_dimensional_evaluation ? (
                   <ComparisonRadarChart
@@ -264,6 +324,8 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, showDetailedRe
                       </p>
                     </div>
                   </>
+                )}
+                  </div>
                 )}
               </div>
             )}

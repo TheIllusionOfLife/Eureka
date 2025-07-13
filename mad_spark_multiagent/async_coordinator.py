@@ -233,12 +233,62 @@ class AsyncCoordinator:
         enhanced_reasoning: bool = False,
         multi_dimensional_eval: bool = False,
         logical_inference: bool = False,
-        reasoning_engine: Optional[ReasoningEngine] = None
+        reasoning_engine: Optional[ReasoningEngine] = None,
+        timeout: int = 600
     ) -> List[CandidateData]:
-        """Run the complete async workflow.
+        """Run the complete async workflow with timeout support.
         
         This is the async equivalent of run_multistep_workflow from coordinator.py
+        with added timeout functionality.
+        
+        Args:
+            ... (same as run_multistep_workflow)
+            timeout: Maximum time allowed for the entire workflow in seconds
+            
+        Returns:
+            List of CandidateData containing processed ideas with evaluations
+            
+        Raises:
+            asyncio.TimeoutError: If the workflow exceeds the specified timeout
         """
+        try:
+            # Wrap the actual workflow in a timeout
+            return await asyncio.wait_for(
+                self._run_workflow_internal(
+                    theme=theme,
+                    constraints=constraints,
+                    num_top_candidates=num_top_candidates,
+                    enable_novelty_filter=enable_novelty_filter,
+                    novelty_threshold=novelty_threshold,
+                    temperature_manager=temperature_manager,
+                    verbose=verbose,
+                    enhanced_reasoning=enhanced_reasoning,
+                    multi_dimensional_eval=multi_dimensional_eval,
+                    logical_inference=logical_inference,
+                    reasoning_engine=reasoning_engine
+                ),
+                timeout=timeout
+            )
+        except asyncio.TimeoutError:
+            logger.error(f"Workflow timed out after {timeout} seconds")
+            await self._send_progress(f"Workflow timed out after {timeout} seconds", 0.0)
+            raise
+            
+    async def _run_workflow_internal(
+        self,
+        theme: str,
+        constraints: str,
+        num_top_candidates: int = 2,
+        enable_novelty_filter: bool = True,
+        novelty_threshold: float = 0.8,
+        temperature_manager: Optional[TemperatureManager] = None,
+        verbose: bool = False,
+        enhanced_reasoning: bool = False,
+        multi_dimensional_eval: bool = False,
+        logical_inference: bool = False,
+        reasoning_engine: Optional[ReasoningEngine] = None
+    ) -> List[CandidateData]:
+        """Internal workflow implementation without timeout wrapper."""
         # Define cache options upfront to avoid potential NameError
         cache_options = {
             "num_top_candidates": num_top_candidates,

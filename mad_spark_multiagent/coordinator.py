@@ -252,7 +252,8 @@ def run_multistep_workflow(
     enhanced_reasoning: bool = False,
     multi_dimensional_eval: bool = False,
     logical_inference: bool = False,
-    reasoning_engine: Optional[ReasoningEngine] = None
+    reasoning_engine: Optional[ReasoningEngine] = None,
+    timeout: int = 600
 ) -> List[CandidateData]:
     """
     Runs the multi-step idea generation and refinement workflow.
@@ -269,6 +270,7 @@ def run_multistep_workflow(
         multi_dimensional_eval: Use multi-dimensional evaluation instead of simple scoring
         logical_inference: Enable logical inference chains for enhanced reasoning
         reasoning_engine: Pre-initialized reasoning engine (optional)
+        timeout: Maximum time allowed for the entire workflow in seconds
         
     Returns:
         List of CandidateData containing processed ideas with evaluations
@@ -276,6 +278,11 @@ def run_multistep_workflow(
     final_candidates_data: List[CandidateData] = []
     # raw_generated_ideas: str = "" # Type will be known after call
     parsed_ideas: List[str] = []
+    
+    # TODO: Implement timeout handling for synchronous execution
+    # Currently timeout is only supported in async mode
+    if timeout and verbose:
+        logging.info(f"Timeout set to {timeout} seconds (Note: timeout is currently only enforced in async mode)")
 
     # Extract temperatures from temperature manager if provided
     if temperature_manager:

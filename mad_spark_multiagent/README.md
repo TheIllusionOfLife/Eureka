@@ -533,9 +533,21 @@ For detailed implementation plans, see:
 
 ## Session Handover
 
-### Last Updated: 2025-07-13 01:58 UTC
+### Last Updated: 2025-07-13 12:30 UTC
 
 #### Recently Completed
+- ✅ **PR #75**: Migrate to new Google GenAI SDK - MERGED (2025-07-13)
+  - Successfully migrated from deprecated google-generativeai to google-genai SDK
+  - Fixed content filtering issues with Gemini 2.5-flash through prompt engineering
+  - Added configurable safety settings (BLOCK_ONLY_HIGH) for all harm categories
+  - Updated all agents to use new client initialization pattern
+  - Addressed comprehensive CodeRabbit review feedback:
+    - Centralized GenAI client initialization in genai_client.py
+    - Moved system instructions and constants to constants.py
+    - Created DRY helper function for fallback message generation
+    - Fixed documentation to avoid API key exposure
+  - Updated all model references from gemini-1.5-flash to gemini-2.5-flash
+  - Fixed CI test failures with correct function signatures
 - ✅ **PR #73**: Feedback Loop Enhancement - MERGED (2025-07-12)
   - Dynamic idea improvement using agent feedback and re-evaluation
   - Score comparison UI with delta indicators and visual improvements
@@ -560,10 +572,13 @@ For detailed implementation plans, see:
   - Successfully integrated enhanced reasoning into main workflow
 
 #### Next Priority Tasks
-1. **Test Feedback Loop Enhancement**: High priority validation
-   - Source: PR #73 just merged
-   - Context: New feedback loop feature needs end-to-end testing
-   - Approach: Test idea improvement workflow, score comparison UI, and export functionality
+1. **Fix Identified Bugs from PR #75 Reviews**: High priority fixes
+   - Source: Cursor bot review identified 3 bugs needing immediate attention
+   - Context: 
+     - Variance calculation bug: `(0.5 - 0.5) * variance` always equals 0
+     - Unused genai_client.py module causing code duplication
+     - Frontend validation conflict for optional constraints field
+   - Approach: Create bug fix PR addressing all three issues
    - Estimate: Immediate (1-2 hours)
 
 2. **Redis Caching Infrastructure**: High priority continuation of Phase 2.3
@@ -605,6 +620,16 @@ For detailed implementation plans, see:
   - Solution: Export and use proper interfaces
 
 #### Session Learnings
+- **SDK Migration Success**: Successfully migrated from google-generativeai to google-genai
+  - Key pattern: Use `GenerateContentConfig` for system instructions and temperature
+  - Client initialization: `genai.Client()` replaces `genai.GenerativeModel()`
+- **Content Filtering Resolution**: Gemini 2.5-flash requires careful prompt engineering
+  - Replace harsh critique language with constructive terms
+  - Use BLOCK_ONLY_HIGH safety settings for all harm categories
+- **Code Quality from Reviews**: Multiple bot reviewers catch different issues
+  - CodeRabbit focuses on DRY principles and constants
+  - Cursor bot identifies functional bugs (variance calculation)
+  - Always address all reviewer feedback systematically
 - **Async Implementation Pattern**: Use `run_in_executor` for wrapping sync functions in async context
 - **Test Organization**: Separate complex tests from simplified tests for better maintainability
 - **Progress Callbacks**: Async workflows benefit from real-time progress updates via callbacks

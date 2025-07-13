@@ -7,7 +7,8 @@ an idea, considering its evaluation and context.
 import os
 import logging
 from typing import Any
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 try:
     from mad_spark_multiagent.constants import ADVOCATE_EMPTY_RESPONSE
@@ -15,24 +16,25 @@ except ImportError:
     # Fallback for local development/testing
     from constants import ADVOCATE_EMPTY_RESPONSE
 
-# Configure the Google GenerativeAI client
+# Configure the Google GenAI client
 api_key = os.getenv("GOOGLE_API_KEY")
 model_name = os.getenv("GOOGLE_GENAI_MODEL", "gemini-1.5-flash")
 
 if api_key:
-    genai.configure(api_key=api_key)
-    # Create the model instance
-    advocate_model = genai.GenerativeModel(
-        model_name=model_name,
-        system_instruction=(
-            "You are a persuasive advocate. Given an idea, its evaluation, and"
-            " context, build a strong case for the idea. List key strengths and"
-            " benefits as bullet points. Be direct and concise. Focus on specific"
-            " advantages and opportunities."
-        )
+    # Set the API key for the new client
+    os.environ["GEMINI_API_KEY"] = api_key
+    # Create the client instance
+    advocate_client = genai.Client()
+    
+    # System instruction for advocate
+    ADVOCATE_SYSTEM_INSTRUCTION = (
+        "You are a persuasive advocate. Given an idea, its evaluation, and"
+        " context, build a strong case for the idea. List key strengths and"
+        " benefits as bullet points. Be direct and concise. Focus on specific"
+        " advantages and opportunities."
     )
 else:
-    advocate_model = None
+    advocate_client = None
 
 
 def advocate_idea(idea: str, evaluation: str, context: str, temperature: float = 0.5) -> str:
@@ -76,12 +78,19 @@ def advocate_idea(idea: str, evaluation: str, context: str, temperature: float =
       "• [continue addressing key concerns from the evaluation]"
   )
   
-  if advocate_model is None:
+  if advocate_client is None:
     raise RuntimeError("GOOGLE_API_KEY not configured - cannot advocate ideas")
   
   try:
-    generation_config = genai.types.GenerationConfig(temperature=temperature)
-    response = advocate_model.generate_content(prompt, generation_config=generation_config)
+    config = types.GenerateContentConfig(
+        temperature=temperature,
+        system_instruction=ADVOCATE_SYSTEM_INSTRUCTION
+    )
+    response = advocate_client.models.generate_content(
+        model=model_name,
+        contents=prompt,
+        config=config
+    )
     agent_response = response.text if response.text else ""
   except Exception as e:
     # Log the full error for better debugging

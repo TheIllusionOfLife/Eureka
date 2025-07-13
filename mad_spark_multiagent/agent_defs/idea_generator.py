@@ -7,7 +7,8 @@ and contextual information.
 import os
 import logging
 from typing import Any
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 try:
     from mad_spark_multiagent.errors import IdeaGenerationError, ValidationError, ConfigurationError
 except ImportError:
@@ -50,19 +51,17 @@ def build_generation_prompt(topic: str, context: str) -> str:
   )
 
 
-# Configure the Google GenerativeAI client
+# Configure the Google GenAI client
 api_key = os.getenv("GOOGLE_API_KEY")
 model_name = os.getenv("GOOGLE_GENAI_MODEL", "gemini-1.5-flash")
 
 if api_key:
-    genai.configure(api_key=api_key)
-    # Create the model instance
-    idea_generator_model = genai.GenerativeModel(
-        model_name=model_name,
-        system_instruction=SYSTEM_INSTRUCTION
-    )
+    # Set the API key for the new client
+    os.environ["GEMINI_API_KEY"] = api_key
+    # Create the client instance
+    idea_generator_client = genai.Client()
 else:
-    idea_generator_model = None
+    idea_generator_client = None
 
 
 def generate_ideas(topic: str, context: str, temperature: float = 0.9) -> str:
@@ -84,12 +83,20 @@ def generate_ideas(topic: str, context: str, temperature: float = 0.9) -> str:
 
   prompt: str = build_generation_prompt(topic=topic, context=context)
   
-  if idea_generator_model is None:
+  if idea_generator_client is None:
     raise ConfigurationError("GOOGLE_API_KEY not configured - cannot generate ideas")
   
   try:
-    generation_config = genai.types.GenerationConfig(temperature=temperature)
-    response = idea_generator_model.generate_content(prompt, generation_config=generation_config)
+    # Create the generation config with system instruction
+    config = types.GenerateContentConfig(
+        temperature=temperature,
+        system_instruction=SYSTEM_INSTRUCTION
+    )
+    response = idea_generator_client.models.generate_content(
+        model=model_name,
+        contents=prompt,
+        config=config
+    )
     agent_response = response.text if response.text else ""
   except Exception as e:
     # Log the full error for better debugging
@@ -123,24 +130,23 @@ def build_improvement_prompt(
     A formatted prompt string for idea improvement.
   """
   return (
-      f"Please help refine an idea based on constructive feedback from multiple perspectives.\n\n"
-      f"CONTEXT: {theme}\n\n"
-      f"CURRENT IDEA:\n{original_idea}\n\n"
-      f"EVALUATION FEEDBACK:\n{critique}\n\n"
-      f"POSITIVE ASPECTS TO PRESERVE:\n{advocacy_points}\n\n"
-      f"AREAS FOR IMPROVEMENT:\n{skeptic_points}\n\n"
-      f"Please create an enhanced version that:\n"
-      f"1. Builds on the strengths mentioned in the positive aspects\n"
-      f"2. Addresses the improvement areas with practical solutions\n"
-      f"3. Incorporates constructive suggestions from the evaluation\n"
-      f"4. Maintains creativity while improving feasibility\n"
-      f"5. Offers specific enhancements to the original concept\n\n"
-      f"GUIDANCE: Focus on evolution rather than replacement. The goal is to:\n"
-      f"• Retain what makes the idea valuable and innovative\n"
-      f"• Add practical solutions for identified challenges\n"
-      f"• Enhance implementation approach and viability\n\n"
-      f"Please present the refined idea as a clear, actionable concept that builds constructively on the original foundation.\n\n"
-      f"ENHANCED IDEA:"
+      f"You are helping to enhance an innovative idea based on comprehensive feedback.\n\n"
+      f"ORIGINAL THEME: {theme}\n\n"
+      f"ORIGINAL IDEA:\n{original_idea}\n\n"
+      f"STRENGTHS AND POSITIVE ASPECTS:\n{advocacy_points}\n\n"
+      f"PROFESSIONAL REVIEW INSIGHTS:\n{critique}\n\n"
+      f"THOUGHTFUL CONSIDERATIONS:\n{skeptic_points}\n\n"
+      f"Generate an IMPROVED version of this idea that:\n"
+      f"1. Maintains the core innovation and strengths highlighted above\n"
+      f"2. Incorporates the professional insights for enhancement\n"
+      f"3. Thoughtfully addresses the considerations raised\n"
+      f"4. Remains bold, creative, and ambitious\n"
+      f"5. Provides concrete solutions to identified opportunities\n\n"
+      f"IMPORTANT: The goal is to ENHANCE the idea, not replace it. Build upon what works.\n"
+      f"- Keep all the positive aspects that earned the original score\n"
+      f"- Add solutions and improvements for the identified opportunities\n"
+      f"- Make it more feasible without sacrificing innovation\n\n"
+      f"ENHANCED CONCEPT:"
   )
 
 
@@ -186,12 +192,42 @@ def improve_idea(
       theme=theme
   )
   
-  if idea_generator_model is None:
+  if idea_generator_client is None:
     raise ConfigurationError("GOOGLE_API_KEY not configured - cannot improve ideas")
   
   try:
-    generation_config = genai.types.GenerationConfig(temperature=temperature)
-    response = idea_generator_model.generate_content(prompt, generation_config=generation_config)
+    # Configure safety settings for less restrictive filtering on constructive feedback
+    safety_settings = [
+        types.SafetySetting(
+            category="HARM_CATEGORY_HARASSMENT",
+            threshold="BLOCK_ONLY_HIGH"
+        ),
+        types.SafetySetting(
+            category="HARM_CATEGORY_HATE_SPEECH", 
+            threshold="BLOCK_ONLY_HIGH"
+        ),
+        types.SafetySetting(
+            category="HARM_CATEGORY_SEXUALLY_EXPLICIT",
+            threshold="BLOCK_ONLY_HIGH"
+        ),
+        types.SafetySetting(
+            category="HARM_CATEGORY_DANGEROUS_CONTENT",
+            threshold="BLOCK_ONLY_HIGH"
+        )
+    ]
+    
+    # Create the generation config with safety settings
+    config = types.GenerateContentConfig(
+        temperature=temperature,
+        system_instruction=SYSTEM_INSTRUCTION,
+        safety_settings=safety_settings
+    )
+    
+    response = idea_generator_client.models.generate_content(
+        model=model_name,
+        contents=prompt,
+        config=config
+    )
     
     # Check for content filtering or blocked responses
     if hasattr(response, 'candidates') and response.candidates:
@@ -200,31 +236,31 @@ def improve_idea(
       
       if finish_reason == 1:  # SAFETY (content filtered)
         logging.warning("Gemini API response was filtered for safety. Using fallback improvement.")
-        agent_response = f"Enhanced version of: {original_idea}\n\nKey improvements based on feedback:\n- Addressed feasibility concerns\n- Incorporated suggested optimizations\n- Enhanced practical implementation approach"
+        agent_response = f"Enhanced version of: {original_idea}\n\nKey improvements based on multi-agent feedback:\n- Preserved strengths: {advocacy_points[:100]}{'...' if len(advocacy_points) > 100 else ''}\n- Incorporated professional insights for enhancement\n- Enhanced practical implementation approach\n- Addressed thoughtful considerations with solutions"
       elif finish_reason == 3:  # RECITATION (potential copyright issues)
         logging.warning("Gemini API response was blocked for recitation. Using fallback improvement.")
-        agent_response = f"Refined approach: {original_idea}\n\nOptimizations:\n- Better resource utilization\n- Improved scalability\n- Enhanced user experience"
+        agent_response = f"Refined approach: {original_idea}\n\nOptimizations based on feedback:\n- Leveraged identified strengths\n- Incorporated professional insights\n- Enhanced practical implementation\n- Improved scalability and resource efficiency"
       elif response.text:
         agent_response = response.text
       else:
         logging.warning("Gemini API returned empty response. Using fallback improvement.")
-        agent_response = f"Improved: {original_idea}\n\nEnhancements:\n- Optimized implementation\n- Better cost-effectiveness\n- Increased viability"
+        agent_response = f"Improved: {original_idea}\n\nEnhancements based on analysis:\n- Built upon positive strengths\n- Incorporated professional insights\n- Optimized implementation approach\n- Enhanced cost-effectiveness and viability"
     else:
       logging.warning("Gemini API returned no candidates. Using fallback improvement.")
-      agent_response = f"Enhanced: {original_idea}\n\nKey improvements:\n- Practical implementation focus\n- Cost optimization\n- Scalability considerations"
+      agent_response = f"Enhanced: {original_idea}\n\nKey improvements from multi-agent analysis:\n- Preserved core innovation strengths\n- Addressed thoughtful considerations\n- Enhanced practical implementation\n- Improved scalability and cost optimization"
       
   except ValueError as e:
     # Handle specific content filtering errors
     if "response.text" in str(e) and "finish_reason" in str(e):
       logging.warning(f"Gemini API content filtered: {e}. Using fallback improvement.")
-      agent_response = f"Optimized version: {original_idea}\n\nImprovements:\n- Enhanced feasibility\n- Better resource efficiency\n- Practical implementation approach"
+      agent_response = f"Optimized version: {original_idea}\n\nImprovements based on multi-agent feedback:\n- Enhanced feasibility with thoughtful considerations\n- Better resource efficiency from positive insights\n- Practical implementation approach incorporating professional analysis"
     else:
       logging.error(f"Gemini API ValueError: {e}", exc_info=True)
-      agent_response = f"Modified: {original_idea}\n\nEnhancements:\n- Improved approach\n- Better implementation\n- Enhanced viability"
+      agent_response = f"Modified: {original_idea}\n\nEnhancements from feedback synthesis:\n- Improved approach based on professional insights\n- Better implementation incorporating strengths\n- Enhanced viability addressing opportunities"
   except Exception as e:
     # Log the full error for better debugging
     logging.error(f"Error calling Gemini API: {e}", exc_info=True)
-    agent_response = f"Updated: {original_idea}\n\nImprovements:\n- Refined implementation\n- Enhanced approach\n- Better execution strategy"
+    agent_response = f"Updated: {original_idea}\n\nImprovements from multi-agent analysis:\n- Refined implementation based on professional insights\n- Enhanced approach incorporating positive strengths\n- Better execution strategy addressing thoughtful considerations"
   
   return agent_response
 

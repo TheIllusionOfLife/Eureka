@@ -1,4 +1,4 @@
-google-generativeai
+google-genai
 python-dotenv
 pytest>=7.4.0
 pytest-mock>=3.11.0

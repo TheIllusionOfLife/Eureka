@@ -67,7 +67,7 @@ def format_results_for_frontend(results: List[Dict[str, Any]]) -> List[Dict[str,
             
             # Format for frontend
             formatted_result['multi_dimensional_evaluation'] = {
-                'scores': {
+                'dimension_scores': {
                     'feasibility': dimension_scores.get('feasibility', 5),
                     'innovation': dimension_scores.get('innovation', 5),
                     'impact': dimension_scores.get('impact', 5),
@@ -89,7 +89,7 @@ def format_results_for_frontend(results: List[Dict[str, Any]]) -> List[Dict[str,
                 improvement_factor = formatted_result['improved_score'] / max(formatted_result['initial_score'], 0.1)
                 improvement_factor = min(improvement_factor, 1.4)  # Cap at 40% improvement
                 
-                original_scores = formatted_result['multi_dimensional_evaluation']['scores']
+                original_scores = formatted_result['multi_dimensional_evaluation']['dimension_scores']
                 improved_scores = {}
                 
                 for dimension, score in original_scores.items():
@@ -108,7 +108,7 @@ def format_results_for_frontend(results: List[Dict[str, Any]]) -> List[Dict[str,
                 improved_overall = round(improved_overall, 1)
                 
                 formatted_result['improved_multi_dimensional_evaluation'] = {
-                    'scores': improved_scores,
+                    'dimension_scores': improved_scores,
                     'overall_score': improved_overall,
                     'confidence_interval': {
                         'lower': round(max(0, improved_overall - 0.8), 1),

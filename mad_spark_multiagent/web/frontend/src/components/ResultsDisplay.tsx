@@ -405,7 +405,9 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results }) => {
                               <strong>Overall Score:</strong> {(result.multi_dimensional_evaluation.overall_score || 0).toFixed(1)}/10
                             </p>
                             <p>
-                              <strong>Confidence:</strong> {(result.multi_dimensional_evaluation.confidence_interval || 0).toFixed(2)}
+                              <strong>Confidence:</strong> {result.multi_dimensional_evaluation.confidence_interval ? 
+                                `${result.multi_dimensional_evaluation.confidence_interval.lower.toFixed(1)} - ${result.multi_dimensional_evaluation.confidence_interval.upper.toFixed(1)}` : 
+                                'N/A'}
                             </p>
                           </div>
                         </>

@@ -16,7 +16,7 @@ export interface IdeaResult {
   improved_critique: string;
   score_delta: number;
   multi_dimensional_evaluation?: {
-    scores: {
+    dimension_scores: {
       feasibility: number;
       innovation: number;
       impact: number;
@@ -32,7 +32,7 @@ export interface IdeaResult {
     };
   };
   improved_multi_dimensional_evaluation?: {
-    scores: {
+    dimension_scores: {
       feasibility: number;
       innovation: number;
       impact: number;

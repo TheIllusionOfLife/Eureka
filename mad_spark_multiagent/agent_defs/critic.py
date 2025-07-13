@@ -6,25 +6,27 @@ and context, providing scores and textual feedback.
 """
 import os
 from typing import Any
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
-# Configure the Google GenerativeAI client
+# Configure the Google GenAI client
 api_key = os.getenv("GOOGLE_API_KEY")
 model_name = os.getenv("GOOGLE_GENAI_MODEL", "gemini-1.5-flash")
 
 if api_key:
-    genai.configure(api_key=api_key)
-    # Create the model instance
-    critic_model = genai.GenerativeModel(
-        model_name=model_name,
-        system_instruction=(
+    # Set the API key for the new client
+    os.environ["GEMINI_API_KEY"] = api_key
+    # Create the client instance
+    critic_client = genai.Client()
+    
+    # System instruction for critic
+    CRITIC_SYSTEM_INSTRUCTION = (
             "You are an expert critic. Evaluate the given ideas based on the"
             " provided criteria and context. Provide constructive feedback and"
             " identify potential weaknesses."
         )
-    )
 else:
-    critic_model = None
+    critic_client = None
 
 
 def evaluate_ideas(ideas: str, criteria: str, context: str, temperature: float = 0.3) -> str:
@@ -68,12 +70,19 @@ def evaluate_ideas(ideas: str, criteria: str, context: str, temperature: float =
       "Provide your JSON evaluations now (one per line, in the same order as the input ideas):"
   )
   
-  if critic_model is None:
+  if critic_client is None:
     raise RuntimeError("GOOGLE_API_KEY not configured - cannot evaluate ideas")
   
   try:
-    generation_config = genai.types.GenerationConfig(temperature=temperature)
-    response = critic_model.generate_content(prompt, generation_config=generation_config)
+    config = types.GenerateContentConfig(
+        temperature=temperature,
+        system_instruction=CRITIC_SYSTEM_INSTRUCTION
+    )
+    response = critic_client.models.generate_content(
+        model=model_name,
+        contents=prompt,
+        config=config
+    )
     agent_response = response.text if response.text else ""
   except Exception as e:
     # Return empty string on any API error - coordinator will handle this

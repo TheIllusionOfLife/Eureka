@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { IdeaResult } from '../App';
 import RadarChartComponent from './RadarChart';
 import ComparisonRadarChart from './ComparisonRadarChart';
@@ -214,7 +214,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, showDetailedRe
               {expandedSections[`${index}-improved`] && (
                 <div id={`improved-content-${index}`} className="p-4 pt-0">
                   <MarkdownRenderer 
-                    content={cleanImprovedIdea(result.improved_idea || '')} 
+                    content={useMemo(() => cleanImprovedIdea(result.improved_idea || ''), [result.improved_idea])} 
                     className="text-gray-700 leading-relaxed"
                   />
                 </div>
@@ -228,7 +228,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, showDetailedRe
                   type="button"
                   onClick={() => toggleSection(index, 'multidim-simple')}
                   className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-gray-50 transition-colors rounded-t-lg"
-                  aria-expanded={expandedSections[`${index}-multidim-simple`] !== false}
+                  aria-expanded={expandedSections[`${index}-multidim-simple`] ?? true}
                   aria-controls={`multidim-simple-content-${index}`}
                 >
                   <span className="font-medium text-gray-900">
@@ -236,7 +236,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, showDetailedRe
                   </span>
                   <svg
                     className={`h-5 w-5 text-gray-500 transition-transform ${
-                      expandedSections[`${index}-multidim-simple`] !== false ? 'rotate-180' : ''
+                      (expandedSections[`${index}-multidim-simple`] ?? true) ? 'rotate-180' : ''
                     }`}
                     fill="none"
                     viewBox="0 0 24 24"
@@ -247,7 +247,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, showDetailedRe
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
-                {expandedSections[`${index}-multidim-simple`] !== false && (
+                {(expandedSections[`${index}-multidim-simple`] ?? true) && (
                   <div id={`multidim-simple-content-${index}`} className="p-4">
                 {/* Use comparison chart if both original and improved evaluations exist */}
                 {result.improved_multi_dimensional_evaluation ? (

@@ -6,6 +6,54 @@ Removes meta-commentary and references to original ideas.
 import re
 from typing import List, Tuple
 
+# Pre-compiled regex patterns for better performance
+META_HEADERS = [
+    'ENHANCED CONCEPT:', 'ORIGINAL THEME:', 'REVISED CORE PREMISE:',
+    'ORIGINAL IDEA:', 'IMPROVED VERSION:', 'ENHANCEMENT SUMMARY:'
+]
+
+META_PHRASES = [
+    'Addresses Evaluation Criteria', 'Enhancing Impact Through',
+    'Preserving & Amplifying Strengths', 'Addressing Concerns',
+    'Score:', 'from Score', 'Building on Score', '↑↑ from', '↑ from'
+]
+
+# Compiled regex patterns for efficiency
+COMPILED_REPLACEMENTS = [
+    # Remove improvement references
+    (re.compile(r'Our enhanced approach', re.IGNORECASE), 'This approach'),
+    (re.compile(r'The enhanced concept', re.IGNORECASE), 'The concept'),
+    (re.compile(r'This enhanced version', re.IGNORECASE), 'This version'),
+    (re.compile(r'enhanced ', re.IGNORECASE), ''),
+    (re.compile(r'improved ', re.IGNORECASE), ''),
+    (re.compile(r'Building upon the original.*?\.', re.IGNORECASE | re.MULTILINE), ''),
+    (re.compile(r'Improving upon.*?\.', re.IGNORECASE | re.MULTILINE), ''),
+    (re.compile(r'addresses the previous.*?\.', re.IGNORECASE | re.MULTILINE), ''),
+    (re.compile(r'directly addresses.*?\.', re.IGNORECASE | re.MULTILINE), ''),
+    (re.compile(r'The previous concern about.*?is', re.IGNORECASE), 'This'),
+    
+    # Simplify transition language
+    (re.compile(r'shifts from.*?to\s+', re.IGNORECASE), ''),
+    (re.compile(r'moves beyond.*?to\s+', re.IGNORECASE), ''),
+    (re.compile(r'transforms.*?into\s+', re.IGNORECASE), 'is '),
+    (re.compile(r'We shift from.*?to\s+', re.IGNORECASE), ''),
+    (re.compile(r'We\'re moving from.*?to\s+', re.IGNORECASE), 'It\'s '),
+    (re.compile(r'is evolving into\s+', re.IGNORECASE), 'is '),
+    
+    # Clean up headers
+    (re.compile(r'### \d+\.\s*', re.IGNORECASE), '## '),
+    (re.compile(r'## The "([^"]+)".*', re.IGNORECASE), r'# \1'),
+    
+    # Remove score references
+    (re.compile(r'\s*\(Score:?\s*\d+\.?\d*\)', re.IGNORECASE), ''),
+    (re.compile(r'\s*\(Addressing Score\s*\d+\.?\d*\)', re.IGNORECASE), ''),
+    (re.compile(r'Score\s*\d+\.?\d*\s*→\s*', re.IGNORECASE), ''),
+    
+    # Clean up separators
+    (re.compile(r'---+\n+'), '\n'),
+    (re.compile(r'\n\n\n+'), '\n\n'),
+]
+
 
 def clean_improved_idea(text: str) -> str:
     """
@@ -25,12 +73,9 @@ def clean_improved_idea(text: str) -> str:
     cleaned_lines = []
     skip_until_empty = False
     
-    for i, line in enumerate(lines):
+    for line in lines:
         # Skip meta headers
-        if any(pattern in line for pattern in [
-            'ENHANCED CONCEPT:', 'ORIGINAL THEME:', 'REVISED CORE PREMISE:',
-            'ORIGINAL IDEA:', 'IMPROVED VERSION:', 'ENHANCEMENT SUMMARY:'
-        ]):
+        if any(pattern in line for pattern in META_HEADERS):
             skip_until_empty = True
             continue
         
@@ -41,55 +86,16 @@ def clean_improved_idea(text: str) -> str:
             continue
         
         # Skip lines that are pure meta-commentary
-        if any(phrase in line for phrase in [
-            'Addresses Evaluation Criteria', 'Enhancing Impact Through',
-            'Preserving & Amplifying Strengths', 'Addressing Concerns',
-            'Score:', 'from Score', 'Building on Score', '↑↑ from', '↑ from'
-        ]):
+        if any(phrase in line for phrase in META_PHRASES):
             continue
         
         cleaned_lines.append(line)
     
     cleaned = '\n'.join(cleaned_lines)
     
-    # Remove or replace specific patterns
-    replacements = [
-        # Remove improvement references
-        (r'Our enhanced approach', 'This approach'),
-        (r'The enhanced concept', 'The concept'),
-        (r'This enhanced version', 'This version'),
-        (r'enhanced ', ''),
-        (r'improved ', ''),
-        (r'Building upon the original.*?\.', ''),
-        (r'Improving upon.*?\.', ''),
-        (r'addresses the previous.*?\.', ''),
-        (r'directly addresses.*?\.', ''),
-        (r'The previous concern about.*?is', 'This'),
-        
-        # Simplify transition language
-        (r'shifts from.*?to\s+', ''),
-        (r'moves beyond.*?to\s+', ''),
-        (r'transforms.*?into\s+', 'is '),
-        (r'We shift from.*?to\s+', ''),
-        (r'We\'re moving from.*?to\s+', 'It\'s '),
-        (r'is evolving into\s+', 'is '),
-        
-        # Clean up headers
-        (r'### \d+\.\s*', '## '),
-        (r'## The "([^"]+)".*', r'# \1'),
-        
-        # Remove score references
-        (r'\s*\(Score:?\s*\d+\.?\d*\)', ''),
-        (r'\s*\(Addressing Score\s*\d+\.?\d*\)', ''),
-        (r'Score\s*\d+\.?\d*\s*→\s*', ''),
-        
-        # Clean up separators
-        (r'---+\n+', '\n'),
-        (r'\n\n\n+', '\n\n'),
-    ]
-    
-    for pattern, replacement in replacements:
-        cleaned = re.sub(pattern, replacement, cleaned, flags=re.IGNORECASE | re.MULTILINE)
+    # Apply pre-compiled regex patterns for better performance
+    for pattern, replacement in COMPILED_REPLACEMENTS:
+        cleaned = pattern.sub(replacement, cleaned)
     
     # Clean up the beginning if it starts with a framework name
     cleaned = re.sub(r'^[:\s]*(?:a\s+)?more\s+robust.*?system\s+', '', cleaned, flags=re.IGNORECASE)

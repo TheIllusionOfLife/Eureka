@@ -1,15 +1,18 @@
 #!/bin/bash
 # Setup script to create the global madspark command
 
+# Get the absolute path of the script's directory
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
 # Create the madspark command in user's local bin
 mkdir -p ~/.local/bin
 
-cat > ~/.local/bin/madspark << 'EOF'
+cat > ~/.local/bin/madspark << EOF
 #!/bin/bash
 # MadSpark CLI wrapper script
 
 # Navigate to MadSpark directory and run the script
-cd /Users/yuyamukai/Eureka/mad_spark_multiagent && ./run_madspark.sh "$@"
+cd "$SCRIPT_DIR" && ./run_madspark.sh "\$@"
 EOF
 
 chmod +x ~/.local/bin/madspark

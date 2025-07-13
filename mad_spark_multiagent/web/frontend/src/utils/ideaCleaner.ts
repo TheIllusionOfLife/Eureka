@@ -3,6 +3,18 @@
  * Removes meta-commentary and references to original ideas.
  */
 
+// Constants for better maintainability
+const META_HEADERS = [
+  'ENHANCED CONCEPT:', 'ORIGINAL THEME:', 'REVISED CORE PREMISE:',
+  'ORIGINAL IDEA:', 'IMPROVED VERSION:', 'ENHANCEMENT SUMMARY:'
+];
+
+const META_PHRASES = [
+  'Addresses Evaluation Criteria', 'Enhancing Impact Through',
+  'Preserving & Amplifying Strengths', 'Addressing Concerns',
+  'Score:', 'from Score', 'Building on Score', '↑↑ from', '↑ from'
+];
+
 export function cleanImprovedIdea(text: string): string {
   if (!text) return text;
 
@@ -13,10 +25,7 @@ export function cleanImprovedIdea(text: string): string {
 
   for (const line of lines) {
     // Skip meta headers
-    if ([
-      'ENHANCED CONCEPT:', 'ORIGINAL THEME:', 'REVISED CORE PREMISE:',
-      'ORIGINAL IDEA:', 'IMPROVED VERSION:', 'ENHANCEMENT SUMMARY:'
-    ].some(pattern => line.includes(pattern))) {
+    if (META_HEADERS.some(pattern => line.includes(pattern))) {
       skipUntilEmpty = true;
       continue;
     }
@@ -30,11 +39,7 @@ export function cleanImprovedIdea(text: string): string {
     }
 
     // Skip lines that are pure meta-commentary
-    if ([
-      'Addresses Evaluation Criteria', 'Enhancing Impact Through',
-      'Preserving & Amplifying Strengths', 'Addressing Concerns',
-      'Score:', 'from Score', 'Building on Score', '↑↑ from', '↑ from'
-    ].some(phrase => line.includes(phrase))) {
+    if (META_PHRASES.some(phrase => line.includes(phrase))) {
       continue;
     }
 
@@ -43,45 +48,39 @@ export function cleanImprovedIdea(text: string): string {
 
   let cleaned = cleanedLines.join('\n');
 
-  // Remove or replace specific patterns
-  const replacements: [RegExp, string][] = [
-    // Remove improvement references
-    [/Our enhanced approach/gi, 'This approach'],
-    [/The enhanced concept/gi, 'The concept'],
-    [/This enhanced version/gi, 'This version'],
-    [/enhanced /gi, ''],
-    [/improved /gi, ''],
-    [/Building upon the original.*?\./gi, ''],
-    [/Improving upon.*?\./gi, ''],
-    [/addresses the previous.*?\./gi, ''],
-    [/directly addresses.*?\./gi, ''],
-    [/The previous concern about.*?is/gi, 'This'],
+  // Apply consistent replacements for better maintainability
+  // Remove improvement references
+  cleaned = cleaned.replace(/Our enhanced approach/gi, 'This approach');
+  cleaned = cleaned.replace(/The enhanced concept/gi, 'The concept');
+  cleaned = cleaned.replace(/This enhanced version/gi, 'This version');
+  cleaned = cleaned.replace(/enhanced /gi, '');
+  cleaned = cleaned.replace(/improved /gi, '');
+  cleaned = cleaned.replace(/Building upon the original.*?\./gi, '');
+  cleaned = cleaned.replace(/Improving upon.*?\./gi, '');
+  cleaned = cleaned.replace(/addresses the previous.*?\./gi, '');
+  cleaned = cleaned.replace(/directly addresses.*?\./gi, '');
+  cleaned = cleaned.replace(/The previous concern about.*?is/gi, 'This');
 
-    // Simplify transition language
-    [/shifts from.*?to\s+/gi, ''],
-    [/moves beyond.*?to\s+/gi, ''],
-    [/transforms.*?into\s+/gi, 'is '],
-    [/We shift from.*?to\s+/gi, ''],
-    [/We're moving from.*?to\s+/gi, "It's "],
-    [/is evolving into\s+/gi, 'is '],
+  // Simplify transition language
+  cleaned = cleaned.replace(/shifts from.*?to\s+/gi, '');
+  cleaned = cleaned.replace(/moves beyond.*?to\s+/gi, '');
+  cleaned = cleaned.replace(/transforms.*?into\s+/gi, 'is ');
+  cleaned = cleaned.replace(/We shift from.*?to\s+/gi, '');
+  cleaned = cleaned.replace(/We're moving from.*?to\s+/gi, "It's ");
+  cleaned = cleaned.replace(/is evolving into\s+/gi, 'is ');
 
-    // Clean up headers
-    [/### \d+\.\s*/g, '## '],
-    [/## The "([^"]+)".*/g, '# $1'],
+  // Clean up headers
+  cleaned = cleaned.replace(/### \d+\.\s*/g, '## ');
+  cleaned = cleaned.replace(/## The "([^"]+)".*/g, '# $1');
 
-    // Remove score references
-    [/\s*\(Score:?\s*\d+\.?\d*\)/gi, ''],
-    [/\s*\(Addressing Score\s*\d+\.?\d*\)/gi, ''],
-    [/Score\s*\d+\.?\d*\s*→\s*/gi, ''],
+  // Remove score references
+  cleaned = cleaned.replace(/\s*\(Score:?\s*\d+\.?\d*\)/gi, '');
+  cleaned = cleaned.replace(/\s*\(Addressing Score\s*\d+\.?\d*\)/gi, '');
+  cleaned = cleaned.replace(/Score\s*\d+\.?\d*\s*→\s*/gi, '');
 
-    // Clean up separators
-    [/---+\n+/g, '\n'],
-    [/\n\n\n+/g, '\n\n'],
-  ];
-
-  for (const [pattern, replacement] of replacements) {
-    cleaned = cleaned.replace(pattern, replacement);
-  }
+  // Clean up separators
+  cleaned = cleaned.replace(/---+\n+/g, '\n');
+  cleaned = cleaned.replace(/\n\n\n+/g, '\n\n');
 
   // Clean up the beginning if it starts with a framework name
   cleaned = cleaned.replace(/^[:\s]*(?:a\s+)?more\s+robust.*?system\s+/i, '');

@@ -419,9 +419,11 @@ def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
             lines.append(f"--- IMPROVED IDEA {i} ---")
             
             # Clean and truncate improved ideas for summary view
-            improved_idea = result.get('improved_idea', 'No improved idea available')
-            if improved_idea != 'No improved idea available':
+            improved_idea = result.get('improved_idea')
+            if improved_idea:
                 improved_idea = clean_improved_idea(improved_idea)
+            else:
+                improved_idea = 'No improved idea available'
             
             if len(improved_idea) > 500:
                 improved_idea = improved_idea[:497] + "..."

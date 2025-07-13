@@ -51,6 +51,18 @@ madspark "Your theme" "Your constraints" --num-candidates 5 --async --timeout 60
 madspark "Your theme" "Your constraints" --enhanced-reasoning --logical-inference --async
 ```
 
+## 📊 Output Formats
+
+The default summary format now shows:
+- **Improved ideas** (the final enhanced versions)
+- **Improved scores** 
+- **Multi-dimensional evaluation** (7 dimensions)
+
+For complete workflow details including original ideas and agent feedback, use:
+```bash
+madspark "Your theme" "Your constraints" --output-format text
+```
+
 ## ⚡ Performance Tips
 
 1. **Always use `--async`** for faster execution (1.5-2x speedup)

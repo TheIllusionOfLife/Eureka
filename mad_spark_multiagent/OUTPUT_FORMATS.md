@@ -6,10 +6,10 @@
 ```bash
 madspark "Your theme" "Your constraints" --output-format summary
 ```
-- Shows original ideas with scores
-- Includes advocacy and skepticism summaries
-- Shows score improvements but NOT the improved idea text
-- Best for: Quick overview of results
+- Shows ONLY the improved ideas (final enhanced versions)
+- Includes improved scores
+- Full multi-dimensional evaluation details (7 dimensions)
+- Best for: Quick view of final results that matter
 
 ### 2. Text Format (Detailed)
 ```bash

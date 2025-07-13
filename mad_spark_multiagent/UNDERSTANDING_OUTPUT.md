@@ -12,15 +12,18 @@ The MadSpark system generates:
 ## Where to Find Each Component
 
 ### In Summary Format (Default)
-- ✅ Original idea text
-- ✅ Initial score
-- ✅ Multi-dimensional analysis summary
-- ✅ Advocacy & Skepticism summaries
-- ✅ Score change (but NOT improved idea text)
-- ❌ Full improved idea
+- ✅ Improved idea text (the final enhanced version)
+- ✅ Improved score
+- ✅ Full multi-dimensional evaluation (all 7 dimensions)
+- ✅ Evaluation summary
+- ❌ Original idea (not shown - focus on results)
+- ❌ Advocacy & Skepticism details (available in text format)
 
 ### In Text Format
-- ✅ Everything from summary format
+- ✅ Original idea text
+- ✅ Initial score and critique
+- ✅ Advocacy & Skepticism full details
+- ✅ Multi-dimensional analysis
 - ❌ Improved idea (display bug - being generated but not shown)
 
 ### In JSON Format

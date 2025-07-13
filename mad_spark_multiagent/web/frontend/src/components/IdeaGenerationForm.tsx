@@ -34,7 +34,7 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({ onSubmit, isLoa
   const [formData, setFormData] = useState<FormData>({
     theme: '',
     constraints: '',
-    num_top_candidates: 2,
+    num_top_candidates: 3,
     enable_novelty_filter: true,
     novelty_threshold: 0.8,
     temperature_preset: 'balanced',
@@ -117,12 +117,11 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({ onSubmit, isLoa
         {/* Constraints */}
         <div>
           <label htmlFor="constraints" className="block text-sm font-medium text-gray-700">
-            Constraints *
+            Constraints (Optional)
           </label>
           <textarea
             id="constraints"
             name="constraints"
-            required
             rows={3}
             value={formData.constraints}
             onChange={handleInputChange}

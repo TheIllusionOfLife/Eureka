@@ -183,8 +183,8 @@ app.add_middleware(
 # Pydantic models for API requests and responses
 class IdeaGenerationRequest(BaseModel):
     theme: str = Field(..., min_length=1, max_length=500, description="Theme for idea generation")
-    constraints: str = Field(..., min_length=1, max_length=1000, description="Constraints and criteria")
-    num_top_candidates: int = Field(default=2, ge=1, le=10, description="Number of top ideas to process")
+    constraints: str = Field(default="Generate practical and innovative ideas", max_length=1000, description="Constraints and criteria (optional)")
+    num_top_candidates: int = Field(default=3, ge=1, le=10, description="Number of top ideas to process")
     enable_novelty_filter: bool = Field(default=True, description="Enable novelty filtering")
     novelty_threshold: float = Field(default=0.8, ge=0.0, le=1.0, description="Similarity threshold for novelty filter")
     temperature_preset: Optional[str] = Field(default=None, description="Temperature preset (conservative, balanced, creative, wild)")

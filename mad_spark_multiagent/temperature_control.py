@@ -51,7 +51,7 @@ class TemperatureManager:
         ),
         "wild": TemperatureConfig(
             base_temperature=1.0,
-            idea_generation=1.0,
+            idea_generation=2.0,  # Maximum creativity for wild experimentation
             evaluation=0.5,
             advocacy=0.9,
             skepticism=0.9

@@ -19,7 +19,7 @@ DEFAULT_ADVOCACY_TEMPERATURE = 0.5
 DEFAULT_SKEPTICISM_TEMPERATURE = 0.5
 
 # Workflow defaults
-DEFAULT_NUM_TOP_CANDIDATES = 2
+DEFAULT_NUM_TOP_CANDIDATES = 3  # Default to 3 top ideas for richer results
 DEFAULT_NOVELTY_THRESHOLD = 0.8
 
 # Enhanced reasoning constants

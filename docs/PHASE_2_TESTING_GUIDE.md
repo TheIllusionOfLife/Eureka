@@ -275,10 +275,10 @@ python cli.py "test theme" "test constraints"
 ```python
 # Quick script to check token usage
 cat > check_usage.py << 'EOF'
-import google.generativeai as genai
+from google import genai
 import os
 
-genai.configure(api_key=os.environ.get("GOOGLE_API_KEY"))
+client = genai.Client(api_key=os.environ.get("GOOGLE_API_KEY"))
 
 # This would typically require additional API calls to get usage
 # For now, monitor your Google Cloud Console for actual usage
@@ -315,7 +315,7 @@ Expected performance for Phase 2:
 echo $GOOGLE_API_KEY
 
 # Test API key directly
-python -c "import google.generativeai as genai; genai.configure(api_key='$GOOGLE_API_KEY'); print('API key valid')"
+python -c "from google import genai; client = genai.Client(api_key='$GOOGLE_API_KEY'); print('API key valid')"
 ```
 
 ### 2. Import Errors

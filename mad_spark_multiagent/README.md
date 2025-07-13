@@ -587,11 +587,11 @@ For detailed implementation plans, see:
   - Successfully integrated enhanced reasoning into main workflow
 
 #### Next Priority Tasks
-1. **System Status Verification**: Check overall system health and stability
-   - Source: After major integrations (PR #77, #75)
-   - Context: Verify all integrations work correctly together
-   - Approach: Run comprehensive tests, check web interface, validate exports
-   - Estimate: 30-45 minutes
+1. **Address High Priority Code Issues**: Fix timeout bug and TypeScript inconsistency
+   - Source: PR #78 review feedback (see `docs/PENDING_ISSUES.md`)
+   - Context: CLI timeout not working, TypeScript/Python regex divergence
+   - Approach: Create bug fix PR addressing both issues
+   - Estimate: 1-2 hours
 
 2. **User Testing & Feedback Collection**: Validate improved idea cleaner impact
    - Source: PR #77 merged successfully
@@ -642,6 +642,23 @@ For detailed implementation plans, see:
 - **Cross-Format Integration**: Applying features consistently across CLI, web, and exports ensures uniform UX
 - **Comprehensive Testing**: 48 test cases provide confidence in text processing changes
 - **Automated Reviewer Discovery**: Scripts and tools prevent human error in PR review processing
+
+#### Issues Identified by Reviewers (PR #78)
+**From cursor[bot]:**
+1. **CLI Timeout Bug** (HIGH): The `--timeout` argument is parsed but not utilized in workflow execution
+   - Location: `mad_spark_multiagent/cli.py#L245-L252`
+   - Impact: Users can specify timeout but it has no effect
+   - Fix: Pass timeout to `workflow_kwargs` and implement with `asyncio.wait_for`
+
+2. **TypeScript Regex Inconsistency** (MEDIUM): Regex patterns hardcoded in TypeScript vs imported from constants in Python
+   - Location: `web/frontend/src/utils/ideaCleaner.ts#L41-L75`
+   - Impact: Pattern updates in Python won't reflect in TypeScript, causing divergent behavior
+   - Fix: Export patterns from constants.ts and import in ideaCleaner.ts
+
+**From copilot-pull-request-reviewer[bot]:**
+3. **Absolute Path Exposure** (LOW): Documentation contains developer's local file paths
+   - Location: `CLEANER_CONSTANTS_REFACTOR_SUMMARY.md#L163`
+   - Fix: Replace with repository-relative paths
 
 #### Known Issues / Blockers
 - **PDF Memory Usage**: Large PDF exports can consume significant memory

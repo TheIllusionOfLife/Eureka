@@ -218,7 +218,7 @@ mad_spark_multiagent/test_exports/*.pdf
 # Test output files
 mad_spark_multiagent/test_output.json
 
-# Node.js dependencies
+# Node.js dependencies  
 node_modules/
 npm-debug.log*
 yarn-debug.log*

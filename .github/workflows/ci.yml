@@ -66,7 +66,7 @@ jobs:
         
         # Test helper functions without API calls
         try:
-            prompt = ig.build_generation_prompt('test', {'mode': '逆転'})
+            prompt = ig.build_generation_prompt('test', 'mode: 逆転')
             print('✓ Prompt building works')
         except Exception as e:
             print(f'✗ Prompt building error: {e}')
@@ -106,7 +106,7 @@ jobs:
             """Test prompt building without API calls."""
             try:
                 from agent_defs.idea_generator import build_generation_prompt
-                prompt = build_generation_prompt("テスト", {"mode": "逆転"})
+                prompt = build_generation_prompt("テスト", "mode: 逆転")
                 assert "テスト" in prompt
                 assert "逆転" in prompt
             except ImportError as e:

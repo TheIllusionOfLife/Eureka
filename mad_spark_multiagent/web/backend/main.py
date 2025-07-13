@@ -412,7 +412,7 @@ async def generate_ideas(request: IdeaGenerationRequest):
                 timeout=timeout_seconds
             )
         except asyncio.TimeoutError:
-            await ws_manager.send_progress_update("Request timed out after 10 minutes", 0.0)
+            await ws_manager.send_progress_update(f"Request timed out after {timeout_seconds} seconds", 0.0)
             raise HTTPException(
                 status_code=408, 
                 detail=f"Request timed out after {timeout_seconds} seconds. Please try with fewer candidates or simpler constraints."

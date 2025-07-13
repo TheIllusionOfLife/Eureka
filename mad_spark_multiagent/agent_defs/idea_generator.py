@@ -15,9 +15,12 @@ except ImportError:
     # Fallback for local development/testing
     from errors import IdeaGenerationError, ValidationError, ConfigurationError
 
-# Prompt constants to avoid duplication
-IDEA_GENERATION_INSTRUCTION = "generate a list of diverse and creative ideas"
-SYSTEM_INSTRUCTION = f"You are an expert idea generator. Given a topic and some context, {IDEA_GENERATION_INSTRUCTION}."
+# Import prompt constants from constants module
+try:
+    from mad_spark_multiagent.constants import IDEA_GENERATION_INSTRUCTION, IDEA_GENERATOR_SYSTEM_INSTRUCTION as SYSTEM_INSTRUCTION
+except ImportError:
+    # Fallback for local development/testing
+    from constants import IDEA_GENERATION_INSTRUCTION, IDEA_GENERATOR_SYSTEM_INSTRUCTION as SYSTEM_INSTRUCTION
 
 # Safety settings for constructive feedback generation
 # These relaxed thresholds are necessary to prevent overly aggressive content
@@ -74,15 +77,14 @@ def build_generation_prompt(topic: str, context: str) -> str:
 
 
 # Configure the Google GenAI client
-# The new SDK expects GOOGLE_API_KEY (not GEMINI_API_KEY) per documentation
-api_key = os.getenv("GOOGLE_API_KEY")
-model_name = os.getenv("GOOGLE_GENAI_MODEL", "gemini-1.5-flash")
+try:
+    from mad_spark_multiagent.agent_defs.genai_client import get_genai_client, get_model_name
+except ImportError:
+    # Fallback for local development/testing
+    from genai_client import get_genai_client, get_model_name
 
-if api_key:
-    # Create the client instance - it will read GOOGLE_API_KEY from environment
-    idea_generator_client = genai.Client()
-else:
-    idea_generator_client = None
+idea_generator_client = get_genai_client()
+model_name = get_model_name()
 
 
 def generate_ideas(topic: str, context: str, temperature: float = 0.9) -> str:

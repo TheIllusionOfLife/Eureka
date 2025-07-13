@@ -81,11 +81,16 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({ onSubmit, isLoa
     e.preventDefault();
     
     // Prepare submission data
-    const submissionData = {
+    const submissionData: any = {
       ...formData,
       temperature: useCustomTemperature ? formData.temperature : null,
       temperature_preset: useCustomTemperature ? null : formData.temperature_preset,
     };
+    
+    // Remove constraints field if it's empty to allow backend default
+    if (!submissionData.constraints || submissionData.constraints.trim() === '') {
+      delete submissionData.constraints;
+    }
     
     onSubmit(submissionData);
   };

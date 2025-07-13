@@ -13,29 +13,24 @@ from google.genai import types
 try:
     from mad_spark_multiagent.constants import ADVOCATE_EMPTY_RESPONSE
     from mad_spark_multiagent.errors import ConfigurationError
+    from mad_spark_multiagent.agent_defs.genai_client import get_genai_client, get_model_name
 except ImportError:
     # Fallback for local development/testing
     from constants import ADVOCATE_EMPTY_RESPONSE
     from errors import ConfigurationError
+    from genai_client import get_genai_client, get_model_name
 
 # Configure the Google GenAI client
-# The new SDK expects GOOGLE_API_KEY (not GEMINI_API_KEY) per documentation
-api_key = os.getenv("GOOGLE_API_KEY")
-model_name = os.getenv("GOOGLE_GENAI_MODEL", "gemini-1.5-flash")
+advocate_client = get_genai_client()
+model_name = get_model_name()
 
-if api_key:
-    # Create the client instance - it will read GOOGLE_API_KEY from environment
-    advocate_client = genai.Client()
-    
-    # System instruction for advocate
-    ADVOCATE_SYSTEM_INSTRUCTION = (
-        "You are a persuasive advocate. Given an idea, its evaluation, and"
-        " context, build a strong case for the idea. List key strengths and"
-        " benefits as bullet points. Be direct and concise. Focus on specific"
-        " advantages and opportunities."
-    )
-else:
-    advocate_client = None
+# System instruction for advocate
+ADVOCATE_SYSTEM_INSTRUCTION = (
+    "You are a persuasive advocate. Given an idea, its evaluation, and"
+    " context, build a strong case for the idea. List key strengths and"
+    " benefits as bullet points. Be direct and concise. Focus on specific"
+    " advantages and opportunities."
+)
 
 
 def advocate_idea(idea: str, evaluation: str, context: str, temperature: float = 0.5) -> str:

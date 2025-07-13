@@ -110,7 +110,7 @@ class TestContextMemory:
             "timestamp": "2025-07-03T10:00:00",
             "input": "AI healthcare",
             "output": "Smart diagnostic tools",
-            "metadata": {"temperature": 0.8, "model": "gemini-1.5-flash"}
+            "metadata": {"temperature": 0.8, "model": "gemini-2.5-flash"}
         }
         
         context_id = memory.store_context(context_data)

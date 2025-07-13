@@ -13,7 +13,7 @@ class TestAgentDefinitions:
         """Set up test environment."""
         # Ensure required environment variables are set for tests
         os.environ["GOOGLE_API_KEY"] = "test-api-key"
-        os.environ["GOOGLE_GENAI_MODEL"] = "gemini-pro"
+        os.environ["GOOGLE_GENAI_MODEL"] = "gemini-2.5-flash"
     
     @patch('mad_spark_multiagent.agent_defs.idea_generator.Agent')
     def test_idea_generator_agent_initialization(self, mock_agent_class):
@@ -26,7 +26,7 @@ class TestAgentDefinitions:
         
         # Verify agent was created with only model and instructions (no name parameter)
         assert "generate diverse and creative ideas" in call_args.kwargs["instructions"]
-        assert call_args.kwargs["model"] == "gemini-pro"
+        assert call_args.kwargs["model"] == "gemini-2.5-flash"
         # Agent constructor doesn't take a 'name' parameter in the actual implementation
     
     @patch('mad_spark_multiagent.agent_defs.critic.Agent')
@@ -40,7 +40,7 @@ class TestAgentDefinitions:
         
         # Verify agent was created with only model and instructions (no name parameter)
         assert "evaluate ideas" in call_args.kwargs["instructions"]
-        assert call_args.kwargs["model"] == "gemini-pro"
+        assert call_args.kwargs["model"] == "gemini-2.5-flash"
         # Agent constructor doesn't take a 'name' parameter in the actual implementation
     
     @patch('mad_spark_multiagent.agent_defs.advocate.Agent')
@@ -54,7 +54,7 @@ class TestAgentDefinitions:
         
         # Verify agent was created with only model and instructions (no name parameter)
         assert "build a strong case" in call_args.kwargs["instructions"]
-        assert call_args.kwargs["model"] == "gemini-pro"
+        assert call_args.kwargs["model"] == "gemini-2.5-flash"
         # Agent constructor doesn't take a 'name' parameter in the actual implementation
     
     @patch('mad_spark_multiagent.agent_defs.skeptic.Agent')
@@ -68,7 +68,7 @@ class TestAgentDefinitions:
         
         # Verify agent was created with only model and instructions (no name parameter)
         assert "devil's advocate" in call_args.kwargs["instructions"]
-        assert call_args.kwargs["model"] == "gemini-pro"
+        assert call_args.kwargs["model"] == "gemini-2.5-flash"
         # Agent constructor doesn't take a 'name' parameter in the actual implementation
     
     @patch('mad_spark_multiagent.agent_defs.idea_generator.idea_generator_agent')

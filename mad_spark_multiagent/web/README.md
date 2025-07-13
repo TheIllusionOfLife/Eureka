@@ -137,7 +137,7 @@ npm test
 ### Environment Variables
 The backend requires the same environment variables as the main MadSpark system:
 - `GOOGLE_API_KEY`: Google Gemini API key
-- `GOOGLE_GENAI_MODEL`: Model name (e.g., "gemini-pro")
+- `GOOGLE_GENAI_MODEL`: Model name (e.g., "gemini-2.5-flash")
 
 ### Hot Reloading
 Both backend and frontend support hot reloading:

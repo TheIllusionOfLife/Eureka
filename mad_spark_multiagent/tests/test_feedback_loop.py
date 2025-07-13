@@ -13,7 +13,7 @@ class TestFeedbackLoop:
         """Set up test environment."""
         # Ensure required environment variables are set for tests
         os.environ["GOOGLE_API_KEY"] = "test-api-key"
-        os.environ["GOOGLE_GENAI_MODEL"] = "gemini-pro"
+        os.environ["GOOGLE_GENAI_MODEL"] = "gemini-2.5-flash"
     
     def test_improve_idea_with_valid_feedback(self):
         """Test improve_idea function with valid inputs."""

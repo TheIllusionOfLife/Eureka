@@ -40,7 +40,7 @@ This enhancement addresses the limitation where valuable agent insights were onl
 ## Prerequisites
 
 - Python 3.10 or newer (required for TypedDict and modern features)
-- Access to Google Gemini API (recommended: gemini-1.5-flash or gemini-pro)
+- Access to Google Gemini API (recommended: gemini-2.5-flash)
 - Optional: pytest for running tests, ruff for linting
 
 ## Setup
@@ -66,9 +66,9 @@ This enhancement addresses the limitation where valuable agent insights were onl
     - Add your API key and the model name to the `.env` file. For example:
       ```env
       GOOGLE_API_KEY="YOUR_API_KEY_HERE"
-      GOOGLE_GENAI_MODEL="gemini-pro"
+      GOOGLE_GENAI_MODEL="gemini-2.5-flash"
       ```
-      Replace `"YOUR_API_KEY_HERE"` with your actual API key. You can choose a different model compatible with the Google AI SDK if desired (e.g., "gemini-1.5-flash-latest").
+      Replace `"YOUR_API_KEY_HERE"` with your actual API key. You can choose a different model compatible with the Google AI SDK if desired (e.g., "gemini-2.5-flash-latest").
 
     **Important Security Note:** Storing API keys in `.env` files is suitable for local development. For production environments, it is strongly recommended to use a dedicated secret management service (e.g., Google Cloud Secret Manager, HashiCorp Vault) to protect your API keys. Do not commit `.env` files containing sensitive keys to version control (the provided `.gitignore` file in the parent directory should prevent this if this project is part of a larger repository structure, or you should ensure a local `.gitignore` also lists `.env`).
 

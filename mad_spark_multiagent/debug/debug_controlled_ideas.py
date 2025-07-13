@@ -24,7 +24,7 @@ def generate_specific_number_of_ideas(topic: str, constraints: str, num_ideas: i
     
     # Configure the API
     api_key = os.getenv("GOOGLE_API_KEY")
-    model_name = os.getenv("GOOGLE_GENAI_MODEL", "gemini-2.0-flash")
+    model_name = os.getenv("GOOGLE_GENAI_MODEL", "gemini-2.5-flash")
     
     if not api_key:
         raise RuntimeError("GOOGLE_API_KEY not configured")

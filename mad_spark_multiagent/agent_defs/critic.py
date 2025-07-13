@@ -11,27 +11,22 @@ from google.genai import types
 
 try:
     from mad_spark_multiagent.errors import ConfigurationError
+    from mad_spark_multiagent.agent_defs.genai_client import get_genai_client, get_model_name
 except ImportError:
     # Fallback for local development/testing
     from errors import ConfigurationError
+    from genai_client import get_genai_client, get_model_name
 
 # Configure the Google GenAI client
-# The new SDK expects GOOGLE_API_KEY (not GEMINI_API_KEY) per documentation
-api_key = os.getenv("GOOGLE_API_KEY")
-model_name = os.getenv("GOOGLE_GENAI_MODEL", "gemini-1.5-flash")
+critic_client = get_genai_client()
+model_name = get_model_name()
 
-if api_key:
-    # Create the client instance - it will read GOOGLE_API_KEY from environment
-    critic_client = genai.Client()
-    
-    # System instruction for critic
-    CRITIC_SYSTEM_INSTRUCTION = (
-            "You are an expert critic. Evaluate the given ideas based on the"
-            " provided criteria and context. Provide constructive feedback and"
-            " identify potential weaknesses."
-        )
-else:
-    critic_client = None
+# System instruction for critic
+CRITIC_SYSTEM_INSTRUCTION = (
+    "You are an expert critic. Evaluate the given ideas based on the"
+    " provided criteria and context. Provide constructive feedback and"
+    " identify potential weaknesses."
+)
 
 
 def evaluate_ideas(ideas: str, criteria: str, context: str, temperature: float = 0.3) -> str:

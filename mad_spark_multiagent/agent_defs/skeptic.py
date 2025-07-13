@@ -13,29 +13,24 @@ from google.genai import types
 try:
     from mad_spark_multiagent.constants import SKEPTIC_EMPTY_RESPONSE
     from mad_spark_multiagent.errors import ConfigurationError
+    from mad_spark_multiagent.agent_defs.genai_client import get_genai_client, get_model_name
 except ImportError:
     # Fallback for local development/testing
     from constants import SKEPTIC_EMPTY_RESPONSE
     from errors import ConfigurationError
+    from genai_client import get_genai_client, get_model_name
 
 # Configure the Google GenAI client
-# The new SDK expects GOOGLE_API_KEY (not GEMINI_API_KEY) per documentation
-api_key = os.getenv("GOOGLE_API_KEY")
-model_name = os.getenv("GOOGLE_GENAI_MODEL", "gemini-1.5-flash")
+skeptic_client = get_genai_client()
+model_name = get_model_name()
 
-if api_key:
-    # Create the client instance - it will read GOOGLE_API_KEY from environment
-    skeptic_client = genai.Client()
-    
-    # System instruction for skeptic
-    SKEPTIC_SYSTEM_INSTRUCTION = (
-        "You are a devil's advocate. Given an idea, the arguments for it, and"
-        " context, critically analyze the idea. List specific concerns, risks,"
-        " and flaws as bullet points. Be direct and critical. Focus on concrete"
-        " problems and potential failures."
-    )
-else:
-    skeptic_client = None
+# System instruction for skeptic
+SKEPTIC_SYSTEM_INSTRUCTION = (
+    "You are a devil's advocate. Given an idea, the arguments for it, and"
+    " context, critically analyze the idea. List specific concerns, risks,"
+    " and flaws as bullet points. Be direct and critical. Focus on concrete"
+    " problems and potential failures."
+)
 
 
 def criticize_idea(idea: str, advocacy: str, context: str, temperature: float = 0.5) -> str:

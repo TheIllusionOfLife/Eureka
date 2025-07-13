@@ -34,6 +34,6 @@ def get_model_name() -> str:
     """Get the configured model name from environment.
     
     Returns:
-        The model name from environment or default "gemini-1.5-flash".
+        The model name from environment or default "gemini-2.5-flash".
     """
-    return os.getenv("GOOGLE_GENAI_MODEL", "gemini-1.5-flash")
+    return os.getenv("GOOGLE_GENAI_MODEL", "gemini-2.5-flash")

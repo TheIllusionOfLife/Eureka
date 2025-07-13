@@ -24,3 +24,17 @@ DEFAULT_NOVELTY_THRESHOLD = 0.8
 
 # Enhanced reasoning constants
 LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD = 0.5  # Minimum confidence for logical inference conclusions
+
+# Multi-dimensional evaluation constants
+DIMENSION_SCORES_KEY = "dimension_scores"
+FEASIBILITY_KEY = "feasibility"
+INNOVATION_KEY = "innovation"
+IMPACT_KEY = "impact"
+COST_EFFECTIVENESS_KEY = "cost_effectiveness"
+SCALABILITY_KEY = "scalability"
+RISK_ASSESSMENT_KEY = "risk_assessment"
+TIMELINE_KEY = "timeline"
+
+# Agent prompt constants
+IDEA_GENERATION_INSTRUCTION = "generate a list of diverse and creative ideas"
+IDEA_GENERATOR_SYSTEM_INSTRUCTION = f"You are an expert idea generator. Given a topic and some context, {IDEA_GENERATION_INSTRUCTION}."

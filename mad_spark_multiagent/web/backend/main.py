@@ -9,6 +9,7 @@ import asyncio
 import json
 import logging
 import os
+import random
 import sys
 from datetime import datetime
 from typing import Dict, List, Optional, Any
@@ -36,7 +37,15 @@ try:
     from enhanced_reasoning import ReasoningEngine
     from constants import (
         DEFAULT_IDEA_TEMPERATURE,
-        DEFAULT_EVALUATION_TEMPERATURE
+        DEFAULT_EVALUATION_TEMPERATURE,
+        DIMENSION_SCORES_KEY,
+        FEASIBILITY_KEY,
+        INNOVATION_KEY,
+        IMPACT_KEY,
+        COST_EFFECTIVENESS_KEY,
+        SCALABILITY_KEY,
+        RISK_ASSESSMENT_KEY,
+        TIMELINE_KEY
     )
     from bookmark_system import BookmarkManager
     from cache_manager import CacheManager, CacheConfig
@@ -63,18 +72,18 @@ def format_results_for_frontend(results: List[Dict[str, Any]]) -> List[Dict[str,
             multi_eval = formatted_result['multi_dimensional_evaluation']
             
             # Extract dimension scores
-            dimension_scores = multi_eval.get('dimension_scores', {})
+            dimension_scores = multi_eval.get(DIMENSION_SCORES_KEY, {})
             
             # Format for frontend
             formatted_result['multi_dimensional_evaluation'] = {
-                'dimension_scores': {
-                    'feasibility': dimension_scores.get('feasibility', 5),
-                    'innovation': dimension_scores.get('innovation', 5),
-                    'impact': dimension_scores.get('impact', 5),
-                    'cost_effectiveness': dimension_scores.get('cost_effectiveness', 5),
-                    'scalability': dimension_scores.get('scalability', 5),
-                    'risk_assessment': dimension_scores.get('risk_assessment', 5),
-                    'timeline': dimension_scores.get('timeline', 5)
+                DIMENSION_SCORES_KEY: {
+                    FEASIBILITY_KEY: dimension_scores.get(FEASIBILITY_KEY, 5),
+                    INNOVATION_KEY: dimension_scores.get(INNOVATION_KEY, 5),
+                    IMPACT_KEY: dimension_scores.get(IMPACT_KEY, 5),
+                    COST_EFFECTIVENESS_KEY: dimension_scores.get(COST_EFFECTIVENESS_KEY, 5),
+                    SCALABILITY_KEY: dimension_scores.get(SCALABILITY_KEY, 5),
+                    RISK_ASSESSMENT_KEY: dimension_scores.get(RISK_ASSESSMENT_KEY, 5),
+                    TIMELINE_KEY: dimension_scores.get(TIMELINE_KEY, 5)
                 },
                 'overall_score': multi_eval.get('weighted_score', 5),
                 'confidence_interval': {
@@ -89,7 +98,7 @@ def format_results_for_frontend(results: List[Dict[str, Any]]) -> List[Dict[str,
                 improvement_factor = formatted_result['improved_score'] / max(formatted_result['initial_score'], 0.1)
                 improvement_factor = min(improvement_factor, 1.4)  # Cap at 40% improvement
                 
-                original_scores = formatted_result['multi_dimensional_evaluation']['dimension_scores']
+                original_scores = formatted_result['multi_dimensional_evaluation'][DIMENSION_SCORES_KEY]
                 improved_scores = {}
                 
                 for dimension, score in original_scores.items():
@@ -97,7 +106,8 @@ def format_results_for_frontend(results: List[Dict[str, Any]]) -> List[Dict[str,
                     base_improvement = (improvement_factor - 1) * score
                     # Add some variance to make it more realistic
                     variance = 0.1 * score  # 10% variance
-                    improved_score = score + base_improvement + (0.5 - 0.5) * variance  # Random between -variance and +variance
+                    random_factor = random.uniform(-0.5, 0.5)  # Random between -0.5 and +0.5
+                    improved_score = score + base_improvement + random_factor * variance  # Random between -variance/2 and +variance/2
                     # Ensure we don't exceed 10 or go below original
                     improved_score_value = min(10, max(score, improved_score))
                     # Round to 1 decimal place
@@ -108,7 +118,7 @@ def format_results_for_frontend(results: List[Dict[str, Any]]) -> List[Dict[str,
                 improved_overall = round(improved_overall, 1)
                 
                 formatted_result['improved_multi_dimensional_evaluation'] = {
-                    'dimension_scores': improved_scores,
+                    DIMENSION_SCORES_KEY: improved_scores,
                     'overall_score': improved_overall,
                     'confidence_interval': {
                         'lower': round(max(0, improved_overall - 0.8), 1),

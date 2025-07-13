@@ -13,6 +13,9 @@ from typing import List, Dict, Any, Optional
 import logging
 from datetime import datetime
 
+# Import idea cleaner
+from improved_idea_cleaner import clean_improved_idea
+
 # Import MadSpark components with fallback for local development
 try:
     from mad_spark_multiagent.coordinator import run_multistep_workflow
@@ -240,6 +243,13 @@ Examples:
         help='Enable Redis caching for faster repeated queries (requires Redis)'
     )
     
+    workflow_group.add_argument(
+        '--timeout',
+        type=int,
+        default=600,
+        help='Request timeout in seconds (default: 600, i.e., 10 minutes)'
+    )
+    
     # Temperature control
     add_temperature_arguments(parser)
     
@@ -400,14 +410,50 @@ def search_bookmarks_command(args: argparse.Namespace):
 
 def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
     """Format results according to specified format."""
+    # Apply cleaning to all results before formatting (consistent across all formats)
+    from improved_idea_cleaner import clean_improved_ideas_in_results
+    cleaned_results = clean_improved_ideas_in_results(results)
+    
     if format_type == 'json':
-        return json.dumps(results, indent=2, ensure_ascii=False)
+        return json.dumps(cleaned_results, indent=2, ensure_ascii=False)
     
     elif format_type == 'summary':
-        lines = [f"Generated {len(results)} ideas:\n"]
-        for i, result in enumerate(results, 1):
-            lines.append(f"{i}. {result['idea']}")
-            lines.append(f"   Score: {result['initial_score']}")
+        lines = [f"Generated {len(cleaned_results)} improved ideas:\n"]
+        for i, result in enumerate(cleaned_results, 1):
+            lines.append(f"--- IMPROVED IDEA {i} ---")
+            
+            # Get cleaned improved idea (already cleaned by clean_improved_ideas_in_results)
+            improved_idea = result.get('improved_idea', 'No improved idea available')
+            
+            if len(improved_idea) > 500:
+                improved_idea = improved_idea[:497] + "..."
+                lines.append(improved_idea)
+                lines.append("\n[Note: Full improved idea available in text or JSON format]")
+            else:
+                lines.append(improved_idea)
+            
+            lines.append(f"\nImproved Score: {result.get('improved_score', 'N/A')}")
+            
+            # Add multi-dimensional evaluation if available
+            if 'multi_dimensional_evaluation' in result:
+                eval_data = result['multi_dimensional_evaluation']
+                lines.append(f"\nMulti-Dimensional Evaluation:")
+                lines.append(f"  Overall Score: {eval_data.get('overall_score', 'N/A')}")
+                
+                if 'dimension_scores' in eval_data:
+                    scores = eval_data['dimension_scores']
+                    lines.append(f"  - Feasibility: {scores.get('feasibility', 'N/A')}")
+                    lines.append(f"  - Innovation: {scores.get('innovation', 'N/A')}")
+                    lines.append(f"  - Impact: {scores.get('impact', 'N/A')}")
+                    lines.append(f"  - Cost-Effectiveness: {scores.get('cost_effectiveness', 'N/A')}")
+                    lines.append(f"  - Scalability: {scores.get('scalability', 'N/A')}")
+                    lines.append(f"  - Risk Assessment: {scores.get('risk_assessment', 'N/A')} (lower is better)")
+                    lines.append(f"  - Timeline: {scores.get('timeline', 'N/A')}")
+                
+                if 'evaluation_summary' in eval_data:
+                    lines.append(f"  Summary: {eval_data['evaluation_summary']}")
+            
+            lines.append("")  # Empty line between ideas
         return "\n".join(lines)
     
     else:  # text format
@@ -415,13 +461,19 @@ def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
         lines.append("MADSPARK MULTI-AGENT IDEA GENERATION RESULTS")
         lines.append("=" * 80)
         
-        for i, result in enumerate(results, 1):
+        for i, result in enumerate(cleaned_results, 1):
             lines.append(f"\n--- IDEA {i} ---")
             lines.append(f"Text: {result['idea']}")
             lines.append(f"Initial Score: {result['initial_score']}")
             lines.append(f"Initial Critique: {result['initial_critique']}")
             lines.append(f"\nAdvocacy: {result['advocacy']}")
             lines.append(f"\nSkepticism: {result['skepticism']}")
+            
+            # Include cleaned improved idea in text format
+            if 'improved_idea' in result:
+                lines.append(f"\nImproved Idea: {result['improved_idea']}")
+                lines.append(f"Improved Score: {result.get('improved_score', 'N/A')}")
+            
             lines.append("-" * 80)
         
         return "\n".join(lines)

@@ -214,3 +214,6 @@ mad_spark_multiagent/test_exports/*.md
 mad_spark_multiagent/test_exports/*.json
 mad_spark_multiagent/test_exports/*.csv
 mad_spark_multiagent/test_exports/*.pdf
+
+# Test output files
+mad_spark_multiagent/test_output.json

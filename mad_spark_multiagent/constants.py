@@ -66,3 +66,62 @@ DEFAULT_GOOGLE_GENAI_MODEL = "gemini-2.5-flash"
 # Temperature defaults for specific agents/functions
 DEFAULT_CRITIC_TEMPERATURE = 0.3
 DEBUG_DEFAULT_TEMPERATURE = 0.9
+
+# Timeout constants
+DEFAULT_REQUEST_TIMEOUT = 600  # 10 minutes in seconds
+MIN_REQUEST_TIMEOUT = 60  # 1 minute minimum
+MAX_REQUEST_TIMEOUT = 3600  # 1 hour maximum
+
+# Idea cleaner constants - patterns for cleaning improved idea text
+CLEANER_META_HEADERS = [
+    'ENHANCED CONCEPT:', 'ORIGINAL THEME:', 'REVISED CORE PREMISE:',
+    'ORIGINAL IDEA:', 'IMPROVED VERSION:', 'ENHANCEMENT SUMMARY:'
+]
+
+CLEANER_META_PHRASES = [
+    'Addresses Evaluation Criteria', 'Enhancing Impact Through',
+    'Preserving & Amplifying Strengths', 'Addressing Concerns',
+    'Score:', 'from Score', 'Building on Score', '↑↑ from', '↑ from'
+]
+
+# Regex replacement patterns for idea cleaner (pattern, replacement tuples)
+CLEANER_REPLACEMENT_PATTERNS = [
+    # Remove improvement references
+    (r'Our enhanced approach', 'This approach'),
+    (r'The enhanced concept', 'The concept'),
+    (r'This enhanced version', 'This version'),
+    (r'enhanced ', ''),
+    (r'improved ', ''),
+    (r'Building upon the original.*?\.', ''),
+    (r'Improving upon.*?\.', ''),
+    (r'addresses the previous.*?\.', ''),
+    (r'directly addresses.*?\.', ''),
+    (r'The previous concern about.*?is', 'This'),
+    
+    # Simplify transition language
+    (r'shifts from.*?to\s+', ''),
+    (r'moves beyond.*?to\s+', ''),
+    (r'transforms.*?into\s+', 'is '),
+    (r'We shift from.*?to\s+', ''),
+    (r'We\'re moving from.*?to\s+', 'It\'s '),
+    (r'is evolving into\s+', 'is '),
+    
+    # Clean up headers
+    (r'### \d+\.\s*', '## '),
+    (r'## The "([^"]+)".*', r'# \1'),
+    
+    # Remove score references
+    (r'\s*\(Score:?\s*\d+\.?\d*\)', ''),
+    (r'\s*\(Addressing Score\s*\d+\.?\d*\)', ''),
+    (r'Score\s*\d+\.?\d*\s*→\s*', ''),
+    
+    # Clean up separators
+    (r'---+\n+', '\n'),
+    (r'\n\n\n+', '\n\n'),
+]
+
+# Additional cleaner patterns for final cleanup
+CLEANER_FRAMEWORK_CLEANUP_PATTERN = r'^[:\s]*(?:a\s+)?more\s+robust.*?system\s+'
+CLEANER_TITLE_EXTRACTION_PATTERN = r'"([^"]+)"'
+CLEANER_TITLE_REPLACEMENT_PATTERN = r'^.*?"[^"]+".*?\n+'
+CLEANER_TITLE_KEYWORDS = ['Framework', 'System', 'Engine']

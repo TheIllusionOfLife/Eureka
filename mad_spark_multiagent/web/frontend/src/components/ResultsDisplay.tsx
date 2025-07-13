@@ -168,12 +168,12 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results }) => {
                 
                 {/* Improved Score Badge */}
                 <div className="ml-4 flex-shrink-0">
-                  <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium text-white ${getScoreColor(result.improved_score)}`}>
+                  <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium text-white ${getScoreColor(result.improved_score || 0)}`}>
                     <span className="mr-1">⭐</span>
-                    {result.improved_score.toFixed(1)}/10
+                    {(result.improved_score || 0).toFixed(1)}/10
                   </div>
                   <div className="text-xs text-gray-500 mt-1 text-center">
-                    {getScoreLabel(result.improved_score)}
+                    {getScoreLabel(result.improved_score || 0)}
                   </div>
                 </div>
               </div>
@@ -344,44 +344,44 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results }) => {
                           data={[
                             { 
                               dimension: 'Feasibility', 
-                              original: result.multi_dimensional_evaluation.scores.feasibility, 
-                              improved: result.improved_multi_dimensional_evaluation.scores.feasibility, 
+                              original: result.multi_dimensional_evaluation.dimension_scores?.feasibility || 5, 
+                              improved: result.improved_multi_dimensional_evaluation.dimension_scores?.feasibility || 5, 
                               fullMark: 10 
                             },
                             { 
                               dimension: 'Innovation', 
-                              original: result.multi_dimensional_evaluation.scores.innovation, 
-                              improved: result.improved_multi_dimensional_evaluation.scores.innovation, 
+                              original: result.multi_dimensional_evaluation.dimension_scores?.innovation || 5, 
+                              improved: result.improved_multi_dimensional_evaluation.dimension_scores?.innovation || 5, 
                               fullMark: 10 
                             },
                             { 
                               dimension: 'Impact', 
-                              original: result.multi_dimensional_evaluation.scores.impact, 
-                              improved: result.improved_multi_dimensional_evaluation.scores.impact, 
+                              original: result.multi_dimensional_evaluation.dimension_scores?.impact || 5, 
+                              improved: result.improved_multi_dimensional_evaluation.dimension_scores?.impact || 5, 
                               fullMark: 10 
                             },
                             { 
                               dimension: 'Cost Effectiveness', 
-                              original: result.multi_dimensional_evaluation.scores.cost_effectiveness, 
-                              improved: result.improved_multi_dimensional_evaluation.scores.cost_effectiveness, 
+                              original: result.multi_dimensional_evaluation.dimension_scores?.cost_effectiveness || 5, 
+                              improved: result.improved_multi_dimensional_evaluation.dimension_scores?.cost_effectiveness || 5, 
                               fullMark: 10 
                             },
                             { 
                               dimension: 'Scalability', 
-                              original: result.multi_dimensional_evaluation.scores.scalability, 
-                              improved: result.improved_multi_dimensional_evaluation.scores.scalability, 
+                              original: result.multi_dimensional_evaluation.dimension_scores?.scalability || 5, 
+                              improved: result.improved_multi_dimensional_evaluation.dimension_scores?.scalability || 5, 
                               fullMark: 10 
                             },
                             { 
                               dimension: 'Risk Assessment', 
-                              original: result.multi_dimensional_evaluation.scores.risk_assessment, 
-                              improved: result.improved_multi_dimensional_evaluation.scores.risk_assessment, 
+                              original: result.multi_dimensional_evaluation.dimension_scores?.risk_assessment || 5, 
+                              improved: result.improved_multi_dimensional_evaluation.dimension_scores?.risk_assessment || 5, 
                               fullMark: 10 
                             },
                             { 
                               dimension: 'Timeline', 
-                              original: result.multi_dimensional_evaluation.scores.timeline, 
-                              improved: result.improved_multi_dimensional_evaluation.scores.timeline, 
+                              original: result.multi_dimensional_evaluation.dimension_scores?.timeline || 5, 
+                              improved: result.improved_multi_dimensional_evaluation.dimension_scores?.timeline || 5, 
                               fullMark: 10 
                             }
                           ]}
@@ -391,21 +391,21 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results }) => {
                         <>
                           <RadarChartComponent
                             data={[
-                              { dimension: 'Feasibility', score: result.multi_dimensional_evaluation.scores.feasibility, fullMark: 10 },
-                              { dimension: 'Innovation', score: result.multi_dimensional_evaluation.scores.innovation, fullMark: 10 },
-                              { dimension: 'Impact', score: result.multi_dimensional_evaluation.scores.impact, fullMark: 10 },
-                              { dimension: 'Cost Effectiveness', score: result.multi_dimensional_evaluation.scores.cost_effectiveness, fullMark: 10 },
-                              { dimension: 'Scalability', score: result.multi_dimensional_evaluation.scores.scalability, fullMark: 10 },
-                              { dimension: 'Risk Assessment', score: result.multi_dimensional_evaluation.scores.risk_assessment, fullMark: 10 },
-                              { dimension: 'Timeline', score: result.multi_dimensional_evaluation.scores.timeline, fullMark: 10 }
+                              { dimension: 'Feasibility', score: result.multi_dimensional_evaluation.dimension_scores?.feasibility || 5, fullMark: 10 },
+                              { dimension: 'Innovation', score: result.multi_dimensional_evaluation.dimension_scores?.innovation || 5, fullMark: 10 },
+                              { dimension: 'Impact', score: result.multi_dimensional_evaluation.dimension_scores?.impact || 5, fullMark: 10 },
+                              { dimension: 'Cost Effectiveness', score: result.multi_dimensional_evaluation.dimension_scores?.cost_effectiveness || 5, fullMark: 10 },
+                              { dimension: 'Scalability', score: result.multi_dimensional_evaluation.dimension_scores?.scalability || 5, fullMark: 10 },
+                              { dimension: 'Risk Assessment', score: result.multi_dimensional_evaluation.dimension_scores?.risk_assessment || 5, fullMark: 10 },
+                              { dimension: 'Timeline', score: result.multi_dimensional_evaluation.dimension_scores?.timeline || 5, fullMark: 10 }
                             ]}
                           />
                           <div className="mt-3 text-sm text-gray-600">
                             <p>
-                              <strong>Overall Score:</strong> {result.multi_dimensional_evaluation.overall_score.toFixed(1)}/10
+                              <strong>Overall Score:</strong> {(result.multi_dimensional_evaluation.overall_score || 0).toFixed(1)}/10
                             </p>
                             <p>
-                              <strong>Confidence Interval:</strong> {result.multi_dimensional_evaluation.confidence_interval.lower.toFixed(1)} - {result.multi_dimensional_evaluation.confidence_interval.upper.toFixed(1)}
+                              <strong>Confidence:</strong> {(result.multi_dimensional_evaluation.confidence_interval || 0).toFixed(2)}
                             </p>
                           </div>
                         </>

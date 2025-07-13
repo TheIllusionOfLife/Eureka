@@ -9,18 +9,21 @@ interface ScoreComparisonProps {
 
 const ScoreComparison: React.FC<ScoreComparisonProps> = ({ originalScore, improvedScore, delta }) => {
   const maxScore = MAX_IDEA_SCORE;
-  const originalPercentage = (originalScore / maxScore) * 100;
-  const improvedPercentage = (improvedScore / maxScore) * 100;
+  const safeOriginalScore = originalScore || 0;
+  const safeImprovedScore = improvedScore || 0;
+  const safeDelta = delta || 0;
+  const originalPercentage = (safeOriginalScore / maxScore) * 100;
+  const improvedPercentage = (safeImprovedScore / maxScore) * 100;
   
   const getDeltaColor = () => {
-    if (delta > 0) return 'text-green-600';
-    if (delta < 0) return 'text-red-600';
+    if (safeDelta > 0) return 'text-green-600';
+    if (safeDelta < 0) return 'text-red-600';
     return 'text-gray-600';
   };
   
   const getDeltaSymbol = () => {
-    if (delta > 0) return '↑';
-    if (delta < 0) return '↓';
+    if (safeDelta > 0) return '↑';
+    if (safeDelta < 0) return '↓';
     return '—';
   };
 
@@ -34,7 +37,7 @@ const ScoreComparison: React.FC<ScoreComparisonProps> = ({ originalScore, improv
         <div>
           <div className="flex justify-between text-sm mb-1">
             <span className="text-gray-600">Original</span>
-            <span className="font-medium">{originalScore.toFixed(1)}/10</span>
+            <span className="font-medium">{safeOriginalScore.toFixed(1)}/10</span>
           </div>
           <div className="h-6 bg-gray-200 rounded-full overflow-hidden">
             <div 
@@ -48,7 +51,7 @@ const ScoreComparison: React.FC<ScoreComparisonProps> = ({ originalScore, improv
         <div>
           <div className="flex justify-between text-sm mb-1">
             <span className="text-gray-600">Improved</span>
-            <span className="font-medium">{improvedScore.toFixed(1)}/10</span>
+            <span className="font-medium">{safeImprovedScore.toFixed(1)}/10</span>
           </div>
           <div className="h-6 bg-gray-200 rounded-full overflow-hidden">
             <div 
@@ -62,11 +65,11 @@ const ScoreComparison: React.FC<ScoreComparisonProps> = ({ originalScore, improv
       {/* Delta indicator */}
       <div className="mt-3 text-center">
         <span className={`text-lg font-semibold ${getDeltaColor()}`}>
-          {getDeltaSymbol()} {delta > 0 ? '+' : ''}{delta.toFixed(1)} points
+          {getDeltaSymbol()} {safeDelta > 0 ? '+' : ''}{safeDelta.toFixed(1)} points
         </span>
-        {delta > 0 && originalScore > 0 && (
+        {safeDelta > 0 && safeOriginalScore > 0 && (
           <p className="text-sm text-gray-600 mt-1">
-            {((delta / originalScore) * 100).toFixed(0)}% improvement
+            {((safeDelta / safeOriginalScore) * 100).toFixed(0)}% improvement
           </p>
         )}
       </div>

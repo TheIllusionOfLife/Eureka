@@ -6,6 +6,9 @@ interface MarkdownRendererProps {
 }
 
 const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, className = '' }) => {
+  // Handle undefined or null content
+  const safeContent = content || '';
+  
   // Simple markdown to HTML conversion with XSS protection
   const renderMarkdown = (text: string) => {
     // Basic XSS protection: escape potentially dangerous characters
@@ -45,7 +48,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, className 
   return (
     <div 
       className={`prose prose-sm max-w-none ${className}`}
-      dangerouslySetInnerHTML={renderMarkdown(content)}
+      dangerouslySetInnerHTML={renderMarkdown(safeContent)}
     />
   );
 };

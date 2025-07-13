@@ -66,3 +66,8 @@ DEFAULT_GOOGLE_GENAI_MODEL = "gemini-2.5-flash"
 # Temperature defaults for specific agents/functions
 DEFAULT_CRITIC_TEMPERATURE = 0.3
 DEBUG_DEFAULT_TEMPERATURE = 0.9
+
+# Timeout constants
+DEFAULT_REQUEST_TIMEOUT = 600  # 10 minutes in seconds
+MIN_REQUEST_TIMEOUT = 60  # 1 minute minimum
+MAX_REQUEST_TIMEOUT = 3600  # 1 hour maximum

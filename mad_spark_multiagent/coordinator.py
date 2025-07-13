@@ -30,8 +30,9 @@ try:
         logging.info("Coordinator: .env file not found, relying on environment variables.")
 except ImportError:
     logging.warning(
-        "Coordinator: python-dotenv not found, .env file will not be loaded.\n"
-        "Ensure GOOGLE_API_KEY and GOOGLE_GENAI_MODEL are set in your environment."
+        "Coordinator: Unable to load .env file automatically.\n"
+        "Please ensure GOOGLE_API_KEY and GOOGLE_GENAI_MODEL are set in your environment.\n"
+        "Tip: Use ./run_madspark.sh or the 'madspark' alias to handle this automatically."
     )
 
 api_key: Optional[str] = os.getenv("GOOGLE_API_KEY")

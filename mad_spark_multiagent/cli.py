@@ -240,6 +240,13 @@ Examples:
         help='Enable Redis caching for faster repeated queries (requires Redis)'
     )
     
+    workflow_group.add_argument(
+        '--timeout',
+        type=int,
+        default=600,
+        help='Request timeout in seconds (default: 600, i.e., 10 minutes)'
+    )
+    
     # Temperature control
     add_temperature_arguments(parser)
     

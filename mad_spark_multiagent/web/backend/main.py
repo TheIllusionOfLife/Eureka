@@ -45,7 +45,8 @@ try:
         COST_EFFECTIVENESS_KEY,
         SCALABILITY_KEY,
         RISK_ASSESSMENT_KEY,
-        TIMELINE_KEY
+        TIMELINE_KEY,
+        DEFAULT_REQUEST_TIMEOUT
     )
     from bookmark_system import BookmarkManager
     from cache_manager import CacheManager, CacheConfig
@@ -203,6 +204,7 @@ class IdeaGenerationRequest(BaseModel):
     enhanced_reasoning: bool = Field(default=False, description="Enable enhanced reasoning capabilities")
     multi_dimensional_eval: bool = Field(default=False, description="Use multi-dimensional evaluation")
     logical_inference: bool = Field(default=False, description="Enable logical inference chains")
+    timeout: Optional[int] = Field(default=None, ge=60, le=3600, description="Request timeout in seconds (60-3600)")
 
 
 class IdeaGenerationResponse(BaseModel):
@@ -390,8 +392,8 @@ async def generate_ideas(request: IdeaGenerationRequest):
             cache_manager=cache_manager
         )
         
-        # Add timeout handling (10 minutes max)
-        timeout_seconds = 600  # 10 minutes
+        # Add timeout handling
+        timeout_seconds = request.timeout if request.timeout else DEFAULT_REQUEST_TIMEOUT
         try:
             results = await asyncio.wait_for(
                 async_coordinator.run_workflow(

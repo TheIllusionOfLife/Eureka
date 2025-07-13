@@ -17,6 +17,14 @@ except ImportError:
 from google import genai
 from google.genai import types
 
+# Import constants
+try:
+    from mad_spark_multiagent.constants import DEFAULT_GOOGLE_GENAI_MODEL, DEBUG_DEFAULT_TEMPERATURE
+except ImportError:
+    # Define fallback values for standalone usage
+    DEFAULT_GOOGLE_GENAI_MODEL = "gemini-2.5-flash"
+    DEBUG_DEFAULT_TEMPERATURE = 0.9
+
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
@@ -25,7 +33,7 @@ def generate_specific_number_of_ideas(topic: str, constraints: str, num_ideas: i
     
     # Configure the API using new SDK pattern
     api_key = os.getenv("GOOGLE_API_KEY")
-    model_name = os.getenv("GOOGLE_GENAI_MODEL", "gemini-2.5-flash")
+    model_name = os.getenv("GOOGLE_GENAI_MODEL", DEFAULT_GOOGLE_GENAI_MODEL)
     
     if not api_key:
         raise RuntimeError("GOOGLE_API_KEY not configured")
@@ -79,7 +87,7 @@ def debug_controlled_generation():
                 topic=topic, 
                 constraints=constraints, 
                 num_ideas=num_ideas,
-                temperature=0.9
+                temperature=DEBUG_DEFAULT_TEMPERATURE
             )
             
             # Parse the response

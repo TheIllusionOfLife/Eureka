@@ -177,6 +177,29 @@ def build_improvement_prompt(
   )
 
 
+def _generate_fallback_improvement(original_idea: str, reason: str, advocacy_points: str = "") -> str:
+  """Generate a fallback improvement message based on the reason for fallback.
+  
+  Args:
+    original_idea: The original idea to improve.
+    reason: The reason for using fallback ('safety', 'recitation', 'empty', etc.).
+    advocacy_points: Optional advocacy points to include in some templates.
+    
+  Returns:
+    A formatted fallback improvement message.
+  """
+  templates = {
+      "safety": f"Enhanced version of: {original_idea}\n\nKey improvements based on multi-agent feedback:\n- Preserved strengths: {advocacy_points[:100]}{'...' if len(advocacy_points) > 100 else ''}\n- Incorporated professional insights for enhancement\n- Enhanced practical implementation approach\n- Addressed thoughtful considerations with solutions",
+      "recitation": f"Refined approach: {original_idea}\n\nOptimizations based on feedback:\n- Leveraged identified strengths\n- Incorporated professional insights\n- Enhanced practical implementation\n- Improved scalability and resource efficiency",
+      "empty": f"Improved: {original_idea}\n\nEnhancements based on analysis:\n- Built upon positive strengths\n- Incorporated professional insights\n- Optimized implementation approach\n- Enhanced cost-effectiveness and viability",
+      "no_candidates": f"Enhanced: {original_idea}\n\nKey improvements from multi-agent analysis:\n- Preserved core innovation strengths\n- Addressed thoughtful considerations\n- Enhanced practical implementation\n- Improved scalability and cost optimization",
+      "content_filtered": f"Optimized version: {original_idea}\n\nImprovements based on multi-agent feedback:\n- Enhanced feasibility with thoughtful considerations\n- Better resource efficiency from positive insights\n- Practical implementation approach incorporating professional analysis",
+      "value_error": f"Modified: {original_idea}\n\nEnhancements from feedback synthesis:\n- Improved approach based on professional insights\n- Better implementation incorporating strengths\n- Enhanced viability addressing opportunities",
+      "general_error": f"Updated: {original_idea}\n\nImprovements from multi-agent analysis:\n- Refined implementation based on professional insights\n- Enhanced approach incorporating positive strengths\n- Better execution strategy addressing thoughtful considerations"
+  }
+  return templates.get(reason, templates["general_error"])
+
+
 def improve_idea(
     original_idea: str,
     critique: str,
@@ -243,31 +266,31 @@ def improve_idea(
       
       if finish_reason == 1:  # SAFETY (content filtered)
         logging.warning("Gemini API response was filtered for safety. Using fallback improvement.")
-        agent_response = f"Enhanced version of: {original_idea}\n\nKey improvements based on multi-agent feedback:\n- Preserved strengths: {advocacy_points[:100]}{'...' if len(advocacy_points) > 100 else ''}\n- Incorporated professional insights for enhancement\n- Enhanced practical implementation approach\n- Addressed thoughtful considerations with solutions"
+        agent_response = _generate_fallback_improvement(original_idea, "safety", advocacy_points)
       elif finish_reason == 3:  # RECITATION (potential copyright issues)
         logging.warning("Gemini API response was blocked for recitation. Using fallback improvement.")
-        agent_response = f"Refined approach: {original_idea}\n\nOptimizations based on feedback:\n- Leveraged identified strengths\n- Incorporated professional insights\n- Enhanced practical implementation\n- Improved scalability and resource efficiency"
+        agent_response = _generate_fallback_improvement(original_idea, "recitation")
       elif response.text:
         agent_response = response.text
       else:
         logging.warning("Gemini API returned empty response. Using fallback improvement.")
-        agent_response = f"Improved: {original_idea}\n\nEnhancements based on analysis:\n- Built upon positive strengths\n- Incorporated professional insights\n- Optimized implementation approach\n- Enhanced cost-effectiveness and viability"
+        agent_response = _generate_fallback_improvement(original_idea, "empty")
     else:
       logging.warning("Gemini API returned no candidates. Using fallback improvement.")
-      agent_response = f"Enhanced: {original_idea}\n\nKey improvements from multi-agent analysis:\n- Preserved core innovation strengths\n- Addressed thoughtful considerations\n- Enhanced practical implementation\n- Improved scalability and cost optimization"
+      agent_response = _generate_fallback_improvement(original_idea, "no_candidates")
       
   except ValueError as e:
     # Handle specific content filtering errors
     if "response.text" in str(e) and "finish_reason" in str(e):
       logging.warning(f"Gemini API content filtered: {e}. Using fallback improvement.")
-      agent_response = f"Optimized version: {original_idea}\n\nImprovements based on multi-agent feedback:\n- Enhanced feasibility with thoughtful considerations\n- Better resource efficiency from positive insights\n- Practical implementation approach incorporating professional analysis"
+      agent_response = _generate_fallback_improvement(original_idea, "content_filtered")
     else:
       logging.error(f"Gemini API ValueError: {e}", exc_info=True)
-      agent_response = f"Modified: {original_idea}\n\nEnhancements from feedback synthesis:\n- Improved approach based on professional insights\n- Better implementation incorporating strengths\n- Enhanced viability addressing opportunities"
+      agent_response = _generate_fallback_improvement(original_idea, "value_error")
   except Exception as e:
     # Log the full error for better debugging
     logging.error(f"Error calling Gemini API: {e}", exc_info=True)
-    agent_response = f"Updated: {original_idea}\n\nImprovements from multi-agent analysis:\n- Refined implementation based on professional insights\n- Enhanced approach incorporating positive strengths\n- Better execution strategy addressing thoughtful considerations"
+    agent_response = _generate_fallback_improvement(original_idea, "general_error")
   
   return agent_response
 

@@ -12,24 +12,19 @@ from google.genai import types
 try:
     from mad_spark_multiagent.errors import ConfigurationError
     from mad_spark_multiagent.agent_defs.genai_client import get_genai_client, get_model_name
+    from mad_spark_multiagent.constants import CRITIC_SYSTEM_INSTRUCTION, DEFAULT_CRITIC_TEMPERATURE
 except ImportError:
     # Fallback for local development/testing
     from errors import ConfigurationError
     from agent_defs.genai_client import get_genai_client, get_model_name
+    from constants import CRITIC_SYSTEM_INSTRUCTION, DEFAULT_CRITIC_TEMPERATURE
 
 # Configure the Google GenAI client
 critic_client = get_genai_client()
 model_name = get_model_name()
 
-# System instruction for critic
-CRITIC_SYSTEM_INSTRUCTION = (
-    "You are an expert critic. Evaluate the given ideas based on the"
-    " provided criteria and context. Provide constructive feedback and"
-    " identify potential weaknesses."
-)
 
-
-def evaluate_ideas(ideas: str, criteria: str, context: str, temperature: float = 0.3) -> str:
+def evaluate_ideas(ideas: str, criteria: str, context: str, temperature: float = DEFAULT_CRITIC_TEMPERATURE) -> str:
   """Evaluates ideas based on criteria and context using the critic model.
 
   The model is prompted to return a newline-separated list of JSON strings.

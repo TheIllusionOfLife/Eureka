@@ -315,7 +315,7 @@ Expected performance for Phase 2:
 echo $GOOGLE_API_KEY
 
 # Test API key directly
-python -c "from google import genai; client = genai.Client(api_key='$GOOGLE_API_KEY'); print('API key valid')"
+python -c "import os; from google import genai; client = genai.Client(api_key=os.environ.get('GOOGLE_API_KEY')); print('API key valid')"
 ```
 
 ### 2. Import Errors

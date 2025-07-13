@@ -11,26 +11,18 @@ from google import genai
 from google.genai import types
 
 try:
-    from mad_spark_multiagent.constants import SKEPTIC_EMPTY_RESPONSE
+    from mad_spark_multiagent.constants import SKEPTIC_EMPTY_RESPONSE, SKEPTIC_SYSTEM_INSTRUCTION
     from mad_spark_multiagent.errors import ConfigurationError
     from mad_spark_multiagent.agent_defs.genai_client import get_genai_client, get_model_name
 except ImportError:
     # Fallback for local development/testing
-    from constants import SKEPTIC_EMPTY_RESPONSE
+    from constants import SKEPTIC_EMPTY_RESPONSE, SKEPTIC_SYSTEM_INSTRUCTION
     from errors import ConfigurationError
     from agent_defs.genai_client import get_genai_client, get_model_name
 
 # Configure the Google GenAI client
 skeptic_client = get_genai_client()
 model_name = get_model_name()
-
-# System instruction for skeptic
-SKEPTIC_SYSTEM_INSTRUCTION = (
-    "You are a devil's advocate. Given an idea, the arguments for it, and"
-    " context, critically analyze the idea. List specific concerns, risks,"
-    " and flaws as bullet points. Be direct and critical. Focus on concrete"
-    " problems and potential failures."
-)
 
 
 def criticize_idea(idea: str, advocacy: str, context: str, temperature: float = 0.5) -> str:

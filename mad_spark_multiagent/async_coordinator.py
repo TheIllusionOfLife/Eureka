@@ -715,10 +715,10 @@ class AsyncCoordinator:
                     if multi_dimensional_eval and reasoning_engine:
                         try:
                             # Re-evaluate with multi-dimensional analysis
-                                improved_multi_eval_result = reasoning_engine.multi_evaluator.evaluate_idea(
-                                    idea=improved_idea_text,
-                                    context={"theme": theme, "constraints": constraints}
-                                )
+                            improved_multi_eval_result = reasoning_engine.multi_evaluator.evaluate_idea(
+                                idea=improved_idea_text,
+                                context={"theme": theme, "constraints": constraints}
+                            )
                                 
                                 # Store the improved multi-dimensional evaluation data
                                 improved_multi_eval_data = improved_multi_eval_result

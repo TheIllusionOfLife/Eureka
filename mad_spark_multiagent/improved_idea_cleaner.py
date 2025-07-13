@@ -7,7 +7,7 @@ Performance optimized with compiled regex patterns and caching.
 
 import re
 from functools import lru_cache
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 from constants import (
     CLEANER_META_HEADERS,
@@ -101,7 +101,7 @@ def _ensure_compiled_replacements():
         COMPILED_REPLACEMENTS = get_compiled_patterns()
 
 
-def clean_improved_idea(text: str) -> str:
+def clean_improved_idea(text: Optional[str]) -> Optional[str]:
     """
     Clean up improved idea text by removing meta-commentary and references to improvements.
     

@@ -244,10 +244,10 @@ def run_multistep_workflow(
     # raw_generated_ideas: str = "" # Type will be known after call
     parsed_ideas: List[str] = []
     
-    # TODO: Implement timeout handling for synchronous execution
-    # Currently timeout is only supported in async mode
+    # Note: Timeout is only enforced in async mode via asyncio.wait_for()
+    # Sync mode runs sequentially without interruption by design
     if timeout and verbose:
-        logging.info(f"Timeout set to {timeout} seconds (Note: timeout is currently only enforced in async mode)")
+        logging.info(f"Timeout parameter: {timeout} seconds (enforcement only available in async mode - use AsyncCoordinator for timeout support)")
 
     # Extract temperatures from temperature manager if provided
     if temperature_manager:

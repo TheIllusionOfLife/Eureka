@@ -246,8 +246,8 @@ def run_multistep_workflow(
     
     # Note: Timeout is only enforced in async mode via asyncio.wait_for()
     # Sync mode runs sequentially without interruption by design
-    if timeout and verbose:
-        logging.info(f"Timeout parameter: {timeout} seconds (enforcement only available in async mode - use AsyncCoordinator for timeout support)")
+    if timeout and timeout != 600:  # 600 is default timeout
+        logging.warning(f"⚠️  Timeout parameter ({timeout}s) specified but not enforced in sync mode. Use AsyncCoordinator for timeout support.")
 
     # Extract temperatures from temperature manager if provided
     if temperature_manager:

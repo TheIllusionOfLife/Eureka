@@ -410,20 +410,20 @@ def search_bookmarks_command(args: argparse.Namespace):
 
 def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
     """Format results according to specified format."""
+    # Apply cleaning to all results before formatting (consistent across all formats)
+    from improved_idea_cleaner import clean_improved_ideas_in_results
+    cleaned_results = clean_improved_ideas_in_results(results)
+    
     if format_type == 'json':
-        return json.dumps(results, indent=2, ensure_ascii=False)
+        return json.dumps(cleaned_results, indent=2, ensure_ascii=False)
     
     elif format_type == 'summary':
-        lines = [f"Generated {len(results)} improved ideas:\n"]
-        for i, result in enumerate(results, 1):
+        lines = [f"Generated {len(cleaned_results)} improved ideas:\n"]
+        for i, result in enumerate(cleaned_results, 1):
             lines.append(f"--- IMPROVED IDEA {i} ---")
             
-            # Clean and truncate improved ideas for summary view
-            improved_idea = result.get('improved_idea')
-            if improved_idea:
-                improved_idea = clean_improved_idea(improved_idea)
-            else:
-                improved_idea = 'No improved idea available'
+            # Get cleaned improved idea (already cleaned by clean_improved_ideas_in_results)
+            improved_idea = result.get('improved_idea', 'No improved idea available')
             
             if len(improved_idea) > 500:
                 improved_idea = improved_idea[:497] + "..."
@@ -461,13 +461,19 @@ def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
         lines.append("MADSPARK MULTI-AGENT IDEA GENERATION RESULTS")
         lines.append("=" * 80)
         
-        for i, result in enumerate(results, 1):
+        for i, result in enumerate(cleaned_results, 1):
             lines.append(f"\n--- IDEA {i} ---")
             lines.append(f"Text: {result['idea']}")
             lines.append(f"Initial Score: {result['initial_score']}")
             lines.append(f"Initial Critique: {result['initial_critique']}")
             lines.append(f"\nAdvocacy: {result['advocacy']}")
             lines.append(f"\nSkepticism: {result['skepticism']}")
+            
+            # Include cleaned improved idea in text format
+            if 'improved_idea' in result:
+                lines.append(f"\nImproved Idea: {result['improved_idea']}")
+                lines.append(f"Improved Score: {result.get('improved_score', 'N/A')}")
+            
             lines.append("-" * 80)
         
         return "\n".join(lines)

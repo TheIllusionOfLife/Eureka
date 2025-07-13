@@ -13,6 +13,9 @@ from typing import List, Dict, Any, Optional
 import logging
 from datetime import datetime
 
+# Import idea cleaner
+from improved_idea_cleaner import clean_improved_idea
+
 # Import MadSpark components with fallback for local development
 try:
     from mad_spark_multiagent.coordinator import run_multistep_workflow
@@ -415,8 +418,11 @@ def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
         for i, result in enumerate(results, 1):
             lines.append(f"--- IMPROVED IDEA {i} ---")
             
-            # Truncate long improved ideas for summary view
+            # Clean and truncate improved ideas for summary view
             improved_idea = result.get('improved_idea', 'No improved idea available')
+            if improved_idea != 'No improved idea available':
+                improved_idea = clean_improved_idea(improved_idea)
+            
             if len(improved_idea) > 500:
                 improved_idea = improved_idea[:497] + "..."
                 lines.append(improved_idea)

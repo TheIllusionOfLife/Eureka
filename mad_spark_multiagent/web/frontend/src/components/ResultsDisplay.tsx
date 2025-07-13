@@ -4,6 +4,7 @@ import RadarChartComponent from './RadarChart';
 import ComparisonRadarChart from './ComparisonRadarChart';
 import MarkdownRenderer from './MarkdownRenderer';
 import ScoreComparison from './ScoreComparison';
+import { cleanImprovedIdea } from '../utils/ideaCleaner';
 
 interface ResultsDisplayProps {
   results: IdeaResult[];
@@ -213,7 +214,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, showDetailedRe
               {expandedSections[`${index}-improved`] && (
                 <div id={`improved-content-${index}`} className="p-4 pt-0">
                   <MarkdownRenderer 
-                    content={result.improved_idea} 
+                    content={cleanImprovedIdea(result.improved_idea || '')} 
                     className="text-gray-700 leading-relaxed"
                   />
                 </div>

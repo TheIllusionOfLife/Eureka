@@ -12,18 +12,19 @@ from google.genai import types
 
 try:
     from mad_spark_multiagent.constants import ADVOCATE_EMPTY_RESPONSE
+    from mad_spark_multiagent.errors import ConfigurationError
 except ImportError:
     # Fallback for local development/testing
     from constants import ADVOCATE_EMPTY_RESPONSE
+    from errors import ConfigurationError
 
 # Configure the Google GenAI client
+# The new SDK expects GOOGLE_API_KEY (not GEMINI_API_KEY) per documentation
 api_key = os.getenv("GOOGLE_API_KEY")
 model_name = os.getenv("GOOGLE_GENAI_MODEL", "gemini-1.5-flash")
 
 if api_key:
-    # Set the API key for the new client
-    os.environ["GEMINI_API_KEY"] = api_key
-    # Create the client instance
+    # Create the client instance - it will read GOOGLE_API_KEY from environment
     advocate_client = genai.Client()
     
     # System instruction for advocate
@@ -79,7 +80,7 @@ def advocate_idea(idea: str, evaluation: str, context: str, temperature: float =
   )
   
   if advocate_client is None:
-    raise RuntimeError("GOOGLE_API_KEY not configured - cannot advocate ideas")
+    raise ConfigurationError("GOOGLE_API_KEY not configured - cannot advocate ideas")
   
   try:
     config = types.GenerateContentConfig(

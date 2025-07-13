@@ -19,6 +19,28 @@ except ImportError:
 IDEA_GENERATION_INSTRUCTION = "generate a list of diverse and creative ideas"
 SYSTEM_INSTRUCTION = f"You are an expert idea generator. Given a topic and some context, {IDEA_GENERATION_INSTRUCTION}."
 
+# Safety settings for constructive feedback generation
+# These relaxed thresholds are necessary to prevent overly aggressive content
+# filtering when processing critical feedback and improvement suggestions
+_IMPROVER_SAFETY_SETTINGS = [
+    types.SafetySetting(
+        category="HARM_CATEGORY_HARASSMENT",
+        threshold="BLOCK_ONLY_HIGH"
+    ),
+    types.SafetySetting(
+        category="HARM_CATEGORY_HATE_SPEECH", 
+        threshold="BLOCK_ONLY_HIGH"
+    ),
+    types.SafetySetting(
+        category="HARM_CATEGORY_SEXUALLY_EXPLICIT",
+        threshold="BLOCK_ONLY_HIGH"
+    ),
+    types.SafetySetting(
+        category="HARM_CATEGORY_DANGEROUS_CONTENT",
+        threshold="BLOCK_ONLY_HIGH"
+    )
+]
+
 
 def _validate_non_empty_string(value: Any, param_name: str) -> None:
   """Validates that a value is a non-empty string.
@@ -52,13 +74,12 @@ def build_generation_prompt(topic: str, context: str) -> str:
 
 
 # Configure the Google GenAI client
+# The new SDK expects GOOGLE_API_KEY (not GEMINI_API_KEY) per documentation
 api_key = os.getenv("GOOGLE_API_KEY")
 model_name = os.getenv("GOOGLE_GENAI_MODEL", "gemini-1.5-flash")
 
 if api_key:
-    # Set the API key for the new client
-    os.environ["GEMINI_API_KEY"] = api_key
-    # Create the client instance
+    # Create the client instance - it will read GOOGLE_API_KEY from environment
     idea_generator_client = genai.Client()
 else:
     idea_generator_client = None
@@ -133,19 +154,23 @@ def build_improvement_prompt(
       f"You are helping to enhance an innovative idea based on comprehensive feedback.\n\n"
       f"ORIGINAL THEME: {theme}\n\n"
       f"ORIGINAL IDEA:\n{original_idea}\n\n"
-      f"STRENGTHS AND POSITIVE ASPECTS:\n{advocacy_points}\n\n"
-      f"PROFESSIONAL REVIEW INSIGHTS:\n{critique}\n\n"
-      f"THOUGHTFUL CONSIDERATIONS:\n{skeptic_points}\n\n"
+      f"EVALUATION CRITERIA AND FEEDBACK:\n{critique}\n"
+      f"Pay special attention to the specific scores and criteria mentioned above. "
+      f"Your improved version should directly address any low-scoring areas while maintaining high-scoring aspects.\n\n"
+      f"STRENGTHS TO PRESERVE AND BUILD UPON:\n{advocacy_points}\n\n"
+      f"CONCERNS TO ADDRESS WITH SOLUTIONS:\n{skeptic_points}\n\n"
       f"Generate an IMPROVED version of this idea that:\n"
-      f"1. Maintains the core innovation and strengths highlighted above\n"
-      f"2. Incorporates the professional insights for enhancement\n"
-      f"3. Thoughtfully addresses the considerations raised\n"
+      f"1. SPECIFICALLY addresses each evaluation criterion from the professional review\n"
+      f"2. Maintains and amplifies the identified strengths\n"
+      f"3. Provides concrete solutions for each concern raised\n"
       f"4. Remains bold, creative, and ambitious\n"
-      f"5. Provides concrete solutions to identified opportunities\n\n"
-      f"IMPORTANT: The goal is to ENHANCE the idea, not replace it. Build upon what works.\n"
-      f"- Keep all the positive aspects that earned the original score\n"
-      f"- Add solutions and improvements for the identified opportunities\n"
-      f"- Make it more feasible without sacrificing innovation\n\n"
+      f"5. Shows clear improvements in the areas that scored lower\n\n"
+      f"IMPORTANT GUIDELINES:\n"
+      f"- If feasibility scored low, add specific implementation steps\n"
+      f"- If innovation scored low, add unique differentiating features\n"
+      f"- If cost-effectiveness scored low, optimize resource usage\n"
+      f"- If scalability scored low, design for growth\n"
+      f"- Keep all positive aspects while fixing weaknesses\n\n"
       f"ENHANCED CONCEPT:"
   )
 
@@ -196,31 +221,11 @@ def improve_idea(
     raise ConfigurationError("GOOGLE_API_KEY not configured - cannot improve ideas")
   
   try:
-    # Configure safety settings for less restrictive filtering on constructive feedback
-    safety_settings = [
-        types.SafetySetting(
-            category="HARM_CATEGORY_HARASSMENT",
-            threshold="BLOCK_ONLY_HIGH"
-        ),
-        types.SafetySetting(
-            category="HARM_CATEGORY_HATE_SPEECH", 
-            threshold="BLOCK_ONLY_HIGH"
-        ),
-        types.SafetySetting(
-            category="HARM_CATEGORY_SEXUALLY_EXPLICIT",
-            threshold="BLOCK_ONLY_HIGH"
-        ),
-        types.SafetySetting(
-            category="HARM_CATEGORY_DANGEROUS_CONTENT",
-            threshold="BLOCK_ONLY_HIGH"
-        )
-    ]
-    
-    # Create the generation config with safety settings
+    # Create the generation config with module-level safety settings
     config = types.GenerateContentConfig(
         temperature=temperature,
         system_instruction=SYSTEM_INSTRUCTION,
-        safety_settings=safety_settings
+        safety_settings=_IMPROVER_SAFETY_SETTINGS
     )
     
     response = idea_generator_client.models.generate_content(

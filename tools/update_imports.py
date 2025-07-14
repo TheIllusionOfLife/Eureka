@@ -27,25 +27,17 @@ def update_imports_in_file(file_path: Path) -> bool:
             content
         )
         
-        # Update specific module mappings
+        # Update specific module mappings (CORRECTED)
+        # Note: Most imports are already correct - these are for specific edge cases only
         replacements = {
-            'from madspark.utils.utils.errors': 'from madspark.utils.utils.errors',
-            'from madspark.utils.utils.constants': 'from madspark.utils.utils.constants',
-            'from madspark.utils.utils': 'from madspark.utils.utils.utils',
-            'from madspark.utils.cache_manager': 'from madspark.utils.utils.cache_manager',
-            'from madspark.utils.bookmark_system': 'from madspark.utils.utils.bookmark_system',
-            'from madspark.utils.novelty_filter': 'from madspark.utils.utils.novelty_filter',
-            'from madspark.utils.temperature_control': 'from madspark.utils.utils.temperature_control',
-            'from madspark.utils.agent_retry_wrappers': 'from madspark.utils.utils.agent_retry_wrappers',
-            'from madspark.utils.verbose_logger': 'from madspark.utils.utils.verbose_logger',
-            'from madspark.utils.improved_idea_cleaner': 'from madspark.utils.utils.improved_idea_cleaner',
-            'from madspark.utils.export_utils': 'from madspark.utils.utils.export_utils',
-            'from madspark.core.coordinator': 'from madspark.core.coordinator',
-            'from madspark.core.async_coordinator': 'from madspark.core.async_coordinator',
-            'from madspark.core.enhanced_reasoning': 'from madspark.core.enhanced_reasoning',
-            'from madspark.cli.cli': 'from madspark.cli.cli.cli',
-            'from madspark.cli.interactive_mode': 'from madspark.cli.cli.interactive_mode',
-            'from madspark.utils.batch_processor': 'from madspark.utils.utils.batch_processor',
+            # Legacy direct imports that need package qualification
+            'from errors': 'from madspark.utils.errors',
+            'from constants': 'from madspark.utils.constants',
+            # Agent directory rename
+            'from madspark.agent_defs': 'from madspark.agents',
+            # CLI module corrections (not nested cli.cli.cli)
+            'from madspark.cli.cli.cli': 'from madspark.cli.cli',
+            'from madspark.cli.cli.interactive_mode': 'from madspark.cli.interactive_mode',
         }
         
         for old_import, new_import in replacements.items():

@@ -61,6 +61,17 @@ class InteractiveSession:
         print(f"📌 {title}")
         print(f"{'─' * 40}\n")
         
+    def _safe_input(self, prompt: str) -> str:
+        """Safe input wrapper that handles EOF and KeyboardInterrupt."""
+        try:
+            return input(prompt)
+        except EOFError:
+            print("\n\n👋 Session ended by user. Goodbye!")
+            sys.exit(0)
+        except KeyboardInterrupt:
+            print("\n\n⚠️  Session interrupted by user. Goodbye!")
+            sys.exit(0)
+    
     def get_input_with_default(self, prompt: str, default: str = "") -> str:
         """Get user input with optional default value."""
         if default:
@@ -68,7 +79,7 @@ class InteractiveSession:
         else:
             prompt = f"{prompt}: "
             
-        value = input(prompt).strip()
+        value = self._safe_input(prompt).strip()
         return value if value else default
         
     def get_yes_no(self, prompt: str, default: bool = True) -> bool:
@@ -77,7 +88,7 @@ class InteractiveSession:
         prompt = f"{prompt} [{'Y/n' if default else 'y/N'}]: "
         
         while True:
-            value = input(prompt).strip().lower()
+            value = self._safe_input(prompt).strip().lower()
             if not value:
                 return default
             if value in ('y', 'yes'):

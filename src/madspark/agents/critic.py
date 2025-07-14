@@ -10,9 +10,9 @@ from google import genai
 from google.genai import types
 
 try:
-    from madspark.utils.utils.utils.errors import ConfigurationError
+    from madspark.utils.errors import ConfigurationError
     from madspark.agents.genai_client import get_genai_client, get_model_name
-    from madspark.utils.utils.utils.constants import CRITIC_SYSTEM_INSTRUCTION, DEFAULT_CRITIC_TEMPERATURE
+    from madspark.utils.constants import CRITIC_SYSTEM_INSTRUCTION, DEFAULT_CRITIC_TEMPERATURE
 except ImportError:
     # Fallback for local development/testing
     from errors import ConfigurationError

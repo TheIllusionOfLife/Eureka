@@ -11,8 +11,8 @@ from google import genai
 from google.genai import types
 
 try:
-    from madspark.utils.utils.utils.constants import SKEPTIC_EMPTY_RESPONSE, SKEPTIC_SYSTEM_INSTRUCTION
-    from madspark.utils.utils.utils.errors import ConfigurationError
+    from madspark.utils.constants import SKEPTIC_EMPTY_RESPONSE, SKEPTIC_SYSTEM_INSTRUCTION
+    from madspark.utils.errors import ConfigurationError
     from madspark.agents.genai_client import get_genai_client, get_model_name
 except ImportError:
     # Fallback for local development/testing

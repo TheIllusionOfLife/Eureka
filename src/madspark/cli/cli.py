@@ -20,19 +20,19 @@ from improved_idea_cleaner import clean_improved_idea
 try:
     from madspark.core.coordinator import run_multistep_workflow
     from madspark.core.async_coordinator import AsyncCoordinator
-    from madspark.utils.utils.temperature_control import (
+    from madspark.utils.temperature_control import (
         TemperatureManager, 
         add_temperature_arguments,
         create_temperature_manager_from_args
     )
-    from madspark.utils.utils.bookmark_system import (
+    from madspark.utils.bookmark_system import (
         BookmarkManager,
         bookmark_from_result,
         list_bookmarks_cli,
         remix_with_bookmarks
     )
-    from madspark.utils.utils.export_utils import ExportManager, create_metadata_from_args
-    from madspark.utils.utils.cache_manager import CacheManager, CacheConfig
+    from madspark.utils.export_utils import ExportManager, create_metadata_from_args
+    from madspark.utils.cache_manager import CacheManager, CacheConfig
 except ImportError:
     # Fallback for local development/testing
     from coordinator import run_multistep_workflow
@@ -53,8 +53,8 @@ except ImportError:
 
 # Import interactive mode after the try/except blocks
 try:
-    from madspark.cli.cli.interactive_mode import run_interactive_mode
-    from madspark.utils.utils.batch_processor import BatchProcessor, create_sample_batch_file
+    from madspark.cli.interactive_mode import run_interactive_mode
+    from madspark.utils.batch_processor import BatchProcessor, create_sample_batch_file
 except ImportError:
     from interactive_mode import run_interactive_mode
     from batch_processor import BatchProcessor, create_sample_batch_file

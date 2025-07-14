@@ -68,8 +68,15 @@ class InteractiveSession:
         else:
             prompt = f"{prompt}: "
             
-        value = input(prompt).strip()
-        return value if value else default
+        try:
+            value = input(prompt).strip()
+            return value if value else default
+        except EOFError:
+            print("\n\n👋 Session ended by user. Goodbye!")
+            sys.exit(0)
+        except KeyboardInterrupt:
+            print("\n\n⚠️  Session interrupted by user. Goodbye!")
+            sys.exit(0)
         
     def get_yes_no(self, prompt: str, default: bool = True) -> bool:
         """Get yes/no input from user."""
@@ -77,14 +84,21 @@ class InteractiveSession:
         prompt = f"{prompt} [{'Y/n' if default else 'y/N'}]: "
         
         while True:
-            value = input(prompt).strip().lower()
-            if not value:
-                return default
-            if value in ('y', 'yes'):
-                return True
-            if value in ('n', 'no'):
-                return False
-            print("Please enter 'y' for yes or 'n' for no.")
+            try:
+                value = input(prompt).strip().lower()
+                if not value:
+                    return default
+                if value in ('y', 'yes'):
+                    return True
+                if value in ('n', 'no'):
+                    return False
+                print("Please enter 'y' for yes or 'n' for no.")
+            except EOFError:
+                print("\n\n👋 Session ended by user. Goodbye!")
+                sys.exit(0)
+            except KeyboardInterrupt:
+                print("\n\n⚠️  Session interrupted by user. Goodbye!")
+                sys.exit(0)
             
     def get_choice(self, prompt: str, options: List[Tuple[str, str]], default: int = 0) -> str:
         """Get user choice from a list of options."""

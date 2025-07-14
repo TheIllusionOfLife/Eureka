@@ -18,12 +18,15 @@ import sys
 import os
 import asyncio
 
-# Add parent directory to path for imports
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Add src directory to path for imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(os.path.dirname(current_dir))
+src_dir = os.path.join(project_root, 'src')
+sys.path.insert(0, src_dir)
 
-from coordinator import run_multistep_workflow
-from async_coordinator import AsyncCoordinator
-from cache_manager import CacheManager
+from madspark.core.coordinator import run_multistep_workflow
+from madspark.core.async_coordinator import AsyncCoordinator
+from madspark.utils.cache_manager import CacheManager
 
 
 class PerformanceBenchmark:

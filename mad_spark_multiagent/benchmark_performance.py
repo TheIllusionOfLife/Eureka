@@ -55,12 +55,12 @@ class PerformanceBenchmark:
         try:
             result = run_multistep_workflow(theme, constraints, num_candidates=num_candidates)
             success = True
-            idea_count = len(result.get("results", []))
+            idea_count = len(result) if isinstance(result, list) else 0
         except Exception as e:
             print(f"Error in sync workflow: {e}")
             success = False
             idea_count = 0
-            result = {}
+            result = []
         
         end_time = time.time()
         end_memory = self.measure_memory()
@@ -98,12 +98,12 @@ class PerformanceBenchmark:
                 timeout=120
             )
             success = True
-            idea_count = len(result.get("results", []))
+            idea_count = len(result) if isinstance(result, list) else 0
         except Exception as e:
             print(f"Error in async workflow: {e}")
             success = False
             idea_count = 0
-            result = {}
+            result = []
         
         end_time = time.time()
         end_memory = self.measure_memory()
@@ -148,7 +148,12 @@ class PerformanceBenchmark:
             # Cache hit test
             hits = 0
             misses = 0
+            # Set 5 keys to test for hits
+            for i in range(5):
+                cache_manager.set(f"{test_key}_{i}", test_data)
+
             for i in range(10):
+                # First 5 should be hits, next 5 should be misses
                 if cache_manager.get(f"{test_key}_{i}"):
                     hits += 1
                 else:
@@ -227,15 +232,25 @@ class PerformanceBenchmark:
     
     def generate_report(self):
         """Generate a markdown report"""
+        # Safe formatting for numeric values
+        def format_metric(value, suffix=""):
+            if isinstance(value, (int, float)):
+                return f"{value:.2f}{suffix}"
+            return "N/A"
+        
+        avg_sync = self.results['summary'].get('avg_sync_time')
+        avg_async = self.results['summary'].get('avg_async_time') 
+        speedup = self.results['summary'].get('async_speedup')
+        
         report = f"""# MadSpark Performance Benchmark Report
 
 Generated: {self.results['timestamp']}
 
 ## Summary
 
-- **Average Sync Time**: {self.results['summary'].get('avg_sync_time', 'N/A'):.2f}s
-- **Average Async Time**: {self.results['summary'].get('avg_async_time', 'N/A'):.2f}s
-- **Async Speedup**: {self.results['summary'].get('async_speedup', 'N/A'):.2f}x
+- **Average Sync Time**: {format_metric(avg_sync, "s")}
+- **Average Async Time**: {format_metric(avg_async, "s")}
+- **Async Speedup**: {format_metric(speedup, "x")}
 
 ## Cache Performance
 

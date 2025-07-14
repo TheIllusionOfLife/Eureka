@@ -281,6 +281,15 @@ The enhanced reasoning system integrates seamlessly with the existing multi-agen
 4. **Advocacy/Skepticism** → Enhanced with inference chains and confidence scoring
 5. **Final Results** → Enriched with reasoning insights and quality scores
 
+## 📚 User Guides
+
+### Quick Start
+- **[Quick Start Examples](docs/QUICK_START_EXAMPLES.md)** - Common usage patterns and recipes
+- **[Batch Processing Guide](docs/BATCH_PROCESSING_GUIDE.md)** - Process multiple themes efficiently  
+- **[Interactive Mode Guide](docs/INTERACTIVE_MODE_GUIDE.md)** - Conversational idea exploration
+- **[Web Interface Guide](docs/WEB_INTERFACE_GUIDE.md)** - Modern UI with real-time updates
+- **[Performance Benchmark Report](benchmark_report.md)** - Performance analysis and optimization results
+
 ## CLI Usage Examples
 
 ### Phase 1 Features

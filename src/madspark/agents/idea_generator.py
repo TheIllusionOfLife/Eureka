@@ -26,10 +26,10 @@ except ImportError:
 
 # Import prompt constants from constants module
 try:
-    from madspark.utils.constants import IDEA_GENERATION_INSTRUCTION, IDEA_GENERATOR_SYSTEM_INSTRUCTION as SYSTEM_INSTRUCTION
+    from madspark.utils.constants import IDEA_GENERATION_INSTRUCTION, IDEA_GENERATOR_SYSTEM_INSTRUCTION as SYSTEM_INSTRUCTION, LANGUAGE_CONSISTENCY_INSTRUCTION
 except ImportError:
     # Fallback for local development/testing
-    from constants import IDEA_GENERATION_INSTRUCTION, IDEA_GENERATOR_SYSTEM_INSTRUCTION as SYSTEM_INSTRUCTION
+    from constants import IDEA_GENERATION_INSTRUCTION, IDEA_GENERATOR_SYSTEM_INSTRUCTION as SYSTEM_INSTRUCTION, LANGUAGE_CONSISTENCY_INSTRUCTION
 
 # Safety settings for constructive feedback generation
 # These relaxed thresholds are necessary to prevent overly aggressive content
@@ -82,6 +82,7 @@ def build_generation_prompt(topic: str, context: str) -> str:
     A formatted prompt string to be used by the idea generator agent.
   """
   return (
+      LANGUAGE_CONSISTENCY_INSTRUCTION +
       f"Use the context below to {IDEA_GENERATION_INSTRUCTION}"
       f" on the topic of {topic}. Make sure the ideas are actionable and"
       f" innovative.\n\nContext:\n{context}\n\nIdeas:"
@@ -124,8 +125,18 @@ def generate_ideas(topic: str, context: str, temperature: float = 0.9) -> str:
   prompt: str = build_generation_prompt(topic=topic, context=context)
   
   if not GENAI_AVAILABLE:
-    # Return mock response for CI/testing environments
-    return f"Mock idea generated for topic '{topic}' with context '{context}' at temperature {temperature}"
+    # Return mock response for CI/testing environments with language matching demo
+    # Simple language detection for mock responses
+    if any(char >= '\u3040' and char <= '\u309F' or char >= '\u30A0' and char <= '\u30FF' or char >= '\u4E00' and char <= '\u9FAF' for char in topic + context):
+        return f"モック生成されたアイデア '{topic}' のトピックで '{context}' のコンテキスト (温度 {temperature})"
+    elif any(char in 'àâäæéèêëïîôöùûüÿ' for char in (topic + context).lower()):
+        return f"Idée factice générée pour le sujet '{topic}' avec le contexte '{context}' à la température {temperature}"
+    elif any(char in 'ñáíóúüç' for char in (topic + context).lower()):
+        return f"Idea simulada generada para el tema '{topic}' con contexto '{context}' a temperatura {temperature}"
+    elif any(char in 'äöüß' for char in (topic + context).lower()):
+        return f"Mock-Idee generiert für Thema '{topic}' mit Kontext '{context}' bei Temperatur {temperature}"
+    else:
+        return f"Mock idea generated for topic '{topic}' with context '{context}' at temperature {temperature}"
   
   if idea_generator_client is None:
     raise ConfigurationError("GOOGLE_API_KEY not configured - cannot generate ideas")
@@ -174,7 +185,8 @@ def build_improvement_prompt(
     A formatted prompt string for idea improvement.
   """
   return (
-      f"You are helping to enhance an innovative idea based on comprehensive feedback.\n\n"
+      f"You are helping to enhance an innovative idea based on comprehensive feedback.\n" +
+      LANGUAGE_CONSISTENCY_INSTRUCTION +
       f"ORIGINAL THEME: {theme}\n\n"
       f"ORIGINAL IDEA:\n{original_idea}\n\n"
       f"EVALUATION CRITERIA AND FEEDBACK:\n{critique}\n"

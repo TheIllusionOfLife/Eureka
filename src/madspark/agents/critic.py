@@ -20,12 +20,12 @@ except ImportError:
 try:
     from madspark.utils.errors import ConfigurationError
     from madspark.agents.genai_client import get_genai_client, get_model_name
-    from madspark.utils.constants import CRITIC_SYSTEM_INSTRUCTION, DEFAULT_CRITIC_TEMPERATURE
+    from madspark.utils.constants import CRITIC_SYSTEM_INSTRUCTION, DEFAULT_CRITIC_TEMPERATURE, LANGUAGE_CONSISTENCY_INSTRUCTION
 except ImportError:
     # Fallback for local development/testing
     from errors import ConfigurationError
     from .genai_client import get_genai_client, get_model_name
-    from constants import CRITIC_SYSTEM_INSTRUCTION, DEFAULT_CRITIC_TEMPERATURE
+    from constants import CRITIC_SYSTEM_INSTRUCTION, DEFAULT_CRITIC_TEMPERATURE, LANGUAGE_CONSISTENCY_INSTRUCTION
 
 # Configure the Google GenAI client
 if GENAI_AVAILABLE:
@@ -64,6 +64,7 @@ def evaluate_ideas(ideas: str, criteria: str, context: str, temperature: float =
     raise ValueError("Input 'context' to evaluate_ideas must be a non-empty string.")
 
   prompt: str = (
+      LANGUAGE_CONSISTENCY_INSTRUCTION +
       "You will be provided with a list of ideas, evaluation criteria, and context.\n"
       "For each idea, you MUST provide an evaluation in the form of a single-line JSON object string.\n"
       "Each JSON object must have exactly two keys: 'score' (an integer from 1 to 10, where 10 is best) "
@@ -78,8 +79,19 @@ def evaluate_ideas(ideas: str, criteria: str, context: str, temperature: float =
   )
   
   if not GENAI_AVAILABLE:
-    # Return mock evaluation for CI/testing environments
-    return '{"score": 8, "reasoning": "Mock evaluation for testing"}'
+    # Return mock evaluation for CI/testing environments with language matching demo
+    # Simple language detection for mock responses
+    combined_text = ideas + criteria + context
+    if any(char >= '\u3040' and char <= '\u309F' or char >= '\u30A0' and char <= '\u30FF' or char >= '\u4E00' and char <= '\u9FAF' for char in combined_text):
+        return '{"score": 8, "comment": "テスト用のモック評価"}'
+    elif any(char in 'àâäæéèêëïîôöùûüÿ' for char in combined_text.lower()):
+        return '{"score": 8, "comment": "Évaluation factice pour les tests"}'
+    elif any(char in 'ñáíóúüç' for char in combined_text.lower()):
+        return '{"score": 8, "comment": "Evaluación simulada para pruebas"}'
+    elif any(char in 'äöüß' for char in combined_text.lower()):
+        return '{"score": 8, "comment": "Mock-Bewertung für Tests"}'
+    else:
+        return '{"score": 8, "comment": "Mock evaluation for testing"}'
   
   if critic_client is None:
     raise ConfigurationError("GOOGLE_API_KEY not configured - cannot evaluate ideas")

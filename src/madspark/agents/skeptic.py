@@ -19,12 +19,12 @@ except ImportError:
     GENAI_AVAILABLE = False
 
 try:
-    from madspark.utils.constants import SKEPTIC_EMPTY_RESPONSE, SKEPTIC_SYSTEM_INSTRUCTION
+    from madspark.utils.constants import SKEPTIC_EMPTY_RESPONSE, SKEPTIC_SYSTEM_INSTRUCTION, LANGUAGE_CONSISTENCY_INSTRUCTION
     from madspark.utils.errors import ConfigurationError
     from madspark.agents.genai_client import get_genai_client, get_model_name
 except ImportError:
     # Fallback for local development/testing
-    from constants import SKEPTIC_EMPTY_RESPONSE, SKEPTIC_SYSTEM_INSTRUCTION
+    from constants import SKEPTIC_EMPTY_RESPONSE, SKEPTIC_SYSTEM_INSTRUCTION, LANGUAGE_CONSISTENCY_INSTRUCTION
     from errors import ConfigurationError
     from .genai_client import get_genai_client, get_model_name
 
@@ -62,6 +62,7 @@ def criticize_idea(idea: str, advocacy: str, context: str, temperature: float = 
     raise ValueError("Input 'context' to criticize_idea must be a non-empty string.")
 
   prompt: str = (
+      LANGUAGE_CONSISTENCY_INSTRUCTION +
       f"Here's an idea:\n{idea}\n\n"
       f"Here's the case made for it:\n{advocacy}\n\n"
       f"And the context:\n{context}\n\n"
@@ -85,8 +86,19 @@ def criticize_idea(idea: str, advocacy: str, context: str, temperature: float = 
   )
   
   if not GENAI_AVAILABLE:
-    # Return mock criticism for CI/testing environments
-    return "CRITICAL FLAWS:\n• Mock flaw 1\n• Mock flaw 2\n\nRISKS & CHALLENGES:\n• Mock risk 1\n• Mock risk 2\n\nQUESTIONABLE ASSUMPTIONS:\n• Mock assumption 1\n• Mock assumption 2\n\nMISSING CONSIDERATIONS:\n• Mock missing factor 1\n• Mock missing factor 2"
+    # Return mock criticism for CI/testing environments with language matching demo
+    # Simple language detection for mock responses
+    combined_text = idea + advocacy + context
+    if any(char >= '\u3040' and char <= '\u309F' or char >= '\u30A0' and char <= '\u30FF' or char >= '\u4E00' and char <= '\u9FAF' for char in combined_text):
+        return "重大な欠陥:\n• モック欠陥1\n• モック欠陥2\n\nリスクと課題:\n• モックリスク1\n• モックリスク2\n\n疑問のある仮定:\n• モック仮定1\n• モック仮定2\n\n見落とされた考慮事項:\n• モック欠落要因1\n• モック欠落要因2"
+    elif any(char in 'àâäæéèêëïîôöùûüÿ' for char in combined_text.lower()):
+        return "DÉFAUTS CRITIQUES:\n• Défaut factice 1\n• Défaut factice 2\n\nRISQUES ET DÉFIS:\n• Risque factice 1\n• Risque factice 2\n\nHYPOTHÈSES DOUTEUSES:\n• Hypothèse factice 1\n• Hypothèse factice 2\n\nCONSIDÉRATIONS MANQUANTES:\n• Facteur manquant factice 1\n• Facteur manquant factice 2"
+    elif any(char in 'ñáíóúüç' for char in combined_text.lower()):
+        return "FALLAS CRÍTICAS:\n• Falla simulada 1\n• Falla simulada 2\n\nRIESGOS Y DESAFÍOS:\n• Riesgo simulado 1\n• Riesgo simulado 2\n\nSUPOSICIONES CUESTIONABLES:\n• Suposición simulada 1\n• Suposición simulada 2\n\nCONSIDERACIONES FALTANTES:\n• Factor faltante simulado 1\n• Factor faltante simulado 2"
+    elif any(char in 'äöüß' for char in combined_text.lower()):
+        return "KRITISCHE SCHWÄCHEN:\n• Mock-Schwäche 1\n• Mock-Schwäche 2\n\nRISIKEN UND HERAUSFORDERUNGEN:\n• Mock-Risiko 1\n• Mock-Risiko 2\n\nFRAGWÜRDIGE ANNAHMEN:\n• Mock-Annahme 1\n• Mock-Annahme 2\n\nFEHLENDE ÜBERLEGUNGEN:\n• Mock-fehlender Faktor 1\n• Mock-fehlender Faktor 2"
+    else:
+        return "CRITICAL FLAWS:\n• Mock flaw 1\n• Mock flaw 2\n\nRISKS & CHALLENGES:\n• Mock risk 1\n• Mock risk 2\n\nQUESTIONABLE ASSUMPTIONS:\n• Mock assumption 1\n• Mock assumption 2\n\nMISSING CONSIDERATIONS:\n• Mock missing factor 1\n• Mock missing factor 2"
   
   if skeptic_client is None:
     raise ConfigurationError("GOOGLE_API_KEY not configured - cannot criticize ideas")

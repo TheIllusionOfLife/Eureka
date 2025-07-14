@@ -418,23 +418,12 @@ def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
         return json.dumps(cleaned_results, indent=2, ensure_ascii=False)
     
     elif format_type == 'summary':
-<<<<<<< HEAD
-        lines = [f"Generated {len(results)} improved ideas:\n"]
-        for i, result in enumerate(results, 1):
-            lines.append(f"--- IMPROVED IDEA {i} ---")
-            
-            # Clean and truncate improved ideas for summary view
-            improved_idea = result.get('improved_idea', 'No improved idea available')
-            if improved_idea != 'No improved idea available':
-                improved_idea = clean_improved_idea(improved_idea)
-=======
         lines = [f"Generated {len(cleaned_results)} improved ideas:\n"]
         for i, result in enumerate(cleaned_results, 1):
             lines.append(f"--- IMPROVED IDEA {i} ---")
             
             # Get cleaned improved idea (already cleaned by clean_improved_ideas_in_results)
             improved_idea = result.get('improved_idea', 'No improved idea available')
->>>>>>> fc1c0dd9320f0bffb38b6b7327992a9cc51ee60d
             
             if len(improved_idea) > 500:
                 improved_idea = improved_idea[:497] + "..."

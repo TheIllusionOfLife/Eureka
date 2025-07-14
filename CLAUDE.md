@@ -16,13 +16,13 @@ Eureka features the MadSpark Multi-Agent System, a sophisticated AI-powered expe
 - **Run Coordinator**: `PYTHONPATH=src python -m madspark.core.coordinator`
 - **CLI Interface**: `PYTHONPATH=src python -m madspark.cli.cli "theme" "constraints"`
 - **Web Interface**: `cd web && docker-compose up`
-- **Run Tests**: `python tests/test_basic_imports_simple.py` (basic imports) or `PYTHONPATH=src pytest` (when comprehensive tests are migrated)
+- **Run Tests**: `PYTHONPATH=src pytest` (comprehensive test suite with 90%+ coverage) or `python tests/test_basic_imports_simple.py` (basic imports only)
 
 ## Testing Approach
 - **CI-Safe Tests**: Tests must run without external API calls using comprehensive mocking
-- **Current Infrastructure**: Basic import tests only (`test_basic_imports_simple.py`) - comprehensive test suite needs migration
+- **Current Infrastructure**: Full comprehensive test suite with 6 test modules (agents, coordinators, utils, cli, integration, interactive EOF)
 - **Mock Mode**: Primary testing mode to avoid API costs
-- **Coverage Goals**: 90%+ for critical paths (pending comprehensive test migration)
+- **Coverage Goals**: 90%+ for critical paths (achieved with PR #84 comprehensive test suite)
 
 ## Dependencies
 - **Python**: 3.10+ required for TypedDict and modern features

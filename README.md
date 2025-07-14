@@ -63,8 +63,13 @@ This enhancement addresses the limitation where valuable agent insights were onl
    pip install -r config/requirements.txt
    ```
 
-4. **API Key Configuration:**
-   Create a `.env` file in the project root:
+4. **Set Python path (required for the new structure):**
+   ```bash
+   export PYTHONPATH="${PYTHONPATH}:$(pwd)/src"  # On Windows: set PYTHONPATH=%PYTHONPATH%;%cd%\src
+   ```
+
+5. **API Key Configuration:**
+   Create a `.env` file in the `src/madspark/` directory:
    ```env
    GOOGLE_API_KEY="YOUR_API_KEY_HERE"
    GOOGLE_GENAI_MODEL="gemini-2.5-flash"

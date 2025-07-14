@@ -3,13 +3,23 @@ Basic import tests for MadSpark Multi-Agent System.
 
 These tests verify that the package structure is correct and core modules
 can be imported without external dependencies.
+
+NOTE: This file requires pytest. For a pytest-free version, use test_basic_imports_simple.py
 """
-import pytest
 import sys
 import os
 
 # Add src to path for testing
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+
+# Check if pytest is available
+try:
+    import pytest
+except ImportError:
+    print("❌ Error: pytest is not installed.")
+    print("To run these tests, install pytest: pip install pytest")
+    print("For a pytest-free alternative, run: python test_basic_imports_simple.py")
+    sys.exit(1)
 
 
 def test_package_imports():

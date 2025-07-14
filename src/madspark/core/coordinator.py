@@ -217,13 +217,22 @@ class CandidateData(TypedDict):
 
 
 # Import retry-wrapped versions of agent calls from shared module
-from agent_retry_wrappers import (
-    call_idea_generator_with_retry,
-    call_critic_with_retry,
-    call_advocate_with_retry,
-    call_skeptic_with_retry,
-    call_improve_idea_with_retry
-)
+try:
+    from madspark.utils.agent_retry_wrappers import (
+        call_idea_generator_with_retry,
+        call_critic_with_retry,
+        call_advocate_with_retry,
+        call_skeptic_with_retry,
+        call_improve_idea_with_retry
+    )
+except ImportError:
+    from ..utils.agent_retry_wrappers import (
+        call_idea_generator_with_retry,
+        call_critic_with_retry,
+        call_advocate_with_retry,
+        call_skeptic_with_retry,
+        call_improve_idea_with_retry
+    )
 
 
 def run_multistep_workflow(

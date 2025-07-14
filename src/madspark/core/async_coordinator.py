@@ -38,13 +38,22 @@ ProgressCallback = Callable[[str, float], Awaitable[None]]
 
 
 # Import retry-wrapped versions of agent functions from shared module
-from agent_retry_wrappers import (
-    generate_ideas_with_retry,
-    evaluate_ideas_with_retry,
-    advocate_idea_with_retry,
-    criticize_idea_with_retry,
-    improve_idea_with_retry
-)
+try:
+    from madspark.utils.agent_retry_wrappers import (
+        generate_ideas_with_retry,
+        evaluate_ideas_with_retry,
+        advocate_idea_with_retry,
+        criticize_idea_with_retry,
+        improve_idea_with_retry
+    )
+except ImportError:
+    from ..utils.agent_retry_wrappers import (
+        generate_ideas_with_retry,
+        evaluate_ideas_with_retry,
+        advocate_idea_with_retry,
+        criticize_idea_with_retry,
+        improve_idea_with_retry
+    )
 
 
 async def async_generate_ideas(topic: str, context: str, temperature: float = 0.9, cache_manager: Optional[CacheManager] = None) -> str:

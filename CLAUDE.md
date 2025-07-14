@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Eureka features the MadSpark Multi-Agent System, a sophisticated AI-powered experimental platform implementing a hybrid architecture with multiple operational modes.
 
 ## Architecture Patterns
-- **Package Structure**: Uses standard `src/madspark/` layout with subpackages for agents, core, utils, cli, and web_api
+- **Package Structure**: Uses standard `src/madspark/` layout with subpackages for agents, core, utils, cli (web_api package is placeholder)
 - **Import Strategy**: Try/except blocks with relative fallbacks for multi-environment compatibility
 - **Mock-First Development**: All functionality must work in mock mode without API keys
 - **Operational Modes**: Mock (development), Direct API (production), ADK Framework (experimental)
@@ -16,20 +16,21 @@ Eureka features the MadSpark Multi-Agent System, a sophisticated AI-powered expe
 - **Run Coordinator**: `PYTHONPATH=src python -m madspark.core.coordinator`
 - **CLI Interface**: `PYTHONPATH=src python -m madspark.cli.cli "theme" "constraints"`
 - **Web Interface**: `cd web && docker-compose up`
-- **Run Tests**: `PYTHONPATH=src pytest` (comprehensive) or `python tests/test_basic_imports_simple.py` (quick check)
+- **Run Tests**: `python tests/test_basic_imports_simple.py` (basic imports) or `PYTHONPATH=src pytest` (when comprehensive tests are migrated)
 
 ## Testing Approach
 - **CI-Safe Tests**: Tests must run without external API calls using comprehensive mocking
-- **Import Tests**: Basic functionality verified through import tests
+- **Current Infrastructure**: Basic import tests only (`test_basic_imports_simple.py`) - comprehensive test suite needs migration
 - **Mock Mode**: Primary testing mode to avoid API costs
-- **Coverage Goals**: 90%+ for critical paths, currently at 95%
+- **Coverage Goals**: 90%+ for critical paths (pending comprehensive test migration)
 
 ## Dependencies
 - **Python**: 3.10+ required for TypedDict and modern features
-- **Core**: google-generativeai, python-dotenv, colorama
-- **Testing**: pytest, pytest-cov, pytest-asyncio
-- **Optional**: ruff for linting, redis for caching, mypy for type checking
-- **Web**: FastAPI, React 18.2, TypeScript, Docker
+- **Core**: google-genai, python-dotenv (from `config/requirements.txt`)
+- **Testing**: pytest, pytest-mock, pytest-asyncio
+- **Caching**: redis (available but optional)
+- **Optional**: ruff for linting, mypy for type checking
+- **Web**: FastAPI, React 18.2, TypeScript, Docker (in `web/` directory)
 
 ## PR Review Management
 

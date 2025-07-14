@@ -125,3 +125,11 @@ CLEANER_FRAMEWORK_CLEANUP_PATTERN = r'^[:\s]*(?:a\s+)?more\s+robust.*?system\s+'
 CLEANER_TITLE_EXTRACTION_PATTERN = r'"([^"]+)"'
 CLEANER_TITLE_REPLACEMENT_PATTERN = r'^.*?"[^"]+".*?\n+'
 CLEANER_TITLE_KEYWORDS = ['Framework', 'System', 'Engine']
+
+# Temperature presets (required by CLAUDE.md guidelines)
+TEMPERATURE_PRESETS = {
+    "conservative": 0.25,
+    "balanced": 0.50,
+    "creative": 0.75,
+    "wild": 0.90,
+}

@@ -255,6 +255,8 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, showDetailedRe
                     title="Original vs Improved Idea Comparison"
                     originalLabel="Original Idea"
                     improvedLabel="Improved Idea"
+                    originalScore={result.initial_score}
+                    improvedScore={result.improved_score}
                     data={[
                       { 
                         dimension: 'Feasibility', 
@@ -501,6 +503,8 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, showDetailedRe
                           title="Original vs Improved Idea Comparison"
                           originalLabel="Original Idea"
                           improvedLabel="Improved Idea"
+                          originalScore={result.initial_score}
+                          improvedScore={result.improved_score}
                           data={[
                             { 
                               dimension: 'Feasibility', 

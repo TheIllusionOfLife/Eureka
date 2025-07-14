@@ -22,13 +22,17 @@ interface ComparisonRadarChartProps {
   title?: string;
   originalLabel?: string;
   improvedLabel?: string;
+  originalScore?: number;
+  improvedScore?: number;
 }
 
 const ComparisonRadarChart: React.FC<ComparisonRadarChartProps> = ({ 
   data, 
   title, 
   originalLabel = "Original Idea",
-  improvedLabel = "Improved Idea"
+  improvedLabel = "Improved Idea",
+  originalScore: providedOriginalScore,
+  improvedScore: providedImprovedScore
 }) => {
   // Custom tooltip to show both scores
   const CustomTooltip = ({ active, payload }: any) => {
@@ -73,9 +77,9 @@ const ComparisonRadarChart: React.FC<ComparisonRadarChartProps> = ({
     return descriptions[dimension] || '';
   };
 
-  // Calculate overall scores
-  const originalScore = data.length > 0 ? data.reduce((sum, item) => sum + item.original, 0) / data.length : 0;
-  const improvedScore = data.length > 0 ? data.reduce((sum, item) => sum + item.improved, 0) / data.length : 0;
+  // Calculate overall scores - use provided scores if available, otherwise calculate from dimension data
+  const originalScore = providedOriginalScore ?? (data.length > 0 ? data.reduce((sum, item) => sum + item.original, 0) / data.length : 0);
+  const improvedScore = providedImprovedScore ?? (data.length > 0 ? data.reduce((sum, item) => sum + item.improved, 0) / data.length : 0);
   const improvement = improvedScore - originalScore;
   
   const getScoreColor = (score: number) => 

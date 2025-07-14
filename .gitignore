@@ -194,29 +194,26 @@ cython_debug/
 .cursorindexingignore
 
 # MadSpark Multi-Agent System
-# Temporary output files
-mad_spark_multiagent/temp/results.json
-mad_spark_multiagent/temp/results.md
-mad_spark_multiagent/temp/*.json
-mad_spark_multiagent/temp/*.md
+# Runtime data directory
+data/logs/
+data/temp/
+data/exports/
+!data/exports/README.md
 
-# Export files (timestamped generated output)
-mad_spark_multiagent/exports/madspark_results_*.md
-mad_spark_multiagent/exports/madspark_results_*.json
-mad_spark_multiagent/exports/madspark_results_*.csv
-mad_spark_multiagent/exports/madspark_results_*.pdf
+# Old structure (being deprecated)
+mad_spark_multiagent/
 
-# Batch processing outputs
-mad_spark_multiagent/batch_exports/
+# Build artifacts
+**/__pycache__/
+**/*.pyc
+**/node_modules/
+**/.pytest_cache/
 
-# Test exports (keep empty directory but ignore contents)
-mad_spark_multiagent/test_exports/*.md
-mad_spark_multiagent/test_exports/*.json
-mad_spark_multiagent/test_exports/*.csv
-mad_spark_multiagent/test_exports/*.pdf
-
-# Test output files
-mad_spark_multiagent/test_output.json
+# Development
+.coverage
+*.egg-info/
+dist/
+build/
 
 # Node.js dependencies  
 node_modules/

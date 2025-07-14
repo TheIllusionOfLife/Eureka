@@ -1,20 +1,129 @@
-# Eureka
+# MadSpark Multi-Agent System
 
-A collection of AI-powered experimental projects and research initiatives.
+[![Phase](https://img.shields.io/badge/Phase-2.1%20Complete-success)](#project-status) [![Enhancement](https://img.shields.io/badge/Enhancement-Feedback%20Loop%20MERGED-brightgreen)](#feedback-loop-enhancement) [![Testing](https://img.shields.io/badge/Testing-95%25%20Coverage-success)](#testing) [![Next](https://img.shields.io/badge/Next-User%20Testing-blue)](#roadmap)
 
-## Projects
+This project implements a sophisticated multi-agent system for idea generation and refinement using Google's Gemini API with advanced reasoning capabilities. It includes specialized agents for idea generation, criticism, advocacy, and skepticism, orchestrated by a coordinator enhanced with context-aware reasoning, logical inference, and multi-dimensional evaluation.
 
-### MadSpark Multi-Agent System
+## 🚀 NEW: Feedback Loop Enhancement
 
-[![Phase](https://img.shields.io/badge/Phase-2%20Complete-success)](#madspark-multi-agent-system) [![Architecture](https://img.shields.io/badge/Architecture-Production%20Ready-purple)](#architecture) [![Testing](https://img.shields.io/badge/Testing-95%25%20Coverage-success)](#development)
+The system now implements a **feedback loop mechanism** where agent outputs are used to generate improved ideas:
 
-**Location**: `mad_spark_multiagent/`
+### Previous Flow (Static):
+```
+IdeaGen → Critic(score₁) → Advocate → Skeptic → [END - just display]
+```
 
-An AI-powered idea generation and evaluation system using Google's Gemini API with multiple specialized agents. This project implements a **sophisticated reasoning architecture** that evolves from basic agent coordination to advanced context-aware behaviors with logical inference, multi-dimensional evaluation, and agent memory systems.
+### New Flow (Dynamic Improvement):
+```
+IdeaGen → Critic(score₁) → Advocate → Skeptic → IdeaGen_v2 → Critic(score₂) → [Display with comparison]
+```
 
-#### Key Features
+### Key Features:
+- **Structured Agent Outputs**: Advocate and Skeptic now output bullet-point lists for clear, actionable feedback
+- **Idea Improvement**: Ideas are regenerated based on all agent feedback, maintaining strengths while addressing weaknesses
+- **Score Comparison**: Visual comparison between original and improved scores with delta indicators
+- **Transparent Process**: Users see both original and improved ideas with full critique history
 
-**Phase 1 Foundation (Completed)**:
+### Example Output:
+```
+Original Idea: AI-powered personal assistant for elderly care
+Score: 6.5/10
+
+[Advocate Points] → [Skeptic Concerns] → [Improvement Process]
+
+Improved Idea: Privacy-first AI companion with local processing and family oversight
+Score: 8.2/10 (↑ +1.7 points, 26% improvement)
+```
+
+This enhancement addresses the limitation where valuable agent insights were only displayed without influencing the final output, resulting in more refined and robust ideas.
+
+## Quick Start
+
+### Prerequisites
+- Python 3.10 or newer (required for TypedDict and modern features)
+- Access to Google Gemini API (recommended: gemini-2.5-flash)
+- Optional: pytest for running tests, ruff for linting
+
+### Installation
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/TheIllusionOfLife/Eureka.git
+   cd Eureka
+   ```
+
+2. **Create a virtual environment:**
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+   ```
+
+3. **Install dependencies:**
+   ```bash
+   pip install -r config/requirements.txt
+   ```
+
+4. **API Key Configuration:**
+   Create a `.env` file in the project root:
+   ```env
+   GOOGLE_API_KEY="YOUR_API_KEY_HERE"
+   GOOGLE_GENAI_MODEL="gemini-2.5-flash"
+   ```
+
+### Basic Usage
+
+```bash
+# Run the basic workflow
+python -m madspark.core.coordinator
+
+# Use the CLI interface
+python -m madspark.cli.cli "Your theme" "Your constraints" --temperature 0.8
+
+# Interactive mode
+python -m madspark.cli.interactive_mode
+
+# Web interface
+cd web && docker-compose up
+```
+
+## Project Structure
+
+```
+eureka/                               # MadSpark Multi-Agent System
+├── README.md                         # This file
+├── docs/                            # User guides & tutorials
+│   ├── QUICK_START_EXAMPLES.md      # Common usage patterns
+│   ├── BATCH_PROCESSING_GUIDE.md    # Batch processing guide
+│   ├── INTERACTIVE_MODE_GUIDE.md    # Interactive CLI guide
+│   └── WEB_INTERFACE_GUIDE.md       # Web UI guide
+├── src/                             # Core application code
+│   └── madspark/                    # Main package
+│       ├── agents/                  # Agent definitions
+│       ├── core/                    # Coordinators & core logic
+│       ├── utils/                   # Utilities (cache, bookmark, etc.)
+│       ├── cli/                     # CLI interface
+│       └── web_api/                 # Web API backend
+├── tests/                           # All test files
+├── tools/                           # Development & utility tools
+│   ├── benchmark/                   # Performance benchmarking
+│   ├── debug/                       # Debug utilities
+│   └── batch/                       # Batch processing tools
+├── data/                            # Runtime data
+│   ├── exports/                     # Generated exports
+│   ├── logs/                        # Application logs
+│   └── temp/                        # Temporary files
+├── config/                          # Configuration files
+│   ├── requirements.txt             # Python dependencies
+│   ├── pytest.ini                  # Test configuration
+│   └── constants.py                 # Application constants
+├── web/                             # Web frontend
+│   └── frontend/                    # React TypeScript app
+└── scripts/                         # Setup & utility scripts
+```
+
+## Core Features
+
+### Phase 1 Foundation (Completed)
 - **🏗️ Hybrid Architecture**: Three operational modes (Mock, Direct API, ADK Framework)
 - **🤖 Multi-Agent System**: IdeaGenerator, Critic, Advocate, and Skeptic agents
 - **🌡️ Temperature Control**: Full preset system with stage-specific creativity control
@@ -22,7 +131,7 @@ An AI-powered idea generation and evaluation system using Google's Gemini API wi
 - **📚 Bookmark & Remix**: Persistent idea storage with tagging and remix capabilities
 - **🖥️ Enhanced CLI**: Comprehensive command-line interface
 
-**Phase 2 Complete (All Features Implemented)**:
+### Phase 2 Complete (All Features Implemented)
 - **🧠 Context-Aware Agents**: Agents reference conversation history for informed decisions
 - **🔗 Logical Inference**: Sophisticated reasoning chains with confidence scoring
 - **📊 Multi-Dimensional Evaluation**: 7-dimension assessment framework with radar chart visualization
@@ -35,217 +144,66 @@ An AI-powered idea generation and evaluation system using Google's Gemini API wi
 - **📤 Export Formats**: Support for JSON, CSV, Markdown, and PDF exports
 - **🧪 Production Ready**: 95% test coverage, CI/CD validation, and comprehensive error handling
 
-#### Quick Start
+## Development
 
+### Running Tests
 ```bash
-cd mad_spark_multiagent
+# Run all tests
+pytest tests/ -v
 
-# Set up environment (requires Python 3.10+)
-make install
+# Run with coverage
+pytest --cov=src --cov-report=html
 
-# Run basic tests (no API key required)
-make test-basic
-
-# Run the system (requires GOOGLE_API_KEY in .env)
-make run
+# Run specific test file
+pytest tests/test_agents.py -v
 ```
 
-📖 **[See detailed documentation and full feature guide →](mad_spark_multiagent/README.md)**
+### Code Quality
+```bash
+# Linting
+ruff check src/
+
+# Type checking
+mypy src/
+
+# Security scanning
+bandit -r src/ -x tests/
 ```
 
-#### Current Status
+### Performance Benchmarking
+```bash
+# Run performance benchmarks
+python tools/benchmark/benchmark_performance.py
 
-| Component | Status | Notes |
-|-----------|--------|-------|
-| **Phase 1 Foundation** | ✅ Complete | All basic multi-agent features implemented |
-| Mock Mode | ✅ Working | Cost-free development and testing |
-| Direct API | ✅ Working | Production-ready Gemini integration |
-| ADK Framework | ⚠️ Issues | Integration challenges documented |
-| **Phase 2 Complete** | ✅ Complete | All advanced features merged to main |
-| Context Memory | ✅ Working | Intelligent context storage and retrieval |
-| Logical Inference | ✅ Working | Reasoning chains with confidence scoring |
-| Multi-Dimensional Evaluation | ✅ Working | 7-dimension assessment with radar charts |
-| Redis Caching | ✅ Working | LRU eviction with production-safe SCAN |
-| Batch Processing | ✅ Working | Parallel execution from CSV/JSON |
-| Interactive CLI | ✅ Working | Real-time conversation mode |
-| Web Interface | ✅ Working | React frontend with WebSocket updates |
-| Testing Infrastructure | ✅ Working | 95% test coverage across all components |
-| Documentation | ✅ Complete | Comprehensive guides and API documentation |
+# Generate benchmark report
+python tools/benchmark/generate_report.py
+```
 
-#### Architecture
+## Documentation
 
-**Core System Architecture**:
-1. **Mock Mode** 🔄: Cost-free development with consistent test responses
-2. **Direct Function Mode** 🚀: Production-ready Gemini API integration (recommended)
-3. **ADK Framework Mode** 🏗️: Advanced agent management with Google ADK
+For detailed usage instructions, see the documentation in the `docs/` directory:
 
-**Enhanced Reasoning Architecture (Phase 2.1)**:
-- **ReasoningEngine**: Main coordinator for all reasoning capabilities
-- **ContextMemory**: Persistent storage with intelligent similarity-based retrieval
-- **LogicalInference**: Reasoning chains using formal logic rules (modus ponens, etc.)
-- **MultiDimensionalEvaluator**: Sophisticated evaluation across 7 dimensions
-- **AgentConversationTracker**: Workflow analysis and pattern detection
-
-**Enhanced Workflow**: `Theme + Constraints → Context-Aware Agents → Reasoning Engine → Multi-Dimensional Evaluation → Final Results with Reasoning Insights`
-
-#### Development
-
-- **Requirements**: Python 3.10+, Google Gemini API access
-- **Testing**: `make test-basic` for quick verification, `make test` for comprehensive testing
-- **Documentation**: See `mad_spark_multiagent/README.md` for detailed setup and usage
-- **Architecture Notes**: See `mad_spark_multiagent/CLAUDE.md` for implementation decisions
-
-#### Implementation Background
-
-This implementation resulted from analyzing and combining the best features from three different architectural approaches:
-- **PR #42**: Proper ADK usage and clean package structure
-- **PR #43**: Robust error handling and comprehensive testing infrastructure  
-- **PR #44**: Temperature control and direct API simplicity
-
-The hybrid approach provides flexibility to choose between ADK framework or direct API calls based on specific needs, with graceful fallbacks ensuring system reliability.
-
----
-
-## Getting Started
-
-Each project directory contains its own README with specific setup instructions. Most projects require:
-
-- Python 3.10 or higher
-- Appropriate API keys for external services
-- Virtual environment setup (automated via Makefiles where available)
+- **[Quick Start Examples](docs/QUICK_START_EXAMPLES.md)** - Common usage patterns and recipes
+- **[Batch Processing Guide](docs/BATCH_PROCESSING_GUIDE.md)** - Process multiple themes from CSV/JSON
+- **[Interactive Mode Guide](docs/INTERACTIVE_MODE_GUIDE.md)** - Real-time conversational interface
+- **[Web Interface Guide](docs/WEB_INTERFACE_GUIDE.md)** - Modern web UI with real-time updates
 
 ## Contributing
 
-1. Navigate to the specific project directory
-2. Follow the project-specific README for setup
-3. Run tests before making changes
-4. Document any architectural decisions
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/your-feature`
+3. Make your changes and add tests
+4. Run the test suite: `pytest tests/`
+5. Commit your changes: `git commit -m "Add your feature"`
+6. Push to the branch: `git push origin feature/your-feature`
+7. Create a Pull Request
 
-## Session Handover
-
-### Last Updated: 2025-07-12 18:55 UTC
-
-#### Recently Completed
-- ✅ **PR #73**: Feedback Loop Enhancement - MERGED
-  - Dynamic idea improvement using agent feedback and re-evaluation
-  - Score comparison UI with delta indicators and visual improvements
-  - Critical security fixes (XSS prevention in MarkdownRenderer component)
-  - Type consistency fixes (initial_score changed from int to float)
-  - Test quality improvements (proper JSON mocking format for critic responses)
-  - Repository hygiene improvements (gitignore patterns for export files)
-  - Comprehensive documentation and implementation guide
-- ✅ **Multi-Bot PR Review Resolution**: Systematically addressed feedback from 3 AI reviewers
-  - claude[bot]: Division by zero bug, test mocking format issues, DRY violations
-  - gemini-code-assist[bot]: XSS vulnerability, type inconsistency in TypedDict
-  - cursor[bot]: Committed test data file removal and gitignore improvements
-- ✅ **Pattern Learning**: Updated reference files with new systematic review patterns
-  - Multi-URL PR review workflow for handling multiple bot reviewers
-  - Security vulnerability resolution patterns for React components
-  - Test mocking consistency patterns for accurate system testing
-
-#### Next Priority Tasks
-
-1. **Test Feedback Loop Enhancement**
-   - Source: PR #73 just merged
-   - Context: New feedback loop feature needs end-to-end testing
-   - Approach: Test idea improvement workflow, score comparison UI, and export functionality
-   - Estimate: Immediate (1-2 hours)
-
-2. **User Testing Phase**
-   - Source: Phase 2 completion milestone
-   - Context: All Phase 2 features including feedback loops are now implemented
-   - Approach: Test all features as an end-user to identify usability issues and bugs
-   - Estimate: Immediate (before Phase 3)
-
-2. **Phase 3: Enterprise & Integration Features**
-   - Source: Project roadmap
-   - Context: With Phase 2 complete, ready for enterprise-grade features
-   - Features to implement:
-     - Role-based access control (RBAC)
-     - Audit logging and compliance features
-     - SSO integration
-     - External service integrations (Slack/Teams, webhooks)
-     - Advanced AI features (custom agents, knowledge bases, multi-language)
-   - Estimate: Large (1-2 months)
-
-3. **Performance Benchmarking**
-   - Source: Phase 2 completion follow-up
-   - Context: Need to measure actual performance improvements from all optimizations
-   - Approach: Create comprehensive benchmark suite testing various scenarios
-   - Estimate: Small (2-3 days)
-
-4. **Documentation Update**
-   - Source: Phase 2 features need user documentation
-   - Context: Many new features lack user-facing documentation
-   - Approach: Create user guide for batch processing, interactive mode, web UI
-   - Estimate: Small (1-2 days)
-
-5. **GitHub Issues Triage (#9-41)**
-   - Source: Project maintenance / Community engagement
-   - Context: Multiple open issues need assessment after Phase 2 completion
-   - Approach: Systematic review, close outdated, prioritize actionable items
-   - Estimate: Small (1 day)
-
-#### Known Issues / Blockers
-- **Blockers**: None - All Phase 2 features implemented, tested, and merged to main
-- **Technical Debt**: Minor - Some coderabbitai suggestions remain (dot notation in batch_processor)
-- **Testing**: System ready for comprehensive user testing before Phase 3
-
-#### Session Learnings
-
-##### Feedback Loop Implementation (2025-07-12)
-- **Multi-Bot PR Reviews**: Systematically address feedback from multiple AI reviewers (claude, gemini, cursor)
-- **Security-First Development**: Always sanitize HTML input before using dangerouslySetInnerHTML in React
-- **Type Consistency**: Ensure consistent types across TypedDict fields (avoid int vs float mismatches)
-- **Test Quality**: Mock responses must match exact production format (JSON vs plain text)
-- **Repository Hygiene**: Use comprehensive gitignore patterns to prevent committing generated files
-- **Systematic Reviews**: Follow complete discovery phases before filtering to avoid missing critical issues
-
-##### Phase 2 Completion Insights
-- **Redis Implementation**: Successfully replaced KEYS with SCAN for production-safe LRU eviction
-- **React Component Safety**: Always handle edge cases like empty data arrays to prevent runtime errors
-- **Security First**: Filename sanitization prevents path traversal attacks in batch processing
-- **Type Safety**: Removing TypedDict total=False improves type checking and prevents KeyError
-- **Code Organization**: Extracting constants eliminates duplication and improves maintainability
-
-##### Behavioral Pattern Improvements
-- **Confidence Calibration**: Simple fixes take 2-5 minutes, not 15-30 minutes - trust your speed
-- **Immediate Action**: Fix all reviewer feedback immediately rather than deferring
-- **Systematic Exploration**: Avoid first-answer bias by checking all available sources
-- **PR Review Protocol**: Three API endpoints must ALL be checked (comments, reviews, line comments)
-
-##### Previous Session Learnings
-
-##### Major Technical Discoveries
-- **Two-Phase Review Discovery**: Systematic approach prevents missing PR feedback (Phase 1: complete discovery → Phase 2: timestamp filtering)
-- **Reserved Keyword Avoidance**: Python reserved words as CLI args cause SyntaxError, use descriptive names with `dest` parameter
-- **Async Test Mocking**: Mock retry-wrapped functions (`*_with_retry`) not original sync functions for async workflows
-- **Comprehensive PR Review**: Three distinct sources (comments, reviews, line comments) must ALL be checked systematically
-- **CI Budget Constraints**: Private repositories can hit GitHub Actions budget limits; public repositories resolve CI testing issues
-
-##### Architecture Decisions
-- **Async-First Performance**: Phase 2.3 establishes concurrent processing as foundation for future scalability
-- **Retry Logic Integration**: Exponential backoff retry properly integrated into async workflow maintaining resilience
-- **Feature Parity Maintained**: Async workflow supports all Phase 2.1 enhanced reasoning features
-- **Progressive Enhancement**: Opt-in async mode preserves backward compatibility
-
-##### Process Improvements
-- **Enhanced Slash Commands**: `/fix_pr` commands now include preventive measures based on failure analysis
-- **Systematic CI Validation**: Always verify CI passes before concluding work is complete
-- **Configuration Evolution**: Global CLAUDE.md patterns accumulate cross-project learnings
-- **Quality Gates**: Verification checklists prevent systematic errors
-
-#### Development Environment Notes
-- **Tool**: Enhanced `/fix_pr_since_commit` slash command with auto-detection reduces review cycles from 10+ to 2-3 minutes
-- **Config**: Global CLAUDE.md now includes two-phase review protocol preventing future PR review failures  
-- **Debug**: Auto-detection patterns eliminate manual PR number entry errors
-- **Testing**: Async agent tests require mocking `async_coordinator.*_with_retry` functions
-
-#### Performance Achievements
-- **1.5-2x Speedup**: Async execution delivers significant performance improvements for multi-candidate scenarios
-- **Concurrent Processing**: Semaphore-controlled async agent calls prevent API rate limits while maximizing throughput
-- **Real-time Updates**: Progress callback system enables responsive web interfaces
-- **Resource Management**: Proper cleanup and cancellation handling ensures robust operation
 ## License
 
-See [LICENSE](LICENSE) file for details.
+This project is licensed under the GPL-3.0 License - see the [LICENSE](LICENSE) file for details.
+
+## Support
+
+- **Issues**: Report bugs or request features via [GitHub Issues](https://github.com/TheIllusionOfLife/Eureka/issues)
+- **Documentation**: See the `docs/` directory for comprehensive guides
+- **Examples**: Check `docs/QUICK_START_EXAMPLES.md` for common usage patterns

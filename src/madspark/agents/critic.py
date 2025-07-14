@@ -79,8 +79,19 @@ def evaluate_ideas(ideas: str, criteria: str, context: str, temperature: float =
   )
   
   if not GENAI_AVAILABLE:
-    # Return mock evaluation for CI/testing environments
-    return '{"score": 8, "reasoning": "Mock evaluation for testing"}'
+    # Return mock evaluation for CI/testing environments with language matching demo
+    # Simple language detection for mock responses
+    combined_text = ideas + criteria + context
+    if any(char >= '\u3040' and char <= '\u309F' or char >= '\u30A0' and char <= '\u30FF' or char >= '\u4E00' and char <= '\u9FAF' for char in combined_text):
+        return '{"score": 8, "comment": "テスト用のモック評価"}'
+    elif any(char in 'àâäæéèêëïîôöùûüÿ' for char in combined_text.lower()):
+        return '{"score": 8, "comment": "Évaluation factice pour les tests"}'
+    elif any(char in 'ñáíóúüç' for char in combined_text.lower()):
+        return '{"score": 8, "comment": "Evaluación simulada para pruebas"}'
+    elif any(char in 'äöüß' for char in combined_text.lower()):
+        return '{"score": 8, "comment": "Mock-Bewertung für Tests"}'
+    else:
+        return '{"score": 8, "comment": "Mock evaluation for testing"}'
   
   if critic_client is None:
     raise ConfigurationError("GOOGLE_API_KEY not configured - cannot evaluate ideas")

@@ -125,8 +125,18 @@ def generate_ideas(topic: str, context: str, temperature: float = 0.9) -> str:
   prompt: str = build_generation_prompt(topic=topic, context=context)
   
   if not GENAI_AVAILABLE:
-    # Return mock response for CI/testing environments
-    return f"Mock idea generated for topic '{topic}' with context '{context}' at temperature {temperature}"
+    # Return mock response for CI/testing environments with language matching demo
+    # Simple language detection for mock responses
+    if any(char >= '\u3040' and char <= '\u309F' or char >= '\u30A0' and char <= '\u30FF' or char >= '\u4E00' and char <= '\u9FAF' for char in topic + context):
+        return f"モック生成されたアイデア '{topic}' のトピックで '{context}' のコンテキスト (温度 {temperature})"
+    elif any(char in 'àâäæéèêëïîôöùûüÿ' for char in (topic + context).lower()):
+        return f"Idée factice générée pour le sujet '{topic}' avec le contexte '{context}' à la température {temperature}"
+    elif any(char in 'ñáíóúüç' for char in (topic + context).lower()):
+        return f"Idea simulada generada para el tema '{topic}' con contexto '{context}' a temperatura {temperature}"
+    elif any(char in 'äöüß' for char in (topic + context).lower()):
+        return f"Mock-Idee generiert für Thema '{topic}' mit Kontext '{context}' bei Temperatur {temperature}"
+    else:
+        return f"Mock idea generated for topic '{topic}' with context '{context}' at temperature {temperature}"
   
   if idea_generator_client is None:
     raise ConfigurationError("GOOGLE_API_KEY not configured - cannot generate ideas")

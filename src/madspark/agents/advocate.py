@@ -80,8 +80,19 @@ def advocate_idea(idea: str, evaluation: str, context: str, temperature: float =
   )
   
   if not GENAI_AVAILABLE:
-    # Return mock advocacy for CI/testing environments
-    return "STRENGTHS:\n• Mock strength 1\n• Mock strength 2\n\nOPPORTUNITIES:\n• Mock opportunity 1\n• Mock opportunity 2\n\nADDRESSING CONCERNS:\n• Mock mitigation 1\n• Mock mitigation 2"
+    # Return mock advocacy for CI/testing environments with language matching demo
+    # Simple language detection for mock responses
+    combined_text = idea + evaluation + context
+    if any(char >= '\u3040' and char <= '\u309F' or char >= '\u30A0' and char <= '\u30FF' or char >= '\u4E00' and char <= '\u9FAF' for char in combined_text):
+        return "強み:\n• モック強み1\n• モック強み2\n\n機会:\n• モック機会1\n• モック機会2\n\n懸念への対処:\n• モック軽減策1\n• モック軽減策2"
+    elif any(char in 'àâäæéèêëïîôöùûüÿ' for char in combined_text.lower()):
+        return "FORCES:\n• Force factice 1\n• Force factice 2\n\nOPPORTUNITÉS:\n• Opportunité factice 1\n• Opportunité factice 2\n\nRÉPONSE AUX PRÉOCCUPATIONS:\n• Atténuation factice 1\n• Atténuation factice 2"
+    elif any(char in 'ñáíóúç' for char in combined_text.lower()):
+        return "FORTALEZAS:\n• Fortaleza simulada 1\n• Fortaleza simulada 2\n\nOPORTUNIDADES:\n• Oportunidad simulada 1\n• Oportunidad simulada 2\n\nABORDANDO PREOCUPACIONES:\n• Mitigación simulada 1\n• Mitigación simulada 2"
+    elif any(char in 'äöüß' for char in combined_text.lower()):
+        return "STÄRKEN:\n• Mock-Stärke 1\n• Mock-Stärke 2\n\nCHANCEN:\n• Mock-Chance 1\n• Mock-Chance 2\n\nBEDENKEN ANSPRECHEN:\n• Mock-Milderung 1\n• Mock-Milderung 2"
+    else:
+        return "STRENGTHS:\n• Mock strength 1\n• Mock strength 2\n\nOPPORTUNITIES:\n• Mock opportunity 1\n• Mock opportunity 2\n\nADDRESSING CONCERNS:\n• Mock mitigation 1\n• Mock mitigation 2"
   
   if advocate_client is None:
     raise ConfigurationError("GOOGLE_API_KEY not configured - cannot advocate ideas")

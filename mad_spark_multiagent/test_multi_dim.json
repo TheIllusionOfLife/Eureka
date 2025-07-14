@@ -1,0 +1,60 @@
+2025-07-14 11:50:58 - INFO - Temperature Settings:
+  Base: 0.7
+  Idea Generation: 0.9
+  Evaluation: 0.3
+  Advocacy: 0.5
+  Skepticism: 0.5
+2025-07-14 11:50:58 - INFO - Running MadSpark workflow with theme: 'Smart home technology'
+2025-07-14 11:50:58 - INFO - Constraints: Energy efficient
+2025-07-14 11:50:58 - INFO - Enhanced reasoning engine initialized
+2025-07-14 11:50:58 - INFO - Generating ideas for theme 'Smart home technology'...
+2025-07-14 11:50:58 - INFO - AFC is enabled with max remote calls: 10.
+2025-07-14 11:51:17 - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+2025-07-14 11:51:17 - INFO - AFC remote call 1 is done.
+2025-07-14 11:51:17 - INFO - Generated 33 raw ideas.
+2025-07-14 11:51:17 - INFO - Novelty filter processed 33 ideas: 33 novel, 0 duplicates/similar
+2025-07-14 11:51:17 - INFO - Evaluating 33 ideas...
+2025-07-14 11:51:17 - INFO - AFC is enabled with max remote calls: 10.
+2025-07-14 11:51:24 - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+2025-07-14 11:51:24 - INFO - AFC remote call 1 is done.
+2025-07-14 11:51:24 - WARNING - Mismatch between number of ideas (33) and number of parsed evaluations (8). Each idea will be processed; those without evaluation will receive defaults.
+2025-07-14 11:51:24 - WARNING - No evaluation available for idea: '*   **Innovation:** Intelligent integration of nat...' (index 8). Using default values.
+2025-07-14 11:51:24 - WARNING - No evaluation available for idea: '3.  **Grid-Aware Appliance & EV Charging Orchestra...' (index 9). Using default values.
+2025-07-14 11:51:24 - WARNING - No evaluation available for idea: '*   **Concept:** An intelligent central hub that c...' (index 10). Using default values.
+2025-07-14 11:51:24 - WARNING - No evaluation available for idea: '*   **Actionable:** Create a central smart home en...' (index 11). Using default values.
+2025-07-14 11:51:24 - WARNING - No evaluation available for idea: '*   **Innovation:** Dynamic, real-time response to...' (index 12). Using default values.
+2025-07-14 11:51:24 - WARNING - No evaluation available for idea: '4.  **Occupancy-Based Hyper-Zoned Water Heating & ...' (index 13). Using default values.
+2025-07-14 11:51:24 - WARNING - No evaluation available for idea: '*   **Concept:** Smart water heaters and hot water...' (index 14). Using default values.
+2025-07-14 11:51:24 - WARNING - No evaluation available for idea: '*   **Actionable:** Integrate occupancy/motion sen...' (index 15). Using default values.
+2025-07-14 11:51:24 - WARNING - No evaluation available for idea: '*   **Innovation:** Granular, just-in-time water h...' (index 16). Using default values.
+2025-07-14 11:51:24 - WARNING - No evaluation available for idea: '5.  **Appliance Efficiency Anomaly Detection & Ale...' (index 17). Using default values.
+2025-07-14 11:51:24 - WARNING - No evaluation available for idea: '*   **Concept:** A system that continuously monito...' (index 18). Using default values.
+2025-07-14 11:51:24 - WARNING - No evaluation available for idea: '*   **Actionable:** Develop smart plugs/sensors fo...' (index 19). Using default values.
+2025-07-14 11:51:24 - WARNING - No evaluation available for idea: '*   **Innovation:** Proactive identification of hi...' (index 20). Using default values.
+2025-07-14 11:51:24 - WARNING - No evaluation available for idea: '6.  **Personalized Gamified Energy Savings Coach:*...' (index 21). Using default values.
+2025-07-14 11:51:24 - WARNING - No evaluation available for idea: '*   **Concept:** An AI-powered assistant that anal...' (index 22). Using default values.
+2025-07-14 11:51:24 - WARNING - No evaluation available for idea: '*   **Actionable:** Develop an AI-driven dashboard...' (index 23). Using default values.
+2025-07-14 11:51:24 - WARNING - No evaluation available for idea: '*   **Innovation:** Leverages behavioral economics...' (index 24). Using default values.
+2025-07-14 11:51:24 - WARNING - No evaluation available for idea: '7.  **Integrated Home Envelope Management:**...' (index 25). Using default values.
+2025-07-14 11:51:24 - WARNING - No evaluation available for idea: '*   **Concept:** A sophisticated system that combi...' (index 26). Using default values.
+2025-07-14 11:51:24 - WARNING - No evaluation available for idea: '*   **Actionable:** Integrate various sensor types...' (index 27). Using default values.
+2025-07-14 11:51:24 - WARNING - No evaluation available for idea: '*   **Innovation:** A holistic approach to managin...' (index 28). Using default values.
+2025-07-14 11:51:24 - WARNING - No evaluation available for idea: '8.  **Self-Optimizing Microgrid Integration (for h...' (index 29). Using default values.
+2025-07-14 11:51:24 - WARNING - No evaluation available for idea: '*   **Concept:** For homes equipped with distribut...' (index 30). Using default values.
+2025-07-14 11:51:24 - WARNING - No evaluation available for idea: '*   **Actionable:** Develop a dedicated energy man...' (index 31). Using default values.
+2025-07-14 11:51:24 - WARNING - No evaluation available for idea: '*   **Innovation:** Moves beyond basic solar monit...' (index 32). Using default values.
+2025-07-14 11:51:24 - INFO - Selected 1 top candidates for further processing.
+2025-07-14 11:51:24 - INFO - Processing candidate: *   **Concept:** An advanced AI system that goes beyond simple scheduling. It learns occupant routines, individual thermal preferences, and integrates real-time external data (hyper-local weather forecasts, grid energy prices, solar irradiance) to proactively pre-condition the home, optimize HVAC cycles, and adjust ventilation, minimizing energy waste while maintaining comfort. (Score: 5.6)
+2025-07-14 11:51:24 - INFO - Advocating for idea: '*   **Concept:** An advanced AI system that goes beyond simple scheduling. It learns occupant routines, individual thermal preferences, and integrates real-time external data (hyper-local weather forecasts, grid energy prices, solar irradiance) to proactively pre-condition the home, optimize HVAC cycles, and adjust ventilation, minimizing energy waste while maintaining comfort.'...
+2025-07-14 11:51:24 - INFO - AFC is enabled with max remote calls: 10.
+2025-07-14 11:51:34 - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+2025-07-14 11:51:34 - INFO - AFC remote call 1 is done.
+2025-07-14 11:51:34 - INFO - Skepticizing idea: '*   **Concept:** An advanced AI system that goes beyond simple scheduling. It learns occupant routines, individual thermal preferences, and integrates real-time external data (hyper-local weather forecasts, grid energy prices, solar irradiance) to proactively pre-condition the home, optimize HVAC cycles, and adjust ventilation, minimizing energy waste while maintaining comfort.'...
+2025-07-14 11:51:34 - INFO - AFC is enabled with max remote calls: 10.
+2025-07-14 11:51:53 - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+2025-07-14 11:51:53 - INFO - AFC remote call 1 is done.
+2025-07-14 11:51:53 - INFO - Improving idea based on feedback: '*   **Concept:** An advanced AI system that goes beyond simple scheduling. It learns occupant routines, individual thermal preferences, and integrates real-time external data (hyper-local weather forecasts, grid energy prices, solar irradiance) to proactively pre-condition the home, optimize HVAC cycles, and adjust ventilation, minimizing energy waste while maintaining comfort.'...
+2025-07-14 11:51:53 - INFO - AFC is enabled with max remote calls: 10.
+2025-07-14 11:52:25 - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+2025-07-14 11:52:25 - INFO - AFC remote call 1 is done.
+2025-07-14 11:52:25 - INFO - AFC is enabled with max remote calls: 10.

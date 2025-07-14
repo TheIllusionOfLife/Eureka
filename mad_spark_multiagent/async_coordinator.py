@@ -719,16 +719,16 @@ class AsyncCoordinator:
                                 idea=improved_idea_text,
                                 context={"theme": theme, "constraints": constraints}
                             )
-                                
-                                # Store the improved multi-dimensional evaluation data
-                                improved_multi_eval_data = improved_multi_eval_result
-                                
-                                # Use multi-dimensional score for improved idea
-                                improved_score = improved_multi_eval_result['weighted_score']
-                                
-                                # Enhance critique with multi-dimensional insights
-                                improved_critique = f"{improved_critique}\n\n🧠 Enhanced Analysis:\n{improved_multi_eval_result['evaluation_summary']}"
-                                
+                            
+                            # Store the improved multi-dimensional evaluation data
+                            improved_multi_eval_data = improved_multi_eval_result
+                            
+                            # Use multi-dimensional score for improved idea
+                            improved_score = improved_multi_eval_result['weighted_score']
+                            
+                            # Enhance critique with multi-dimensional insights
+                            improved_critique = f"{improved_critique}\n\n🧠 Enhanced Analysis:\n{improved_multi_eval_result['evaluation_summary']}"
+                            
                         except (AttributeError, KeyError, TypeError, ValueError) as e:
                             logger.warning(f"Multi-dimensional evaluation failed for improved idea: {e}")
                             # Continue with standard evaluation

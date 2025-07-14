@@ -18,7 +18,7 @@ except ImportError:
     # Fallback for local development/testing
     from constants import ADVOCATE_EMPTY_RESPONSE, ADVOCATE_SYSTEM_INSTRUCTION
     from errors import ConfigurationError
-    from agent_defs.genai_client import get_genai_client, get_model_name
+    from .genai_client import get_genai_client, get_model_name
 
 # Configure the Google GenAI client
 advocate_client = get_genai_client()

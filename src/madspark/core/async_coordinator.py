@@ -7,22 +7,22 @@ import asyncio
 import logging
 from typing import List, Optional, Callable, TypedDict, Awaitable, Dict, Any
 
-from coordinator import (
+from .coordinator import (
     EvaluatedIdea,
     CandidateData,
     parse_json_with_fallback,
     validate_evaluation_json
 )
-from agent_defs.idea_generator import generate_ideas, improve_idea
-from agent_defs.critic import evaluate_ideas
-from agent_defs.advocate import advocate_idea
-from agent_defs.skeptic import criticize_idea
-from utils import exponential_backoff_retry
-from novelty_filter import NoveltyFilter
-from temperature_control import TemperatureManager
-from enhanced_reasoning import ReasoningEngine
-from cache_manager import CacheManager, CacheConfig
-from constants import (
+from ..agents.idea_generator import generate_ideas, improve_idea
+from ..agents.critic import evaluate_ideas
+from ..agents.advocate import advocate_idea
+from ..agents.skeptic import criticize_idea
+from ..utils.utils import exponential_backoff_retry
+from ..utils.novelty_filter import NoveltyFilter
+from ..utils.temperature_control import TemperatureManager
+from .enhanced_reasoning import ReasoningEngine
+from ..utils.cache_manager import CacheManager, CacheConfig
+from ..utils.constants import (
     DEFAULT_IDEA_TEMPERATURE,
     DEFAULT_EVALUATION_TEMPERATURE,
     DEFAULT_ADVOCACY_TEMPERATURE,

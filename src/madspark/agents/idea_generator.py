@@ -81,7 +81,7 @@ try:
     from madspark.agents.genai_client import get_genai_client, get_model_name
 except ImportError:
     # Fallback for local development/testing
-    from agent_defs.genai_client import get_genai_client, get_model_name
+    from .genai_client import get_genai_client, get_model_name
 
 idea_generator_client = get_genai_client()
 model_name = get_model_name()

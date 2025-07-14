@@ -58,10 +58,10 @@ try:
     from madspark.agents.skeptic import criticize_idea
 except ImportError:
     # Fallback for local development/testing
-    from agent_defs.idea_generator import generate_ideas, improve_idea
-    from agent_defs.critic import evaluate_ideas
-    from agent_defs.advocate import advocate_idea
-    from agent_defs.skeptic import criticize_idea
+    from ..agents.idea_generator import generate_ideas, improve_idea
+    from ..agents.critic import evaluate_ideas
+    from ..agents.advocate import advocate_idea
+    from ..agents.skeptic import criticize_idea
 try:
     # Primary imports for package installation
     from madspark.utils.utils import (
@@ -80,22 +80,40 @@ try:
         LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD
     )
 except ImportError:
-    # Fallback imports for local development/testing (not duplicate - different import paths)
-    from utils import (
-        exponential_backoff_retry,
-        parse_json_with_fallback,
-        validate_evaluation_json,
-    )
-    from novelty_filter import NoveltyFilter
-    from temperature_control import TemperatureManager
-    from enhanced_reasoning import ReasoningEngine
-    from constants import (
-        DEFAULT_IDEA_TEMPERATURE,
-        DEFAULT_EVALUATION_TEMPERATURE, 
-        DEFAULT_ADVOCACY_TEMPERATURE,
-        DEFAULT_SKEPTICISM_TEMPERATURE,
-        LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD
-    )
+    # Fallback imports for local development/testing
+    try:
+        from ..utils.utils import (
+            exponential_backoff_retry,
+            parse_json_with_fallback,
+            validate_evaluation_json,
+        )
+        from ..utils.novelty_filter import NoveltyFilter
+        from ..utils.temperature_control import TemperatureManager
+        from .enhanced_reasoning import ReasoningEngine
+        from ..utils.constants import (
+            DEFAULT_IDEA_TEMPERATURE,
+            DEFAULT_EVALUATION_TEMPERATURE, 
+            DEFAULT_ADVOCACY_TEMPERATURE,
+            DEFAULT_SKEPTICISM_TEMPERATURE,
+            LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD
+        )
+    except ImportError:
+        # Last resort - direct imports (for old package structure)
+        from utils import (
+            exponential_backoff_retry,
+            parse_json_with_fallback,
+            validate_evaluation_json,
+        )
+        from novelty_filter import NoveltyFilter
+        from temperature_control import TemperatureManager
+        from enhanced_reasoning import ReasoningEngine
+        from constants import (
+            DEFAULT_IDEA_TEMPERATURE,
+            DEFAULT_EVALUATION_TEMPERATURE, 
+            DEFAULT_ADVOCACY_TEMPERATURE,
+            DEFAULT_SKEPTICISM_TEMPERATURE,
+            LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD
+        )
 # Removed unused imports - ADVOCATE_FAILED_PLACEHOLDER, SKEPTIC_FAILED_PLACEHOLDER
 # as agent tools already handle empty responses
 # from google.adk.agents import Agent # No longer needed directly for hints here

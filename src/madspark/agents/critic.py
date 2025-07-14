@@ -16,7 +16,7 @@ try:
 except ImportError:
     # Fallback for local development/testing
     from errors import ConfigurationError
-    from agent_defs.genai_client import get_genai_client, get_model_name
+    from .genai_client import get_genai_client, get_model_name
     from constants import CRITIC_SYSTEM_INSTRUCTION, DEFAULT_CRITIC_TEMPERATURE
 
 # Configure the Google GenAI client

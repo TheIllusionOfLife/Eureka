@@ -18,7 +18,7 @@ except ImportError:
     # Fallback for local development/testing
     from constants import SKEPTIC_EMPTY_RESPONSE, SKEPTIC_SYSTEM_INSTRUCTION
     from errors import ConfigurationError
-    from agent_defs.genai_client import get_genai_client, get_model_name
+    from .genai_client import get_genai_client, get_model_name
 
 # Configure the Google GenAI client
 skeptic_client = get_genai_client()

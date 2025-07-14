@@ -13,7 +13,7 @@ from dataclasses import dataclass, asdict
 import logging
 
 try:
-    from madspark.utils.utils.utils.constants import HIGH_SCORE_THRESHOLD, MAX_REMIX_BOOKMARKS
+    from madspark.utils.constants import HIGH_SCORE_THRESHOLD, MAX_REMIX_BOOKMARKS
 except ImportError:
     from constants import HIGH_SCORE_THRESHOLD, MAX_REMIX_BOOKMARKS
 

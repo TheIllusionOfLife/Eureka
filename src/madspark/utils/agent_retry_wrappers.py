@@ -5,11 +5,11 @@ duplicated between coordinator.py and async_coordinator.py. This eliminates
 code duplication and provides a single source of truth for agent retry behavior.
 """
 
-from utils import exponential_backoff_retry
-from agent_defs.idea_generator import generate_ideas, improve_idea
-from agent_defs.critic import evaluate_ideas
-from agent_defs.advocate import advocate_idea
-from agent_defs.skeptic import criticize_idea
+from .utils import exponential_backoff_retry
+from ..agents.idea_generator import generate_ideas, improve_idea
+from ..agents.critic import evaluate_ideas
+from ..agents.advocate import advocate_idea
+from ..agents.skeptic import criticize_idea
 
 
 class AgentRetryWrapper:

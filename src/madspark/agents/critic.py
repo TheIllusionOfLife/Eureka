@@ -20,12 +20,12 @@ except ImportError:
 try:
     from madspark.utils.errors import ConfigurationError
     from madspark.agents.genai_client import get_genai_client, get_model_name
-    from madspark.utils.constants import CRITIC_SYSTEM_INSTRUCTION, DEFAULT_CRITIC_TEMPERATURE
+    from madspark.utils.constants import CRITIC_SYSTEM_INSTRUCTION, DEFAULT_CRITIC_TEMPERATURE, LANGUAGE_CONSISTENCY_INSTRUCTION
 except ImportError:
     # Fallback for local development/testing
     from errors import ConfigurationError
     from .genai_client import get_genai_client, get_model_name
-    from constants import CRITIC_SYSTEM_INSTRUCTION, DEFAULT_CRITIC_TEMPERATURE
+    from constants import CRITIC_SYSTEM_INSTRUCTION, DEFAULT_CRITIC_TEMPERATURE, LANGUAGE_CONSISTENCY_INSTRUCTION
 
 # Configure the Google GenAI client
 if GENAI_AVAILABLE:
@@ -64,7 +64,7 @@ def evaluate_ideas(ideas: str, criteria: str, context: str, temperature: float =
     raise ValueError("Input 'context' to evaluate_ideas must be a non-empty string.")
 
   prompt: str = (
-      "Please respond in the same language as this prompt.\n\n"
+      LANGUAGE_CONSISTENCY_INSTRUCTION +
       "You will be provided with a list of ideas, evaluation criteria, and context.\n"
       "For each idea, you MUST provide an evaluation in the form of a single-line JSON object string.\n"
       "Each JSON object must have exactly two keys: 'score' (an integer from 1 to 10, where 10 is best) "

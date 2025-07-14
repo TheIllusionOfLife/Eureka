@@ -36,6 +36,7 @@ RISK_ASSESSMENT_KEY = "risk_assessment"
 TIMELINE_KEY = "timeline"
 
 # Agent prompt constants
+LANGUAGE_CONSISTENCY_INSTRUCTION = "Please respond in the same language as this prompt.\n\n"
 IDEA_GENERATION_INSTRUCTION = "generate a list of diverse and creative ideas"
 IDEA_GENERATOR_SYSTEM_INSTRUCTION = f"You are an expert idea generator. Given a topic and some context, {IDEA_GENERATION_INSTRUCTION}. Always respond in the same language as the input provided."
 

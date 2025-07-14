@@ -26,10 +26,10 @@ except ImportError:
 
 # Import prompt constants from constants module
 try:
-    from madspark.utils.constants import IDEA_GENERATION_INSTRUCTION, IDEA_GENERATOR_SYSTEM_INSTRUCTION as SYSTEM_INSTRUCTION
+    from madspark.utils.constants import IDEA_GENERATION_INSTRUCTION, IDEA_GENERATOR_SYSTEM_INSTRUCTION as SYSTEM_INSTRUCTION, LANGUAGE_CONSISTENCY_INSTRUCTION
 except ImportError:
     # Fallback for local development/testing
-    from constants import IDEA_GENERATION_INSTRUCTION, IDEA_GENERATOR_SYSTEM_INSTRUCTION as SYSTEM_INSTRUCTION
+    from constants import IDEA_GENERATION_INSTRUCTION, IDEA_GENERATOR_SYSTEM_INSTRUCTION as SYSTEM_INSTRUCTION, LANGUAGE_CONSISTENCY_INSTRUCTION
 
 # Safety settings for constructive feedback generation
 # These relaxed thresholds are necessary to prevent overly aggressive content
@@ -82,7 +82,7 @@ def build_generation_prompt(topic: str, context: str) -> str:
     A formatted prompt string to be used by the idea generator agent.
   """
   return (
-      f"Please respond in the same language as this prompt.\n\n"
+      LANGUAGE_CONSISTENCY_INSTRUCTION +
       f"Use the context below to {IDEA_GENERATION_INSTRUCTION}"
       f" on the topic of {topic}. Make sure the ideas are actionable and"
       f" innovative.\n\nContext:\n{context}\n\nIdeas:"
@@ -175,8 +175,8 @@ def build_improvement_prompt(
     A formatted prompt string for idea improvement.
   """
   return (
-      f"You are helping to enhance an innovative idea based on comprehensive feedback.\n"
-      f"Please respond in the same language as this prompt.\n\n"
+      f"You are helping to enhance an innovative idea based on comprehensive feedback.\n" +
+      LANGUAGE_CONSISTENCY_INSTRUCTION +
       f"ORIGINAL THEME: {theme}\n\n"
       f"ORIGINAL IDEA:\n{original_idea}\n\n"
       f"EVALUATION CRITERIA AND FEEDBACK:\n{critique}\n"

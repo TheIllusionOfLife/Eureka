@@ -19,12 +19,12 @@ except ImportError:
     GENAI_AVAILABLE = False
 
 try:
-    from madspark.utils.constants import ADVOCATE_EMPTY_RESPONSE, ADVOCATE_SYSTEM_INSTRUCTION
+    from madspark.utils.constants import ADVOCATE_EMPTY_RESPONSE, ADVOCATE_SYSTEM_INSTRUCTION, LANGUAGE_CONSISTENCY_INSTRUCTION
     from madspark.utils.errors import ConfigurationError
     from madspark.agents.genai_client import get_genai_client, get_model_name
 except ImportError:
     # Fallback for local development/testing
-    from constants import ADVOCATE_EMPTY_RESPONSE, ADVOCATE_SYSTEM_INSTRUCTION
+    from constants import ADVOCATE_EMPTY_RESPONSE, ADVOCATE_SYSTEM_INSTRUCTION, LANGUAGE_CONSISTENCY_INSTRUCTION
     from errors import ConfigurationError
     from .genai_client import get_genai_client, get_model_name
 
@@ -60,7 +60,7 @@ def advocate_idea(idea: str, evaluation: str, context: str, temperature: float =
     raise ValueError("Input 'context' to advocate_idea must be a non-empty string.")
 
   prompt: str = (
-      f"Please respond in the same language as this prompt.\n\n"
+      LANGUAGE_CONSISTENCY_INSTRUCTION +
       f"Here's an idea:\n{idea}\n\n"
       f"Here's its evaluation:\n{evaluation}\n\n"
       f"And the context:\n{context}\n\n"

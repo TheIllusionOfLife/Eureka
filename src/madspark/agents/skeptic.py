@@ -19,12 +19,12 @@ except ImportError:
     GENAI_AVAILABLE = False
 
 try:
-    from madspark.utils.constants import SKEPTIC_EMPTY_RESPONSE, SKEPTIC_SYSTEM_INSTRUCTION
+    from madspark.utils.constants import SKEPTIC_EMPTY_RESPONSE, SKEPTIC_SYSTEM_INSTRUCTION, LANGUAGE_CONSISTENCY_INSTRUCTION
     from madspark.utils.errors import ConfigurationError
     from madspark.agents.genai_client import get_genai_client, get_model_name
 except ImportError:
     # Fallback for local development/testing
-    from constants import SKEPTIC_EMPTY_RESPONSE, SKEPTIC_SYSTEM_INSTRUCTION
+    from constants import SKEPTIC_EMPTY_RESPONSE, SKEPTIC_SYSTEM_INSTRUCTION, LANGUAGE_CONSISTENCY_INSTRUCTION
     from errors import ConfigurationError
     from .genai_client import get_genai_client, get_model_name
 
@@ -62,7 +62,7 @@ def criticize_idea(idea: str, advocacy: str, context: str, temperature: float = 
     raise ValueError("Input 'context' to criticize_idea must be a non-empty string.")
 
   prompt: str = (
-      f"Please respond in the same language as this prompt.\n\n"
+      LANGUAGE_CONSISTENCY_INSTRUCTION +
       f"Here's an idea:\n{idea}\n\n"
       f"Here's the case made for it:\n{advocacy}\n\n"
       f"And the context:\n{context}\n\n"

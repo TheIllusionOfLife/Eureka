@@ -22,7 +22,17 @@ interface ComparisonRadarChartProps {
   title?: string;
   originalLabel?: string;
   improvedLabel?: string;
+  /**
+   * Optional override for the original score display.
+   * If provided, this value will be used instead of calculating the average from data.
+   * This ensures consistency with scores displayed elsewhere in the UI.
+   */
   originalScore?: number;
+  /**
+   * Optional override for the improved score display.
+   * If provided, this value will be used instead of calculating the average from data.
+   * This ensures consistency with scores displayed elsewhere in the UI.
+   */
   improvedScore?: number;
 }
 
@@ -209,7 +219,7 @@ const ComparisonRadarChart: React.FC<ComparisonRadarChartProps> = ({
             <span className={`px-2 py-1 rounded text-xs font-semibold ${
               improvement >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
             }`}>
-              {((improvement / originalScore) * 100).toFixed(1)}% improvement
+              {originalScore > 0 ? ((improvement / originalScore) * 100).toFixed(1) : 'N/A'}% improvement
             </span>
           </div>
         </div>

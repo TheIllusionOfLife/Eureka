@@ -1,5 +1,6 @@
 """Performance-optimized caching utilities for MadSpark."""
 
+import asyncio
 import functools
 import hashlib
 import json
@@ -249,26 +250,12 @@ class PerformanceOptimizer:
             return None
     
     @staticmethod
-    def batch_similar_operations(operations: list, similarity_threshold: float = 0.8) -> list:
-        """Group similar operations for batch processing."""
-        # Simple similarity-based grouping
-        # This is a placeholder - implement actual similarity logic
+    def batch_operations(operations: list, batch_size: int = 5) -> list:
+        """Group operations into batches for processing."""
         groups = []
-        current_group = []
-        
-        for op in operations:
-            if not current_group:
-                current_group.append(op)
-            else:
-                # Simplified similarity check
-                if len(current_group) < 5:  # Max group size
-                    current_group.append(op)
-                else:
-                    groups.append(current_group)
-                    current_group = [op]
-        
-        if current_group:
-            groups.append(current_group)
+        for i in range(0, len(operations), batch_size):
+            batch = operations[i:i + batch_size]
+            groups.append(batch)
         
         return groups
     
@@ -296,11 +283,11 @@ class PerformanceOptimizer:
 def initialize_performance_optimizations():
     """Initialize performance optimizations."""
     try:
-        # Pre-compile regex patterns
-        PerformanceOptimizer.precompile_regex_patterns()
-        
         # Set up performance cache
         performance_cache.clear()
+        
+        # Pre-compile regex patterns
+        PerformanceOptimizer.precompile_regex_patterns()
         
         logger.info("Performance optimizations initialized")
     except Exception as e:

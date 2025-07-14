@@ -106,7 +106,6 @@ class GeminiSafetyHandler:
     def __init__(self):
         """Initialize Gemini safety handler."""
         self.content_filter = ContentSafetyFilter()
-        self.retry_count = 0
         self.max_retries = 3
     
     def get_safety_settings(self):

@@ -204,24 +204,18 @@ class TestInteractiveMode:
     @patch('builtins.input', side_effect=KeyboardInterrupt())
     def test_interactive_session_keyboard_interrupt(self, mock_input, mock_session):
         """Test handling of keyboard interrupt."""
-        # Should handle KeyboardInterrupt gracefully
-        try:
-            # This would call a method that uses input()
-            pass
-        except KeyboardInterrupt:
-            # Should be handled gracefully in actual implementation
-            pass
+        # Should handle KeyboardInterrupt gracefully by exiting
+        with pytest.raises(SystemExit) as e:
+            mock_session.get_input_with_default("test prompt")
+        assert e.value.code == 0
     
     @patch('builtins.input', side_effect=EOFError())
     def test_interactive_session_eof_handling(self, mock_input, mock_session):
         """Test handling of EOF (Ctrl+D)."""
-        # Should handle EOFError gracefully
-        try:
-            # This would call a method that uses input()
-            pass
-        except EOFError:
-            # Should be handled gracefully in actual implementation
-            pass
+        # Should handle EOFError gracefully by exiting
+        with pytest.raises(SystemExit) as e:
+            mock_session.get_input_with_default("test prompt")
+        assert e.value.code == 0
 
 
 class TestCLIIntegration:

@@ -113,7 +113,9 @@ def clean_improved_idea(text: Optional[str]) -> Optional[str]:
     Returns:
         Cleaned text focused on the idea itself
     """
-    if not text:
+    if text is None:
+        return None
+    if not text.strip():
         return text
     
     # Remove meta-commentary sections at the beginning

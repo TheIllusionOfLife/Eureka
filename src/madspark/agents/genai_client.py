@@ -6,10 +6,16 @@ following the DRY principle to avoid code duplication.
 import os
 import logging
 from typing import Optional
-from google import genai
+
+try:
+    from google import genai
+    GENAI_AVAILABLE = True
+except ImportError:
+    genai = None
+    GENAI_AVAILABLE = False
 
 
-def get_genai_client() -> Optional[genai.Client]:
+def get_genai_client() -> Optional['genai.Client']:
     """Get a configured Google GenAI client instance.
     
     Returns:
@@ -20,6 +26,9 @@ def get_genai_client() -> Optional[genai.Client]:
         The client reads GOOGLE_API_KEY from environment directly.
         This is the expected behavior for the new google-genai SDK.
     """
+    if not GENAI_AVAILABLE:
+        return None
+        
     api_key = os.getenv("GOOGLE_API_KEY")
     
     if api_key:

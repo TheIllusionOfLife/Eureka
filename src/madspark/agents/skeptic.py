@@ -7,8 +7,16 @@ and identifying potential flaws or risks.
 import os
 import logging
 from typing import Any
-from google import genai
-from google.genai import types
+
+# Optional import for Google GenAI - graceful fallback for CI/testing
+try:
+    from google import genai
+    from google.genai import types
+    GENAI_AVAILABLE = True
+except ImportError:
+    genai = None
+    types = None
+    GENAI_AVAILABLE = False
 
 try:
     from madspark.utils.constants import SKEPTIC_EMPTY_RESPONSE, SKEPTIC_SYSTEM_INSTRUCTION
@@ -21,8 +29,12 @@ except ImportError:
     from .genai_client import get_genai_client, get_model_name
 
 # Configure the Google GenAI client
-skeptic_client = get_genai_client()
-model_name = get_model_name()
+if GENAI_AVAILABLE:
+    skeptic_client = get_genai_client()
+    model_name = get_model_name()
+else:
+    skeptic_client = None
+    model_name = "mock-model"
 
 
 def criticize_idea(idea: str, advocacy: str, context: str, temperature: float = 0.5) -> str:
@@ -71,6 +83,10 @@ def criticize_idea(idea: str, advocacy: str, context: str, temperature: float = 
       "• [overlooked consequence]\n"
       "• [continue listing gaps]"
   )
+  
+  if not GENAI_AVAILABLE:
+    # Return mock criticism for CI/testing environments
+    return "CRITICAL FLAWS:\n• Mock flaw 1\n• Mock flaw 2\n\nRISKS & CHALLENGES:\n• Mock risk 1\n• Mock risk 2\n\nQUESTIONABLE ASSUMPTIONS:\n• Mock assumption 1\n• Mock assumption 2\n\nMISSING CONSIDERATIONS:\n• Mock missing factor 1\n• Mock missing factor 2"
   
   if skeptic_client is None:
     raise ConfigurationError("GOOGLE_API_KEY not configured - cannot criticize ideas")

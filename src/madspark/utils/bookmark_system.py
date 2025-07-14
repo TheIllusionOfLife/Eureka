@@ -55,8 +55,8 @@ class BookmarkManager:
                 with open(self.bookmark_file, 'r', encoding='utf-8') as f:
                     data = json.load(f)
                     self.bookmarks = {
-                        id: BookmarkedIdea(**bookmark_data) 
-                        for id, bookmark_data in data.items()
+                        bookmark_id: BookmarkedIdea(**bookmark_data) 
+                        for bookmark_id, bookmark_data in data.items()
                     }
                 logger.info(f"Loaded {len(self.bookmarks)} bookmarks from {self.bookmark_file}")
             except (json.JSONDecodeError, IOError, OSError) as e:

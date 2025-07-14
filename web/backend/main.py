@@ -638,14 +638,21 @@ async def invalidate_cache(pattern: Optional[str] = None):
 @app.websocket("/ws/progress")
 async def websocket_endpoint(websocket: WebSocket):
     """WebSocket endpoint for real-time progress updates."""
-    await ws_manager.connect(websocket)
     try:
+        await ws_manager.connect(websocket)
         while True:
-            # Keep connection alive
-            data = await websocket.receive_text()
-            # Echo back for connection testing
-            await websocket.send_text(f"Echo: {data}")
+            try:
+                # Keep connection alive
+                data = await websocket.receive_text()
+                # Echo back for connection testing
+                await websocket.send_text(f"Echo: {data}")
+            except Exception as e:
+                logger.error(f"WebSocket message handling error: {e}")
+                break
     except WebSocketDisconnect:
+        ws_manager.disconnect(websocket)
+    except Exception as e:
+        logger.error(f"WebSocket connection error: {e}")
         ws_manager.disconnect(websocket)
 
 

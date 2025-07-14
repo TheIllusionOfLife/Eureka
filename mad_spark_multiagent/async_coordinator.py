@@ -37,49 +37,14 @@ logger = logging.getLogger(__name__)
 ProgressCallback = Callable[[str, float], Awaitable[None]]
 
 
-# Create retry-wrapped versions of agent functions
-@exponential_backoff_retry(max_retries=3, initial_delay=2.0)
-def generate_ideas_with_retry(topic: str, context: str, temperature: float) -> str:
-    """Generate ideas with retry logic."""
-    return generate_ideas(topic, context, temperature)
-
-
-@exponential_backoff_retry(max_retries=3, initial_delay=2.0)
-def evaluate_ideas_with_retry(ideas: str, criteria: str, context: str, temperature: float) -> str:
-    """Evaluate ideas with retry logic."""
-    return evaluate_ideas(ideas, criteria, context, temperature)
-
-
-@exponential_backoff_retry(max_retries=2, initial_delay=1.0)
-def advocate_idea_with_retry(idea: str, evaluation: str, context: str, temperature: float) -> str:
-    """Advocate for idea with retry logic."""
-    return advocate_idea(idea, evaluation, context, temperature)
-
-
-@exponential_backoff_retry(max_retries=2, initial_delay=1.0)
-def criticize_idea_with_retry(idea: str, advocacy: str, context: str, temperature: float) -> str:
-    """Criticize idea with retry logic."""
-    return criticize_idea(idea, advocacy, context, temperature)
-
-
-@exponential_backoff_retry(max_retries=3, initial_delay=2.0)
-def improve_idea_with_retry(
-    original_idea: str, 
-    critique: str, 
-    advocacy_points: str, 
-    skeptic_points: str, 
-    theme: str,
-    temperature: float = 0.9
-) -> str:
-    """Improve idea with retry logic."""
-    return improve_idea(
-        original_idea=original_idea,
-        critique=critique,
-        advocacy_points=advocacy_points,
-        skeptic_points=skeptic_points,
-        theme=theme,
-        temperature=temperature
-    )
+# Import retry-wrapped versions of agent functions from shared module
+from agent_retry_wrappers import (
+    generate_ideas_with_retry,
+    evaluate_ideas_with_retry,
+    advocate_idea_with_retry,
+    criticize_idea_with_retry,
+    improve_idea_with_retry
+)
 
 
 async def async_generate_ideas(topic: str, context: str, temperature: float = 0.9, cache_manager: Optional[CacheManager] = None) -> str:
@@ -233,12 +198,62 @@ class AsyncCoordinator:
         enhanced_reasoning: bool = False,
         multi_dimensional_eval: bool = False,
         logical_inference: bool = False,
-        reasoning_engine: Optional[ReasoningEngine] = None
+        reasoning_engine: Optional[ReasoningEngine] = None,
+        timeout: int = 600
     ) -> List[CandidateData]:
-        """Run the complete async workflow.
+        """Run the complete async workflow with timeout support.
         
         This is the async equivalent of run_multistep_workflow from coordinator.py
+        with added timeout functionality.
+        
+        Args:
+            ... (same as run_multistep_workflow)
+            timeout: Maximum time allowed for the entire workflow in seconds
+            
+        Returns:
+            List of CandidateData containing processed ideas with evaluations
+            
+        Raises:
+            asyncio.TimeoutError: If the workflow exceeds the specified timeout
         """
+        try:
+            # Wrap the actual workflow in a timeout
+            return await asyncio.wait_for(
+                self._run_workflow_internal(
+                    theme=theme,
+                    constraints=constraints,
+                    num_top_candidates=num_top_candidates,
+                    enable_novelty_filter=enable_novelty_filter,
+                    novelty_threshold=novelty_threshold,
+                    temperature_manager=temperature_manager,
+                    verbose=verbose,
+                    enhanced_reasoning=enhanced_reasoning,
+                    multi_dimensional_eval=multi_dimensional_eval,
+                    logical_inference=logical_inference,
+                    reasoning_engine=reasoning_engine
+                ),
+                timeout=timeout
+            )
+        except asyncio.TimeoutError:
+            logger.error(f"Workflow timed out after {timeout} seconds")
+            await self._send_progress(f"Workflow timed out after {timeout} seconds", 0.0)
+            raise
+            
+    async def _run_workflow_internal(
+        self,
+        theme: str,
+        constraints: str,
+        num_top_candidates: int = 2,
+        enable_novelty_filter: bool = True,
+        novelty_threshold: float = 0.8,
+        temperature_manager: Optional[TemperatureManager] = None,
+        verbose: bool = False,
+        enhanced_reasoning: bool = False,
+        multi_dimensional_eval: bool = False,
+        logical_inference: bool = False,
+        reasoning_engine: Optional[ReasoningEngine] = None
+    ) -> List[CandidateData]:
+        """Internal workflow implementation without timeout wrapper."""
         # Define cache options upfront to avoid potential NameError
         cache_options = {
             "num_top_candidates": num_top_candidates,
@@ -700,10 +715,10 @@ class AsyncCoordinator:
                     if multi_dimensional_eval and reasoning_engine:
                         try:
                             # Re-evaluate with multi-dimensional analysis
-                                improved_multi_eval_result = reasoning_engine.multi_evaluator.evaluate_idea(
-                                    idea=improved_idea_text,
-                                    context={"theme": theme, "constraints": constraints}
-                                )
+                            improved_multi_eval_result = reasoning_engine.multi_evaluator.evaluate_idea(
+                                idea=improved_idea_text,
+                                context={"theme": theme, "constraints": constraints}
+                            )
                                 
                                 # Store the improved multi-dimensional evaluation data
                                 improved_multi_eval_data = improved_multi_eval_result

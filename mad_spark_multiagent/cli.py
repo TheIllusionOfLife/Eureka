@@ -486,6 +486,13 @@ def main():
     
     setup_logging(args.verbose)
     
+    # Validate timeout value
+    if hasattr(args, 'timeout'):
+        if args.timeout < 1:
+            parser.error("Timeout must be at least 1 second")
+        elif args.timeout > 3600:  # 1 hour max
+            parser.error("Timeout cannot exceed 3600 seconds (1 hour)")
+    
     # Handle standalone commands
     if args.list_bookmarks:
         list_bookmarks_command(args)
@@ -642,7 +649,8 @@ def main():
             "verbose": args.verbose,
             "enhanced_reasoning": args.enhanced_reasoning,
             "multi_dimensional_eval": True,  # Always enabled as a core feature
-            "logical_inference": args.logical_inference
+            "logical_inference": args.logical_inference,
+            "timeout": args.timeout
         }
 
         if hasattr(args, 'async') and getattr(args, 'async'):

@@ -23,19 +23,26 @@ from pydantic import BaseModel, Field
 # Import MadSpark modules
 # Add the parent directory to the path for imports
 madspark_path = os.environ.get('MADSPARK_PATH', '/madspark')
-if os.path.exists(madspark_path):
+src_path = os.path.join(madspark_path, 'src') if madspark_path else None
+
+if src_path and os.path.exists(src_path):
+    sys.path.insert(0, src_path)
+elif madspark_path and os.path.exists(madspark_path):
     sys.path.insert(0, madspark_path)
 else:
-    # Fallback for local development
+    # Fallback for local development - point to the src directory
     parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    src_dir = os.path.join(parent_dir, 'src')
+    if os.path.exists(src_dir):
+        sys.path.insert(0, src_dir)
     sys.path.insert(0, parent_dir)
 
 try:
-    from coordinator import run_multistep_workflow, CandidateData
-    from async_coordinator import AsyncCoordinator
-    from temperature_control import TemperatureManager
-    from enhanced_reasoning import ReasoningEngine
-    from constants import (
+    from madspark.core.coordinator import run_multistep_workflow
+    from madspark.core.async_coordinator import AsyncCoordinator
+    from madspark.utils.temperature_control import TemperatureManager
+    from madspark.core.enhanced_reasoning import ReasoningEngine
+    from madspark.utils.constants import (
         DEFAULT_IDEA_TEMPERATURE,
         DEFAULT_EVALUATION_TEMPERATURE,
         DIMENSION_SCORES_KEY,
@@ -48,12 +55,36 @@ try:
         TIMELINE_KEY,
         DEFAULT_REQUEST_TIMEOUT
     )
-    from bookmark_system import BookmarkManager
-    from cache_manager import CacheManager, CacheConfig
-    from improved_idea_cleaner import clean_improved_ideas_in_results
+    from madspark.utils.bookmark_system import BookmarkManager
+    from madspark.utils.cache_manager import CacheManager, CacheConfig
+    from madspark.utils.improved_idea_cleaner import clean_improved_ideas_in_results
 except ImportError as e:
     logging.error(f"Failed to import MadSpark modules: {e}")
-    raise
+    # Try alternative paths for different deployment scenarios
+    try:
+        from src.madspark.core.coordinator import run_multistep_workflow
+        from src.madspark.core.async_coordinator import AsyncCoordinator
+        from src.madspark.utils.temperature_control import TemperatureManager
+        from src.madspark.core.enhanced_reasoning import ReasoningEngine
+        from src.madspark.utils.constants import (
+            DEFAULT_IDEA_TEMPERATURE,
+            DEFAULT_EVALUATION_TEMPERATURE,
+            DIMENSION_SCORES_KEY,
+            FEASIBILITY_KEY,
+            INNOVATION_KEY,
+            IMPACT_KEY,
+            COST_EFFECTIVENESS_KEY,
+            SCALABILITY_KEY,
+            RISK_ASSESSMENT_KEY,
+            TIMELINE_KEY,
+            DEFAULT_REQUEST_TIMEOUT
+        )
+        from src.madspark.utils.bookmark_system import BookmarkManager
+        from src.madspark.utils.cache_manager import CacheManager, CacheConfig
+        from src.madspark.utils.improved_idea_cleaner import clean_improved_ideas_in_results
+    except ImportError as e2:
+        logging.error(f"Failed to import MadSpark modules with fallback paths: {e2}")
+        raise e
 
 # Configure logging
 logging.basicConfig(

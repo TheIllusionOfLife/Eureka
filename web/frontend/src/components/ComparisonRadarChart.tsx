@@ -22,27 +22,13 @@ interface ComparisonRadarChartProps {
   title?: string;
   originalLabel?: string;
   improvedLabel?: string;
-  /**
-   * Optional override for the original score display.
-   * If provided, this value will be used instead of calculating the average from data.
-   * This ensures consistency with scores displayed elsewhere in the UI.
-   */
-  originalScore?: number;
-  /**
-   * Optional override for the improved score display.
-   * If provided, this value will be used instead of calculating the average from data.
-   * This ensures consistency with scores displayed elsewhere in the UI.
-   */
-  improvedScore?: number;
 }
 
 const ComparisonRadarChart: React.FC<ComparisonRadarChartProps> = ({ 
   data, 
   title, 
   originalLabel = "Original Idea",
-  improvedLabel = "Improved Idea",
-  originalScore: providedOriginalScore,
-  improvedScore: providedImprovedScore
+  improvedLabel = "Improved Idea"
 }) => {
   // Custom tooltip to show both scores
   const CustomTooltip = ({ active, payload }: any) => {
@@ -87,9 +73,9 @@ const ComparisonRadarChart: React.FC<ComparisonRadarChartProps> = ({
     return descriptions[dimension] || '';
   };
 
-  // Calculate overall scores - use provided scores if available, otherwise calculate from dimension data
-  const originalScore = providedOriginalScore ?? (data.length > 0 ? data.reduce((sum, item) => sum + item.original, 0) / data.length : 0);
-  const improvedScore = providedImprovedScore ?? (data.length > 0 ? data.reduce((sum, item) => sum + item.improved, 0) / data.length : 0);
+  // Calculate overall scores
+  const originalScore = data.length > 0 ? data.reduce((sum, item) => sum + item.original, 0) / data.length : 0;
+  const improvedScore = data.length > 0 ? data.reduce((sum, item) => sum + item.improved, 0) / data.length : 0;
   const improvement = improvedScore - originalScore;
   
   const getScoreColor = (score: number) => 
@@ -219,7 +205,7 @@ const ComparisonRadarChart: React.FC<ComparisonRadarChartProps> = ({
             <span className={`px-2 py-1 rounded text-xs font-semibold ${
               improvement >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
             }`}>
-              {originalScore > 0 ? ((improvement / originalScore) * 100).toFixed(1) : 'N/A'}% improvement
+              {((improvement / originalScore) * 100).toFixed(1)}% improvement
             </span>
           </div>
         </div>

@@ -14,7 +14,10 @@ import logging
 from datetime import datetime
 
 # Import idea cleaner
-from improved_idea_cleaner import clean_improved_idea
+try:
+    from madspark.utils.improved_idea_cleaner import clean_improved_idea
+except ImportError:
+    from ..utils.improved_idea_cleaner import clean_improved_idea
 
 # Import MadSpark components with fallback for local development
 try:

@@ -11,13 +11,22 @@ import logging
 from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime
 
-from temperature_control import TemperatureManager, TemperatureConfig
-from bookmark_system import BookmarkManager
-from constants import (
-    DEFAULT_IDEA_TEMPERATURE,
-    DEFAULT_NUM_TOP_CANDIDATES,
-    DEFAULT_NOVELTY_THRESHOLD
-)
+try:
+    from madspark.utils.temperature_control import TemperatureManager, TemperatureConfig
+    from madspark.utils.bookmark_system import BookmarkManager
+    from madspark.utils.constants import (
+        DEFAULT_IDEA_TEMPERATURE,
+        DEFAULT_NUM_TOP_CANDIDATES,
+        DEFAULT_NOVELTY_THRESHOLD
+    )
+except ImportError:
+    from ..utils.temperature_control import TemperatureManager, TemperatureConfig
+    from ..utils.bookmark_system import BookmarkManager
+    from ..utils.constants import (
+        DEFAULT_IDEA_TEMPERATURE,
+        DEFAULT_NUM_TOP_CANDIDATES,
+        DEFAULT_NOVELTY_THRESHOLD
+    )
 
 logger = logging.getLogger(__name__)
 

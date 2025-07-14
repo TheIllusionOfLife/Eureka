@@ -38,19 +38,18 @@ except ImportError:
 api_key: Optional[str] = os.getenv("GOOGLE_API_KEY")
 model_name: Optional[str] = os.getenv("GOOGLE_GENAI_MODEL")
 
-if not api_key:
-    logging.critical("\nFATAL: GOOGLE_API_KEY is not set in the environment or .env file.")
-    # ... (rest of fatal error messages for API key)
-    exit(1)
-else:
+# Set defaults to allow import without API keys (for testing/CI)
+if api_key:
     os.environ["GOOGLE_API_KEY"] = api_key
-
-if not model_name:
-    logging.critical("\nFATAL: GOOGLE_GENAI_MODEL is not set in the environment or .env file.")
-    # ... (rest of fatal error messages for model name)
-    exit(1)
 else:
+    logging.warning("GOOGLE_API_KEY not set - will run in mock mode only")
+
+if model_name:
     os.environ["GOOGLE_GENAI_MODEL"] = model_name
+else:
+    # Set default model name
+    os.environ["GOOGLE_GENAI_MODEL"] = "gemini-2.5-flash"
+    logging.warning("GOOGLE_GENAI_MODEL not set - using default: gemini-2.5-flash")
 
 try:
     from madspark.agents.idea_generator import generate_ideas, improve_idea
@@ -65,15 +64,15 @@ except ImportError:
     from agent_defs.skeptic import criticize_idea
 try:
     # Primary imports for package installation
-    from madspark.utils.utils.utils import (
+    from madspark.utils.utils import (
         exponential_backoff_retry,
         parse_json_with_fallback,
         validate_evaluation_json,
     )
-    from madspark.utils.utils.novelty_filter import NoveltyFilter
-    from madspark.utils.utils.temperature_control import TemperatureManager
+    from madspark.utils.novelty_filter import NoveltyFilter
+    from madspark.utils.temperature_control import TemperatureManager
     from madspark.core.enhanced_reasoning import ReasoningEngine
-    from madspark.utils.utils.utils.constants import (
+    from madspark.utils.constants import (
         DEFAULT_IDEA_TEMPERATURE,
         DEFAULT_EVALUATION_TEMPERATURE, 
         DEFAULT_ADVOCACY_TEMPERATURE,

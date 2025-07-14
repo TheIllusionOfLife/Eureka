@@ -414,7 +414,10 @@ def search_bookmarks_command(args: argparse.Namespace):
 def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
     """Format results according to specified format."""
     # Apply cleaning to all results before formatting (consistent across all formats)
-    from improved_idea_cleaner import clean_improved_ideas_in_results
+    try:
+        from madspark.utils.improved_idea_cleaner import clean_improved_ideas_in_results
+    except ImportError:
+        from ..utils.improved_idea_cleaner import clean_improved_ideas_in_results
     cleaned_results = clean_improved_ideas_in_results(results)
     
     if format_type == 'json':

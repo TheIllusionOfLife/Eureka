@@ -14,12 +14,20 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional, Tuple
 import csv
 
-from coordinator import run_multistep_workflow
-from async_coordinator import AsyncCoordinator
-from temperature_control import TemperatureManager
-from cache_manager import CacheManager, CacheConfig
-from export_utils import ExportManager
-from constants import DEFAULT_NUM_TOP_CANDIDATES
+try:
+    from madspark.core.coordinator import run_multistep_workflow
+    from madspark.core.async_coordinator import AsyncCoordinator
+    from madspark.utils.temperature_control import TemperatureManager
+    from madspark.utils.cache_manager import CacheManager, CacheConfig
+    from madspark.utils.export_utils import ExportManager
+    from madspark.utils.constants import DEFAULT_NUM_TOP_CANDIDATES
+except ImportError:
+    from ..core.coordinator import run_multistep_workflow
+    from ..core.async_coordinator import AsyncCoordinator
+    from .temperature_control import TemperatureManager
+    from .cache_manager import CacheManager, CacheConfig
+    from .export_utils import ExportManager
+    from .constants import DEFAULT_NUM_TOP_CANDIDATES
 
 logger = logging.getLogger(__name__)
 

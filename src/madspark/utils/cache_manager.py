@@ -6,7 +6,10 @@ import logging
 from typing import Optional, Dict, Any, List, Tuple
 from datetime import datetime, timedelta
 from dataclasses import dataclass, asdict
-from errors import CacheError, CacheConnectionError, CacheSerializationError
+try:
+    from madspark.utils.errors import CacheError, CacheConnectionError, CacheSerializationError
+except ImportError:
+    from .errors import CacheError, CacheConnectionError, CacheSerializationError
 
 try:
     import redis.asyncio as redis

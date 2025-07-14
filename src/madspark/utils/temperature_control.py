@@ -8,7 +8,10 @@ import argparse
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
 import logging
-from errors import TemperatureError, ValidationError
+try:
+    from madspark.utils.errors import TemperatureError, ValidationError
+except ImportError:
+    from .errors import TemperatureError, ValidationError
 
 logger = logging.getLogger(__name__)
 

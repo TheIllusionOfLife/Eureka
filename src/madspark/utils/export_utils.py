@@ -21,7 +21,10 @@ try:
 except ImportError:
     PDF_AVAILABLE = False
 
-from coordinator import CandidateData
+try:
+    from madspark.core.coordinator import CandidateData
+except ImportError:
+    from ..core.coordinator import CandidateData
 
 
 class ExportManager:

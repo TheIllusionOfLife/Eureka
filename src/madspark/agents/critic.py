@@ -64,6 +64,7 @@ def evaluate_ideas(ideas: str, criteria: str, context: str, temperature: float =
     raise ValueError("Input 'context' to evaluate_ideas must be a non-empty string.")
 
   prompt: str = (
+      "Please respond in the same language as this prompt.\n\n"
       "You will be provided with a list of ideas, evaluation criteria, and context.\n"
       "For each idea, you MUST provide an evaluation in the form of a single-line JSON object string.\n"
       "Each JSON object must have exactly two keys: 'score' (an integer from 1 to 10, where 10 is best) "

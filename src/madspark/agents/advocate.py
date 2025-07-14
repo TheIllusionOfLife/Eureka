@@ -60,6 +60,7 @@ def advocate_idea(idea: str, evaluation: str, context: str, temperature: float =
     raise ValueError("Input 'context' to advocate_idea must be a non-empty string.")
 
   prompt: str = (
+      f"Please respond in the same language as this prompt.\n\n"
       f"Here's an idea:\n{idea}\n\n"
       f"Here's its evaluation:\n{evaluation}\n\n"
       f"And the context:\n{context}\n\n"

@@ -126,10 +126,8 @@ CLEANER_TITLE_EXTRACTION_PATTERN = r'"([^"]+)"'
 CLEANER_TITLE_REPLACEMENT_PATTERN = r'^.*?"[^"]+".*?\n+'
 CLEANER_TITLE_KEYWORDS = ['Framework', 'System', 'Engine']
 
-# Temperature presets (required by CLAUDE.md guidelines)
-TEMPERATURE_PRESETS = {
-    "conservative": 0.25,
-    "balanced": 0.50,
-    "creative": 0.75,
-    "wild": 0.90,
-}
+# Temperature Configuration Note:
+# Temperature presets are defined in temperature_control.py as TemperatureConfig objects
+# with different temperature values for each agent stage (idea_generation, evaluation, etc.)
+# The web interface uses TemperatureManager.PRESETS from temperature_control.py
+# Do NOT define simple temperature values here - the system uses complex configurations

@@ -82,6 +82,7 @@ def build_generation_prompt(topic: str, context: str) -> str:
     A formatted prompt string to be used by the idea generator agent.
   """
   return (
+      f"Please respond in the same language as this prompt.\n\n"
       f"Use the context below to {IDEA_GENERATION_INSTRUCTION}"
       f" on the topic of {topic}. Make sure the ideas are actionable and"
       f" innovative.\n\nContext:\n{context}\n\nIdeas:"
@@ -174,7 +175,8 @@ def build_improvement_prompt(
     A formatted prompt string for idea improvement.
   """
   return (
-      f"You are helping to enhance an innovative idea based on comprehensive feedback.\n\n"
+      f"You are helping to enhance an innovative idea based on comprehensive feedback.\n"
+      f"Please respond in the same language as this prompt.\n\n"
       f"ORIGINAL THEME: {theme}\n\n"
       f"ORIGINAL IDEA:\n{original_idea}\n\n"
       f"EVALUATION CRITERIA AND FEEDBACK:\n{critique}\n"

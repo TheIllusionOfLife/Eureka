@@ -30,6 +30,7 @@ class LRUCache:
         self.lock = threading.RLock()
         self.hits = 0
         self.misses = 0
+        self._last_cleanup = 0
     
     def _is_expired(self, key: str) -> bool:
         """Check if cache entry is expired."""
@@ -67,9 +68,10 @@ class LRUCache:
     def set(self, key: str, value: Any) -> None:
         """Set value in cache."""
         with self.lock:
-            # Remove expired entries periodically
-            if len(self.cache) % 100 == 0:
+            # Remove expired entries periodically (more robust approach)
+            if not hasattr(self, '_last_cleanup') or time.time() - self._last_cleanup > 300:  # 5 minutes
                 self._evict_expired()
+                self._last_cleanup = time.time()
             
             # Remove oldest entries if at capacity
             while len(self.cache) >= self.max_size:

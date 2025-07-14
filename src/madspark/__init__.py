@@ -9,7 +9,7 @@ __version__ = "2.1.0"
 __author__ = "MadSpark Development Team"
 
 # Core exports
-from .core.coordinator import Coordinator
+from .core.coordinator import run_multistep_workflow
 from .core.async_coordinator import AsyncCoordinator
 
-__all__ = ["Coordinator", "AsyncCoordinator"]
+__all__ = ["run_multistep_workflow", "AsyncCoordinator"]

@@ -50,6 +50,7 @@ try:
     )
     from bookmark_system import BookmarkManager
     from cache_manager import CacheManager, CacheConfig
+    from improved_idea_cleaner import clean_improved_ideas_in_results
 except ImportError as e:
     logging.error(f"Failed to import MadSpark modules: {e}")
     raise
@@ -64,8 +65,11 @@ logger = logging.getLogger(__name__)
 
 def format_results_for_frontend(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Format results to match frontend expectations, especially multi-dimensional evaluation."""
+    # Apply cleaning to all results before formatting (consistent with CLI)
+    cleaned_results = clean_improved_ideas_in_results(results)
+    
     formatted_results = []
-    for result in results:
+    for result in cleaned_results:
         formatted_result = dict(result)
         
         # Transform multi_dimensional_evaluation if present
@@ -412,7 +416,7 @@ async def generate_ideas(request: IdeaGenerationRequest):
                 timeout=timeout_seconds
             )
         except asyncio.TimeoutError:
-            await ws_manager.send_progress_update("Request timed out after 10 minutes", 0.0)
+            await ws_manager.send_progress_update(f"Request timed out after {timeout_seconds} seconds", 0.0)
             raise HTTPException(
                 status_code=408, 
                 detail=f"Request timed out after {timeout_seconds} seconds. Please try with fewer candidates or simpler constraints."

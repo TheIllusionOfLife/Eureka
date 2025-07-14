@@ -410,10 +410,15 @@ def search_bookmarks_command(args: argparse.Namespace):
 
 def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
     """Format results according to specified format."""
+    # Apply cleaning to all results before formatting (consistent across all formats)
+    from improved_idea_cleaner import clean_improved_ideas_in_results
+    cleaned_results = clean_improved_ideas_in_results(results)
+    
     if format_type == 'json':
-        return json.dumps(results, indent=2, ensure_ascii=False)
+        return json.dumps(cleaned_results, indent=2, ensure_ascii=False)
     
     elif format_type == 'summary':
+<<<<<<< HEAD
         lines = [f"Generated {len(results)} improved ideas:\n"]
         for i, result in enumerate(results, 1):
             lines.append(f"--- IMPROVED IDEA {i} ---")
@@ -422,6 +427,14 @@ def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
             improved_idea = result.get('improved_idea', 'No improved idea available')
             if improved_idea != 'No improved idea available':
                 improved_idea = clean_improved_idea(improved_idea)
+=======
+        lines = [f"Generated {len(cleaned_results)} improved ideas:\n"]
+        for i, result in enumerate(cleaned_results, 1):
+            lines.append(f"--- IMPROVED IDEA {i} ---")
+            
+            # Get cleaned improved idea (already cleaned by clean_improved_ideas_in_results)
+            improved_idea = result.get('improved_idea', 'No improved idea available')
+>>>>>>> fc1c0dd9320f0bffb38b6b7327992a9cc51ee60d
             
             if len(improved_idea) > 500:
                 improved_idea = improved_idea[:497] + "..."
@@ -459,13 +472,19 @@ def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
         lines.append("MADSPARK MULTI-AGENT IDEA GENERATION RESULTS")
         lines.append("=" * 80)
         
-        for i, result in enumerate(results, 1):
+        for i, result in enumerate(cleaned_results, 1):
             lines.append(f"\n--- IDEA {i} ---")
             lines.append(f"Text: {result['idea']}")
             lines.append(f"Initial Score: {result['initial_score']}")
             lines.append(f"Initial Critique: {result['initial_critique']}")
             lines.append(f"\nAdvocacy: {result['advocacy']}")
             lines.append(f"\nSkepticism: {result['skepticism']}")
+            
+            # Include cleaned improved idea in text format
+            if 'improved_idea' in result:
+                lines.append(f"\nImproved Idea: {result['improved_idea']}")
+                lines.append(f"Improved Score: {result.get('improved_score', 'N/A')}")
+            
             lines.append("-" * 80)
         
         return "\n".join(lines)
@@ -477,6 +496,13 @@ def main():
     args = parser.parse_args()
     
     setup_logging(args.verbose)
+    
+    # Validate timeout value
+    if hasattr(args, 'timeout'):
+        if args.timeout < 1:
+            parser.error("Timeout must be at least 1 second")
+        elif args.timeout > 3600:  # 1 hour max
+            parser.error("Timeout cannot exceed 3600 seconds (1 hour)")
     
     # Handle standalone commands
     if args.list_bookmarks:
@@ -634,7 +660,8 @@ def main():
             "verbose": args.verbose,
             "enhanced_reasoning": args.enhanced_reasoning,
             "multi_dimensional_eval": True,  # Always enabled as a core feature
-            "logical_inference": args.logical_inference
+            "logical_inference": args.logical_inference,
+            "timeout": args.timeout
         }
 
         if hasattr(args, 'async') and getattr(args, 'async'):

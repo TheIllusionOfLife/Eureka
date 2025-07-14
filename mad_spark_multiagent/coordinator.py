@@ -199,49 +199,14 @@ class CandidateData(TypedDict):
 # --- End TypedDict Definitions ---
 
 
-# Create retry-wrapped versions of agent calls
-@exponential_backoff_retry(max_retries=3, initial_delay=2.0)
-def call_idea_generator_with_retry(topic: str, context: str, temperature: float = 0.9) -> str:
-    """Call idea generator with retry logic."""
-    return generate_ideas(topic=topic, context=context, temperature=temperature)
-
-
-@exponential_backoff_retry(max_retries=3, initial_delay=2.0)
-def call_critic_with_retry(ideas: str, criteria: str, context: str, temperature: float = 0.3) -> str:
-    """Call critic with retry logic."""
-    return evaluate_ideas(ideas=ideas, criteria=criteria, context=context, temperature=temperature)
-
-
-@exponential_backoff_retry(max_retries=2, initial_delay=1.0)
-def call_advocate_with_retry(idea: str, evaluation: str, context: str, temperature: float = 0.5) -> str:
-    """Call advocate with retry logic."""
-    return advocate_idea(idea=idea, evaluation=evaluation, context=context, temperature=temperature)
-
-
-@exponential_backoff_retry(max_retries=2, initial_delay=1.0)
-def call_skeptic_with_retry(idea: str, advocacy: str, context: str, temperature: float = 0.5) -> str:
-    """Call skeptic with retry logic."""
-    return criticize_idea(idea=idea, advocacy=advocacy, context=context, temperature=temperature)
-
-
-@exponential_backoff_retry(max_retries=3, initial_delay=2.0)
-def call_improve_idea_with_retry(
-    original_idea: str, 
-    critique: str, 
-    advocacy_points: str, 
-    skeptic_points: str, 
-    theme: str,
-    temperature: float = 0.9
-) -> str:
-    """Call improve_idea with retry logic."""
-    return improve_idea(
-        original_idea=original_idea,
-        critique=critique,
-        advocacy_points=advocacy_points,
-        skeptic_points=skeptic_points,
-        theme=theme,
-        temperature=temperature
-    )
+# Import retry-wrapped versions of agent calls from shared module
+from agent_retry_wrappers import (
+    call_idea_generator_with_retry,
+    call_critic_with_retry,
+    call_advocate_with_retry,
+    call_skeptic_with_retry,
+    call_improve_idea_with_retry
+)
 
 
 def run_multistep_workflow(
@@ -252,7 +217,8 @@ def run_multistep_workflow(
     enhanced_reasoning: bool = False,
     multi_dimensional_eval: bool = False,
     logical_inference: bool = False,
-    reasoning_engine: Optional[ReasoningEngine] = None
+    reasoning_engine: Optional[ReasoningEngine] = None,
+    timeout: int = 600
 ) -> List[CandidateData]:
     """
     Runs the multi-step idea generation and refinement workflow.
@@ -269,6 +235,7 @@ def run_multistep_workflow(
         multi_dimensional_eval: Use multi-dimensional evaluation instead of simple scoring
         logical_inference: Enable logical inference chains for enhanced reasoning
         reasoning_engine: Pre-initialized reasoning engine (optional)
+        timeout: Maximum time allowed for the entire workflow in seconds
         
     Returns:
         List of CandidateData containing processed ideas with evaluations
@@ -276,6 +243,11 @@ def run_multistep_workflow(
     final_candidates_data: List[CandidateData] = []
     # raw_generated_ideas: str = "" # Type will be known after call
     parsed_ideas: List[str] = []
+    
+    # Note: Timeout is only enforced in async mode via asyncio.wait_for()
+    # Sync mode runs sequentially without interruption by design
+    if timeout and timeout != 600:  # 600 is default timeout
+        logging.warning(f"⚠️  Timeout parameter ({timeout}s) specified but not enforced in sync mode. Use AsyncCoordinator for timeout support.")
 
     # Extract temperatures from temperature manager if provided
     if temperature_manager:

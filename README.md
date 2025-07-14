@@ -50,6 +50,9 @@ make test-basic
 make run
 ```
 
+📖 **[See detailed documentation and full feature guide →](mad_spark_multiagent/README.md)**
+```
+
 #### Current Status
 
 | Component | Status | Notes |

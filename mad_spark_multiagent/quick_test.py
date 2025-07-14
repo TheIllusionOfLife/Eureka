@@ -52,10 +52,17 @@ def quick_test(theme="AI innovation", constraints="Simple test", num_candidates=
         for i, result in enumerate(results, 1):
             print(f"Idea {i}:")
             print(f"  Title: {result.get('idea', 'N/A')[:100]}...")
+<<<<<<< HEAD
             print(f"  Score: {result.get('score', 0)}")
             if result.get('improved_idea'):
                 print(f"  Improved: Yes")
                 print(f"  New Score: {result.get('new_score', 0)}")
+=======
+            print(f"  Score: {result.get('initial_score', 0)}")
+            if result.get('improved_idea'):
+                print(f"  Improved: Yes")
+                print(f"  New Score: {result.get('improved_score', 0)}")
+>>>>>>> fc1c0dd9320f0bffb38b6b7327992a9cc51ee60d
             print()
             
     except Exception as e:

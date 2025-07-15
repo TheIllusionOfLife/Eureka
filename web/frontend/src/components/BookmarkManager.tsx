@@ -22,10 +22,38 @@ const BookmarkManager: React.FC<BookmarkManagerProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [localSelectedIds, setLocalSelectedIds] = useState<Set<string>>(new Set(selectedBookmarkIds));
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     setLocalSelectedIds(new Set(selectedBookmarkIds));
   }, [selectedBookmarkIds]);
+
+  // Handle escape key to close modal and focus management
+  useEffect(() => {
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscapeKey);
+      // Prevent body scroll when modal is open
+      document.body.style.overflow = 'hidden';
+      
+      // Focus management: focus the modal when it opens
+      const modalElement = document.querySelector('[role="dialog"]') as HTMLElement;
+      if (modalElement) {
+        modalElement.focus();
+      }
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -56,29 +84,57 @@ const BookmarkManager: React.FC<BookmarkManagerProps> = ({
     }
   };
 
-  const handleExportBookmarks = () => {
-    const dataStr = JSON.stringify(bookmarks, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    
-    const exportFileDefaultName = `madspark-bookmarks-${new Date().toISOString().split('T')[0]}.json`;
-    
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
+  const handleExportBookmarks = async () => {
+    setIsExporting(true);
+    try {
+      // Add a small delay for visual feedback
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      const dataStr = JSON.stringify(bookmarks, null, 2);
+      const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+      
+      const exportFileDefaultName = `madspark-bookmarks-${new Date().toISOString().split('T')[0]}.json`;
+      
+      const linkElement = document.createElement('a');
+      linkElement.setAttribute('href', dataUri);
+      linkElement.setAttribute('download', exportFileDefaultName);
+      linkElement.click();
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Failed to export bookmarks. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+    <div 
+      className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50"
+      onClick={handleBackdropClick}
+    >
+      <div 
+        className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col m-4"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="bookmark-manager-title"
+        tabIndex={-1}
+      >
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-900">
+          <h2 id="bookmark-manager-title" className="text-xl font-semibold text-gray-900">
             Bookmark Manager ({bookmarks.length} bookmarks)
           </h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-500"
+            aria-label="Close bookmark manager"
           >
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -132,12 +188,24 @@ const BookmarkManager: React.FC<BookmarkManagerProps> = ({
           <div className="flex justify-between items-center">
             <button
               onClick={handleExportBookmarks}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+              disabled={isExporting}
+              className={`inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md ${
+                isExporting 
+                  ? 'text-gray-400 bg-gray-100 cursor-not-allowed' 
+                  : 'text-gray-700 bg-white hover:bg-gray-50'
+              }`}
             >
-              <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              Export All
+              {isExporting ? (
+                <svg className="h-4 w-4 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              ) : (
+                <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              )}
+              {isExporting ? 'Exporting...' : 'Export All'}
             </button>
             {onSelectBookmarks && (
               <div className="text-sm text-gray-600">
@@ -197,16 +265,37 @@ const BookmarkManager: React.FC<BookmarkManagerProps> = ({
                         />
                       )}
                       <button
-                        onClick={() => {
+                        onClick={async () => {
                           if (window.confirm('Are you sure you want to delete this bookmark?')) {
-                            onDeleteBookmark(bookmark.id);
+                            setDeletingIds(new Set([...deletingIds, bookmark.id]));
+                            try {
+                              await onDeleteBookmark(bookmark.id);
+                            } finally {
+                              setDeletingIds(prev => {
+                                const newSet = new Set(prev);
+                                newSet.delete(bookmark.id);
+                                return newSet;
+                              });
+                            }
                           }
                         }}
-                        className="text-red-600 hover:text-red-800"
+                        disabled={deletingIds.has(bookmark.id)}
+                        className={`${
+                          deletingIds.has(bookmark.id) 
+                            ? 'text-gray-400 cursor-not-allowed' 
+                            : 'text-red-600 hover:text-red-800'
+                        }`}
                       >
-                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
+                        {deletingIds.has(bookmark.id) ? (
+                          <svg className="h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        ) : (
+                          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        )}
                       </button>
                     </div>
                   </div>

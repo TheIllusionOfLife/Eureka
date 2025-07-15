@@ -711,19 +711,53 @@ async def websocket_endpoint(websocket: WebSocket):
     """WebSocket endpoint for real-time progress updates."""
     try:
         await ws_manager.connect(websocket)
+        
+        # Send initial connection confirmation
+        await websocket.send_text(json.dumps({
+            "type": "connection",
+            "message": "WebSocket connected successfully",
+            "timestamp": datetime.now().isoformat()
+        }))
+        
         while True:
             try:
-                # Keep connection alive
-                data = await websocket.receive_text()
-                # Echo back for connection testing
-                await websocket.send_text(f"Echo: {data}")
-            except Exception as e:
-                logger.error(f"WebSocket message handling error: {e}")
+                # Wait for ping messages or other client data
+                data = await asyncio.wait_for(websocket.receive_text(), timeout=30.0)
+                
+                # Handle ping/pong for keep-alive
+                if data == "ping":
+                    await websocket.send_text("pong")
+                else:
+                    # Echo back other messages for testing
+                    await websocket.send_text(json.dumps({
+                        "type": "echo",
+                        "message": f"Received: {data}",
+                        "timestamp": datetime.now().isoformat()
+                    }))
+                    
+            except asyncio.TimeoutError:
+                # Send keep-alive ping to detect disconnections
+                try:
+                    await websocket.send_text(json.dumps({
+                        "type": "ping",
+                        "timestamp": datetime.now().isoformat()
+                    }))
+                except:
+                    logger.info("WebSocket connection lost during ping")
+                    break
+            except WebSocketDisconnect:
+                logger.info("WebSocket client disconnected normally")
                 break
+            except Exception as e:
+                logger.warning(f"WebSocket message handling error: {e}")
+                # Don't break on minor errors, continue listening
+                continue
+                
     except WebSocketDisconnect:
-        ws_manager.disconnect(websocket)
+        logger.info("WebSocket client disconnected during connection")
     except Exception as e:
         logger.error(f"WebSocket connection error: {e}")
+    finally:
         ws_manager.disconnect(websocket)
 
 

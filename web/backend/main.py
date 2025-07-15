@@ -630,17 +630,17 @@ async def create_bookmark(request: BookmarkRequest):
     try:
         # Use improved idea if available, otherwise use original
         idea_text = request.improved_idea if request.improved_idea is not None else request.idea
-        score = int(request.improved_score if request.improved_score is not None else request.initial_score)
+        score = request.improved_score if request.improved_score is not None else request.initial_score
         critique = request.improved_critique if request.improved_critique is not None else request.initial_critique
         
         bookmark_id = bookmark_system.bookmark_idea(
             idea_text=idea_text,
             theme=request.theme,
             constraints=request.constraints,
-            score=score,
-            critique=critique,
-            advocacy=request.advocacy,
-            skepticism=request.skepticism,
+            score=round(score, 1),  # Keep precision but convert to compatible format
+            critique=critique or "",
+            advocacy=request.advocacy or "",
+            skepticism=request.skepticism or "",
             tags=request.tags
         )
         

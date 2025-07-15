@@ -404,12 +404,21 @@ function App() {
               bookmarkedIdeas={bookmarkedIdeas}
               onBookmarkToggle={async (result: IdeaResult, index: number) => {
                 try {
-                  // Create a unique ID for this result
-                  const tempId = `temp-${index}-${Date.now()}`;
+                  // Check if this result is already bookmarked
+                  const ideaText = result.improved_idea || result.idea;
+                  const existingBookmark = savedBookmarks.find(bookmark => 
+                    bookmark.text === result.idea || 
+                    (result.improved_idea && bookmark.text === result.improved_idea)
+                  );
                   
-                  if (bookmarkedIdeas.has(tempId)) {
-                    // TODO: Remove bookmark when we have persistent IDs
-                    alert('Bookmark removal coming soon!');
+                  if (existingBookmark) {
+                    // Remove existing bookmark
+                    try {
+                      await handleDeleteBookmark(existingBookmark.id);
+                    } catch (deleteError) {
+                      console.error('Failed to remove bookmark:', deleteError);
+                      alert('Failed to remove bookmark. Please try again.');
+                    }
                   } else {
                     // Create bookmark via API with better error handling
                     const response = await bookmarkService.createBookmark(

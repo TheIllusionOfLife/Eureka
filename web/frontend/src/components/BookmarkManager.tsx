@@ -25,7 +25,6 @@ const BookmarkManager: React.FC<BookmarkManagerProps> = ({
   const [localSelectedIds, setLocalSelectedIds] = useState<Set<string>>(new Set(selectedBookmarkIds));
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   const [isExporting, setIsExporting] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20; // Show 20 bookmarks per page
 
@@ -341,6 +340,7 @@ const BookmarkManager: React.FC<BookmarkManagerProps> = ({
               </div>
               <div className="flex space-x-2">
                 <button
+                  type="button"
                   onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                   disabled={currentPage === 1}
                   className="px-3 py-1 text-sm bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed rounded"
@@ -348,6 +348,7 @@ const BookmarkManager: React.FC<BookmarkManagerProps> = ({
                   Previous
                 </button>
                 <button
+                  type="button"
                   onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                   disabled={currentPage === totalPages}
                   className="px-3 py-1 text-sm bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded"

@@ -46,7 +46,7 @@ class ErrorHandler {
     };
 
     // Network/Connection errors
-    if (error.code === 'ECONNABORTED' || error.code === 'NETWORK_ERROR') {
+    if (error.code === 'NETWORK_ERROR') {
       errorDetails = {
         message: 'Network connection error. Please check your internet connection and try again.',
         type: 'network',
@@ -55,7 +55,7 @@ class ErrorHandler {
         context
       };
     }
-    // Timeout errors
+    // Timeout errors (ECONNABORTED typically indicates timeout)
     else if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
       errorDetails = {
         message: 'Request timed out. The operation is taking longer than expected. Please try again or use simpler parameters.',

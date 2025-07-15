@@ -109,13 +109,13 @@ class ErrorTracker:
         self.errors = []
         self.max_errors = 100
     
-    def track_error(self, error_type: str, error_message: str, context: dict = None):
+    def track_error(self, error_type: str, error_message: str, context: dict = None, session_id: str = None):
         error_entry = {
             'timestamp': datetime.now().isoformat(),
             'type': error_type,
             'message': error_message,
             'context': context or {},
-            'session_id': getattr(self, 'session_id', 'unknown')
+            'session_id': session_id or 'unknown'
         }
         self.errors.append(error_entry)
         
@@ -127,10 +127,14 @@ class ErrorTracker:
         logger.error(f"[{error_type}] {error_message}", extra={'context': context})
     
     def get_error_stats(self):
+        error_types = {}
+        for error in self.errors:
+            error_types[error['type']] = error_types.get(error['type'], 0) + 1
+
         return {
             'total_errors': len(self.errors),
             'recent_errors': self.errors[-10:] if self.errors else [],
-            'error_types': {}
+            'error_types': error_types
         }
 
 error_tracker = ErrorTracker()
@@ -297,6 +301,10 @@ async def lifespan(app: FastAPI):
     
     # Startup
     logger.info("Initializing MadSpark backend services...")
+    
+    # Store application start time for uptime calculation
+    app.state.start_time = datetime.now()
+    
     try:
         temp_manager = TemperatureManager()
         reasoning_engine = ReasoningEngine()
@@ -352,6 +360,14 @@ app.add_middleware(
     minimum_size=1000,  # Only compress responses larger than 1KB
     compresslevel=6     # Balanced compression level (1-9, 6 is good balance)
 )
+
+# Middleware to add session ID to requests
+@app.middleware("http")
+async def add_session_id(request: Request, call_next):
+    # Generate a simple session ID for each request
+    request.state.session_id = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{random.randint(1000, 9999)}"
+    response = await call_next(request)
+    return response
 
 
 # Pydantic models for API requests and responses
@@ -902,7 +918,7 @@ async def get_error_stats():
             "error_stats": stats,
             "system_info": {
                 "timestamp": datetime.now().isoformat(),
-                "uptime_seconds": (datetime.now() - datetime.fromtimestamp(0)).total_seconds(),
+                "uptime_seconds": (datetime.now() - app.state.start_time).total_seconds() if hasattr(app.state, 'start_time') else 0,
                 "environment": os.getenv('ENVIRONMENT', 'development')
             }
         }

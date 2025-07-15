@@ -5,7 +5,10 @@ import ResultsDisplay from './components/ResultsDisplay';
 import ProgressIndicator from './components/ProgressIndicator';
 import BookmarkManager from './components/BookmarkManager';
 import { bookmarkService, SavedBookmark } from './services/bookmarkService';
+import { ToastContainer } from 'react-toastify';
+import { showSuccess, showError, showInfo } from './utils/toast';
 import './App.css';
+import 'react-toastify/dist/ReactToastify.css';
 
 export interface IdeaResult {
   idea: string;
@@ -116,11 +119,11 @@ function App() {
       // Reload bookmarks with error handling
       try {
         await loadBookmarks();
-        alert('Bookmark deleted successfully!');
+        showSuccess('Bookmark deleted successfully!');
       } catch (reloadError) {
         console.warn('Failed to reload bookmarks after deletion:', reloadError);
         // Still show success since deletion worked
-        alert('Bookmark deleted successfully! Please refresh to see updated list.');
+        showSuccess('Bookmark deleted successfully! Please refresh to see updated list.');
       }
     } catch (error: any) {
       console.error('Failed to delete bookmark:', error);
@@ -139,7 +142,7 @@ function App() {
         errorMessage = `Delete failed: ${error.message}`;
       }
       
-      alert(errorMessage);
+      showError(errorMessage);
     }
   };
 
@@ -417,7 +420,7 @@ function App() {
                       await handleDeleteBookmark(existingBookmark.id);
                     } catch (deleteError) {
                       console.error('Failed to remove bookmark:', deleteError);
-                      alert('Failed to remove bookmark. Please try again.');
+                      showError('Failed to remove bookmark. Please try again.');
                     }
                   } else {
                     // Create bookmark via API with better error handling
@@ -437,11 +440,11 @@ function App() {
                       // Reload bookmarks with error handling
                       try {
                         await loadBookmarks();
-                        alert('Idea bookmarked successfully!');
+                        showSuccess('Idea bookmarked successfully!');
                       } catch (reloadError) {
                         console.warn('Failed to reload bookmarks after creation:', reloadError);
                         // Still show success since bookmark was created
-                        alert('Idea bookmarked successfully! Please refresh to see updated list.');
+                        showSuccess('Idea bookmarked successfully! Please refresh to see updated list.');
                       }
                     } else {
                       throw new Error(response.message || 'Failed to create bookmark');
@@ -462,7 +465,7 @@ function App() {
                     errorMessage = `Bookmark failed: ${error.message}`;
                   }
                   
-                  alert(errorMessage);
+                  showError(errorMessage);
                 }
               }}
               savedBookmarks={savedBookmarks}
@@ -480,6 +483,9 @@ function App() {
         onSelectBookmarks={setSelectedBookmarkIds}
         selectedBookmarkIds={selectedBookmarkIds}
       />
+      
+      {/* Toast Container */}
+      <ToastContainer />
     </div>
   );
 }

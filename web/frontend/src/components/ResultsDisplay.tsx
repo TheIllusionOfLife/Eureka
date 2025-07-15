@@ -6,6 +6,7 @@ import ComparisonRadarChart from './ComparisonRadarChart';
 import MarkdownRenderer from './MarkdownRenderer';
 import ScoreComparison from './ScoreComparison';
 import { cleanImprovedIdea } from '../utils/ideaCleaner';
+import { showError, showSuccess } from '../utils/toast';
 
 interface ResultsDisplayProps {
   results: IdeaResult[];
@@ -111,7 +112,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
         await handleClipboardShare(shareText);
       } catch (clipboardErr) {
         console.error('All sharing methods failed:', clipboardErr);
-        alert('Unable to share idea. Please try copying manually.');
+        showError('Unable to share idea. Please try copying manually.');
       }
     }
   };
@@ -121,7 +122,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
       // Check if clipboard API is available
       if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(text);
-        alert('Idea copied to clipboard!');
+        showSuccess('Idea copied to clipboard!');
       } else {
         // Fallback for older browsers
         const textArea = document.createElement('textarea');
@@ -136,7 +137,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
         try {
           const successful = document.execCommand('copy');
           if (successful) {
-            alert('Idea copied to clipboard!');
+            showSuccess('Idea copied to clipboard!');
           } else {
             throw new Error('Copy command failed');
           }
@@ -151,7 +152,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
         'Unable to copy automatically. Click OK to see the text to copy manually.'
       );
       if (userWantsCopy) {
-        alert(`Please copy this text manually:\n\n${text}`);
+        showError(`Please copy this text manually:\n\n${text}`);
       }
       throw err;
     }

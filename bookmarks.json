@@ -29,5 +29,37 @@
       "iot",
       "agriculture"
     ]
+  },
+  "bookmark_20250715_185713_b1c86694": {
+    "id": "bookmark_20250715_185713_b1c86694",
+    "text": "AI-powered medical diagnosis system with local processing",
+    "theme": "AI healthcare assistant",
+    "constraints": "Privacy-first, HIPAA compliant",
+    "score": 7,
+    "critique": "Strong technical feasibility but regulatory compliance challenges",
+    "advocacy": "Could revolutionize healthcare access in underserved areas",
+    "skepticism": "Privacy concerns and liability issues need careful consideration",
+    "bookmarked_at": "2025-07-15T18:57:13.186853",
+    "tags": [
+      "healthcare",
+      "AI",
+      "privacy"
+    ]
+  },
+  "bookmark_20250715_185727_b13deb73": {
+    "id": "bookmark_20250715_185727_b13deb73",
+    "text": "AI-powered medical diagnosis system with local processing",
+    "theme": "AI healthcare assistant",
+    "constraints": "Privacy-first, HIPAA compliant",
+    "score": 7,
+    "critique": "Strong technical feasibility but regulatory compliance challenges",
+    "advocacy": "Could revolutionize healthcare access in underserved areas",
+    "skepticism": "Privacy concerns and liability issues need careful consideration",
+    "bookmarked_at": "2025-07-15T18:57:27.120415",
+    "tags": [
+      "healthcare",
+      "AI",
+      "privacy"
+    ]
   }
 }

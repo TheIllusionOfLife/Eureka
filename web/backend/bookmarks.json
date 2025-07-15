@@ -27,5 +27,21 @@
     "tags": [
       "test"
     ]
+  },
+  "bookmark_20250715_100710_ddf4d550": {
+    "id": "bookmark_20250715_100710_ddf4d550",
+    "text": "AI-powered medical diagnosis system with local processing",
+    "theme": "AI healthcare assistant",
+    "constraints": "Privacy-first, HIPAA compliant",
+    "score": 8.2,
+    "critique": "",
+    "advocacy": "Could revolutionize healthcare access in underserved areas",
+    "skepticism": "Privacy concerns and liability issues need careful consideration",
+    "bookmarked_at": "2025-07-15T10:07:10.117419",
+    "tags": [
+      "healthcare",
+      "AI",
+      "privacy"
+    ]
   }
 }

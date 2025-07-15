@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { SavedBookmark } from '../services/bookmarkService';
 import MarkdownRenderer from './MarkdownRenderer';
+import { showError } from '../utils/toast';
 
 interface BookmarkManagerProps {
   isOpen: boolean;
@@ -104,7 +105,7 @@ const BookmarkManager: React.FC<BookmarkManagerProps> = ({
       linkElement.click();
     } catch (error) {
       console.error('Export failed:', error);
-      alert('Failed to export bookmarks. Please try again.');
+      showError('Failed to export bookmarks. Please try again.');
     } finally {
       setIsExporting(false);
     }

@@ -49,16 +49,16 @@ class BookmarkService {
       
       // Ensure all required fields meet minimum requirements
       const bookmarkData: BookmarkData = {
-        idea: result.idea || '',
+        idea: result.idea || 'No idea text provided',
         improved_idea: result.improved_idea || undefined,
         theme: theme || 'General',
         constraints: constraints || '',
         initial_score: result.initial_score || 0,
         improved_score: result.improved_score || undefined,
-        initial_critique: result.initial_critique || '',
+        initial_critique: result.initial_critique || undefined,
         improved_critique: result.improved_critique || undefined,
-        advocacy: result.advocacy || '',
-        skepticism: result.skepticism || '',
+        advocacy: result.advocacy || undefined,
+        skepticism: result.skepticism || undefined,
         tags: [], // Can be enhanced to allow user-defined tags
       };
 

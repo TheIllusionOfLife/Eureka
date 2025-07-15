@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { SavedBookmark } from '../services/bookmarkService';
 import MarkdownRenderer from './MarkdownRenderer';
+import { showError } from '../utils/toast';
 
 interface BookmarkManagerProps {
   isOpen: boolean;
@@ -24,6 +25,8 @@ const BookmarkManager: React.FC<BookmarkManagerProps> = ({
   const [localSelectedIds, setLocalSelectedIds] = useState<Set<string>>(new Set(selectedBookmarkIds));
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   const [isExporting, setIsExporting] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20; // Show 20 bookmarks per page
 
   useEffect(() => {
     setLocalSelectedIds(new Set(selectedBookmarkIds));
@@ -72,6 +75,19 @@ const BookmarkManager: React.FC<BookmarkManagerProps> = ({
     });
   }, [bookmarks, searchQuery, selectedTag]);
 
+  // Pagination logic
+  const totalPages = Math.ceil(filteredBookmarks.length / itemsPerPage);
+  const paginatedBookmarks = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredBookmarks.slice(startIndex, endIndex);
+  }, [filteredBookmarks, currentPage, itemsPerPage]);
+
+  // Reset to first page when search/filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedTag]);
+
   if (!isOpen) return null;
 
   const handleSelectToggle = (bookmarkId: string) => {
@@ -104,7 +120,7 @@ const BookmarkManager: React.FC<BookmarkManagerProps> = ({
       linkElement.click();
     } catch (error) {
       console.error('Export failed:', error);
-      alert('Failed to export bookmarks. Please try again.');
+      showError('Failed to export bookmarks. Please try again.');
     } finally {
       setIsExporting(false);
     }
@@ -233,7 +249,7 @@ const BookmarkManager: React.FC<BookmarkManagerProps> = ({
             </div>
           ) : (
             <div className="space-y-4">
-              {filteredBookmarks.map((bookmark) => (
+              {paginatedBookmarks.map((bookmark) => (
                 <div key={bookmark.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -313,6 +329,33 @@ const BookmarkManager: React.FC<BookmarkManagerProps> = ({
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+          
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex justify-between items-center mt-6 pt-4 border-t">
+              <div className="text-sm text-gray-600">
+                Page {currentPage} of {totalPages} ({filteredBookmarks.length} total bookmarks)
+              </div>
+              <div className="flex space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 text-sm bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed rounded"
+                >
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1 text-sm bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded"
+                >
+                  Next
+                </button>
+              </div>
             </div>
           )}
         </div>

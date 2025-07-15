@@ -5,7 +5,12 @@ import ResultsDisplay from './components/ResultsDisplay';
 import ProgressIndicator from './components/ProgressIndicator';
 import BookmarkManager from './components/BookmarkManager';
 import { bookmarkService, SavedBookmark } from './services/bookmarkService';
+import { ToastContainer } from 'react-toastify';
+import { showSuccess, showError, showInfo } from './utils/toast';
+import { handleBookmarkError, handleIdeaGenerationError, handleWebSocketError } from './utils/errorHandler';
+import { logger, logUserAction, logWebSocketEvent, logApiCall } from './utils/logger';
 import './App.css';
+import 'react-toastify/dist/ReactToastify.css';
 
 export interface IdeaResult {
   idea: string;
@@ -85,61 +90,51 @@ function App() {
 
   const loadBookmarks = async () => {
     try {
+      logger.info('Loading bookmarks', 'BOOKMARK');
       const bookmarks = await bookmarkService.getBookmarks();
       setSavedBookmarks(bookmarks);
       // Create a set of bookmark IDs for quick lookup
       const bookmarkIds = new Set(bookmarks.map(b => b.id));
       setBookmarkedIdeas(bookmarkIds);
+      logger.info(`Loaded ${bookmarks.length} bookmarks`, 'BOOKMARK');
     } catch (error: any) {
-      console.error('Failed to load bookmarks:', error);
-      
       // Don't show error alerts for bookmark loading failures during initial load
-      // as this would be annoying for users. Just log the error.
-      if (error.response?.status === 500) {
-        console.warn('Bookmark service temporarily unavailable');
-      } else if (error.response?.status === 401) {
-        console.warn('Authentication required for bookmarks');
-      } else {
-        console.warn('Bookmark loading failed:', error.message);
-      }
+      // as this would be annoying for users. Just handle the error silently.
+      const errorDetails = handleBookmarkError(error, 'loading');
       
       // Set empty arrays so UI doesn't break
       setSavedBookmarks([]);
       setBookmarkedIdeas(new Set());
+      
+      // Only log, don't show toast for initial load failures
+      logger.warn('Bookmark loading failed but UI continues', 'BOOKMARK', errorDetails);
     }
   };
   
   const handleDeleteBookmark = async (bookmarkId: string) => {
     try {
+      logUserAction('delete_bookmark', { bookmarkId });
       await bookmarkService.deleteBookmark(bookmarkId);
       
       // Reload bookmarks with error handling
       try {
         await loadBookmarks();
-        alert('Bookmark deleted successfully!');
+        showSuccess('Bookmark deleted successfully!');
+        logger.bookmarkAction('delete', bookmarkId, true);
       } catch (reloadError) {
-        console.warn('Failed to reload bookmarks after deletion:', reloadError);
+        handleBookmarkError(reloadError, 'reloading after deletion');
         // Still show success since deletion worked
-        alert('Bookmark deleted successfully! Please refresh to see updated list.');
+        showSuccess('Bookmark deleted successfully! Please refresh to see updated list.');
       }
     } catch (error: any) {
-      console.error('Failed to delete bookmark:', error);
+      const errorDetails = handleBookmarkError(error, 'deletion');
+      logger.bookmarkAction('delete', bookmarkId, false);
       
-      let errorMessage = 'Failed to delete bookmark. Please try again.';
-      
+      // Special handling for 404 - bookmark may have been deleted already
       if (error.response?.status === 404) {
-        errorMessage = 'Bookmark not found. It may have already been deleted.';
         // Reload bookmarks to sync state
-        await loadBookmarks().catch(console.warn);
-      } else if (error.response?.status === 500) {
-        errorMessage = 'Server error while deleting bookmark. Please try again later.';
-      } else if (error.response?.data?.detail) {
-        errorMessage = `Delete failed: ${error.response.data.detail}`;
-      } else if (error.message) {
-        errorMessage = `Delete failed: ${error.message}`;
+        await loadBookmarks().catch(err => handleBookmarkError(err, 'sync after 404'));
       }
-      
-      alert(errorMessage);
     }
   };
 
@@ -157,16 +152,20 @@ function App() {
         const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsHost = window.location.hostname;
         const wsPort = process.env.REACT_APP_WS_PORT || '8000';
-        ws = new WebSocket(`${wsProtocol}//${wsHost}:${wsPort}/ws/progress`);
+        const wsUrl = `${wsProtocol}//${wsHost}:${wsPort}/ws/progress`;
+        
+        logger.debug(`Connecting to WebSocket: ${wsUrl}`, 'WS');
+        ws = new WebSocket(wsUrl);
         
         ws.onopen = () => {
-          console.log('WebSocket connected');
+          logWebSocketEvent('connected');
           reconnectAttempts = 0; // Reset counter on successful connection
           
           // Set up ping interval for keep-alive
           pingInterval = setInterval(() => {
             if (ws && ws.readyState === WebSocket.OPEN) {
               ws.send('ping');
+              logWebSocketEvent('ping_sent');
             }
           }, 25000); // Ping every 25 seconds
         };
@@ -175,25 +174,29 @@ function App() {
           try {
             // Handle pong response
             if (event.data === 'pong') {
+              logWebSocketEvent('pong_received');
               return;
             }
             
             const data = JSON.parse(event.data);
             if (data.type === 'progress') {
               setProgress(data);
+              logWebSocketEvent('progress_update', { progress: data.progress, message: data.message });
             } else if (data.type === 'connection') {
-              console.log('WebSocket connection confirmed:', data.message);
+              logWebSocketEvent('connection_confirmed', { message: data.message });
+            } else {
+              logWebSocketEvent('unknown_message', data);
             }
           } catch (e) {
             // Handle non-JSON messages (like plain pong)
             if (event.data !== 'pong') {
-              console.log('WebSocket message:', event.data);
+              logWebSocketEvent('parse_error', { data: event.data, error: e });
             }
           }
         };
         
         ws.onclose = (event) => {
-          console.log('WebSocket disconnected:', event.code, event.reason);
+          logWebSocketEvent('disconnected', { code: event.code, reason: event.reason });
           
           // Clear ping interval
           if (pingInterval) {
@@ -204,19 +207,19 @@ function App() {
           // Attempt reconnection if not manually closed and under max attempts
           if (event.code !== 1000 && reconnectAttempts < maxReconnectAttempts) {
             reconnectAttempts++;
-            console.log(`Attempting WebSocket reconnection ${reconnectAttempts}/${maxReconnectAttempts}...`);
+            logger.info(`Attempting WebSocket reconnection ${reconnectAttempts}/${maxReconnectAttempts}`, 'WS');
             reconnectInterval = setTimeout(connectWebSocket, reconnectDelay);
           } else if (reconnectAttempts >= maxReconnectAttempts) {
-            console.warn('Max WebSocket reconnection attempts reached');
+            logger.warn('Max WebSocket reconnection attempts reached', 'WS');
           }
         };
         
         ws.onerror = (error) => {
-          console.error('WebSocket error:', error);
+          handleWebSocketError(error);
         };
         
       } catch (error) {
-        console.error('Failed to create WebSocket:', error);
+        handleWebSocketError(error);
       }
     };
     
@@ -244,45 +247,41 @@ function App() {
     setResults([]);
     setProgress(null);
 
+    const startTime = Date.now();
+    logUserAction('generate_ideas', { theme: formData.theme, numCandidates: formData.num_top_candidates });
+    logger.ideaGeneration('started', formData);
+
     try {
-      console.log('Starting idea generation with data:', formData);
       const response = await api.post<ApiResponse>('/api/generate-ideas', formData);
+      const duration = Date.now() - startTime;
       
-      console.log('API response received:', response.status, response.data?.status);
+      logApiCall('POST', '/api/generate-ideas', response.status, duration);
       
       if (response.data.status === 'success') {
-        console.log('Setting results:', response.data.results?.length, 'ideas');
+        const resultsCount = response.data.results?.length || 0;
+        logger.ideaGeneration('completed', { resultsCount, duration });
         setResults(response.data.results || []);
         
         // Validate that we actually have results
         if (!response.data.results || response.data.results.length === 0) {
           setError('No ideas were generated. Please try with different parameters.');
+          logger.warn('No ideas generated despite success status', 'IDEA_GEN');
+        } else {
+          showInfo(`Generated ${resultsCount} ideas in ${(duration / 1000).toFixed(1)}s`);
         }
       } else {
-        setError(response.data.message || 'Failed to generate ideas');
+        const errorMessage = response.data.message || 'Failed to generate ideas';
+        setError(errorMessage);
+        logger.ideaGeneration('failed', { error: errorMessage });
       }
     } catch (err: any) {
-      console.error('Idea generation error:', err);
+      const duration = Date.now() - startTime;
+      const errorDetails = handleIdeaGenerationError(err);
       
-      let errorMessage = 'An unexpected error occurred';
+      logApiCall('POST', '/api/generate-ideas', err.response?.status, duration);
+      logger.ideaGeneration('error', { error: errorDetails, duration });
       
-      if (err.code === 'ECONNABORTED' || err.message.includes('timeout')) {
-        errorMessage = 'Request timed out. The idea generation is taking longer than expected. Please try with fewer candidates or simpler constraints.';
-      } else if (err.response?.status === 408) {
-        errorMessage = 'Request timed out after 10 minutes. Please try with fewer candidates or simpler constraints.';
-      } else if (err.response?.status >= 500) {
-        errorMessage = `Server error (${err.response.status}): ${err.response?.data?.detail || err.response?.data?.error || 'Internal server error'}`;
-      } else if (err.response?.data?.detail) {
-        if (typeof err.response.data.detail === 'object') {
-          errorMessage = `Error: ${err.response.data.detail.error || err.response.data.detail.type || 'Unknown error'}`;
-        } else {
-          errorMessage = err.response.data.detail;
-        }
-      } else if (err.message) {
-        errorMessage = err.message;
-      }
-      
-      setError(errorMessage);
+      setError(errorDetails.message);
     } finally {
       setIsLoading(false);
       setProgress(null);
@@ -291,6 +290,7 @@ function App() {
 
   const handleRetry = () => {
     if (lastFormData) {
+      logUserAction('retry_idea_generation');
       handleIdeaGeneration(lastFormData);
     }
   };
@@ -413,17 +413,16 @@ function App() {
                   
                   if (existingBookmark) {
                     // Remove existing bookmark
-                    try {
-                      await handleDeleteBookmark(existingBookmark.id);
-                    } catch (deleteError) {
-                      console.error('Failed to remove bookmark:', deleteError);
-                      alert('Failed to remove bookmark. Please try again.');
-                    }
+                    logUserAction('remove_bookmark', { bookmarkId: existingBookmark.id, ideaIndex: index });
+                    await handleDeleteBookmark(existingBookmark.id);
                   } else {
                     // Create bookmark via API with better error handling
                     // Use the theme and constraints from the current state, or fallback to defaults
                     const bookmarkTheme = lastFormData?.theme || 'General';
                     const bookmarkConstraints = lastFormData?.constraints || 'No specific constraints';
+                    
+                    logUserAction('create_bookmark', { ideaIndex: index, theme: bookmarkTheme });
+                    logger.bookmarkAction('create', undefined, false); // Will be updated to true on success
                     
                     const response = await bookmarkService.createBookmark(
                       result, 
@@ -437,32 +436,20 @@ function App() {
                       // Reload bookmarks with error handling
                       try {
                         await loadBookmarks();
-                        alert('Idea bookmarked successfully!');
+                        showSuccess('Idea bookmarked successfully!');
+                        logger.bookmarkAction('create', response.bookmark_id, true);
                       } catch (reloadError) {
-                        console.warn('Failed to reload bookmarks after creation:', reloadError);
+                        handleBookmarkError(reloadError, 'reloading after creation');
                         // Still show success since bookmark was created
-                        alert('Idea bookmarked successfully! Please refresh to see updated list.');
+                        showSuccess('Idea bookmarked successfully! Please refresh to see updated list.');
+                        logger.bookmarkAction('create', response.bookmark_id, true);
                       }
                     } else {
                       throw new Error(response.message || 'Failed to create bookmark');
                     }
                   }
                 } catch (error: any) {
-                  console.error('Bookmark operation failed:', error);
-                  
-                  let errorMessage = 'Failed to bookmark idea. Please try again.';
-                  
-                  if (error.response?.status === 500) {
-                    errorMessage = 'Server error while bookmarking. Please try again later.';
-                  } else if (error.response?.status === 401) {
-                    errorMessage = 'Authentication required. Please refresh the page.';
-                  } else if (error.response?.data?.detail) {
-                    errorMessage = `Bookmark failed: ${error.response.data.detail}`;
-                  } else if (error.message && error.message !== 'Failed to create bookmark') {
-                    errorMessage = `Bookmark failed: ${error.message}`;
-                  }
-                  
-                  alert(errorMessage);
+                  handleBookmarkError(error, 'toggle operation');
                 }
               }}
               savedBookmarks={savedBookmarks}
@@ -480,6 +467,9 @@ function App() {
         onSelectBookmarks={setSelectedBookmarkIds}
         selectedBookmarkIds={selectedBookmarkIds}
       />
+      
+      {/* Toast Container */}
+      <ToastContainer />
     </div>
   );
 }

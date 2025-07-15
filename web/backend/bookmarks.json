@@ -1,31 +1,18 @@
 {
-  "bookmark_20250715_065210_990af8a4": {
-    "id": "bookmark_20250715_065210_990af8a4",
-    "text": "Test urban farming idea with vertical towers",
-    "theme": "urban farming",
-    "constraints": "small spaces",
-    "score": 7.5,
-    "critique": "Good concept",
-    "advocacy": "Addresses space constraints",
-    "skepticism": "High initial cost",
-    "bookmarked_at": "2025-07-15T06:52:10.186266",
+  "bookmark_20250715_155542_7cf82dd5": {
+    "id": "bookmark_20250715_155542_7cf82dd5",
+    "text": "Create a sustainable urban transportation system using electric autonomous shuttles",
+    "theme": "Sustainable Transportation",
+    "constraints": "Urban environment, cost-effective",
+    "score": 8.5,
+    "critique": "Excellent idea with good potential",
+    "advocacy": "Reduces emissions and traffic congestion",
+    "skepticism": "High initial infrastructure cost",
+    "bookmarked_at": "2025-07-15T15:55:42.792285",
     "tags": [
-      "test",
-      "farming"
-    ]
-  },
-  "bookmark_20250715_070918_911580b9": {
-    "id": "bookmark_20250715_070918_911580b9",
-    "text": "Test idea for sustainable energy",
-    "theme": "sustainable energy",
-    "constraints": "small scale",
-    "score": 7.5,
-    "critique": "Good concept",
-    "advocacy": "Strong potential",
-    "skepticism": "Some concerns",
-    "bookmarked_at": "2025-07-15T07:09:18.486807",
-    "tags": [
-      "test"
+      "transportation",
+      "sustainability",
+      "urban"
     ]
   }
 }

@@ -55,8 +55,6 @@ const BookmarkManager: React.FC<BookmarkManagerProps> = ({
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
-
   // Extract all unique tags
   const allTags = Array.from(new Set(bookmarks.flatMap(b => b.tags)));
 
@@ -73,6 +71,8 @@ const BookmarkManager: React.FC<BookmarkManagerProps> = ({
       return matchesSearch && matchesTag;
     });
   }, [bookmarks, searchQuery, selectedTag]);
+
+  if (!isOpen) return null;
 
   const handleSelectToggle = (bookmarkId: string) => {
     const newSelected = new Set(localSelectedIds);

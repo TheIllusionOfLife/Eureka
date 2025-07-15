@@ -22,13 +22,19 @@ interface ComparisonRadarChartProps {
   title?: string;
   originalLabel?: string;
   improvedLabel?: string;
+  /** Override calculated original score with actual API score */
+  originalScore?: number;
+  /** Override calculated improved score with actual API score */
+  improvedScore?: number;
 }
 
 const ComparisonRadarChart: React.FC<ComparisonRadarChartProps> = ({ 
   data, 
   title, 
   originalLabel = "Original Idea",
-  improvedLabel = "Improved Idea"
+  improvedLabel = "Improved Idea",
+  originalScore,
+  improvedScore
 }) => {
   // Custom tooltip to show both scores
   const CustomTooltip = ({ active, payload }: any) => {
@@ -73,13 +79,25 @@ const ComparisonRadarChart: React.FC<ComparisonRadarChartProps> = ({
     return descriptions[dimension] || '';
   };
 
-  // Calculate overall scores
-  const originalScore = data.length > 0 ? data.reduce((sum, item) => sum + item.original, 0) / data.length : 0;
-  const improvedScore = data.length > 0 ? data.reduce((sum, item) => sum + item.improved, 0) / data.length : 0;
-  const improvement = improvedScore - originalScore;
+  // Calculate overall scores (use provided scores if available, otherwise calculate from data)
+  const calculatedOriginalScore = data.length > 0 ? data.reduce((sum, item) => sum + item.original, 0) / data.length : 0;
+  const calculatedImprovedScore = data.length > 0 ? data.reduce((sum, item) => sum + item.improved, 0) / data.length : 0;
+  
+  // Validate and use override scores with range checking
+  const isValidScore = (score: number | undefined): boolean => 
+    score !== undefined && score !== null && score >= 0 && score <= 10 && isFinite(score);
+  
+  const finalOriginalScore = isValidScore(originalScore) ? originalScore! : calculatedOriginalScore;
+  const finalImprovedScore = isValidScore(improvedScore) ? improvedScore! : calculatedImprovedScore;
+  const improvement = finalImprovedScore - finalOriginalScore;
   
   const getScoreColor = (score: number) => 
     score >= 7 ? 'text-green-600' : score >= 5 ? 'text-yellow-600' : 'text-red-600';
+
+  // Fix division by zero error - show 100% if improving from 0
+  const improvementPercentage = finalOriginalScore > 0 
+    ? ((improvement / finalOriginalScore) * 100) 
+    : improvement > 0 ? 100 : 0;
 
   // Handle empty data case
   if (data.length === 0) {
@@ -106,11 +124,11 @@ const ComparisonRadarChart: React.FC<ComparisonRadarChartProps> = ({
         <div className="mb-4">
           <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
           <div className="flex items-center space-x-6 mt-2">
-            <p className={`text-sm ${getScoreColor(originalScore)} font-medium`}>
-              {originalLabel}: {originalScore.toFixed(1)}/10
+            <p className={`text-sm ${getScoreColor(finalOriginalScore)} font-medium`}>
+              {originalLabel}: {finalOriginalScore.toFixed(1)}/10
             </p>
-            <p className={`text-sm ${getScoreColor(improvedScore)} font-medium`}>
-              {improvedLabel}: {improvedScore.toFixed(1)}/10
+            <p className={`text-sm ${getScoreColor(finalImprovedScore)} font-medium`}>
+              {improvedLabel}: {finalImprovedScore.toFixed(1)}/10
             </p>
             <p className={`text-sm font-semibold ${improvement >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               {improvement >= 0 ? '+' : ''}{improvement.toFixed(1)} improvement
@@ -199,13 +217,13 @@ const ComparisonRadarChart: React.FC<ComparisonRadarChartProps> = ({
         <div className="flex items-center justify-between text-sm">
           <span className="text-gray-700">Overall Improvement:</span>
           <div className="flex items-center space-x-2">
-            <span className="text-blue-600">{originalScore.toFixed(1)}/10</span>
+            <span className="text-blue-600">{finalOriginalScore.toFixed(1)}/10</span>
             <span className="text-gray-400">→</span>
-            <span className="text-green-600 font-semibold">{improvedScore.toFixed(1)}/10</span>
+            <span className="text-green-600 font-semibold">{finalImprovedScore.toFixed(1)}/10</span>
             <span className={`px-2 py-1 rounded text-xs font-semibold ${
               improvement >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
             }`}>
-              {((improvement / originalScore) * 100).toFixed(1)}% improvement
+              {improvementPercentage.toFixed(1)}% improvement
             </span>
           </div>
         </div>

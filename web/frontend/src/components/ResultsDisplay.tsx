@@ -52,7 +52,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
 
   const handleBookmark = async (result: IdeaResult, index: number) => {
     if (onBookmarkToggle) {
-      setBookmarkingIds(new Set([...bookmarkingIds, index]));
+      setBookmarkingIds(new Set(Array.from(bookmarkingIds).concat(index)));
       try {
         await onBookmarkToggle(result, index);
       } finally {

@@ -267,7 +267,7 @@ const BookmarkManager: React.FC<BookmarkManagerProps> = ({
                       <button
                         onClick={async () => {
                           if (window.confirm('Are you sure you want to delete this bookmark?')) {
-                            setDeletingIds(new Set([...deletingIds, bookmark.id]));
+                            setDeletingIds(new Set(Array.from(deletingIds).concat(bookmark.id)));
                             try {
                               await onDeleteBookmark(bookmark.id);
                             } finally {

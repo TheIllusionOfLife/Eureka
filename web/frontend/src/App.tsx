@@ -415,7 +415,7 @@ function App() {
                     );
                     
                     if (response.status === 'success' && response.bookmark_id) {
-                      setBookmarkedIdeas(new Set([...bookmarkedIdeas, response.bookmark_id]));
+                      setBookmarkedIdeas(new Set(Array.from(bookmarkedIdeas).concat(response.bookmark_id)));
                       
                       // Reload bookmarks with error handling
                       try {

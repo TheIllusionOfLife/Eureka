@@ -62,15 +62,8 @@ class BookmarkService {
         tags: [], // Can be enhanced to allow user-defined tags
       };
 
-      // Validate required fields
+      // Log bookmark data for debugging purposes before sending to the API.
       console.log('Bookmark data to be sent:', JSON.stringify(bookmarkData, null, 2));
-      
-      if (!bookmarkData.idea || bookmarkData.idea.length < 10) {
-        throw new Error('Idea text must be at least 10 characters long');
-      }
-      if (!bookmarkData.theme || bookmarkData.theme.length < 1) {
-        throw new Error('Theme is required');
-      }
 
       const response = await fetch(`${API_BASE_URL}/api/bookmarks`, {
         method: 'POST',
@@ -84,7 +77,7 @@ class BookmarkService {
         const errorData = await response.json().catch(() => null);
         const errorMessage = errorData?.detail || response.statusText;
         console.error('Full error response:', errorData);
-        throw new Error(`Failed to create bookmark: ${JSON.stringify(errorMessage)}`);
+        throw new Error(`Failed to create bookmark: ${errorMessage}`);
       }
 
       return await response.json();

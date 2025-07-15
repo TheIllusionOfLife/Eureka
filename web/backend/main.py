@@ -327,16 +327,16 @@ class IdeaGenerationResponse(BaseModel):
 
 
 class BookmarkRequest(BaseModel):
-    idea: str = Field(..., min_length=10, max_length=2000, description="Original idea text")
-    improved_idea: Optional[str] = Field(default=None, max_length=2000, description="Improved idea text")
+    idea: str = Field(..., min_length=10, max_length=10000, description="Original idea text")
+    improved_idea: Optional[str] = Field(default=None, max_length=10000, description="Improved idea text")
     theme: str = Field(..., min_length=1, max_length=200, description="Theme used for generation")
     constraints: str = Field(default="", max_length=500, description="Constraints used")
     initial_score: float = Field(..., ge=0, le=10, description="Initial critic score")
     improved_score: Optional[float] = Field(default=None, ge=0, le=10, description="Improved idea score")
-    initial_critique: Optional[str] = Field(default=None, max_length=1000, description="Initial critique")
-    improved_critique: Optional[str] = Field(default=None, max_length=1000, description="Improved critique")
-    advocacy: Optional[str] = Field(default=None, max_length=1000, description="Advocate's arguments")
-    skepticism: Optional[str] = Field(default=None, max_length=1000, description="Skeptic's analysis")
+    initial_critique: Optional[str] = Field(default=None, max_length=20000, description="Initial critique")
+    improved_critique: Optional[str] = Field(default=None, max_length=20000, description="Improved critique")
+    advocacy: Optional[str] = Field(default=None, max_length=20000, description="Advocate's arguments")
+    skepticism: Optional[str] = Field(default=None, max_length=20000, description="Skeptic's analysis")
     tags: List[str] = Field(default=[], max_items=10, description="Tags for the bookmark")
     notes: Optional[str] = Field(default=None, max_length=500, description="Additional notes")
     

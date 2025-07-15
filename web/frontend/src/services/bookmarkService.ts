@@ -45,6 +45,8 @@ export interface BookmarksListResponse {
 class BookmarkService {
   async createBookmark(result: IdeaResult, theme: string, constraints: string): Promise<BookmarkResponse> {
     try {
+      console.log('Creating bookmark with:', { result, theme, constraints });
+      
       // Ensure all required fields meet minimum requirements
       const bookmarkData: BookmarkData = {
         idea: result.idea || '',
@@ -61,6 +63,8 @@ class BookmarkService {
       };
 
       // Validate required fields
+      console.log('Bookmark data to be sent:', JSON.stringify(bookmarkData, null, 2));
+      
       if (!bookmarkData.idea || bookmarkData.idea.length < 10) {
         throw new Error('Idea text must be at least 10 characters long');
       }
@@ -79,7 +83,8 @@ class BookmarkService {
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
         const errorMessage = errorData?.detail || response.statusText;
-        throw new Error(`Failed to create bookmark: ${errorMessage}`);
+        console.error('Full error response:', errorData);
+        throw new Error(`Failed to create bookmark: ${JSON.stringify(errorMessage)}`);
       }
 
       return await response.json();

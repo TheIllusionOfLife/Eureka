@@ -13,5 +13,19 @@
       "test",
       "farming"
     ]
+  },
+  "bookmark_20250715_070918_911580b9": {
+    "id": "bookmark_20250715_070918_911580b9",
+    "text": "Test idea for sustainable energy",
+    "theme": "sustainable energy",
+    "constraints": "small scale",
+    "score": 7.5,
+    "critique": "Good concept",
+    "advocacy": "Strong potential",
+    "skepticism": "Some concerns",
+    "bookmarked_at": "2025-07-15T07:09:18.486807",
+    "tags": [
+      "test"
+    ]
   }
 }

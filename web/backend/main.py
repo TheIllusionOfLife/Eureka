@@ -18,7 +18,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
+import html
 
 # Import MadSpark modules
 # Add the parent directory to the path for imports
@@ -252,18 +253,30 @@ class IdeaGenerationResponse(BaseModel):
 
 
 class BookmarkRequest(BaseModel):
-    idea: str = Field(..., min_length=1, description="Original idea text")
-    improved_idea: Optional[str] = Field(default=None, description="Improved idea text")
-    theme: str = Field(..., description="Theme used for generation")
-    constraints: str = Field(default="", description="Constraints used")
+    idea: str = Field(..., min_length=10, max_length=2000, description="Original idea text")
+    improved_idea: Optional[str] = Field(default=None, max_length=2000, description="Improved idea text")
+    theme: str = Field(..., min_length=1, max_length=200, description="Theme used for generation")
+    constraints: str = Field(default="", max_length=500, description="Constraints used")
     initial_score: float = Field(..., ge=0, le=10, description="Initial critic score")
     improved_score: Optional[float] = Field(default=None, ge=0, le=10, description="Improved idea score")
-    initial_critique: str = Field(default="", description="Initial critique")
-    improved_critique: Optional[str] = Field(default=None, description="Improved critique")
-    advocacy: str = Field(default="", description="Advocate's arguments")
-    skepticism: str = Field(default="", description="Skeptic's analysis")
-    tags: List[str] = Field(default=[], description="Tags for the bookmark")
-    notes: Optional[str] = Field(default=None, description="Additional notes")
+    initial_critique: Optional[str] = Field(default=None, max_length=1000, description="Initial critique")
+    improved_critique: Optional[str] = Field(default=None, max_length=1000, description="Improved critique")
+    advocacy: Optional[str] = Field(default=None, max_length=1000, description="Advocate's arguments")
+    skepticism: Optional[str] = Field(default=None, max_length=1000, description="Skeptic's analysis")
+    tags: List[str] = Field(default=[], max_items=10, description="Tags for the bookmark")
+    notes: Optional[str] = Field(default=None, max_length=500, description="Additional notes")
+    
+    @validator('idea', 'improved_idea', 'theme', 'constraints', 'initial_critique', 'improved_critique', 'advocacy', 'skepticism', 'notes')
+    def sanitize_html(cls, v):
+        if v is None:
+            return None
+        return html.escape(v.strip())
+    
+    @validator('tags')
+    def sanitize_tags(cls, v):
+        if not v:
+            return []
+        return [html.escape(tag.strip()[:50]) for tag in v if tag.strip()]
 
 
 class BookmarkResponse(BaseModel):
@@ -616,9 +629,9 @@ async def create_bookmark(request: BookmarkRequest):
     """Create a new bookmark."""
     try:
         # Use improved idea if available, otherwise use original
-        idea_text = request.improved_idea if request.improved_idea else request.idea
-        score = int(request.improved_score if request.improved_score else request.initial_score)
-        critique = request.improved_critique if request.improved_critique else request.initial_critique
+        idea_text = request.improved_idea if request.improved_idea is not None else request.idea
+        score = int(request.improved_score if request.improved_score is not None else request.initial_score)
+        critique = request.improved_critique if request.improved_critique is not None else request.initial_critique
         
         bookmark_id = bookmark_system.bookmark_idea(
             idea_text=idea_text,

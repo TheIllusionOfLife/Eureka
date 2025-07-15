@@ -34,6 +34,7 @@ interface IdeaGenerationFormProps {
   savedBookmarks?: SavedBookmark[];
   onOpenBookmarkManager?: () => void;
   selectedBookmarkIds?: string[];
+  onSelectedBookmarkIdsChange?: (ids: string[]) => void;
 }
 
 const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({ 
@@ -41,7 +42,8 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({
   isLoading, 
   savedBookmarks = [],
   onOpenBookmarkManager,
-  selectedBookmarkIds: externalSelectedIds = []
+  selectedBookmarkIds = [],
+  onSelectedBookmarkIdsChange
 }) => {
   const [formData, setFormData] = useState<FormData>({
     theme: '',
@@ -61,12 +63,6 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({
   const [temperaturePresets, setTemperaturePresets] = useState<TemperaturePreset>({});
   const [useCustomTemperature, setUseCustomTemperature] = useState(false);
   const [useBookmarks, setUseBookmarks] = useState(false);
-  const [selectedBookmarkIds, setSelectedBookmarkIds] = useState<string[]>([]);
-
-  // Sync external selected bookmark IDs
-  useEffect(() => {
-    setSelectedBookmarkIds(externalSelectedIds);
-  }, [externalSelectedIds]);
 
   // Load temperature presets
   useEffect(() => {
@@ -401,8 +397,8 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({
                     checked={useBookmarks}
                     onChange={(e) => {
                       setUseBookmarks(e.target.checked);
-                      if (!e.target.checked) {
-                        setSelectedBookmarkIds([]);
+                      if (!e.target.checked && onSelectedBookmarkIdsChange) {
+                        onSelectedBookmarkIdsChange([]);
                       }
                     }}
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
@@ -423,7 +419,8 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({
                     onClick={onOpenBookmarkManager}
                     className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                   >
-                    <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-label="Bookmark icon">
+                      <title>Bookmark icon</title>
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
                     </svg>
                     Select Bookmarks ({selectedBookmarkIds.length} selected)

@@ -315,10 +315,12 @@ function App() {
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setShowBookmarkManager(true)}
                 className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
-                <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-label="Bookmark icon">
+                  <title>Bookmark icon</title>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
                 </svg>
                 Bookmarks
@@ -344,6 +346,7 @@ function App() {
               savedBookmarks={savedBookmarks}
               onOpenBookmarkManager={() => setShowBookmarkManager(true)}
               selectedBookmarkIds={selectedBookmarkIds}
+              onSelectedBookmarkIdsChange={setSelectedBookmarkIds}
             />
             
             {/* Progress Indicator */}
@@ -373,6 +376,7 @@ function App() {
                     {lastFormData && (
                       <div className="mt-3">
                         <button
+                          type="button"
                           onClick={handleRetry}
                           disabled={isLoading}
                           className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"

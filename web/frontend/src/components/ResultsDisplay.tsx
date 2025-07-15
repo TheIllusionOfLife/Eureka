@@ -65,11 +65,18 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
     }
   };
   
-  // Check if a result is bookmarked (temporary check based on index)
-  const isBookmarked = (index: number) => {
-    // For now, we can't match results to bookmarks without stable IDs
-    // This will be improved when we have better result identification
-    return false;
+  // Check if a result is bookmarked by matching text against saved bookmarks
+  const isBookmarked = (result: IdeaResult) => {
+    if (!savedBookmarks || savedBookmarks.length === 0) {
+      return false;
+    }
+    // Check if either the original or improved idea text matches a bookmarked text
+    const ideaText = result.idea;
+    const improvedIdeaText = result.improved_idea;
+
+    return savedBookmarks.some(bookmark => 
+      bookmark.text === ideaText || (improvedIdeaText && bookmark.text === improvedIdeaText)
+    );
   };
 
   const handleShare = async (result: IdeaResult, index: number) => {
@@ -673,13 +680,13 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
                 className={`inline-flex items-center px-3 py-2 border ${
                   bookmarkingIds.has(index) 
                     ? 'border-gray-300 bg-gray-100' 
-                    : isBookmarked(index) 
+                    : isBookmarked(result) 
                       ? 'border-blue-500 bg-blue-50' 
                       : 'border-gray-300'
                 } shadow-sm text-sm leading-4 font-medium rounded-md ${
                   bookmarkingIds.has(index)
                     ? 'text-gray-400 cursor-not-allowed'
-                    : isBookmarked(index) 
+                    : isBookmarked(result) 
                       ? 'text-blue-700' 
                       : 'text-gray-700'
                 } bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:hover:bg-gray-100`}>
@@ -689,11 +696,11 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
                 ) : (
-                  <svg className="h-4 w-4 mr-1.5" fill={isBookmarked(index) ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <svg className="h-4 w-4 mr-1.5" fill={isBookmarked(result) ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
                   </svg>
                 )}
-                {bookmarkingIds.has(index) ? 'Bookmarking...' : isBookmarked(index) ? 'Bookmarked' : 'Bookmark'}
+                {bookmarkingIds.has(index) ? 'Bookmarking...' : isBookmarked(result) ? 'Bookmarked' : 'Bookmark'}
               </button>
               
               <button 

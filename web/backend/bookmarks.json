@@ -1,42 +1,17 @@
 {
-  "bookmark_20250715_061434_42370538": {
-    "id": "bookmark_20250715_061434_42370538",
-    "text": "Electric autonomous buses featuring wireless charging pads at every bus stop, combined with solar panels on bus roofs and regenerative braking systems. The buses would use AI-optimized routes based on real-time traffic and passenger demand, reducing energy consumption by 40% and increasing service efficiency.",
-    "theme": "sustainable transportation solutions",
-    "constraints": "Generate practical and innovative ideas",
-    "score": 9.2,
-    "critique": "Excellent comprehensive solution with clear benefits",
-    "advocacy": "This solution addresses multiple sustainability challenges simultaneously",
-    "skepticism": "High initial infrastructure costs may be a barrier",
-    "bookmarked_at": "2025-07-15T06:14:34.054697",
+  "bookmark_20250715_065210_990af8a4": {
+    "id": "bookmark_20250715_065210_990af8a4",
+    "text": "Test urban farming idea with vertical towers",
+    "theme": "urban farming",
+    "constraints": "small spaces",
+    "score": 7.5,
+    "critique": "Good concept",
+    "advocacy": "Addresses space constraints",
+    "skepticism": "High initial cost",
+    "bookmarked_at": "2025-07-15T06:52:10.186266",
     "tags": [
-      "transportation",
-      "electric",
-      "autonomous"
+      "test",
+      "farming"
     ]
-  },
-  "bookmark_20250715_061434_ad52aac4": {
-    "id": "bookmark_20250715_061434_ad52aac4",
-    "text": "A simple test idea that is long enough",
-    "theme": "test",
-    "constraints": "",
-    "score": 5.0,
-    "critique": "",
-    "advocacy": "",
-    "skepticism": "",
-    "bookmarked_at": "2025-07-15T06:14:34.060630",
-    "tags": []
-  },
-  "bookmark_20250715_061701_fa37c02d": {
-    "id": "bookmark_20250715_061701_fa37c02d",
-    "text": "Electric autonomous buses with wireless charging pads at every stop, solar panels on roofs, and AI-optimized routes based on real-time demand",
-    "theme": "sustainable transportation",
-    "constraints": "practical solutions",
-    "score": 9.2,
-    "critique": "Excellent comprehensive solution with clear sustainability benefits",
-    "advocacy": "This addresses multiple sustainability challenges simultaneously",
-    "skepticism": "High infrastructure costs may be a barrier to adoption",
-    "bookmarked_at": "2025-07-15T06:17:01.486015",
-    "tags": []
   }
 }

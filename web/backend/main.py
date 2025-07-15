@@ -95,6 +95,80 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def generate_mock_results(theme: str, num_ideas: int) -> List[Dict[str, Any]]:
+    """Generate mock results for testing without API keys."""
+    mock_ideas = {
+        "urban farming": [
+            "Vertical hydroponic towers with automated nutrient delivery for apartment balconies",
+            "Window-mounted herb gardens with IoT sensors for optimal growth monitoring",
+            "Stackable mushroom cultivation boxes using coffee grounds as substrate"
+        ],
+        "sustainable transportation": [
+            "Electric bike-sharing stations powered by solar canopies at bus stops",
+            "Autonomous electric shuttles for last-mile connectivity in suburbs",
+            "Cargo bike delivery networks replacing trucks in city centers"
+        ],
+        "renewable energy": [
+            "Building-integrated photovoltaic windows that generate electricity while providing shade",
+            "Micro wind turbines designed for urban rooftops with noise reduction technology",
+            "Piezoelectric floor tiles in high-traffic areas converting footsteps to electricity"
+        ]
+    }
+    
+    # Find matching theme or use default
+    theme_key = None
+    for key in mock_ideas.keys():
+        if key.lower() in theme.lower() or theme.lower() in key.lower():
+            theme_key = key
+            break
+    
+    if not theme_key:
+        # Generate generic ideas if no theme match
+        base_ideas = [
+            f"Innovative solution for {theme} using advanced technology",
+            f"Sustainable approach to {theme} with community involvement",
+            f"Cost-effective method for implementing {theme} at scale"
+        ]
+    else:
+        base_ideas = mock_ideas[theme_key]
+    
+    results = []
+    for i in range(min(num_ideas, len(base_ideas))):
+        base_score = 6.5 + (i * 0.5)
+        improved_score = base_score + 1.5 + (random.random() * 0.8)
+        
+        result = {
+            "idea": base_ideas[i],
+            "initial_score": round(base_score, 1),
+            "initial_critique": f"Interesting concept but needs more detail on implementation and feasibility",
+            "advocacy": f"This solution addresses key challenges in {theme} with innovative thinking",
+            "skepticism": f"Implementation costs and technical complexity may be barriers",
+            "improved_idea": f"{base_ideas[i]}. Enhanced with AI-driven optimization, real-time monitoring, and adaptive learning capabilities for maximum efficiency",
+            "improved_score": round(improved_score, 1),
+            "improved_critique": f"Comprehensive solution with clear benefits and implementation pathway",
+            "score_delta": round(improved_score - base_score, 1),
+            "multi_dimensional_evaluation": {
+                "dimension_scores": {
+                    "feasibility": round(7 + random.random() * 2, 1),
+                    "innovation": round(8 + random.random() * 1.5, 1),
+                    "impact": round(7.5 + random.random() * 2, 1),
+                    "cost_effectiveness": round(6.5 + random.random() * 2, 1),
+                    "scalability": round(7 + random.random() * 2.5, 1),
+                    "risk_assessment": round(6 + random.random() * 2, 1),
+                    "timeline": round(7 + random.random() * 1.5, 1)
+                },
+                "overall_score": round(base_score + 0.5, 1),
+                "confidence_interval": {
+                    "lower": round(base_score - 0.5, 1),
+                    "upper": round(base_score + 1.5, 1)
+                }
+            }
+        }
+        results.append(result)
+    
+    return results
+
+
 def format_results_for_frontend(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Format results to match frontend expectations, especially multi-dimensional evaluation."""
     # Apply cleaning to all results before formatting (consistent with CLI)
@@ -414,6 +488,19 @@ async def get_temperature_presets():
 async def generate_ideas(request: IdeaGenerationRequest):
     """Generate ideas using the async MadSpark multi-agent workflow."""
     start_time = datetime.now()
+    
+    # Check if running in mock mode - check environment variable properly
+    google_api_key = os.environ.get("GOOGLE_API_KEY", "").strip()
+    if not google_api_key or google_api_key == "your-api-key-here":
+        logger.info("Running in mock mode - returning sample results")
+        mock_results = generate_mock_results(request.theme, request.num_top_candidates)
+        return IdeaGenerationResponse(
+            status="success",
+            message=f"Generated {len(mock_results)} mock ideas",
+            results=format_results_for_frontend(mock_results),
+            processing_time=0.5,
+            timestamp=start_time.isoformat()
+        )
     
     try:
         # Define progress callback

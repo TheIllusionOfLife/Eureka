@@ -85,7 +85,7 @@ const ComparisonRadarChart: React.FC<ComparisonRadarChartProps> = ({
   
   // Validate and use override scores with range checking
   const isValidScore = (score: number | undefined): boolean => 
-    score !== undefined && score >= 0 && score <= 10 && isFinite(score);
+    score !== undefined && score !== null && score >= 0 && score <= 10 && isFinite(score);
   
   const finalOriginalScore = isValidScore(originalScore) ? originalScore! : calculatedOriginalScore;
   const finalImprovedScore = isValidScore(improvedScore) ? improvedScore! : calculatedImprovedScore;

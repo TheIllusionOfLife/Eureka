@@ -49,16 +49,16 @@ class BookmarkService {
       
       // Ensure all required fields meet minimum requirements
       const bookmarkData: BookmarkData = {
-        idea: result.idea ?? 'No idea text provided',
-        improved_idea: result.improved_idea ?? undefined,
-        theme: theme ?? 'General',
-        constraints: constraints ?? '',
-        initial_score: result.initial_score ?? 0,
-        improved_score: result.improved_score ?? undefined,
-        initial_critique: result.initial_critique ?? undefined,
-        improved_critique: result.improved_critique ?? undefined,
-        advocacy: result.advocacy ?? undefined,
-        skepticism: result.skepticism ?? undefined,
+        idea: result.idea || 'No idea text provided',  // Required field with min_length - handle empty strings
+        improved_idea: result.improved_idea || undefined,  // Optional field - handle empty strings as undefined
+        theme: theme || 'General',  // Required field with min_length - handle empty strings
+        constraints: constraints ?? '',  // Allows empty strings - only handle null/undefined
+        initial_score: result.initial_score ?? 0,  // Numeric field - preserve 0, handle null/undefined
+        improved_score: result.improved_score ?? undefined,  // Numeric field - preserve 0, handle null/undefined
+        initial_critique: result.initial_critique || undefined,  // Optional field - handle empty strings as undefined
+        improved_critique: result.improved_critique || undefined,  // Optional field - handle empty strings as undefined
+        advocacy: result.advocacy || undefined,  // Optional field - handle empty strings as undefined
+        skepticism: result.skepticism || undefined,  // Optional field - handle empty strings as undefined
         tags: [], // Can be enhanced to allow user-defined tags
       };
 

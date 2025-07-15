@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
+import { SavedBookmark } from '../services/bookmarkService';
 
 interface FormData {
   theme: string;
@@ -14,6 +15,7 @@ interface FormData {
   logical_inference: boolean;
   verbose: boolean;
   show_detailed_results: boolean;
+  bookmark_ids?: string[];
 }
 
 interface TemperaturePreset {
@@ -29,9 +31,18 @@ interface TemperaturePreset {
 interface IdeaGenerationFormProps {
   onSubmit: (data: FormData) => void;
   isLoading: boolean;
+  savedBookmarks?: SavedBookmark[];
+  onOpenBookmarkManager?: () => void;
+  selectedBookmarkIds?: string[];
 }
 
-const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({ onSubmit, isLoading }) => {
+const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({ 
+  onSubmit, 
+  isLoading, 
+  savedBookmarks = [],
+  onOpenBookmarkManager,
+  selectedBookmarkIds: externalSelectedIds = []
+}) => {
   const [formData, setFormData] = useState<FormData>({
     theme: '',
     constraints: '',
@@ -49,6 +60,13 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({ onSubmit, isLoa
 
   const [temperaturePresets, setTemperaturePresets] = useState<TemperaturePreset>({});
   const [useCustomTemperature, setUseCustomTemperature] = useState(false);
+  const [useBookmarks, setUseBookmarks] = useState(false);
+  const [selectedBookmarkIds, setSelectedBookmarkIds] = useState<string[]>([]);
+
+  // Sync external selected bookmark IDs
+  useEffect(() => {
+    setSelectedBookmarkIds(externalSelectedIds);
+  }, [externalSelectedIds]);
 
   // Load temperature presets
   useEffect(() => {
@@ -88,6 +106,11 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({ onSubmit, isLoa
       temperature: useCustomTemperature ? formData.temperature : null,
       temperature_preset: useCustomTemperature ? null : formData.temperature_preset,
     };
+    
+    // Add bookmark IDs if using bookmarks
+    if (useBookmarks && selectedBookmarkIds.length > 0) {
+      submissionData.bookmark_ids = selectedBookmarkIds;
+    }
     
     // Remove constraints field if it's empty to allow backend default
     if (!submissionData.constraints || submissionData.constraints.trim() === '') {
@@ -362,6 +385,59 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({ onSubmit, isLoa
             Display original ideas, critiques, advocacy, and skepticism alongside improved ideas (by default, only improved ideas and evaluation are shown)
           </p>
         </div>
+
+        {/* Bookmark Remix */}
+        {savedBookmarks.length > 0 && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              Bookmark Remix
+            </label>
+            <div className="space-y-3">
+              <div>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="use_bookmarks"
+                    checked={useBookmarks}
+                    onChange={(e) => {
+                      setUseBookmarks(e.target.checked);
+                      if (!e.target.checked) {
+                        setSelectedBookmarkIds([]);
+                      }
+                    }}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="use_bookmarks" className="ml-2 text-sm text-gray-700 font-medium">
+                    Use Bookmarks for Remix
+                  </label>
+                </div>
+                <p className="ml-6 mt-1 text-xs text-gray-500">
+                  Generate new ideas based on your bookmarked ideas
+                </p>
+              </div>
+              
+              {useBookmarks && (
+                <div className="ml-6">
+                  <button
+                    type="button"
+                    onClick={onOpenBookmarkManager}
+                    className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                    </svg>
+                    Select Bookmarks ({selectedBookmarkIds.length} selected)
+                  </button>
+                  {selectedBookmarkIds.length > 0 && (
+                    <p className="mt-2 text-xs text-gray-600">
+                      Selected bookmarks will be used as context for generating new ideas
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Submit Button */}
         <div>

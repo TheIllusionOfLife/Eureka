@@ -240,6 +240,7 @@ class IdeaGenerationRequest(BaseModel):
     multi_dimensional_eval: bool = Field(default=False, description="Use multi-dimensional evaluation")
     logical_inference: bool = Field(default=False, description="Enable logical inference chains")
     timeout: Optional[int] = Field(default=None, ge=60, le=3600, description="Request timeout in seconds (60-3600)")
+    bookmark_ids: Optional[List[str]] = Field(default=None, description="Bookmark IDs to use for remix context")
 
 
 class IdeaGenerationResponse(BaseModel):
@@ -251,7 +252,16 @@ class IdeaGenerationResponse(BaseModel):
 
 
 class BookmarkRequest(BaseModel):
-    idea: str = Field(..., min_length=1, description="Idea text to bookmark")
+    idea: str = Field(..., min_length=1, description="Original idea text")
+    improved_idea: Optional[str] = Field(default=None, description="Improved idea text")
+    theme: str = Field(..., description="Theme used for generation")
+    constraints: str = Field(default="", description="Constraints used")
+    initial_score: float = Field(..., ge=0, le=10, description="Initial critic score")
+    improved_score: Optional[float] = Field(default=None, ge=0, le=10, description="Improved idea score")
+    initial_critique: str = Field(default="", description="Initial critique")
+    improved_critique: Optional[str] = Field(default=None, description="Improved critique")
+    advocacy: str = Field(default="", description="Advocate's arguments")
+    skepticism: str = Field(default="", description="Skeptic's analysis")
     tags: List[str] = Field(default=[], description="Tags for the bookmark")
     notes: Optional[str] = Field(default=None, description="Additional notes")
 
@@ -420,6 +430,22 @@ async def generate_ideas(request: IdeaGenerationRequest):
         else:
             logger.warning(f"MAX_CONCURRENT_AGENTS must be a positive integer, got '{env_val}'. Using default: 10")
         
+        # Handle remix context if bookmark IDs are provided
+        constraints = request.constraints
+        if request.bookmark_ids:
+            try:
+                from madspark.utils.bookmark_system import remix_with_bookmarks
+                constraints = remix_with_bookmarks(
+                    theme=request.theme,
+                    additional_constraints=request.constraints,
+                    bookmark_ids=request.bookmark_ids,
+                    bookmark_file=bookmark_system.bookmark_file
+                )
+                await ws_manager.send_progress_update(f"Using {len(request.bookmark_ids)} bookmarks for remix context", 5.0)
+            except Exception as e:
+                logger.warning(f"Failed to create remix context: {e}")
+                # Continue with original constraints if remix fails
+        
         # Create async coordinator with cache and progress callback
         async_coordinator = AsyncCoordinator(
             max_concurrent_agents=max_concurrent_agents,
@@ -433,7 +459,7 @@ async def generate_ideas(request: IdeaGenerationRequest):
             results = await asyncio.wait_for(
                 async_coordinator.run_workflow(
                     theme=request.theme,
-                    constraints=request.constraints,
+                    constraints=constraints,  # Use potentially remixed constraints
                     num_top_candidates=request.num_top_candidates,
                     enable_novelty_filter=request.enable_novelty_filter,
                     novelty_threshold=request.novelty_threshold,
@@ -555,14 +581,30 @@ async def get_bookmarks(tags: Optional[str] = None):
     try:
         if tags:
             tag_list = [tag.strip() for tag in tags.split(",")]
-            bookmarks = bookmark_system.search_by_tags(tag_list)
+            bookmarks = bookmark_system.list_bookmarks(tags=tag_list)
         else:
             bookmarks = bookmark_system.list_bookmarks()
         
+        # Convert BookmarkedIdea objects to dicts
+        bookmark_dicts = []
+        for bookmark in bookmarks:
+            bookmark_dicts.append({
+                "id": bookmark.id,
+                "text": bookmark.text,
+                "theme": bookmark.theme,
+                "constraints": bookmark.constraints,
+                "score": bookmark.score,
+                "critique": bookmark.critique,
+                "advocacy": bookmark.advocacy,
+                "skepticism": bookmark.skepticism,
+                "bookmarked_at": bookmark.bookmarked_at,
+                "tags": bookmark.tags
+            })
+        
         return {
             "status": "success",
-            "bookmarks": bookmarks,
-            "count": len(bookmarks)
+            "bookmarks": bookmark_dicts,
+            "count": len(bookmark_dicts)
         }
     except Exception as e:
         logger.error(f"Failed to get bookmarks: {e}")
@@ -573,10 +615,20 @@ async def get_bookmarks(tags: Optional[str] = None):
 async def create_bookmark(request: BookmarkRequest):
     """Create a new bookmark."""
     try:
-        bookmark_id = bookmark_system.add_bookmark(
-            idea=request.idea,
-            tags=request.tags,
-            notes=request.notes
+        # Use improved idea if available, otherwise use original
+        idea_text = request.improved_idea if request.improved_idea else request.idea
+        score = int(request.improved_score if request.improved_score else request.initial_score)
+        critique = request.improved_critique if request.improved_critique else request.initial_critique
+        
+        bookmark_id = bookmark_system.bookmark_idea(
+            idea_text=idea_text,
+            theme=request.theme,
+            constraints=request.constraints,
+            score=score,
+            critique=critique,
+            advocacy=request.advocacy,
+            skepticism=request.skepticism,
+            tags=request.tags
         )
         
         return BookmarkResponse(
@@ -586,6 +638,25 @@ async def create_bookmark(request: BookmarkRequest):
         )
     except Exception as e:
         logger.error(f"Failed to create bookmark: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/bookmarks/{bookmark_id}")
+async def delete_bookmark(bookmark_id: str):
+    """Delete a bookmark by ID."""
+    try:
+        success = bookmark_system.remove_bookmark(bookmark_id)
+        
+        if success:
+            return {
+                "status": "success",
+                "message": f"Bookmark {bookmark_id} deleted successfully"
+            }
+        else:
+            raise HTTPException(status_code=404, detail=f"Bookmark {bookmark_id} not found")
+            
+    except Exception as e:
+        logger.error(f"Failed to delete bookmark: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

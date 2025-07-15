@@ -43,5 +43,20 @@
       "AI",
       "privacy"
     ]
+  },
+  "bookmark_20250715_102601_32791909": {
+    "id": "bookmark_20250715_102601_32791909",
+    "text": "Test idea for toast notifications",
+    "theme": "Toast notification test",
+    "constraints": "Test for toast notifications",
+    "score": 8.5,
+    "critique": "Test critique",
+    "advocacy": "Test advocacy",
+    "skepticism": "Test skepticism",
+    "bookmarked_at": "2025-07-15T10:26:01.985208",
+    "tags": [
+      "test",
+      "toast"
+    ]
   }
 }

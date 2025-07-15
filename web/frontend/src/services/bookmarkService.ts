@@ -55,10 +55,10 @@ class BookmarkService {
         constraints: constraints ?? '',  // Allows empty strings - only handle null/undefined
         initial_score: result.initial_score ?? 0,  // Numeric field - preserve 0, handle null/undefined
         improved_score: result.improved_score ?? undefined,  // Numeric field - preserve 0, handle null/undefined
-        initial_critique: result.initial_critique || undefined,  // Optional field - handle empty strings as undefined
+        initial_critique: result.initial_critique || '',  // Required field - handle empty strings as empty string
         improved_critique: result.improved_critique || undefined,  // Optional field - handle empty strings as undefined
-        advocacy: result.advocacy || undefined,  // Optional field - handle empty strings as undefined
-        skepticism: result.skepticism || undefined,  // Optional field - handle empty strings as undefined
+        advocacy: result.advocacy || '',  // Required field - handle empty strings as empty string
+        skepticism: result.skepticism || '',  // Required field - handle empty strings as empty string
         tags: [], // Can be enhanced to allow user-defined tags
       };
 

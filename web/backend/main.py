@@ -18,7 +18,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
+import html
 
 # Import MadSpark modules
 # Add the parent directory to the path for imports
@@ -240,6 +241,7 @@ class IdeaGenerationRequest(BaseModel):
     multi_dimensional_eval: bool = Field(default=False, description="Use multi-dimensional evaluation")
     logical_inference: bool = Field(default=False, description="Enable logical inference chains")
     timeout: Optional[int] = Field(default=None, ge=60, le=3600, description="Request timeout in seconds (60-3600)")
+    bookmark_ids: Optional[List[str]] = Field(default=None, description="Bookmark IDs to use for remix context")
 
 
 class IdeaGenerationResponse(BaseModel):
@@ -251,9 +253,30 @@ class IdeaGenerationResponse(BaseModel):
 
 
 class BookmarkRequest(BaseModel):
-    idea: str = Field(..., min_length=1, description="Idea text to bookmark")
-    tags: List[str] = Field(default=[], description="Tags for the bookmark")
-    notes: Optional[str] = Field(default=None, description="Additional notes")
+    idea: str = Field(..., min_length=10, max_length=2000, description="Original idea text")
+    improved_idea: Optional[str] = Field(default=None, max_length=2000, description="Improved idea text")
+    theme: str = Field(..., min_length=1, max_length=200, description="Theme used for generation")
+    constraints: str = Field(default="", max_length=500, description="Constraints used")
+    initial_score: float = Field(..., ge=0, le=10, description="Initial critic score")
+    improved_score: Optional[float] = Field(default=None, ge=0, le=10, description="Improved idea score")
+    initial_critique: Optional[str] = Field(default=None, max_length=1000, description="Initial critique")
+    improved_critique: Optional[str] = Field(default=None, max_length=1000, description="Improved critique")
+    advocacy: Optional[str] = Field(default=None, max_length=1000, description="Advocate's arguments")
+    skepticism: Optional[str] = Field(default=None, max_length=1000, description="Skeptic's analysis")
+    tags: List[str] = Field(default=[], max_items=10, description="Tags for the bookmark")
+    notes: Optional[str] = Field(default=None, max_length=500, description="Additional notes")
+    
+    @validator('idea', 'improved_idea', 'theme', 'constraints', 'initial_critique', 'improved_critique', 'advocacy', 'skepticism', 'notes')
+    def sanitize_html(cls, v):
+        if v is None:
+            return None
+        return html.escape(v.strip())
+    
+    @validator('tags')
+    def sanitize_tags(cls, v):
+        if not v:
+            return []
+        return [html.escape(tag.strip()[:50]) for tag in v if tag.strip()]
 
 
 class BookmarkResponse(BaseModel):
@@ -420,6 +443,22 @@ async def generate_ideas(request: IdeaGenerationRequest):
         else:
             logger.warning(f"MAX_CONCURRENT_AGENTS must be a positive integer, got '{env_val}'. Using default: 10")
         
+        # Handle remix context if bookmark IDs are provided
+        constraints = request.constraints
+        if request.bookmark_ids:
+            try:
+                from madspark.utils.bookmark_system import remix_with_bookmarks
+                constraints = remix_with_bookmarks(
+                    theme=request.theme,
+                    additional_constraints=request.constraints,
+                    bookmark_ids=request.bookmark_ids,
+                    bookmark_file=bookmark_system.bookmark_file
+                )
+                await ws_manager.send_progress_update(f"Using {len(request.bookmark_ids)} bookmarks for remix context", 5.0)
+            except Exception as e:
+                logger.warning(f"Failed to create remix context: {e}")
+                # Continue with original constraints if remix fails
+        
         # Create async coordinator with cache and progress callback
         async_coordinator = AsyncCoordinator(
             max_concurrent_agents=max_concurrent_agents,
@@ -433,7 +472,7 @@ async def generate_ideas(request: IdeaGenerationRequest):
             results = await asyncio.wait_for(
                 async_coordinator.run_workflow(
                     theme=request.theme,
-                    constraints=request.constraints,
+                    constraints=constraints,  # Use potentially remixed constraints
                     num_top_candidates=request.num_top_candidates,
                     enable_novelty_filter=request.enable_novelty_filter,
                     novelty_threshold=request.novelty_threshold,
@@ -555,14 +594,30 @@ async def get_bookmarks(tags: Optional[str] = None):
     try:
         if tags:
             tag_list = [tag.strip() for tag in tags.split(",")]
-            bookmarks = bookmark_system.search_by_tags(tag_list)
+            bookmarks = bookmark_system.list_bookmarks(tags=tag_list)
         else:
             bookmarks = bookmark_system.list_bookmarks()
         
+        # Convert BookmarkedIdea objects to dicts
+        bookmark_dicts = []
+        for bookmark in bookmarks:
+            bookmark_dicts.append({
+                "id": bookmark.id,
+                "text": bookmark.text,
+                "theme": bookmark.theme,
+                "constraints": bookmark.constraints,
+                "score": bookmark.score,
+                "critique": bookmark.critique,
+                "advocacy": bookmark.advocacy,
+                "skepticism": bookmark.skepticism,
+                "bookmarked_at": bookmark.bookmarked_at,
+                "tags": bookmark.tags
+            })
+        
         return {
             "status": "success",
-            "bookmarks": bookmarks,
-            "count": len(bookmarks)
+            "bookmarks": bookmark_dicts,
+            "count": len(bookmark_dicts)
         }
     except Exception as e:
         logger.error(f"Failed to get bookmarks: {e}")
@@ -573,10 +628,20 @@ async def get_bookmarks(tags: Optional[str] = None):
 async def create_bookmark(request: BookmarkRequest):
     """Create a new bookmark."""
     try:
-        bookmark_id = bookmark_system.add_bookmark(
-            idea=request.idea,
-            tags=request.tags,
-            notes=request.notes
+        # Use improved idea if available, otherwise use original
+        idea_text = request.improved_idea if request.improved_idea is not None else request.idea
+        score = request.improved_score if request.improved_score is not None else request.initial_score
+        critique = request.improved_critique if request.improved_critique is not None else request.initial_critique
+        
+        bookmark_id = bookmark_system.bookmark_idea(
+            idea_text=idea_text,
+            theme=request.theme,
+            constraints=request.constraints,
+            score=round(score, 1),  # Keep precision but convert to compatible format
+            critique=critique or "",
+            advocacy=request.advocacy or "",
+            skepticism=request.skepticism or "",
+            tags=request.tags
         )
         
         return BookmarkResponse(
@@ -586,6 +651,25 @@ async def create_bookmark(request: BookmarkRequest):
         )
     except Exception as e:
         logger.error(f"Failed to create bookmark: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/bookmarks/{bookmark_id}")
+async def delete_bookmark(bookmark_id: str):
+    """Delete a bookmark by ID."""
+    try:
+        success = bookmark_system.remove_bookmark(bookmark_id)
+        
+        if success:
+            return {
+                "status": "success",
+                "message": f"Bookmark {bookmark_id} deleted successfully"
+            }
+        else:
+            raise HTTPException(status_code=404, detail=f"Bookmark {bookmark_id} not found")
+            
+    except Exception as e:
+        logger.error(f"Failed to delete bookmark: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -640,19 +724,53 @@ async def websocket_endpoint(websocket: WebSocket):
     """WebSocket endpoint for real-time progress updates."""
     try:
         await ws_manager.connect(websocket)
+        
+        # Send initial connection confirmation
+        await websocket.send_text(json.dumps({
+            "type": "connection",
+            "message": "WebSocket connected successfully",
+            "timestamp": datetime.now().isoformat()
+        }))
+        
         while True:
             try:
-                # Keep connection alive
-                data = await websocket.receive_text()
-                # Echo back for connection testing
-                await websocket.send_text(f"Echo: {data}")
-            except Exception as e:
-                logger.error(f"WebSocket message handling error: {e}")
+                # Wait for ping messages or other client data
+                data = await asyncio.wait_for(websocket.receive_text(), timeout=30.0)
+                
+                # Handle ping/pong for keep-alive
+                if data == "ping":
+                    await websocket.send_text("pong")
+                else:
+                    # Echo back other messages for testing
+                    await websocket.send_text(json.dumps({
+                        "type": "echo",
+                        "message": f"Received: {data}",
+                        "timestamp": datetime.now().isoformat()
+                    }))
+                    
+            except asyncio.TimeoutError:
+                # Send keep-alive ping to detect disconnections
+                try:
+                    await websocket.send_text(json.dumps({
+                        "type": "ping",
+                        "timestamp": datetime.now().isoformat()
+                    }))
+                except:
+                    logger.info("WebSocket connection lost during ping")
+                    break
+            except WebSocketDisconnect:
+                logger.info("WebSocket client disconnected normally")
                 break
+            except Exception as e:
+                logger.warning(f"WebSocket message handling error: {e}")
+                # Don't break on minor errors, continue listening
+                continue
+                
     except WebSocketDisconnect:
-        ws_manager.disconnect(websocket)
+        logger.info("WebSocket client disconnected during connection")
     except Exception as e:
         logger.error(f"WebSocket connection error: {e}")
+    finally:
         ws_manager.disconnect(websocket)
 
 

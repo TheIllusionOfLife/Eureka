@@ -209,49 +209,65 @@ For detailed usage instructions, see the documentation in the `docs/` directory:
 
 #### Recently Completed
 
+- ✅ **PR #92**: Fixed bookmark functionality 422 validation errors
+  - Fixed critical "Unprocessable Entity" error preventing bookmark creation
+  - Increased backend validation limits (idea: 10K chars, critique: 20K chars)
+  - Enhanced error handling with proper `RequestValidationError` exception type
+  - Implemented strategic fallback logic using `||` vs `??` based on field requirements
+  - Fixed three critical bugs identified during review process
+  - Addressed feedback from 5 reviewers (Claude, CodeRabbit, Copilot, Gemini, Cursor bots)
+  - Added secure logging that excludes sensitive data from log output
+
+- ✅ **PR #91**: Resolved React hooks error in BookmarkManager component
+  - Fixed useState hook usage in conditional rendering
+  - Improved component state management
+
+- ✅ **PR #90**: Documentation and pattern updates
+  - Enhanced session handover documentation
+  - Updated core patterns with lessons learned
+
 - ✅ **PR #89**: Implemented bookmark persistence and share functionality
   - Implemented full CRUD operations for bookmark management system
   - Added `BookmarkManager` component supporting search, filtering, and export
   - Fixed critical bugs: bookmark removal logic and score precision loss
   - Enhanced security with Pydantic validators for input sanitization
-  - Comprehensive accessibility improvements (ARIA labels, button types)
-  - Addressed feedback from five reviewers (Claude, CodeRabbit, Copilot, Gemini, Cursor)
-  - Performance optimizations via `useMemo` and other React best practices
 
 - ✅ **PR #88**: Resolved scoring display consistency
   - Fixed null score handling in ComparisonRadarChart
   - Ensured consistent score prop passing in web components
-  - Addressed division by zero edge cases
-
-- ✅ **PR #87**: Documentation and pattern updates
-  - Enhanced session handover documentation
-  - Updated core patterns with lessons learned
 
 #### Next Priority Tasks
 
-1. **Implement Toast Notifications**: Replace `alert()` with a modern notification system
-   - Source: Deferred from PR #89 review feedback
+1. **Validate Bookmark Functionality**: Test the newly fixed bookmark system
+   - Source: PR #92 completed - bookmark functionality restored
+   - Context: System should now handle bookmark creation without validation errors
+   - Approach: Test bookmark creation, editing, and deletion in web interface
+
+2. **Performance Optimization**: Consider response compression for large bookmarks
+   - Source: PR #92 review feedback about 20K character limits
+   - Context: Large validation limits may impact network performance
+   - Approach: Implement response compression or pagination for large payloads
+
+3. **Implement Toast Notifications**: Replace `alert()` with a modern notification system
+   - Source: Deferred from previous PR feedback
    - Context: Current implementation uses browser alerts which interrupt UX
    - Approach: Implement react-toastify or similar for non-blocking notifications
 
-2. **Rate Limiting Implementation**: Add API rate limiting for security
-   - Source: Security recommendation from PR #89 review
+4. **Rate Limiting Implementation**: Add API rate limiting for security
+   - Source: Security recommendation from previous reviews
    - Context: Bookmark endpoints currently lack rate limiting protection
    - Approach: Use `slowapi` or a similar library for FastAPI rate limiting
 
-3. **Performance Benchmarking**: Validate bookmark system performance
-   - Source: New bookmark feature needs performance validation
-   - Context: Test with large bookmark collections (100+ items)
-   - Approach: Benchmark API response times and UI rendering performance
-
 #### Session Learnings
 
+- **Strategic Fallback Logic**: Use `||` for required fields with min_length, `??` for numeric fields to preserve 0 values, and `||` for optional fields to convert empty strings to undefined (from PR #92)
+- **FastAPI Exception Handling**: Use `RequestValidationError` not `ValidationError` for proper FastAPI validation error handling (from PR #92)
+- **Security Logging**: Log only non-sensitive fields (`theme`, `tag count`) instead of full request objects to prevent data exposure (from PR #92)
+- **Empty String Validation**: Empty strings fail backend validation differently than null/undefined - handle each case appropriately (from PR #92)
+- **Multiple Bot Reviews**: Successfully processed feedback from 5 different bots systematically using 3-phase discovery protocol (from PR #92)
 - **Critical Bug Pattern**: Toggle features using temporary IDs will always fail — must match against persisted data (from PR #89)
 - **Comprehensive PR Reviews**: Successfully handled feedback from 5 different bot reviewers systematically (from PR #89)
 - **Security First**: Pydantic validators provide excellent input sanitization at the model level (from PR #89)
-- **React Anti-Patterns**: useEffect for prop syncing causes state management issues — use callbacks instead (from PR #89)
-- **Precision Matters**: Type casting (int()) can cause silent data loss — preserve float precision (from PR #89)
-- **Accessibility Standards**: Systematic addition of button types and ARIA attributes improves UX for all users (from PR #89)
 
 ## License
 

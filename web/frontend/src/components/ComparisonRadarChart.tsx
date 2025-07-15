@@ -82,15 +82,22 @@ const ComparisonRadarChart: React.FC<ComparisonRadarChartProps> = ({
   // Calculate overall scores (use provided scores if available, otherwise calculate from data)
   const calculatedOriginalScore = data.length > 0 ? data.reduce((sum, item) => sum + item.original, 0) / data.length : 0;
   const calculatedImprovedScore = data.length > 0 ? data.reduce((sum, item) => sum + item.improved, 0) / data.length : 0;
-  const finalOriginalScore = originalScore !== undefined ? originalScore : calculatedOriginalScore;
-  const finalImprovedScore = improvedScore !== undefined ? improvedScore : calculatedImprovedScore;
+  
+  // Validate and use override scores with range checking
+  const isValidScore = (score: number | undefined): boolean => 
+    score !== undefined && score >= 0 && score <= 10 && isFinite(score);
+  
+  const finalOriginalScore = isValidScore(originalScore) ? originalScore! : calculatedOriginalScore;
+  const finalImprovedScore = isValidScore(improvedScore) ? improvedScore! : calculatedImprovedScore;
   const improvement = finalImprovedScore - finalOriginalScore;
   
   const getScoreColor = (score: number) => 
     score >= 7 ? 'text-green-600' : score >= 5 ? 'text-yellow-600' : 'text-red-600';
 
-  // Fix division by zero error
-  const improvementPercentage = finalOriginalScore > 0 ? ((improvement / finalOriginalScore) * 100) : 0;
+  // Fix division by zero error - show 100% if improving from 0
+  const improvementPercentage = finalOriginalScore > 0 
+    ? ((improvement / finalOriginalScore) * 100) 
+    : improvement > 0 ? 100 : 0;
 
   // Handle empty data case
   if (data.length === 0) {

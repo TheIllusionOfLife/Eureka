@@ -262,7 +262,7 @@ For detailed usage instructions, see the documentation in the `docs/` directory:
 #### Session Learnings
 
 - **Docker Dependency Resolution**: When containers have module issues, install inside container and use type workarounds for conflicting @types packages (from PR #95)
-- **Systematic PR Reviews**: Always check ALL THREE GitHub API sources - PR comments, PR reviews, and line comments to catch all feedback (from PR #95)
+- **Systematic PR Reviews**: Follow the 4-Phase Review Protocol in `CLAUDE.md` to systematically find all feedback across the three GitHub API sources (PR comments, reviews, and line comments) (from PR #95)
 - **Performance Stack**: GZip compression + pagination + memoization provides comprehensive performance optimization (from PR #95)
 - **Error Architecture**: Centralized error handling with categorization enables consistent UX and debugging across the application (from PR #95)
 - **TypeScript Module Resolution**: react-toastify v11 exports ToastOptions directly, avoiding need for @types package (from PR #95)

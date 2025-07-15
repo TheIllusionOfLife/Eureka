@@ -89,6 +89,24 @@ mcp__playwright__playwright_fill(selector="input[name='theme']", value="test the
 mcp__playwright__playwright_screenshot(name="test_results", fullPage=true)
 ```
 
+## Web Development Patterns
+
+### Performance Optimization
+- **Compression**: GZip middleware configured with minimum_size=1000, compresslevel=6
+- **Pagination**: Implement with memoization for filtered results (20 items per page)
+- **Rate Limiting**: Use slowapi with 5 requests/minute on critical endpoints
+
+### Error Handling Architecture
+- **Centralized Utilities**: Use `errorHandler.ts` for consistent error categorization
+- **Toast Notifications**: Replace alert() with react-toastify for non-blocking UX
+- **Structured Logging**: Use `logger.ts` with session tracking and log levels
+
+### Docker Container Issues
+When encountering module resolution errors in Docker:
+1. Install dependencies inside the container (not just package.json)
+2. Use type workarounds when @types packages conflict
+3. Rebuild containers after dependency changes
+
 ## Development Philosophy
 
 - **Test-Driven Development**: Write tests first, verify failure, then implement

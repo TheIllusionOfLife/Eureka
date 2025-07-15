@@ -18,7 +18,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field, validator
+from fastapi.exceptions import RequestValidationError
+from pydantic import BaseModel, Field, validator, ValidationError
 import html
 
 # Import MadSpark modules
@@ -93,6 +94,80 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+
+def generate_mock_results(theme: str, num_ideas: int) -> List[Dict[str, Any]]:
+    """Generate mock results for testing without API keys."""
+    mock_ideas = {
+        "urban farming": [
+            "Vertical hydroponic towers with automated nutrient delivery for apartment balconies",
+            "Window-mounted herb gardens with IoT sensors for optimal growth monitoring",
+            "Stackable mushroom cultivation boxes using coffee grounds as substrate"
+        ],
+        "sustainable transportation": [
+            "Electric bike-sharing stations powered by solar canopies at bus stops",
+            "Autonomous electric shuttles for last-mile connectivity in suburbs",
+            "Cargo bike delivery networks replacing trucks in city centers"
+        ],
+        "renewable energy": [
+            "Building-integrated photovoltaic windows that generate electricity while providing shade",
+            "Micro wind turbines designed for urban rooftops with noise reduction technology",
+            "Piezoelectric floor tiles in high-traffic areas converting footsteps to electricity"
+        ]
+    }
+    
+    # Find matching theme or use default
+    theme_key = None
+    for key in mock_ideas.keys():
+        if key.lower() in theme.lower() or theme.lower() in key.lower():
+            theme_key = key
+            break
+    
+    if not theme_key:
+        # Generate generic ideas if no theme match
+        base_ideas = [
+            f"Innovative solution for {theme} using advanced technology",
+            f"Sustainable approach to {theme} with community involvement",
+            f"Cost-effective method for implementing {theme} at scale"
+        ]
+    else:
+        base_ideas = mock_ideas[theme_key]
+    
+    results = []
+    for i in range(min(num_ideas, len(base_ideas))):
+        base_score = 6.5 + (i * 0.5)
+        improved_score = base_score + 1.5 + (random.random() * 0.8)
+        
+        result = {
+            "idea": base_ideas[i],
+            "initial_score": round(base_score, 1),
+            "initial_critique": f"Interesting concept but needs more detail on implementation and feasibility",
+            "advocacy": f"This solution addresses key challenges in {theme} with innovative thinking",
+            "skepticism": f"Implementation costs and technical complexity may be barriers",
+            "improved_idea": f"{base_ideas[i]}. Enhanced with AI-driven optimization, real-time monitoring, and adaptive learning capabilities for maximum efficiency",
+            "improved_score": round(improved_score, 1),
+            "improved_critique": f"Comprehensive solution with clear benefits and implementation pathway",
+            "score_delta": round(improved_score - base_score, 1),
+            "multi_dimensional_evaluation": {
+                "dimension_scores": {
+                    "feasibility": round(7 + random.random() * 2, 1),
+                    "innovation": round(8 + random.random() * 1.5, 1),
+                    "impact": round(7.5 + random.random() * 2, 1),
+                    "cost_effectiveness": round(6.5 + random.random() * 2, 1),
+                    "scalability": round(7 + random.random() * 2.5, 1),
+                    "risk_assessment": round(6 + random.random() * 2, 1),
+                    "timeline": round(7 + random.random() * 1.5, 1)
+                },
+                "overall_score": round(base_score + 0.5, 1),
+                "confidence_interval": {
+                    "lower": round(base_score - 0.5, 1),
+                    "upper": round(base_score + 1.5, 1)
+                }
+            }
+        }
+        results.append(result)
+    
+    return results
 
 
 def format_results_for_frontend(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -253,16 +328,16 @@ class IdeaGenerationResponse(BaseModel):
 
 
 class BookmarkRequest(BaseModel):
-    idea: str = Field(..., min_length=10, max_length=2000, description="Original idea text")
-    improved_idea: Optional[str] = Field(default=None, max_length=2000, description="Improved idea text")
+    idea: str = Field(..., min_length=10, max_length=10000, description="Original idea text")
+    improved_idea: Optional[str] = Field(default=None, max_length=10000, description="Improved idea text")
     theme: str = Field(..., min_length=1, max_length=200, description="Theme used for generation")
     constraints: str = Field(default="", max_length=500, description="Constraints used")
     initial_score: float = Field(..., ge=0, le=10, description="Initial critic score")
     improved_score: Optional[float] = Field(default=None, ge=0, le=10, description="Improved idea score")
-    initial_critique: Optional[str] = Field(default=None, max_length=1000, description="Initial critique")
-    improved_critique: Optional[str] = Field(default=None, max_length=1000, description="Improved critique")
-    advocacy: Optional[str] = Field(default=None, max_length=1000, description="Advocate's arguments")
-    skepticism: Optional[str] = Field(default=None, max_length=1000, description="Skeptic's analysis")
+    initial_critique: Optional[str] = Field(default=None, max_length=20000, description="Initial critique")
+    improved_critique: Optional[str] = Field(default=None, max_length=20000, description="Improved critique")
+    advocacy: Optional[str] = Field(default=None, max_length=20000, description="Advocate's arguments")
+    skepticism: Optional[str] = Field(default=None, max_length=20000, description="Skeptic's analysis")
     tags: List[str] = Field(default=[], max_items=10, description="Tags for the bookmark")
     notes: Optional[str] = Field(default=None, max_length=500, description="Additional notes")
     
@@ -414,6 +489,19 @@ async def get_temperature_presets():
 async def generate_ideas(request: IdeaGenerationRequest):
     """Generate ideas using the async MadSpark multi-agent workflow."""
     start_time = datetime.now()
+    
+    # Check if running in mock mode - check environment variable properly
+    google_api_key = os.environ.get("GOOGLE_API_KEY", "").strip()
+    if not google_api_key or google_api_key == "your-api-key-here":
+        logger.info("Running in mock mode - returning sample results")
+        mock_results = generate_mock_results(request.theme, request.num_top_candidates)
+        return IdeaGenerationResponse(
+            status="success",
+            message=f"Generated {len(mock_results)} mock ideas",
+            results=format_results_for_frontend(mock_results),
+            processing_time=0.5,
+            timestamp=start_time.isoformat()
+        )
     
     try:
         # Define progress callback
@@ -628,6 +716,9 @@ async def get_bookmarks(tags: Optional[str] = None):
 async def create_bookmark(request: BookmarkRequest):
     """Create a new bookmark."""
     try:
+        # Log the request for debugging (only non-sensitive fields)
+        logger.info(f"Bookmark request received for theme='{request.theme}' with {len(request.tags)} tags.")
+        
         # Use improved idea if available, otherwise use original
         idea_text = request.improved_idea if request.improved_idea is not None else request.idea
         score = request.improved_score if request.improved_score is not None else request.initial_score
@@ -649,6 +740,9 @@ async def create_bookmark(request: BookmarkRequest):
             message="Bookmark created successfully",
             bookmark_id=bookmark_id
         )
+    except RequestValidationError as e:
+        logger.error(f"Validation error in bookmark request: {e}")
+        raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
         logger.error(f"Failed to create bookmark: {e}")
         raise HTTPException(status_code=500, detail=str(e))

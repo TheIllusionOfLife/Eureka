@@ -13,5 +13,21 @@
       "green energy",
       "residential"
     ]
+  },
+  "bookmark_20250715_155801_a9b28602": {
+    "id": "bookmark_20250715_155801_a9b28602",
+    "text": "CLI Test: Smart irrigation system using IoT sensors",
+    "theme": "water conservation",
+    "constraints": "agriculture",
+    "score": 8.5,
+    "critique": "Excellent water-saving potential",
+    "advocacy": "Reduces water waste by 40%",
+    "skepticism": "Installation complexity may be challenging",
+    "bookmarked_at": "2025-07-15T15:58:01.730471",
+    "tags": [
+      "cli",
+      "iot",
+      "agriculture"
+    ]
   }
 }

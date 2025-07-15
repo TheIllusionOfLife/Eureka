@@ -45,19 +45,25 @@ export interface BookmarksListResponse {
 class BookmarkService {
   async createBookmark(result: IdeaResult, theme: string, constraints: string): Promise<BookmarkResponse> {
     try {
+      console.log('Creating bookmark with:', { result, theme, constraints });
+      
+      // Ensure all required fields meet minimum requirements
       const bookmarkData: BookmarkData = {
-        idea: result.idea,
-        improved_idea: result.improved_idea,
-        theme: theme,
-        constraints: constraints,
-        initial_score: result.initial_score,
-        improved_score: result.improved_score,
-        initial_critique: result.initial_critique,
-        improved_critique: result.improved_critique,
-        advocacy: result.advocacy,
-        skepticism: result.skepticism,
+        idea: result.idea || 'No idea text provided',  // Required field with min_length - handle empty strings
+        improved_idea: result.improved_idea || undefined,  // Optional field - handle empty strings as undefined
+        theme: theme || 'General',  // Required field with min_length - handle empty strings
+        constraints: constraints ?? '',  // Allows empty strings - only handle null/undefined
+        initial_score: result.initial_score ?? 0,  // Numeric field - preserve 0, handle null/undefined
+        improved_score: result.improved_score ?? undefined,  // Numeric field - preserve 0, handle null/undefined
+        initial_critique: result.initial_critique || undefined,  // Optional field - handle empty strings as undefined
+        improved_critique: result.improved_critique || undefined,  // Optional field - handle empty strings as undefined
+        advocacy: result.advocacy || undefined,  // Optional field - handle empty strings as undefined
+        skepticism: result.skepticism || undefined,  // Optional field - handle empty strings as undefined
         tags: [], // Can be enhanced to allow user-defined tags
       };
+
+      // Log bookmark data for debugging purposes before sending to the API.
+      console.log('Bookmark data to be sent:', JSON.stringify(bookmarkData, null, 2));
 
       const response = await fetch(`${API_BASE_URL}/api/bookmarks`, {
         method: 'POST',
@@ -68,7 +74,10 @@ class BookmarkService {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to create bookmark: ${response.statusText}`);
+        const errorData = await response.json().catch(() => null);
+        const errorMessage = errorData?.detail || response.statusText;
+        console.error('Full error response:', errorData);
+        throw new Error(`Failed to create bookmark: ${errorMessage}`);
       }
 
       return await response.json();

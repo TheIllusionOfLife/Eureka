@@ -421,10 +421,14 @@ function App() {
                     }
                   } else {
                     // Create bookmark via API with better error handling
+                    // Use the theme and constraints from the current state, or fallback to defaults
+                    const bookmarkTheme = lastFormData?.theme || 'General';
+                    const bookmarkConstraints = lastFormData?.constraints || 'No specific constraints';
+                    
                     const response = await bookmarkService.createBookmark(
                       result, 
-                      lastFormData?.theme || 'Unknown Theme',
-                      lastFormData?.constraints || ''
+                      bookmarkTheme,
+                      bookmarkConstraints
                     );
                     
                     if (response.status === 'success' && response.bookmark_id) {

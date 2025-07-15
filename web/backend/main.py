@@ -15,12 +15,15 @@ from datetime import datetime
 from typing import Dict, List, Optional, Any
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel, Field, validator, ValidationError
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 import html
 
 # Import MadSpark modules
@@ -89,12 +92,48 @@ except ImportError as e:
         logging.error(f"Failed to import MadSpark modules with fallback paths: {e2}")
         raise e
 
-# Configure logging
+# Configure enhanced logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.DEBUG if os.getenv('DEBUG', 'false').lower() == 'true' else logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler('logs/madspark_backend.log', mode='a') if os.path.exists('logs') else logging.NullHandler()
+    ]
 )
 logger = logging.getLogger(__name__)
+
+# Enhanced error tracking
+class ErrorTracker:
+    def __init__(self):
+        self.errors = []
+        self.max_errors = 100
+    
+    def track_error(self, error_type: str, error_message: str, context: dict = None):
+        error_entry = {
+            'timestamp': datetime.now().isoformat(),
+            'type': error_type,
+            'message': error_message,
+            'context': context or {},
+            'session_id': getattr(self, 'session_id', 'unknown')
+        }
+        self.errors.append(error_entry)
+        
+        # Keep only recent errors
+        if len(self.errors) > self.max_errors:
+            self.errors.pop(0)
+            
+        # Log the error
+        logger.error(f"[{error_type}] {error_message}", extra={'context': context})
+    
+    def get_error_stats(self):
+        return {
+            'total_errors': len(self.errors),
+            'recent_errors': self.errors[-10:] if self.errors else [],
+            'error_types': {}
+        }
+
+error_tracker = ErrorTracker()
 
 
 def generate_mock_results(theme: str, num_ideas: int) -> List[Dict[str, Any]]:
@@ -293,6 +332,11 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# Initialize rate limiter
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
@@ -460,7 +504,7 @@ async def health_check():
             "timestamp": datetime.now().isoformat()
         }
     except Exception as e:
-        logger.error(f"Health check failed: {e}")
+        error_tracker.track_error('health_check_basic', str(e))
         return JSONResponse(
             status_code=503,
             content={"status": "unhealthy", "error": str(e)}
@@ -494,7 +538,8 @@ async def get_temperature_presets():
 
 
 @app.post("/api/generate-ideas", response_model=IdeaGenerationResponse)
-async def generate_ideas(request: IdeaGenerationRequest):
+@limiter.limit("5/minute")  # Allow 5 idea generation requests per minute
+async def generate_ideas(request: Request, idea_request: IdeaGenerationRequest):
     """Generate ideas using the async MadSpark multi-agent workflow."""
     start_time = datetime.now()
     
@@ -502,7 +547,7 @@ async def generate_ideas(request: IdeaGenerationRequest):
     google_api_key = os.environ.get("GOOGLE_API_KEY", "").strip()
     if not google_api_key or google_api_key == "your-api-key-here":
         logger.info("Running in mock mode - returning sample results")
-        mock_results = generate_mock_results(request.theme, request.num_top_candidates)
+        mock_results = generate_mock_results(idea_request.theme, idea_request.num_top_candidates)
         return IdeaGenerationResponse(
             status="success",
             message=f"Generated {len(mock_results)} mock ideas",
@@ -517,10 +562,10 @@ async def generate_ideas(request: IdeaGenerationRequest):
             await ws_manager.send_progress_update(message, progress)
         
         # Setup temperature manager
-        if request.temperature_preset:
-            temp_mgr = TemperatureManager.from_preset(request.temperature_preset)
-        elif request.temperature:
-            temp_mgr = TemperatureManager.from_base_temperature(request.temperature)
+        if idea_request.temperature_preset:
+            temp_mgr = TemperatureManager.from_preset(idea_request.temperature_preset)
+        elif idea_request.temperature:
+            temp_mgr = TemperatureManager.from_base_temperature(idea_request.temperature)
         else:
             temp_mgr = temp_manager
         
@@ -540,17 +585,17 @@ async def generate_ideas(request: IdeaGenerationRequest):
             logger.warning(f"MAX_CONCURRENT_AGENTS must be a positive integer, got '{env_val}'. Using default: 10")
         
         # Handle remix context if bookmark IDs are provided
-        constraints = request.constraints
-        if request.bookmark_ids:
+        constraints = idea_request.constraints
+        if idea_request.bookmark_ids:
             try:
                 from madspark.utils.bookmark_system import remix_with_bookmarks
                 constraints = remix_with_bookmarks(
-                    theme=request.theme,
-                    additional_constraints=request.constraints,
-                    bookmark_ids=request.bookmark_ids,
+                    theme=idea_request.theme,
+                    additional_constraints=idea_request.constraints,
+                    bookmark_ids=idea_request.bookmark_ids,
                     bookmark_file=bookmark_system.bookmark_file
                 )
-                await ws_manager.send_progress_update(f"Using {len(request.bookmark_ids)} bookmarks for remix context", 5.0)
+                await ws_manager.send_progress_update(f"Using {len(idea_request.bookmark_ids)} bookmarks for remix context", 5.0)
             except Exception as e:
                 logger.warning(f"Failed to create remix context: {e}")
                 # Continue with original constraints if remix fails
@@ -563,20 +608,20 @@ async def generate_ideas(request: IdeaGenerationRequest):
         )
         
         # Add timeout handling
-        timeout_seconds = request.timeout if request.timeout else DEFAULT_REQUEST_TIMEOUT
+        timeout_seconds = idea_request.timeout if idea_request.timeout else DEFAULT_REQUEST_TIMEOUT
         try:
             results = await asyncio.wait_for(
                 async_coordinator.run_workflow(
-                    theme=request.theme,
+                    theme=idea_request.theme,
                     constraints=constraints,  # Use potentially remixed constraints
-                    num_top_candidates=request.num_top_candidates,
-                    enable_novelty_filter=request.enable_novelty_filter,
-                    novelty_threshold=request.novelty_threshold,
+                    num_top_candidates=idea_request.num_top_candidates,
+                    enable_novelty_filter=idea_request.enable_novelty_filter,
+                    novelty_threshold=idea_request.novelty_threshold,
                     temperature_manager=temp_mgr,
-                    verbose=request.verbose,
-                    enhanced_reasoning=request.enhanced_reasoning,
+                    verbose=idea_request.verbose,
+                    enhanced_reasoning=idea_request.enhanced_reasoning,
                     multi_dimensional_eval=True,  # Always enabled as a core feature
-                    logical_inference=request.logical_inference,
+                    logical_inference=idea_request.logical_inference,
                     reasoning_engine=reasoning_eng
                 ),
                 timeout=timeout_seconds
@@ -602,19 +647,30 @@ async def generate_ideas(request: IdeaGenerationRequest):
         # Re-raise HTTP exceptions (like timeout)
         raise
     except Exception as e:
-        logger.error(f"Idea generation failed: {e}")
+        processing_time = (datetime.now() - start_time).total_seconds()
+        error_context = {
+            'theme': idea_request.theme,
+            'num_candidates': idea_request.num_top_candidates,
+            'processing_time': processing_time,
+            'error_type': type(e).__name__
+        }
+        
+        error_tracker.track_error('idea_generation', str(e), error_context)
         await ws_manager.send_progress_update(f"Error: {str(e)}", 0.0)
+        
         # Provide more detailed error information
         error_detail = {
             "error": str(e),
             "type": type(e).__name__,
-            "processing_time": (datetime.now() - start_time).total_seconds()
+            "processing_time": processing_time,
+            "context": "idea_generation"
         }
         raise HTTPException(status_code=500, detail=error_detail)
 
 
 @app.post("/api/generate-ideas-async", response_model=IdeaGenerationResponse)
-async def generate_ideas_async(request: IdeaGenerationRequest):
+@limiter.limit("5/minute")  # Allow 5 async idea generation requests per minute
+async def generate_ideas_async(request: Request, idea_request: IdeaGenerationRequest):
     """Generate ideas using the async MadSpark workflow for better performance."""
     start_time = datetime.now()
     
@@ -624,10 +680,10 @@ async def generate_ideas_async(request: IdeaGenerationRequest):
             await ws_manager.send_progress_update(message, progress)
         
         # Setup temperature manager
-        if request.temperature_preset:
-            temp_mgr = TemperatureManager.from_preset(request.temperature_preset)
-        elif request.temperature:
-            temp_mgr = TemperatureManager.from_base_temperature(request.temperature)
+        if idea_request.temperature_preset:
+            temp_mgr = TemperatureManager.from_preset(idea_request.temperature_preset)
+        elif idea_request.temperature:
+            temp_mgr = TemperatureManager.from_base_temperature(idea_request.temperature)
         else:
             temp_mgr = temp_manager
         
@@ -655,16 +711,16 @@ async def generate_ideas_async(request: IdeaGenerationRequest):
         
         # Run the async workflow
         results = await async_coordinator.run_workflow(
-            theme=request.theme,
-            constraints=request.constraints,
-            num_top_candidates=request.num_top_candidates,
-            enable_novelty_filter=request.enable_novelty_filter,
-            novelty_threshold=request.novelty_threshold,
+            theme=idea_request.theme,
+            constraints=idea_request.constraints,
+            num_top_candidates=idea_request.num_top_candidates,
+            enable_novelty_filter=idea_request.enable_novelty_filter,
+            novelty_threshold=idea_request.novelty_threshold,
             temperature_manager=temp_mgr,
-            verbose=request.verbose,
-            enhanced_reasoning=request.enhanced_reasoning,
+            verbose=idea_request.verbose,
+            enhanced_reasoning=idea_request.enhanced_reasoning,
             multi_dimensional_eval=True,  # Always enabled as a core feature
-            logical_inference=request.logical_inference,
+            logical_inference=idea_request.logical_inference,
             reasoning_engine=reasoning_eng
         )
         
@@ -685,7 +741,8 @@ async def generate_ideas_async(request: IdeaGenerationRequest):
 
 
 @app.get("/api/bookmarks")
-async def get_bookmarks(tags: Optional[str] = None):
+@limiter.limit("30/minute")  # Allow 30 requests per minute for reading bookmarks
+async def get_bookmarks(request: Request, tags: Optional[str] = None):
     """Get all bookmarks, optionally filtered by tags."""
     try:
         if tags:
@@ -721,26 +778,27 @@ async def get_bookmarks(tags: Optional[str] = None):
 
 
 @app.post("/api/bookmarks", response_model=BookmarkResponse)
-async def create_bookmark(request: BookmarkRequest):
+@limiter.limit("10/minute")  # Allow 10 bookmark creations per minute
+async def create_bookmark(request: Request, bookmark_request: BookmarkRequest):
     """Create a new bookmark."""
     try:
         # Log the request for debugging (only non-sensitive fields)
-        logger.info(f"Bookmark request received for theme='{request.theme}' with {len(request.tags)} tags.")
+        logger.info(f"Bookmark request received for theme='{bookmark_request.theme}' with {len(bookmark_request.tags)} tags.")
         
         # Use improved idea if available, otherwise use original
-        idea_text = request.improved_idea if request.improved_idea is not None else request.idea
-        score = request.improved_score if request.improved_score is not None else request.initial_score
-        critique = request.improved_critique if request.improved_critique is not None else request.initial_critique
+        idea_text = bookmark_request.improved_idea if bookmark_request.improved_idea is not None else bookmark_request.idea
+        score = bookmark_request.improved_score if bookmark_request.improved_score is not None else bookmark_request.initial_score
+        critique = bookmark_request.improved_critique if bookmark_request.improved_critique is not None else bookmark_request.initial_critique
         
         bookmark_id = bookmark_system.bookmark_idea(
             idea_text=idea_text,
-            theme=request.theme,
-            constraints=request.constraints,
+            theme=bookmark_request.theme,
+            constraints=bookmark_request.constraints,
             score=round(score, 1),  # Keep precision but convert to compatible format
             critique=critique or "",
-            advocacy=request.advocacy or "",
-            skepticism=request.skepticism or "",
-            tags=request.tags
+            advocacy=bookmark_request.advocacy or "",
+            skepticism=bookmark_request.skepticism or "",
+            tags=bookmark_request.tags
         )
         
         return BookmarkResponse(
@@ -752,12 +810,20 @@ async def create_bookmark(request: BookmarkRequest):
         logger.error(f"Validation error in bookmark request: {e}")
         raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
-        logger.error(f"Failed to create bookmark: {e}")
+        error_context = {
+            'theme': bookmark_request.theme,
+            'idea_length': len(bookmark_request.idea),
+            'tags_count': len(bookmark_request.tags),
+            'error_type': type(e).__name__
+        }
+        
+        error_tracker.track_error('bookmark_creation', str(e), error_context)
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.delete("/api/bookmarks/{bookmark_id}")
-async def delete_bookmark(bookmark_id: str):
+@limiter.limit("20/minute")  # Allow 20 bookmark deletions per minute
+async def delete_bookmark(request: Request, bookmark_id: str):
     """Delete a bookmark by ID."""
     try:
         success = bookmark_system.remove_bookmark(bookmark_id)
@@ -771,7 +837,12 @@ async def delete_bookmark(bookmark_id: str):
             raise HTTPException(status_code=404, detail=f"Bookmark {bookmark_id} not found")
             
     except Exception as e:
-        logger.error(f"Failed to delete bookmark: {e}")
+        error_context = {
+            'bookmark_id': bookmark_id,
+            'error_type': type(e).__name__
+        }
+        
+        error_tracker.track_error('bookmark_deletion', str(e), error_context)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -817,8 +888,67 @@ async def invalidate_cache(pattern: Optional[str] = None):
             }
             
     except Exception as e:
-        logger.error(f"Failed to invalidate cache: {e}")
+        error_tracker.track_error('cache_invalidation', str(e), {'pattern': pattern})
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/system/errors")
+async def get_error_stats():
+    """Get error statistics for debugging."""
+    try:
+        stats = error_tracker.get_error_stats()
+        return {
+            "status": "success",
+            "error_stats": stats,
+            "system_info": {
+                "timestamp": datetime.now().isoformat(),
+                "uptime_seconds": (datetime.now() - datetime.fromtimestamp(0)).total_seconds(),
+                "environment": os.getenv('ENVIRONMENT', 'development')
+            }
+        }
+    except Exception as e:
+        logger.error(f"Failed to get error stats: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/system/health")
+async def detailed_health_check():
+    """Detailed health check with component status."""
+    try:
+        health_status = {
+            "status": "healthy",
+            "timestamp": datetime.now().isoformat(),
+            "components": {
+                "temperature_manager": temp_manager is not None,
+                "reasoning_engine": reasoning_engine is not None,
+                "bookmark_system": bookmark_system is not None,
+                "cache_manager": cache_manager is not None,
+                "websocket_manager": ws_manager is not None
+            },
+            "error_stats": error_tracker.get_error_stats()['total_errors'],
+            "memory_usage": {
+                "cache_enabled": cache_manager is not None,
+                "log_entries": len(error_tracker.errors)
+            }
+        }
+        
+        # Check if any critical components are missing
+        critical_components = ['temperature_manager', 'reasoning_engine', 'bookmark_system']
+        if not all(health_status['components'][comp] for comp in critical_components):
+            health_status['status'] = 'degraded'
+        
+        return health_status
+        
+    except Exception as e:
+        error_tracker.track_error('health_check', str(e))
+        return JSONResponse(
+            status_code=503,
+            content={
+                "status": "unhealthy", 
+                "error": str(e),
+                "timestamp": datetime.now().isoformat()
+            }
+        )
 
 
 @app.websocket("/ws/progress")

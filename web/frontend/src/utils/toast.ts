@@ -1,7 +1,9 @@
 /**
  * Toast notification utility using react-toastify
  */
-import { toast, ToastOptions } from 'react-toastify';
+import { toast } from 'react-toastify';
+
+type ToastOptions = any;
 
 // Default toast options
 const defaultOptions: ToastOptions = {

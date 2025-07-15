@@ -18,7 +18,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, validator, ValidationError
 import html
 
 # Import MadSpark modules
@@ -628,6 +628,9 @@ async def get_bookmarks(tags: Optional[str] = None):
 async def create_bookmark(request: BookmarkRequest):
     """Create a new bookmark."""
     try:
+        # Log the request for debugging
+        logger.info(f"Bookmark request received: {request.dict()}")
+        
         # Use improved idea if available, otherwise use original
         idea_text = request.improved_idea if request.improved_idea is not None else request.idea
         score = request.improved_score if request.improved_score is not None else request.initial_score
@@ -649,6 +652,10 @@ async def create_bookmark(request: BookmarkRequest):
             message="Bookmark created successfully",
             bookmark_id=bookmark_id
         )
+    except ValidationError as e:
+        logger.error(f"Validation error in bookmark request: {e}")
+        logger.error(f"Request data: {request}")
+        raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
         logger.error(f"Failed to create bookmark: {e}")
         raise HTTPException(status_code=500, detail=str(e))

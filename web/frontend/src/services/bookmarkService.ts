@@ -45,19 +45,28 @@ export interface BookmarksListResponse {
 class BookmarkService {
   async createBookmark(result: IdeaResult, theme: string, constraints: string): Promise<BookmarkResponse> {
     try {
+      // Ensure all required fields meet minimum requirements
       const bookmarkData: BookmarkData = {
-        idea: result.idea,
-        improved_idea: result.improved_idea,
-        theme: theme,
-        constraints: constraints,
-        initial_score: result.initial_score,
-        improved_score: result.improved_score,
-        initial_critique: result.initial_critique,
-        improved_critique: result.improved_critique,
-        advocacy: result.advocacy,
-        skepticism: result.skepticism,
+        idea: result.idea || '',
+        improved_idea: result.improved_idea || undefined,
+        theme: theme || 'General',
+        constraints: constraints || '',
+        initial_score: result.initial_score || 0,
+        improved_score: result.improved_score || undefined,
+        initial_critique: result.initial_critique || '',
+        improved_critique: result.improved_critique || undefined,
+        advocacy: result.advocacy || '',
+        skepticism: result.skepticism || '',
         tags: [], // Can be enhanced to allow user-defined tags
       };
+
+      // Validate required fields
+      if (!bookmarkData.idea || bookmarkData.idea.length < 10) {
+        throw new Error('Idea text must be at least 10 characters long');
+      }
+      if (!bookmarkData.theme || bookmarkData.theme.length < 1) {
+        throw new Error('Theme is required');
+      }
 
       const response = await fetch(`${API_BASE_URL}/api/bookmarks`, {
         method: 'POST',
@@ -68,7 +77,9 @@ class BookmarkService {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to create bookmark: ${response.statusText}`);
+        const errorData = await response.json().catch(() => null);
+        const errorMessage = errorData?.detail || response.statusText;
+        throw new Error(`Failed to create bookmark: ${errorMessage}`);
       }
 
       return await response.json();

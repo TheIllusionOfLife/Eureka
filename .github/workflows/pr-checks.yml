@@ -162,17 +162,19 @@ jobs:
         echo "Checking for common issues..."
         
         # Check for console.log statements
-        if grep -r "console\.log" --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" web/frontend/src; then
+        console_logs=$(grep -r "console\.log" --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" web/frontend/src || true)
+        if [ ! -z "$console_logs" ]; then
           echo "::warning::Found console.log statements. Consider removing for production."
         fi
         
         # Check for TODO comments (excluding node_modules)
-        if grep -r "TODO\|FIXME\|XXX" --include="*.py" --include="*.ts" --include="*.tsx" --exclude-dir=node_modules src/ web/; then
+        todo_comments=$(grep -r "TODO\|FIXME\|XXX" --include="*.py" --include="*.ts" --include="*.tsx" --exclude-dir=node_modules src/ web/ || true)
+        if [ ! -z "$todo_comments" ]; then
           echo "::warning::Found TODO/FIXME comments. Consider addressing them."
         fi
         
         # Check for large files
-        large_files=$(find . -type f -size +1M | grep -v node_modules | grep -v .git)
+        large_files=$(find . -type f -size +1M | grep -v node_modules | grep -v .git || true)
         if [ ! -z "$large_files" ]; then
           echo "::warning::Found large files (>1MB): $large_files"
         fi

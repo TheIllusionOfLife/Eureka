@@ -63,7 +63,7 @@ class TestUtilityFunctions:
         
         result = parse_json_with_fallback(valid_json)
         
-        assert result == {"key": "value", "number": 42}
+        assert result == [{"key": "value", "number": 42}]
     
     def test_parse_json_with_fallback_invalid_json(self):
         """Test JSON parsing with invalid JSON."""
@@ -71,16 +71,17 @@ class TestUtilityFunctions:
         
         result = parse_json_with_fallback(invalid_json)
         
-        # Should return fallback structure
+        # Should return empty list for unparseable JSON
         assert result is not None
-        assert isinstance(result, dict)
+        assert isinstance(result, list)
     
     def test_parse_json_with_fallback_empty_string(self):
         """Test JSON parsing with empty string."""
         result = parse_json_with_fallback("")
         
         assert result is not None
-        assert isinstance(result, dict)
+        assert isinstance(result, list)
+        assert len(result) == 0  # Empty string should return empty list
 
 
 class TestTemperatureManager:
@@ -123,15 +124,11 @@ class TestTemperatureManager:
     
     def test_invalid_temperature_preset(self):
         """Test handling of invalid temperature preset."""
-        # Test with invalid preset should fall back to default
-        try:
-            manager = TemperatureManager.from_preset("invalid_preset")
-            # Should have default config
-            assert manager.config is not None
-            assert hasattr(manager.config, 'base_temperature')
-        except (ValueError, AttributeError):
-            # Or should raise appropriate error
-            pass
+        # Test with invalid preset should raise TemperatureError
+        from madspark.utils.errors import TemperatureError
+        with pytest.raises(TemperatureError) as exc_info:
+            TemperatureManager.from_preset("invalid_preset")
+        assert "Unknown preset" in str(exc_info.value)
 
 
 class TestBookmarkManager:
@@ -143,8 +140,8 @@ class TestBookmarkManager:
             manager = BookmarkManager(bookmark_file=os.path.join(temp_dir, "bookmarks.json"))
             
             assert manager is not None
-            assert hasattr(manager, 'save_idea')
-            assert hasattr(manager, 'get_random_bookmarks')
+            assert hasattr(manager, 'bookmark_idea')
+            assert hasattr(manager, 'search_bookmarks')
     
     def test_save_and_retrieve_idea(self):
         """Test saving and retrieving ideas."""
@@ -158,8 +155,14 @@ class TestBookmarkManager:
                 "feasibility_score": 7
             }
             
-            # Save idea
-            manager.save_idea(idea, tags=["test", "automation"])
+            # Bookmark idea
+            manager.bookmark_idea(
+                idea_text=idea["title"] + " - " + idea["description"],
+                theme="Testing",
+                constraints="Test constraints",
+                score=idea["innovation_score"],
+                tags=["test", "automation"]
+            )
             
             # Retrieve ideas
             bookmarks = manager.get_random_bookmarks(count=1)
@@ -178,7 +181,13 @@ class TestBookmarkManager:
                 "innovation_score": 8
             }
             
-            manager.save_idea(idea, tags=["ai", "productivity"])
+            manager.bookmark_idea(
+                idea_text=idea["title"] + " - " + idea["description"],
+                theme="Testing",
+                constraints="Test constraints",
+                score=idea["innovation_score"],
+                tags=["ai", "productivity"]
+            )
             
             # Test tag-based retrieval
             bookmarks = manager.get_random_bookmarks(count=1)
@@ -196,9 +205,21 @@ class TestBookmarkManager:
                 "innovation_score": 8
             }
             
-            # Save same idea multiple times
-            manager.save_idea(idea, tags=["test"])
-            manager.save_idea(idea, tags=["test"])
+            # Bookmark same idea multiple times
+            manager.bookmark_idea(
+                idea_text=idea["title"] + " - " + idea["description"],
+                theme="Testing",
+                constraints="Test constraints",
+                score=idea["innovation_score"],
+                tags=["test"]
+            )
+            manager.bookmark_idea(
+                idea_text=idea["title"] + " - " + idea["description"],
+                theme="Testing",
+                constraints="Test constraints",
+                score=idea["innovation_score"],
+                tags=["test"]
+            )
             
             bookmarks = manager.get_random_bookmarks(count=10)
             
@@ -214,7 +235,7 @@ class TestNoveltyFilter:
         filter_obj = NoveltyFilter(similarity_threshold=0.8)
         
         assert filter_obj is not None
-        assert hasattr(filter_obj, 'is_novel')
+        assert hasattr(filter_obj, 'filter_idea')
         assert hasattr(filter_obj, 'add_idea')
     
     def test_novelty_detection(self):
@@ -253,11 +274,11 @@ class TestNoveltyFilter:
         }
         
         # Both ideas should be novel
-        assert filter_obj.is_novel(idea1) == True
-        filter_obj.add_idea(idea1)
+        result1 = filter_obj.filter_idea(idea1_text)
+        assert result1.is_novel == True
         
-        assert filter_obj.is_novel(idea2) == True
-        filter_obj.add_idea(idea2)
+        result2 = filter_obj.filter_idea(idea2_text)
+        assert result2.is_novel == True
     
     def test_novelty_filter_threshold_adjustment(self):
         """Test novelty filter with different thresholds."""

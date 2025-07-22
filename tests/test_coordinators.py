@@ -74,11 +74,11 @@ class TestSyncCoordinator:
         assert all("idea" in item for item in result)
         assert all("initial_score" in item for item in result)
         
-        # Verify all agents were called (critic is called multiple times for re-evaluation)
+        # Verify all agents were called
         mock_generate.assert_called_once()
         assert mock_critic.call_count >= 1  # Called for initial eval and re-evaluation
-        mock_advocate.assert_called_once()
-        mock_skeptic.assert_called_once()
+        assert mock_advocate.call_count >= 1  # Called for each candidate
+        assert mock_skeptic.call_count >= 1  # Called for each candidate
     
     @patch('madspark.core.coordinator.call_idea_generator_with_retry')
     def test_run_multistep_workflow_idea_generation_failure(self, mock_generate):

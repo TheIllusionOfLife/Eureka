@@ -88,6 +88,10 @@ def parse_json_with_fallback(
     """
     results: List[Dict[str, Any]] = []
     
+    # Handle None or empty input
+    if text is None or text == "":
+        return []
+    
     # Strategy 1: Try to parse as a complete JSON array
     try:
         data = json.loads(text)

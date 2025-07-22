@@ -36,6 +36,7 @@ try:
     )
     from madspark.utils.export_utils import ExportManager, create_metadata_from_args
     from madspark.utils.cache_manager import CacheManager, CacheConfig
+    from madspark.utils.errors import ValidationError
 except ImportError:
     # Fallback for local development/testing
     from coordinator import run_multistep_workflow
@@ -53,6 +54,7 @@ except ImportError:
     )
     from export_utils import ExportManager, create_metadata_from_args
     from cache_manager import CacheManager, CacheConfig
+    from errors import ValidationError
 
 # Import interactive mode after the try/except blocks
 try:
@@ -626,7 +628,7 @@ def main():
     try:
         temp_manager = create_temperature_manager_from_args(args)
         logger.info(temp_manager.describe_settings())
-    except ValueError as e:
+    except (ValueError, ValidationError) as e:
         print(f"Error: {e}")
         sys.exit(1)
     

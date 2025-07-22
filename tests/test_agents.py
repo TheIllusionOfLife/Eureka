@@ -70,6 +70,59 @@ class TestIdeaGenerator:
         assert "Test constraints" in prompt
         assert isinstance(prompt, str)
         assert len(prompt) > 0
+    
+    def test_build_generation_prompt_various_formats(self):
+        """Test prompt building with different user input formats."""
+        test_cases = [
+            ("AI automation", "Simple topic"),
+            ("What are the best ways to improve productivity?", "Question format"),
+            ("Suggest 5 innovative ideas for sustainable energy", "Request format"),
+            ("I want to explore how we can reduce carbon emissions", "Statement format"),
+            ("Generate creative solutions for urban transportation", "Command format")
+        ]
+        
+        for topic, description in test_cases:
+            prompt = build_generation_prompt(topic, "test context")
+            # Verify the new prompt structure
+            assert f"User's main prompt:\n{topic}" in prompt, f"Failed for {description}"
+            assert "generate a list of diverse and creative ideas" in prompt
+            assert "test context" in prompt
+            assert "Ideas:\n" in prompt  # Check for trailing newline
+    
+    def test_build_generation_prompt_structure(self):
+        """Test the detailed structure of the generated prompt."""
+        topic = "What are innovative ways to use AI in education?"
+        context = "Focus on personalized learning and accessibility"
+        prompt = build_generation_prompt(topic, context)
+        
+        # Check that the prompt has the expected structure
+        lines = prompt.split('\n')
+        
+        # Find the index of key sections
+        user_prompt_idx = None
+        context_idx = None
+        ideas_idx = None
+        
+        for i, line in enumerate(lines):
+            if line.strip() == "User's main prompt:":
+                user_prompt_idx = i
+            elif line.strip() == "Context:":
+                context_idx = i
+            elif line.strip() == "Ideas:":
+                ideas_idx = i
+        
+        # Verify structure
+        assert user_prompt_idx is not None, "Missing 'User's main prompt:' header"
+        assert context_idx is not None, "Missing 'Context:' header"
+        assert ideas_idx is not None, "Missing 'Ideas:' header"
+        
+        # Verify order
+        assert user_prompt_idx < context_idx, "User prompt should come before context"
+        assert context_idx < ideas_idx, "Context should come before Ideas"
+        
+        # Verify content placement
+        assert topic in lines[user_prompt_idx + 1], "Topic not found after User's main prompt header"
+        assert context in lines[context_idx + 1], "Context not found after Context header"
 
 
 class TestCritic:

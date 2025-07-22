@@ -27,6 +27,9 @@ jobs:
           comment += `- **Lines deleted**: ${deletions}\n`;
           comment += `- **Total changes**: ${additions + deletions}\n\n`;
           
+          // Size classification
+          const totalChanges = additions + deletions;
+          
           // Check if this is primarily a test PR
           const files = await github.rest.pulls.listFiles({
             owner: context.repo.owner,
@@ -38,8 +41,6 @@ jobs:
           const testChanges = testFiles.reduce((acc, f) => acc + f.additions + f.deletions, 0);
           const isTestPR = testChanges > totalChanges * 0.8; // 80% or more changes are in test files
           
-          // Size classification
-          const totalChanges = additions + deletions;
           let sizeLabel = '';
           
           if (totalChanges < 50) {

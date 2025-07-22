@@ -83,9 +83,10 @@ def build_generation_prompt(topic: str, context: str) -> str:
   """
   return (
       LANGUAGE_CONSISTENCY_INSTRUCTION +
-      f"Use the context below to {IDEA_GENERATION_INSTRUCTION}"
-      f" on the topic of {topic}. Make sure the ideas are actionable and"
-      f" innovative.\n\nContext:\n{context}\n\nIdeas:"
+      f"Use the user's main prompt and context below to {IDEA_GENERATION_INSTRUCTION}."
+      f" Make sure the ideas are actionable and innovative."
+      f"\n\nUser's main prompt:\n{topic}"
+      f"\n\nContext:\n{context}\n\nIdeas:"
   )
 
 

@@ -181,8 +181,14 @@ jobs:
         # Note: This check looks for hardcoded secrets, not environment variable usage
         secrets_found=$(grep -r -E "(api_key|apikey|api-key|secret|password|token)" --include="*.py" --include="*.ts" --include="*.tsx" src/ web/backend/ web/frontend/src/ 2>/dev/null | grep -v -E "(test|mock|example|sample|node_modules|os\.environ\.get|process\.env|your-api-key-here|tests/|test_|\.test\.|_test\.|getenv|environ\[|GOOGLE_API_KEY|SECRET_KEY|JWT_SECRET|\.github|workflow)" | grep -v -E "google_api_key.*os\.environ|api_key.*environ|Environment variable|test safe|test:|# test" || true)
         
+        # Debug output (temporary)
+        echo "DEBUG: secrets_found length: ${#secrets_found}"
+        echo "DEBUG: secrets_found content: '$secrets_found'"
+        
         if [ ! -z "$secrets_found" ]; then
           echo "::error::Potential secrets found. Please review:"
           echo "$secrets_found"
           exit 1
+        else
+          echo "✅ No hardcoded secrets detected"
         fi

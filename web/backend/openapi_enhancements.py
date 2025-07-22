@@ -351,4 +351,3 @@ For backward compatibility:
             }
         }
     }
-}

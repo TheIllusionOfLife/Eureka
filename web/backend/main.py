@@ -15,7 +15,7 @@ from datetime import datetime
 from typing import Dict, List, Optional, Any
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Request
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Request, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
@@ -258,10 +258,10 @@ def format_results_for_frontend(results: List[Dict[str, Any]]) -> List[Dict[str,
                     TIMELINE_KEY: dimension_scores.get(TIMELINE_KEY, 5)
                 },
                 'overall_score': multi_eval.get('weighted_score', 5),
-                'confidence_interval': {
-                    'lower': multi_eval.get('weighted_score', 5) - multi_eval.get('confidence_interval', 1),
-                    'upper': multi_eval.get('weighted_score', 5) + multi_eval.get('confidence_interval', 1)
-                }
+                'confidence_interval': multi_eval.get('confidence_interval', {
+                    'lower': multi_eval.get('weighted_score', 5) - 1,
+                    'upper': multi_eval.get('weighted_score', 5) + 1
+                })
             }
             
             # Generate improved multi-dimensional evaluation based on score improvement
@@ -421,7 +421,7 @@ class IdeaGenerationRequest(BaseModel):
     bookmark_ids: Optional[List[str]] = Field(default=None, description="Bookmark IDs to use for remix context")
 
     class Config:
-        allow_population_by_field_name = True  # Accept both alias and original names
+        populate_by_name = True  # Accept both alias and original names (Pydantic V2)
 
 
 class IdeaGenerationResponse(BaseModel):
@@ -465,7 +465,7 @@ class BookmarkRequest(BaseModel):
     notes: Optional[str] = Field(default=None, max_length=500, description="Additional notes")
 
     class Config:
-        allow_population_by_field_name = True  # Accept both alias and original names
+        populate_by_name = True  # Accept both alias and original names (Pydantic V2)
     
     @validator('idea', 'improved_idea', 'theme', 'constraints', 'initial_critique', 'improved_critique', 'advocacy', 'skepticism', 'notes')
     def sanitize_html(cls, v):
@@ -509,7 +509,7 @@ class DuplicateCheckRequest(BaseModel):
     similarity_threshold: Optional[float] = Field(default=0.8, ge=0.1, le=1.0, description="Custom similarity threshold")
 
     class Config:
-        allow_population_by_field_name = True
+        populate_by_name = True
 
     @validator('idea', 'theme')
     def sanitize_html(cls, v):
@@ -1007,9 +1007,9 @@ async def check_bookmark_duplicates(request: Request, duplicate_request: Duplica
 @limiter.limit("20/minute")  # Allow 20 similarity searches per minute
 async def find_similar_bookmarks(
     request: Request,
-    idea: str = Field(..., min_length=10, description="Idea text to find similar bookmarks for"),
-    theme: str = Field(..., min_length=1, description="Theme of the idea"),
-    max_results: int = Field(default=5, ge=1, le=20, description="Maximum number of results")
+    idea: str = Query(..., min_length=10, description="Idea text to find similar bookmarks for"),
+    theme: str = Query(..., min_length=1, description="Theme of the idea"),
+    max_results: int = Query(default=5, ge=1, le=20, description="Maximum number of results")
 ):
     """Find bookmarks similar to the given idea text."""
     try:
@@ -1089,8 +1089,8 @@ async def get_bookmarks(request: Request, tags: Optional[str] = None):
 async def create_bookmark(
     request: Request, 
     bookmark_request: BookmarkRequest,
-    check_duplicates: bool = Field(default=True, description="Enable duplicate detection"),
-    force_save: bool = Field(default=False, description="Force save even if duplicates found")
+    check_duplicates: bool = Query(default=True, description="Enable duplicate detection"),
+    force_save: bool = Query(default=False, description="Force save even if duplicates found")
 ):
     """Create a new bookmark with optional duplicate detection."""
     try:

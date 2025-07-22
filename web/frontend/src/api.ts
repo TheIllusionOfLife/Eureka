@@ -31,7 +31,7 @@ api.interceptors.response.use(
       // Wait 2 seconds before retry
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      console.log('Retrying request to:', originalRequest.url);
+      // Retrying failed request
       return api(originalRequest);
     }
     

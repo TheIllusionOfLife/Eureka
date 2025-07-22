@@ -38,29 +38,30 @@ class TestIdeaGenerator:
         mock_client.models.generate_content.return_value = mock_response
         return mock_client
     
-    @patch('madspark.agents.idea_generator.genai')
-    def test_generate_ideas_success(self, mock_genai, mock_genai_client):
+    @patch('madspark.agents.idea_generator.GENAI_AVAILABLE', True)
+    @patch('madspark.agents.idea_generator.idea_generator_client')
+    def test_generate_ideas_success(self, mock_client):
         """Test successful idea generation."""
-        mock_genai.Client.return_value = mock_genai_client
+        mock_response = Mock()
+        mock_response.text = "Test Idea 1\nTest Idea 2"
+        mock_client.models.generate_content.return_value = mock_response
         
         result = generate_ideas("AI automation", "Cost-effective solutions")
         
         assert result is not None
-        assert len(result["ideas"]) == 2
-        assert result["ideas"][0]["title"] == "Test Idea 1"
-        assert result["ideas"][1]["innovation_score"] == 9
+        assert isinstance(result, str)
+        assert "Test Idea" in result
         
-    @patch('madspark.agents.idea_generator.genai')
-    def test_generate_ideas_api_error(self, mock_genai):
+    @patch('madspark.agents.idea_generator.GENAI_AVAILABLE', True)
+    @patch('madspark.agents.idea_generator.idea_generator_client')
+    def test_generate_ideas_api_error(self, mock_client):
         """Test idea generation with API error."""
-        mock_client = Mock()
         mock_client.models.generate_content.side_effect = Exception("API Error")
-        mock_genai.Client.return_value = mock_client
         
         result = generate_ideas("AI automation", "Cost-effective solutions")
         
-        # Should return empty structure or handle gracefully
-        assert result is None or "error" in result
+        # Should return empty string when API fails
+        assert result == ""
         
     def test_build_generation_prompt(self):
         """Test prompt building functionality."""

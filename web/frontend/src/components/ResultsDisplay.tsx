@@ -98,7 +98,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
           title: `MadSpark ${isImproved ? 'Improved ' : ''}Idea #${index + 1}`,
           text: shareText,
         });
-        console.log('Idea shared successfully');
+        // Idea shared successfully
       } else {
         // Fallback to clipboard with better error handling
         await handleClipboardShare(shareText);
@@ -106,7 +106,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
     } catch (err: any) {
       // Handle user cancellation gracefully
       if (err.name === 'AbortError') {
-        console.log('Share canceled by user');
+        // Share canceled by user
         return; // Don't show error for user cancellation
       }
       

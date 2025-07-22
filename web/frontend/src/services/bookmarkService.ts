@@ -48,7 +48,7 @@ class BookmarkService {
     forceSave: boolean = false
   ): Promise<EnhancedBookmarkResponse> {
     try {
-      console.log('Creating bookmark with duplicate check:', { result, theme, constraints, forceSave });
+      // Creating bookmark with duplicate check
       
       // Ensure all required fields meet minimum requirements
       const bookmarkData: BookmarkData = {
@@ -123,7 +123,7 @@ class BookmarkService {
 
   async createBookmark(result: IdeaResult, theme: string, constraints: string): Promise<BookmarkResponse> {
     try {
-      console.log('Creating bookmark with:', { result, theme, constraints });
+      // Creating bookmark
       
       // Ensure all required fields meet minimum requirements
       const bookmarkData: BookmarkData = {
@@ -141,7 +141,7 @@ class BookmarkService {
       };
 
       // Log bookmark data for debugging purposes before sending to the API.
-      console.log('Bookmark data to be sent:', JSON.stringify(bookmarkData, null, 2));
+      // Bookmark data prepared for transmission
 
       const response = await fetch(`${API_BASE_URL}/api/bookmarks`, {
         method: 'POST',

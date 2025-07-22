@@ -49,7 +49,7 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({
         setPresetsLoading(true);
         setPresetsError(null);
         const response = await api.get('/api/temperature-presets');
-        console.log('Temperature presets response:', response.data);
+        // Temperature presets loaded successfully
         if (response.data.status === 'success' && response.data.presets) {
           setTemperaturePresets(response.data.presets);
         } else {

@@ -20,7 +20,7 @@ jest.mock('react-toastify', () => ({
 }));
 
 // Mock constants module
-jest.mock('../web/frontend/src/constants', () => ({
+jest.mock('../../constants', () => ({
   CLEANER_META_HEADERS: [
     'ENHANCED CONCEPT:', 'ORIGINAL THEME:', 'REVISED CORE PREMISE:',
     'ORIGINAL IDEA:', 'IMPROVED VERSION:', 'ENHANCEMENT SUMMARY:'
@@ -29,9 +29,9 @@ jest.mock('../web/frontend/src/constants', () => ({
     'Addresses Evaluation Criteria', 'Enhancing Impact Through',
     'Preserving & Amplifying Strengths', 'Addressing Concerns'
   ],
-  CLEANER_FRAMEWORK_CLEANUP_PATTERN: '^[:\\s]*(?:a\\s+)?more\\s+robust.*?system\\s+',
-  CLEANER_TITLE_EXTRACTION_PATTERN: '"([^"]+)"',
-  CLEANER_TITLE_REPLACEMENT_PATTERN: '^.*?"[^"]+".*?\\n+',
+  CLEANER_FRAMEWORK_CLEANUP_PATTERN: /^[:\s]*(?:a\s+)?more\s+robust.*?system\s+/i,
+  CLEANER_TITLE_EXTRACTION_PATTERN: /"([^"]+)"/,
+  CLEANER_TITLE_REPLACEMENT_PATTERN: /^.*?"[^"]+".*?\n+/,
   CLEANER_TITLE_KEYWORDS: ['Framework', 'System', 'Engine'],
   CLEANER_REPLACEMENT_PATTERNS: [
     [/Our enhanced approach/g, 'This approach'],
@@ -44,10 +44,10 @@ jest.mock('../web/frontend/src/constants', () => ({
 import { toast } from 'react-toastify';
 
 // Import modules to test - using relative paths since this is a test file
-const errorHandlerPath = '../web/frontend/src/utils/errorHandler';
-const toastPath = '../web/frontend/src/utils/toast';
-const loggerPath = '../web/frontend/src/utils/logger';
-const ideaCleanerPath = '../web/frontend/src/utils/ideaCleaner';
+const errorHandlerPath = '../errorHandler';
+const toastPath = '../toast';
+const loggerPath = '../logger';
+const ideaCleanerPath = '../ideaCleaner';
 
 // Mock console methods for testing
 const originalConsole = global.console;

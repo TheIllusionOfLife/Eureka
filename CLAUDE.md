@@ -14,7 +14,7 @@ Eureka features the MadSpark Multi-Agent System, a sophisticated AI-powered expe
 
 ## Common Tasks
 - **Run Coordinator**: `PYTHONPATH=src python -m madspark.core.coordinator`
-- **CLI Interface**: `PYTHONPATH=src python -m madspark.cli.cli "theme" "constraints"`
+- **CLI Interface**: `PYTHONPATH=src python -m madspark.cli.cli "topic" "context"`
 - **Web Interface**: `cd web && docker-compose up`
 - **Run Tests**: `PYTHONPATH=src pytest` (comprehensive test suite with 90%+ coverage) or `python tests/test_basic_imports_simple.py` (basic imports only)
 
@@ -85,7 +85,7 @@ cd web && docker-compose up
 
 # Use Playwright MCP for testing
 mcp__playwright__playwright_navigate(url="http://localhost:3000")
-mcp__playwright__playwright_fill(selector="input[name='theme']", value="test theme")
+mcp__playwright__playwright_fill(selector="input[name='topic']", value="test topic")
 mcp__playwright__playwright_screenshot(name="test_results", fullPage=true)
 ```
 

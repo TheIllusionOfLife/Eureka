@@ -210,9 +210,23 @@ For detailed usage instructions, see the documentation in the `docs/` directory:
 
 ## Session Handover
 
-##### Last updated (UTC): 2025-07-16
+##### Last updated (UTC): 2025-07-22
 
 #### Recently Completed
+
+- ✅ **PR #99**: Refactored terminology for consistency throughout codebase
+  - Updated UI labels from "Theme/Constraints" to "Topic/Context" for consistency with internal codebase
+  - Added Pydantic field aliases to maintain backward compatibility (API accepts both old and new field names)
+  - Updated CLI help text and documentation with new terminology
+  - Resolved merge conflicts using template-based approach (KISS principle)
+  - Enhanced API with `allow_population_by_field_name = True` for transparent compatibility
+
+- ✅ **PR #98**: Made prompt template flexible for various user input formats
+  - Fixed rigid prompt template that forced awkward sentence structures
+  - Changed from "on the topic of {topic}" to flexible "User's main prompt: {topic}" format
+  - Now supports questions, requests, commands, and complex statements naturally
+  - Added comprehensive tests for various input formats and structural validation
+  - Improved user experience without requiring API or UI changes
 
 - ✅ **PR #95**: Implemented all 5 priority tasks from README roadmap
   - GZip compression middleware for API responses (minimum 1KB, level 6)
@@ -223,24 +237,6 @@ For detailed usage instructions, see the documentation in the `docs/` directory:
   - Fixed critical issues: incorrect uptime calculation, TypeScript type safety
   - Updated react-toastify from v9.1.3 to v11.0.5 for security
   - Addressed all feedback from 4 bot reviewers in systematic manner
-
-- ✅ **PR #91**: Resolved React hooks error in BookmarkManager component
-  - Fixed useState hook usage in conditional rendering
-  - Improved component state management
-
-- ✅ **PR #90**: Documentation and pattern updates
-  - Enhanced session handover documentation
-  - Updated core patterns with lessons learned
-
-- ✅ **PR #89**: Implemented bookmark persistence and share functionality
-  - Implemented full CRUD operations for bookmark management system
-  - Added `BookmarkManager` component supporting search, filtering, and export
-  - Fixed critical bugs: bookmark removal logic and score precision loss
-  - Enhanced security with Pydantic validators for input sanitization
-
-- ✅ **PR #88**: Resolved scoring display consistency
-  - Fixed null score handling in ComparisonRadarChart
-  - Ensured consistent score prop passing in web components
 
 #### Next Priority Tasks
 
@@ -266,14 +262,14 @@ For detailed usage instructions, see the documentation in the `docs/` directory:
 
 #### Session Learnings
 
-- **Docker Dependency Resolution**: When containers have module issues, install inside container and use type workarounds for conflicting @types packages (from PR #95)
-- **Systematic PR Reviews**: Follow the 4-Phase Review Protocol in `CLAUDE.md` to systematically find all feedback across the three GitHub API sources (PR comments, reviews, and line comments) (from PR #95)
-- **Performance Stack**: GZip compression + pagination + memoization provides comprehensive performance optimization (from PR #95)
-- **Error Architecture**: Centralized error handling with categorization enables consistent UX and debugging across the application (from PR #95)
-- **TypeScript Module Resolution**: react-toastify v11 exports ToastOptions directly, avoiding need for @types package (from PR #95)
-- **Strategic Fallback Logic**: Use `||` for required fields with min_length, `??` for numeric fields to preserve 0 values, and `||` for optional fields to convert empty strings to undefined (from PR #92)
-- **FastAPI Exception Handling**: Use `RequestValidationError` not `ValidationError` for proper FastAPI validation error handling (from PR #92)
-- **Security Logging**: Log only non-sensitive fields (`theme`, `tag count`) instead of full request objects to prevent data exposure (from PR #92)
+- **Merge Conflict Resolution**: Use template-based string formatting over complex f-string expressions or long chains of string concatenation, following the KISS principle for better readability (from PR #99 conflict resolution).
+- **API Backward Compatibility**: Pydantic field aliases with `allow_population_by_field_name = True` enables seamless field name evolution while maintaining compatibility (from PR #99).
+- **Flexible Prompt Design**: User input placeholders should preserve original phrasing rather than forcing inputs into rigid sentence structures (from PR #98).
+- **Terminology Consistency**: Align UI terminology with internal codebase naming for better developer experience while maintaining API compatibility (from PR #99).
+- **Systematic PR Reviews**: Follow the 4-Phase Review Protocol in `CLAUDE.md` to systematically find all feedback across the three GitHub API sources (PR comments, reviews, and line comments) (from PR #95).
+- **Docker Dependency Resolution**: When containers have module issues, install inside container and use type workarounds for conflicting @types packages (from PR #95).
+- **Performance Stack**: GZip compression + pagination + memoization provides comprehensive performance optimization (from PR #95).
+- **Error Architecture**: Centralized error handling with categorization enables consistent UX and debugging across the application (from PR #95).
 
 ## License
 

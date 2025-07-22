@@ -170,12 +170,23 @@ jobs:
     - name: Test OpenAPI documentation
       working-directory: web/backend
       run: |
+        # Set PYTHONPATH for imports
+        export PYTHONPATH=../../src:$PYTHONPATH
+        
         # Start the server in background
         python main.py &
         SERVER_PID=$!
         
-        # Wait for server to start
-        sleep 10
+        # Wait for server to start with retries
+        echo "Waiting for server to start..."
+        for i in {1..30}; do
+          if curl -s http://localhost:8000/health > /dev/null; then
+            echo "Server is ready!"
+            break
+          fi
+          echo "Attempt $i: Server not ready yet..."
+          sleep 2
+        done
         
         # Test OpenAPI endpoints
         python test_openapi.py
@@ -251,8 +262,8 @@ jobs:
     - name: Test docker-compose
       working-directory: web
       run: |
-        docker-compose config
-        docker-compose build
+        docker compose config
+        docker compose build
 
   # Summary Report
   coverage-report:

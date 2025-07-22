@@ -109,8 +109,12 @@ class TestSyncCoordinator:
         result = run_multistep_workflow(theme="", constraints="test")
         assert result is None or "error" in result
         
-        # Test with invalid temperature
-        result = run_multistep_workflow(theme="test", constraints="test", temperature=2.0)
+        # Test with invalid temperature via TemperatureManager
+        from madspark.utils.temperature_control import TemperatureManager, TemperatureConfig
+        invalid_config = TemperatureConfig(base_temperature=2.0)  # Invalid temperature > 1.0
+        temp_manager = TemperatureManager()
+        temp_manager._config = invalid_config
+        result = run_multistep_workflow(theme="test", constraints="test", temperature_manager=temp_manager)
         assert result is None or "error" in result
 
 
@@ -165,10 +169,14 @@ class TestAsyncCoordinator:
         mock_advocate.return_value = {"advocacy": {"key_strengths": ["Scalable"]}}
         mock_criticize.return_value = {"criticism": {"key_concerns": ["Complex"]}}
         
+        # Create a temperature manager for the async workflow  
+        from madspark.utils.temperature_control import TemperatureManager
+        temp_manager = TemperatureManager.from_preset("creative")
+        
         result = await coordinator.run_workflow(
             theme="AI automation",
             constraints="Cost-effective",
-            temperature=0.8,
+            temperature_manager=temp_manager,
             enhanced_reasoning=True,
             verbose=False
         )
@@ -180,9 +188,14 @@ class TestAsyncCoordinator:
     async def test_async_workflow_timeout(self, coordinator):
         """Test async workflow with timeout."""
         # Test with very short timeout
+        # Create a temperature manager for the timeout test
+        from madspark.utils.temperature_control import TemperatureManager
+        temp_manager = TemperatureManager.from_preset("balanced")
+        
         result = await coordinator.run_workflow(
             theme="AI automation",
             constraints="Cost-effective",
+            temperature_manager=temp_manager,
             timeout=0.001  # 1ms timeout
         )
         
@@ -195,9 +208,14 @@ class TestAsyncCoordinator:
         """Test async workflow exception handling."""
         mock_generate.side_effect = Exception("Async error")
         
+        # Create a temperature manager for the exception test
+        from madspark.utils.temperature_control import TemperatureManager
+        temp_manager = TemperatureManager.from_preset("balanced")
+        
         result = await coordinator.run_workflow(
             theme="AI automation",
-            constraints="Cost-effective"
+            constraints="Cost-effective",
+            temperature_manager=temp_manager
         )
         
         # Should handle exceptions gracefully
@@ -234,25 +252,22 @@ class TestWorkflowIntegration:
         assert result is not None
         mock_bookmark_manager.assert_called_once()
     
-    @patch('madspark.core.coordinator.TemperatureManager')
     @patch('madspark.core.coordinator.generate_ideas')
-    def test_workflow_with_temperature_presets(self, mock_generate, mock_temp_manager):
+    def test_workflow_with_temperature_presets(self, mock_generate):
         """Test workflow with temperature presets."""
-        mock_temp_manager.return_value.get_temperature_config.return_value = {
-            "base_temperature": 0.8,
-            "idea_generation": 0.9,
-            "evaluation": 0.7
-        }
-        mock_generate.return_value = {"ideas": [{"title": "Test", "description": "Test"}]}
+        mock_generate.return_value = "Test Idea 1\nTest Idea 2"
+        
+        # Create temperature manager from preset
+        from madspark.utils.temperature_control import TemperatureManager
+        temp_manager = TemperatureManager.from_preset("creative")
         
         result = run_multistep_workflow(
             theme="AI automation",
             constraints="Cost-effective",
-            temperature_preset="creative"
+            temperature_manager=temp_manager
         )
         
-        assert result is not None
-        mock_temp_manager.assert_called_once()
+        assert result is not None or result == []  # Allow empty results in mock mode
     
     def test_workflow_error_propagation(self):
         """Test that workflow errors are properly propagated."""

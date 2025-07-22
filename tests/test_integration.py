@@ -125,11 +125,14 @@ class TestEndToEndWorkflow:
         mock_skeptic_client.models.generate_content.return_value = mock_skeptic_response
         mock_skeptic_genai.Client.return_value = mock_skeptic_client
         
-        # Run the complete workflow
+        # Run the complete workflow with temperature manager
+        from madspark.utils.temperature_control import TemperatureManager
+        temp_manager = TemperatureManager.from_preset("creative")
+        
         result = run_multistep_workflow(
             theme="AI automation for productivity",
             constraints="Cost-effective and scalable solutions",
-            temperature=0.8,
+            temperature_manager=temp_manager,
             enhanced_reasoning=True,
             verbose=True
         )
@@ -211,10 +214,14 @@ class TestEndToEndWorkflow:
         
         # Test async coordinator
         coordinator = AsyncCoordinator()
+        # Create temperature manager for async workflow
+        from madspark.utils.temperature_control import TemperatureManager
+        temp_manager = TemperatureManager.from_preset("creative")
+        
         result = await coordinator.run_workflow(
             theme="Async AI automation",
             constraints="Performance-optimized",
-            temperature=0.8,
+            temperature_manager=temp_manager,
             timeout=30.0
         )
         
@@ -229,7 +236,7 @@ class TestWorkflowWithComponents:
         """Test workflow integration with bookmark system."""
         with tempfile.TemporaryDirectory() as temp_dir:
             # Create bookmark manager
-            bookmark_manager = BookmarkManager(data_dir=temp_dir)
+            bookmark_manager = BookmarkManager(bookmark_file=os.path.join(temp_dir, "bookmarks.json"))
             
             # Add some bookmarks
             bookmark_manager.save_idea({
@@ -279,7 +286,7 @@ class TestWorkflowWithComponents:
                 result = run_multistep_workflow(
                     theme="AI automation",
                     constraints="Cost-effective",
-                    temperature_preset="creative"
+                    temperature_manager=TemperatureManager.from_preset("creative")
                 )
                 
                 # Should have used temperature manager
@@ -365,7 +372,11 @@ class TestWorkflowErrorHandling:
         assert result is None or "error" in result
         
         # Test with invalid temperature
-        result = run_multistep_workflow("test", "test", temperature=2.5)
+        from madspark.utils.temperature_control import TemperatureManager, TemperatureConfig
+        invalid_config = TemperatureConfig(base_temperature=2.5)  # Invalid temperature > 1.0
+        temp_manager = TemperatureManager()
+        temp_manager._config = invalid_config
+        result = run_multistep_workflow("test", "test", temperature_manager=temp_manager)
         assert result is None or "error" in result
         
         # Test with invalid timeout

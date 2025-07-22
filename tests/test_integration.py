@@ -15,115 +15,30 @@ from madspark.utils.novelty_filter import NoveltyFilter
 class TestEndToEndWorkflow:
     """End-to-end workflow integration tests."""
     
-    @patch('madspark.agents.idea_generator.genai')
-    @patch('madspark.agents.critic.genai')
-    @patch('madspark.agents.advocate.genai')
-    @patch('madspark.agents.skeptic.genai')
-    def test_complete_workflow_integration(self, mock_skeptic_genai, mock_advocate_genai, 
-                                         mock_critic_genai, mock_gen_genai):
+    @patch('madspark.core.coordinator.call_idea_generator_with_retry')
+    @patch('madspark.core.coordinator.call_critic_with_retry')
+    @patch('madspark.core.coordinator.call_advocate_with_retry')
+    @patch('madspark.core.coordinator.call_skeptic_with_retry')
+    @patch('madspark.core.coordinator.call_improve_idea_with_retry')
+    def test_complete_workflow_integration(self, mock_improve, mock_skeptic, mock_advocate, 
+                                         mock_critic, mock_generate):
         """Test complete workflow from idea generation to final output."""
         
-        # Mock idea generation
-        mock_gen_client = Mock()
-        mock_gen_response = Mock()
-        mock_gen_response.text = '''
-        {
-            "ideas": [
-                {
-                    "title": "AI-Powered Task Automation",
-                    "description": "Intelligent automation system for repetitive tasks",
-                    "innovation_score": 8,
-                    "feasibility_score": 7,
-                    "market_potential": 9
-                },
-                {
-                    "title": "Smart Workflow Optimizer",
-                    "description": "ML-driven workflow optimization platform",
-                    "innovation_score": 7,
-                    "feasibility_score": 8,
-                    "market_potential": 8
-                }
-            ]
-        }
-        '''
-        mock_gen_client.models.generate_content.return_value = mock_gen_response
-        mock_gen_genai.Client.return_value = mock_gen_client
+        # Mock idea generation - returns string with ideas
+        mock_generate.return_value = """AI-Powered Task Automation: Intelligent automation system for repetitive tasks
+Smart Workflow Optimizer: ML-driven workflow optimization platform"""
         
-        # Mock critic evaluation
-        mock_critic_client = Mock()
-        mock_critic_response = Mock()
-        mock_critic_response.text = '''
-        {
-            "evaluations": [
-                {
-                    "idea_title": "AI-Powered Task Automation",
-                    "overall_score": 7.5,
-                    "strengths": ["High market demand", "Clear value proposition"],
-                    "weaknesses": ["Technical complexity", "Competition"]
-                },
-                {
-                    "idea_title": "Smart Workflow Optimizer",
-                    "overall_score": 7.8,
-                    "strengths": ["Proven market need", "Scalable solution"],
-                    "weaknesses": ["Implementation challenges", "Customer adoption"]
-                }
-            ]
-        }
-        '''
-        mock_critic_client.models.generate_content.return_value = mock_critic_response
-        mock_critic_genai.Client.return_value = mock_critic_client
+        # Mock critic evaluation - returns JSON string
+        mock_critic.return_value = '{"score": 7.5, "comment": "Good idea with market demand"}'
         
-        # Mock advocate
-        mock_advocate_client = Mock()
-        mock_advocate_response = Mock()
-        mock_advocate_response.text = '''
-        {
-            "advocacy": {
-                "key_strengths": [
-                    "Addresses genuine productivity pain points",
-                    "Large addressable market",
-                    "Proven ROI potential"
-                ],
-                "value_proposition": "Dramatically improves workplace efficiency",
-                "market_potential": "Multi-billion dollar automation market",
-                "competitive_advantages": [
-                    "Advanced AI capabilities",
-                    "User-friendly interface",
-                    "Seamless integration"
-                ]
-            }
-        }
-        '''
-        mock_advocate_client.models.generate_content.return_value = mock_advocate_response
-        mock_advocate_genai.Client.return_value = mock_advocate_client
+        # Mock advocate - returns string
+        mock_advocate.return_value = "Strong market demand, addresses productivity pain points, proven ROI potential"
         
-        # Mock skeptic
-        mock_skeptic_client = Mock()
-        mock_skeptic_response = Mock()
-        mock_skeptic_response.text = '''
-        {
-            "criticism": {
-                "key_concerns": [
-                    "High development and maintenance costs",
-                    "Strong competition from established players",
-                    "Complex integration requirements"
-                ],
-                "risk_assessment": "Medium to high risk due to technical complexity",
-                "potential_failures": [
-                    "AI accuracy issues",
-                    "User adoption challenges",
-                    "Scalability problems"
-                ],
-                "implementation_challenges": [
-                    "Data privacy and security",
-                    "Legacy system integration",
-                    "Change management"
-                ]
-            }
-        }
-        '''
-        mock_skeptic_client.models.generate_content.return_value = mock_skeptic_response
-        mock_skeptic_genai.Client.return_value = mock_skeptic_client
+        # Mock skeptic - returns string
+        mock_skeptic.return_value = "High development costs, strong competition, complex integration requirements"
+        
+        # Mock improve idea - returns string
+        mock_improve.return_value = "Enhanced AI-Powered Task Automation with improved scalability and reduced costs"
         
         # Run the complete workflow with temperature manager
         from madspark.utils.temperature_control import TemperatureManager

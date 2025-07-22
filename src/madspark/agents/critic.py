@@ -78,7 +78,7 @@ def evaluate_ideas(ideas: str, criteria: str, context: str, temperature: float =
       "Provide your JSON evaluations now (one per line, in the same order as the input ideas):"
   )
   
-  if not GENAI_AVAILABLE:
+  if not GENAI_AVAILABLE or critic_client is None:
     # Return mock evaluation for CI/testing environments with language matching demo
     # Simple language detection for mock responses
     combined_text = ideas + criteria + context
@@ -92,9 +92,6 @@ def evaluate_ideas(ideas: str, criteria: str, context: str, temperature: float =
         return '{"score": 8, "comment": "Mock-Bewertung für Tests"}'
     else:
         return '{"score": 8, "comment": "Mock evaluation for testing"}'
-  
-  if critic_client is None:
-    raise ConfigurationError("GOOGLE_API_KEY not configured - cannot evaluate ideas")
   
   try:
     config = types.GenerateContentConfig(

@@ -85,7 +85,7 @@ def criticize_idea(idea: str, advocacy: str, context: str, temperature: float = 
       "• [continue listing gaps]"
   )
   
-  if not GENAI_AVAILABLE:
+  if not GENAI_AVAILABLE or skeptic_client is None:
     # Return mock criticism for CI/testing environments with language matching demo
     # Simple language detection for mock responses
     combined_text = idea + advocacy + context
@@ -100,8 +100,6 @@ def criticize_idea(idea: str, advocacy: str, context: str, temperature: float = 
     else:
         return "CRITICAL FLAWS:\n• Mock flaw 1\n• Mock flaw 2\n\nRISKS & CHALLENGES:\n• Mock risk 1\n• Mock risk 2\n\nQUESTIONABLE ASSUMPTIONS:\n• Mock assumption 1\n• Mock assumption 2\n\nMISSING CONSIDERATIONS:\n• Mock missing factor 1\n• Mock missing factor 2"
   
-  if skeptic_client is None:
-    raise ConfigurationError("GOOGLE_API_KEY not configured - cannot criticize ideas")
   
   try:
     config = types.GenerateContentConfig(

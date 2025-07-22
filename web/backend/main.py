@@ -724,7 +724,12 @@ async def generate_ideas(request: Request, idea_request: IdeaGenerationRequest):
     
     # Check if running in mock mode - check environment variable properly
     google_api_key = os.environ.get("GOOGLE_API_KEY", "").strip()
-    if not google_api_key or google_api_key == "your-api-key-here":
+    environment = os.getenv('ENVIRONMENT', '').lower()
+    if (not google_api_key or 
+        google_api_key == "your-api-key-here" or 
+        google_api_key.startswith('mock-') or 
+        google_api_key.startswith('test-') or
+        environment in ['test', 'ci', 'mock']):
         logger.info("Running in mock mode - returning sample results")
         mock_results = generate_mock_results(idea_request.theme, idea_request.num_top_candidates)
         return IdeaGenerationResponse(

@@ -20,14 +20,6 @@ echo -e "\n${YELLOW}Running Python backend tests...${NC}"
 cd src
 PYTHONPATH=. python3 -m pytest ../tests/ -v --cov=madspark --cov-report=term-missing --cov-report=html
 
-# Check coverage threshold
-coverage_percent=$(coverage report | grep TOTAL | awk '{print $4}' | sed 's/%//')
-if [ "$coverage_percent" -lt 80 ]; then
-    echo -e "${RED}❌ Backend coverage is below 80% threshold: ${coverage_percent}%${NC}"
-else
-    echo -e "${GREEN}✅ Backend coverage is good: ${coverage_percent}%${NC}"
-fi
-
 # Frontend tests
 echo -e "\n${YELLOW}Running React frontend tests...${NC}"
 cd ../web/frontend

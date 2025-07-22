@@ -209,12 +209,10 @@ class TestCLIMain:
         test_args = ["cli.py", "AI automation", "Cost-effective", "--temperature", "2.5"]
         
         with patch.object(sys, 'argv', test_args):
-            try:
-                result = cli_main()
-                # Should handle invalid temperature
-                assert False, "Should have raised SystemExit or handled error"
-            except SystemExit as e:
-                assert e.code != 0
+            # The CLI should raise SystemExit with non-zero code for invalid temperature
+            with pytest.raises(SystemExit) as exc_info:
+                cli_main()
+            assert exc_info.value.code != 0
     
     @patch('madspark.cli.cli.run_multistep_workflow')
     def test_cli_workflow_failure(self, mock_workflow):

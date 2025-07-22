@@ -173,7 +173,7 @@ class ErrorHandler {
     } else if (errorDetails.type === 'validation') {
       console.warn('🟡 Validation Error:', logData);
     } else {
-      // Log structured error data for debugging (removed console.log for production)
+      // Log structured error data for debugging (removed debug statement for production)
     }
   }
 

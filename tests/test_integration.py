@@ -69,10 +69,11 @@ Smart Workflow Optimizer: ML-driven workflow optimization platform"""
             assert "improved_critique" in candidate
         
         # Verify all agents were called
-        mock_gen_genai.Client.assert_called()
-        mock_critic_genai.Client.assert_called()
-        mock_advocate_genai.Client.assert_called()
-        mock_skeptic_genai.Client.assert_called()
+        mock_generate.assert_called()
+        mock_critic.assert_called()
+        mock_advocate.assert_called()
+        mock_skeptic.assert_called()
+        mock_improve.assert_called()
     
     @pytest.mark.asyncio
     @patch('madspark.agents.idea_generator.genai')

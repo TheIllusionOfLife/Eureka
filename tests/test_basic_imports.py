@@ -77,7 +77,7 @@ def test_cli_imports():
     """Test that CLI modules can be imported."""
     try:
         from madspark.cli.cli import main
-        from madspark.cli.interactive_mode import run_interactive_workflow
+        from madspark.cli.interactive_mode import run_interactive_mode
         print('✓ CLI modules imported successfully')
     except ImportError as e:
         if "genai" in str(e) or "google" in str(e):

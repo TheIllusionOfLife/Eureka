@@ -123,10 +123,10 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({
       <h2 className="text-lg font-medium text-gray-900 mb-6">Generate Ideas</h2>
       
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Theme */}
+        {/* Topic (internally mapped to 'theme' for API compatibility) */}
         <div>
           <label htmlFor="theme" className="block text-sm font-medium text-gray-700">
-            Theme *
+            Topic *
           </label>
           <input
             type="text"
@@ -140,10 +140,10 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({
           />
         </div>
 
-        {/* Constraints */}
+        {/* Context (internally mapped to 'constraints' for API compatibility) */}
         <div>
           <label htmlFor="constraints" className="block text-sm font-medium text-gray-700">
-            Constraints (Optional)
+            Context (Optional)
           </label>
           <textarea
             id="constraints"

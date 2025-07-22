@@ -372,8 +372,10 @@ async def add_session_id(request: Request, call_next):
 
 # Pydantic models for API requests and responses
 class IdeaGenerationRequest(BaseModel):
-    theme: str = Field(..., min_length=1, max_length=500, description="Theme for idea generation")
-    constraints: str = Field(default="Generate practical and innovative ideas", max_length=1000, description="Constraints and criteria (optional)")
+    # Note: 'theme' maps to 'topic' in the codebase, kept as 'theme' for API backward compatibility
+    theme: str = Field(..., min_length=1, max_length=500, description="Topic for idea generation")
+    # Note: 'constraints' maps to 'context' in the codebase, kept as 'constraints' for API backward compatibility
+    constraints: str = Field(default="Generate practical and innovative ideas", max_length=1000, description="Context and criteria (optional)")
     num_top_candidates: int = Field(default=3, ge=1, le=10, description="Number of top ideas to process")
     enable_novelty_filter: bool = Field(default=True, description="Enable novelty filtering")
     novelty_threshold: float = Field(default=0.8, ge=0.0, le=1.0, description="Similarity threshold for novelty filter")
@@ -398,8 +400,10 @@ class IdeaGenerationResponse(BaseModel):
 class BookmarkRequest(BaseModel):
     idea: str = Field(..., min_length=10, max_length=10000, description="Original idea text")
     improved_idea: Optional[str] = Field(default=None, max_length=10000, description="Improved idea text")
-    theme: str = Field(..., min_length=1, max_length=200, description="Theme used for generation")
-    constraints: str = Field(default="", max_length=500, description="Constraints used")
+    # Note: 'theme' maps to 'topic' in the codebase, kept as 'theme' for API backward compatibility
+    theme: str = Field(..., min_length=1, max_length=200, description="Topic used for generation")
+    # Note: 'constraints' maps to 'context' in the codebase, kept as 'constraints' for API backward compatibility
+    constraints: str = Field(default="", max_length=500, description="Context used")
     initial_score: float = Field(..., ge=0, le=10, description="Initial critic score")
     improved_score: Optional[float] = Field(default=None, ge=0, le=10, description="Improved idea score")
     initial_critique: Optional[str] = Field(default=None, max_length=20000, description="Initial critique")

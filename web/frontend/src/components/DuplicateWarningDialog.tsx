@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { SimilarBookmark } from '../services/bookmarkService';
+import { SimilarBookmark } from '../types';
 import { showSuccess, showError, showWarning } from '../utils/toast';
 
 interface DuplicateWarningDialogProps {
@@ -70,7 +70,9 @@ const DuplicateWarningDialog: React.FC<DuplicateWarningDialogProps> = ({
       'exact': 'Exact Match',
       'high': 'High Similarity',
       'medium': 'Moderate Similarity',
-      'low': 'Low Similarity'
+      'moderate': 'Moderate Similarity',
+      'low': 'Low Similarity',
+      'unknown': 'Unknown'
     };
     return typeMap[matchType] || matchType;
   };
@@ -146,7 +148,7 @@ const DuplicateWarningDialog: React.FC<DuplicateWarningDialogProps> = ({
                           {formatSimilarity(bookmark.similarity_score)}
                         </span>
                         <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                          {formatMatchType(bookmark.match_type)}
+                          {formatMatchType(bookmark.match_type || bookmark.similarity_type || 'unknown')}
                         </span>
                         <div className="text-sm text-gray-600 flex-1">
                           <span className="font-medium">Theme:</span> {bookmark.theme}
@@ -168,7 +170,7 @@ const DuplicateWarningDialog: React.FC<DuplicateWarningDialogProps> = ({
                       <div className="mt-3 p-3 bg-gray-50 rounded border-l-4 border-blue-400">
                         <h4 className="font-medium text-gray-900 mb-2">Full Bookmark Text:</h4>
                         <p className="text-sm text-gray-700 whitespace-pre-wrap">{bookmark.text}</p>
-                        {bookmark.matched_features.length > 0 && (
+                        {bookmark.matched_features && bookmark.matched_features.length > 0 && (
                           <div className="mt-3">
                             <h5 className="font-medium text-gray-700 text-xs mb-1">Matched Features:</h5>
                             <div className="flex flex-wrap gap-1">

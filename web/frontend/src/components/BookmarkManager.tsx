@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { SavedBookmark } from '../services/bookmarkService';
+import { SavedBookmark } from '../types';
 import MarkdownRenderer from './MarkdownRenderer';
 import { showError } from '../utils/toast';
 

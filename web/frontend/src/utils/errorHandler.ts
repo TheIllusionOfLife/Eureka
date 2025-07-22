@@ -4,28 +4,7 @@
  */
 
 import { showError } from './toast';
-
-export interface ErrorDetails {
-  message: string;
-  type: 'network' | 'validation' | 'server' | 'timeout' | 'rate_limit' | 'auth' | 'unknown';
-  code?: number;
-  details?: any;
-  timestamp: string;
-  context?: string;
-}
-
-export interface ApiError {
-  response?: {
-    status: number;
-    data?: {
-      detail?: string | { error?: string; type?: string };
-      message?: string;
-    };
-  };
-  message?: string;
-  code?: string;
-  name?: string;
-}
+import { ErrorDetails, ApiError } from '../types';
 
 class ErrorHandler {
   private errorLog: ErrorDetails[] = [];
@@ -113,9 +92,11 @@ class ErrorHandler {
     else if (apiError.response?.data?.detail) {
       const detail = apiError.response.data.detail;
       errorDetails = {
-        message: typeof detail === 'object' ? 
-          (detail.error || detail.type || 'Unknown error') : 
-          detail,
+        message: typeof detail === 'string' ? 
+          detail : 
+          Array.isArray(detail) ? 
+            detail.map(d => d.msg).join(', ') : 
+            'Unknown error',
         type: 'server',
         code: apiError.response.status,
         details: detail,
@@ -158,8 +139,8 @@ class ErrorHandler {
       }
     }
     
-    if (typeof detail === 'object' && detail.error) {
-      return detail.error;
+    if (typeof detail === 'object' && !Array.isArray(detail) && 'error' in detail) {
+      return (detail as any).error;
     }
     
     return null;

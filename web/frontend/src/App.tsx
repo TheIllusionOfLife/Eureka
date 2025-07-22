@@ -1,76 +1,30 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import api from './api';
 import IdeaGenerationForm from './components/IdeaGenerationForm';
 import ResultsDisplay from './components/ResultsDisplay';
 import ProgressIndicator from './components/ProgressIndicator';
 import BookmarkManager from './components/BookmarkManager';
 import DuplicateWarningDialog from './components/DuplicateWarningDialog';
-import { bookmarkService, SavedBookmark, SimilarBookmark, EnhancedBookmarkResponse } from './services/bookmarkService';
+import KeyboardShortcutsDialog from './components/KeyboardShortcutsDialog';
+import { bookmarkService } from './services/bookmarkService';
 import { ToastContainer } from 'react-toastify';
 import { showSuccess, showError, showInfo } from './utils/toast';
 import { handleBookmarkError, handleIdeaGenerationError, handleWebSocketError } from './utils/errorHandler';
 import { logger, logUserAction, logWebSocketEvent, logApiCall } from './utils/logger';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import './App.css';
 import 'react-toastify/dist/ReactToastify.css';
 
-export interface IdeaResult {
-  idea: string;
-  initial_score: number;
-  initial_critique: string;
-  advocacy: string;
-  skepticism: string;
-  improved_idea: string;
-  improved_score: number;
-  improved_critique: string;
-  score_delta: number;
-  multi_dimensional_evaluation?: {
-    dimension_scores: {
-      feasibility: number;
-      innovation: number;
-      impact: number;
-      cost_effectiveness: number;
-      scalability: number;
-      risk_assessment: number;
-      timeline: number;
-    };
-    overall_score: number;
-    confidence_interval: {
-      lower: number;
-      upper: number;
-    };
-  };
-  improved_multi_dimensional_evaluation?: {
-    dimension_scores: {
-      feasibility: number;
-      innovation: number;
-      impact: number;
-      cost_effectiveness: number;
-      scalability: number;
-      risk_assessment: number;
-      timeline: number;
-    };
-    overall_score: number;
-    confidence_interval: {
-      lower: number;
-      upper: number;
-    };
-  };
-}
-
-export interface ApiResponse {
-  status: string;
-  message: string;
-  results: IdeaResult[];
-  processing_time: number;
-  timestamp: string;
-}
-
-export interface ProgressUpdate {
-  type: string;
-  message: string;
-  progress: number;
-  timestamp: string;
-}
+import { 
+  IdeaResult, 
+  IdeaGenerationResponse, 
+  ProgressUpdate, 
+  ConnectionStatus,
+  SavedBookmark,
+  SimilarBookmark,
+  EnhancedBookmarkResponse,
+  KeyboardShortcut
+} from './types';
 
 function App() {
   const [results, setResults] = useState<IdeaResult[]>([]);
@@ -85,7 +39,14 @@ function App() {
   const [selectedBookmarkIds, setSelectedBookmarkIds] = useState<string[]>([]);
   
   // WebSocket connection status
-  const [wsConnectionStatus, setWsConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'reconnecting'>('connecting');
+  const [wsConnectionStatus, setWsConnectionStatus] = useState<ConnectionStatus>('connecting');
+  
+  // Keyboard shortcuts dialog
+  const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
+  
+  // Refs for keyboard shortcut targets
+  const formRef = useRef<HTMLDivElement>(null);
+  const resultsRef = useRef<HTMLDivElement>(null);
   
   // Duplicate warning dialog state
   const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
@@ -336,7 +297,7 @@ function App() {
     logger.ideaGeneration('started', formData);
 
     try {
-      const response = await api.post<ApiResponse>('/api/generate-ideas', formData);
+      const response = await api.post<IdeaGenerationResponse>('/api/generate-ideas', formData);
       const duration = Date.now() - startTime;
       
       logApiCall('POST', '/api/generate-ideas', response.status, duration);
@@ -378,6 +339,107 @@ function App() {
       handleIdeaGeneration(lastFormData);
     }
   };
+
+  // Define keyboard shortcuts
+  const shortcuts: KeyboardShortcut[] = [
+    {
+      key: '?',
+      description: 'Show keyboard shortcuts help',
+      handler: () => setShowKeyboardShortcuts(true)
+    },
+    {
+      key: 'g',
+      ctrlKey: true,
+      description: 'Focus on idea generation form',
+      handler: () => {
+        const themeInput = document.querySelector('input[name="theme"]') as HTMLInputElement;
+        themeInput?.focus();
+        formRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }
+    },
+    {
+      key: 'Enter',
+      ctrlKey: true,
+      description: 'Generate ideas (submit form)',
+      handler: () => {
+        const submitButton = document.querySelector('button[type="submit"]') as HTMLButtonElement;
+        if (submitButton && !submitButton.disabled) {
+          submitButton.click();
+        }
+      }
+    },
+    {
+      key: 'b',
+      ctrlKey: true,
+      description: 'Open bookmark manager',
+      handler: () => setShowBookmarkManager(true),
+      enabled: savedBookmarks.length > 0
+    },
+    {
+      key: 'Escape',
+      description: 'Close dialogs',
+      handler: () => {
+        if (showKeyboardShortcuts) setShowKeyboardShortcuts(false);
+        else if (showBookmarkManager) setShowBookmarkManager(false);
+        else if (showDuplicateWarning) handleCancelDuplicateWarning();
+      }
+    },
+    {
+      key: 'r',
+      ctrlKey: true,
+      description: 'Retry last generation',
+      handler: handleRetry,
+      enabled: !!lastFormData && !isLoading
+    },
+    {
+      key: '1',
+      ctrlKey: true,
+      description: 'Bookmark first result',
+      handler: () => {
+        const firstBookmarkButton = document.querySelector('[data-testid="bookmark-0"]') as HTMLButtonElement;
+        firstBookmarkButton?.click();
+      },
+      enabled: results.length > 0
+    },
+    {
+      key: '2',
+      ctrlKey: true,
+      description: 'Bookmark second result',
+      handler: () => {
+        const secondBookmarkButton = document.querySelector('[data-testid="bookmark-1"]') as HTMLButtonElement;
+        secondBookmarkButton?.click();
+      },
+      enabled: results.length > 1
+    },
+    {
+      key: '3',
+      ctrlKey: true,
+      description: 'Bookmark third result',
+      handler: () => {
+        const thirdBookmarkButton = document.querySelector('[data-testid="bookmark-2"]') as HTMLButtonElement;
+        thirdBookmarkButton?.click();
+      },
+      enabled: results.length > 2
+    },
+    {
+      key: 'ArrowDown',
+      description: 'Navigate to results',
+      handler: () => {
+        resultsRef.current?.scrollIntoView({ behavior: 'smooth' });
+      },
+      enabled: results.length > 0
+    },
+    {
+      key: 'ArrowUp',
+      description: 'Navigate to form',
+      handler: () => {
+        formRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  ];
+
+  // Use keyboard shortcuts hook
+  const activeShortcuts = useKeyboardShortcuts(shortcuts);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -426,22 +488,38 @@ function App() {
                   </div>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setShowBookmarkManager(true)}
-                className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-label="Bookmark icon">
-                  <title>Bookmark icon</title>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                </svg>
-                Bookmarks
-                {savedBookmarks.length > 0 && (
-                  <span className="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-blue-100 bg-blue-800 rounded-full">
-                    {savedBookmarks.length}
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setShowKeyboardShortcuts(true)}
+                  className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                  title="Keyboard shortcuts (press ? anytime)"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                  <span className="ml-2">
+                    <kbd className="px-1.5 py-0.5 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded">?</kbd>
                   </span>
-                )}
-              </button>
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={() => setShowBookmarkManager(true)}
+                  className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-label="Bookmark icon">
+                    <title>Bookmark icon</title>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                  </svg>
+                  Bookmarks
+                  {savedBookmarks.length > 0 && (
+                    <span className="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-blue-100 bg-blue-800 rounded-full">
+                      {savedBookmarks.length}
+                    </span>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -451,7 +529,7 @@ function App() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Column - Input Form */}
-          <div className="space-y-6">
+          <div className="space-y-6" ref={formRef}>
             <IdeaGenerationForm 
               onSubmit={handleIdeaGeneration}
               isLoading={isLoading}
@@ -507,7 +585,7 @@ function App() {
           </div>
 
           {/* Right Column - Results */}
-          <div>
+          <div ref={resultsRef}>
             <ResultsDisplay 
               results={results} 
               showDetailedResults={showDetailedResults}
@@ -592,6 +670,13 @@ function App() {
         recommendation={duplicateWarningData?.recommendation || 'allow'}
         message={duplicateWarningData?.message || ''}
         ideaText={duplicateWarningData ? (duplicateWarningData.result.improved_idea || duplicateWarningData.result.idea) : ''}
+      />
+      
+      {/* Keyboard Shortcuts Dialog */}
+      <KeyboardShortcutsDialog
+        isOpen={showKeyboardShortcuts}
+        onClose={() => setShowKeyboardShortcuts(false)}
+        shortcuts={activeShortcuts}
       />
       
       {/* Toast Container */}

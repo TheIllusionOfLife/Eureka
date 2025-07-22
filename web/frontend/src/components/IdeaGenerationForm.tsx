@@ -1,33 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
-import { SavedBookmark } from '../services/bookmarkService';
 import { showError } from '../utils/toast';
 
-interface FormData {
-  theme: string;
-  constraints: string;
-  num_top_candidates: number;
-  enable_novelty_filter: boolean;
-  novelty_threshold: number;
-  temperature_preset: string | null;
-  temperature: number | null;
-  enhanced_reasoning: boolean;
-  multi_dimensional_eval: boolean;
-  logical_inference: boolean;
-  verbose: boolean;
-  show_detailed_results: boolean;
-  bookmark_ids?: string[];
-}
-
-interface TemperaturePreset {
-  [key: string]: {
-    idea_generation: number;
-    evaluation: number;
-    advocacy: number;
-    skepticism: number;
-    description: string;
-  };
-}
+import { FormData, TemperaturePreset, SavedBookmark } from '../types';
 
 interface IdeaGenerationFormProps {
   onSubmit: (data: FormData) => void;
@@ -61,7 +36,7 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({
     show_detailed_results: false,
   });
 
-  const [temperaturePresets, setTemperaturePresets] = useState<TemperaturePreset>({});
+  const [temperaturePresets, setTemperaturePresets] = useState<Record<string, TemperaturePreset>>({});
   const [presetsLoading, setPresetsLoading] = useState(true);
   const [presetsError, setPresetsError] = useState<string | null>(null);
   const [useCustomTemperature, setUseCustomTemperature] = useState(false);

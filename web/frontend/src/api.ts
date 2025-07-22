@@ -1,9 +1,11 @@
-import axios from 'axios';
+import axios, { AxiosInstance, AxiosResponse } from 'axios';
+import { ExtendedAxiosRequestConfig, ApiError } from './types/api.types';
 
 // Configure axios with the backend URL
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+const API_URL: string = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
-const api = axios.create({
+// Create axios instance with typed configuration
+const api: AxiosInstance = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
@@ -11,11 +13,11 @@ const api = axios.create({
   timeout: 12 * 60 * 1000, // 12 minutes timeout for idea generation
 });
 
-// Add retry logic for failed requests
+// Add retry logic for failed requests with proper typing
 api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
+  (response: AxiosResponse) => response,
+  async (error: ApiError) => {
+    const originalRequest: ExtendedAxiosRequestConfig = error.config;
     
     // Retry on network errors or 5xx server errors (excluding timeout)
     if (

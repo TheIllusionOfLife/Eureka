@@ -372,10 +372,26 @@ async def add_session_id(request: Request, call_next):
 
 # Pydantic models for API requests and responses
 class IdeaGenerationRequest(BaseModel):
-    # Note: 'theme' maps to 'topic' in the codebase, kept as 'theme' for API backward compatibility
-    theme: str = Field(..., min_length=1, max_length=500, description="Topic for idea generation")
-    # Note: 'constraints' maps to 'context' in the codebase, kept as 'constraints' for API backward compatibility
-    constraints: str = Field(default="Generate practical and innovative ideas", max_length=1000, description="Context and criteria (optional)")
+    """
+    Request model for idea generation.
+
+    Note on terminology for API backward compatibility:
+    - 'theme' maps to 'topic' in the codebase.
+    - 'constraints' maps to 'context' in the codebase.
+    """
+    theme: str = Field(
+        ...,
+        min_length=1,
+        max_length=500,
+        description="Topic for idea generation",
+        alias="topic"
+    )
+    constraints: str = Field(
+        default="Generate practical and innovative ideas",
+        max_length=1000,
+        description="Context and criteria (optional)",
+        alias="context"
+    )
     num_top_candidates: int = Field(default=3, ge=1, le=10, description="Number of top ideas to process")
     enable_novelty_filter: bool = Field(default=True, description="Enable novelty filtering")
     novelty_threshold: float = Field(default=0.8, ge=0.0, le=1.0, description="Similarity threshold for novelty filter")
@@ -388,6 +404,9 @@ class IdeaGenerationRequest(BaseModel):
     timeout: Optional[int] = Field(default=None, ge=60, le=3600, description="Request timeout in seconds (60-3600)")
     bookmark_ids: Optional[List[str]] = Field(default=None, description="Bookmark IDs to use for remix context")
 
+    class Config:
+        allow_population_by_field_name = True  # Accept both alias and original names
+
 
 class IdeaGenerationResponse(BaseModel):
     status: str
@@ -398,12 +417,28 @@ class IdeaGenerationResponse(BaseModel):
 
 
 class BookmarkRequest(BaseModel):
+    """
+    Request model for creating a bookmark.
+
+    Note on terminology for API backward compatibility:
+    - 'theme' maps to 'topic' in the codebase.
+    - 'constraints' maps to 'context' in the codebase.
+    """
     idea: str = Field(..., min_length=10, max_length=10000, description="Original idea text")
     improved_idea: Optional[str] = Field(default=None, max_length=10000, description="Improved idea text")
-    # Note: 'theme' maps to 'topic' in the codebase, kept as 'theme' for API backward compatibility
-    theme: str = Field(..., min_length=1, max_length=200, description="Topic used for generation")
-    # Note: 'constraints' maps to 'context' in the codebase, kept as 'constraints' for API backward compatibility
-    constraints: str = Field(default="", max_length=500, description="Context used")
+    theme: str = Field(
+        ...,
+        min_length=1,
+        max_length=200,
+        description="Topic used for generation",
+        alias="topic"
+    )
+    constraints: str = Field(
+        default="",
+        max_length=500,
+        description="Context used",
+        alias="context"
+    )
     initial_score: float = Field(..., ge=0, le=10, description="Initial critic score")
     improved_score: Optional[float] = Field(default=None, ge=0, le=10, description="Improved idea score")
     initial_critique: Optional[str] = Field(default=None, max_length=20000, description="Initial critique")
@@ -412,6 +447,9 @@ class BookmarkRequest(BaseModel):
     skepticism: Optional[str] = Field(default=None, max_length=20000, description="Skeptic's analysis")
     tags: List[str] = Field(default=[], max_items=10, description="Tags for the bookmark")
     notes: Optional[str] = Field(default=None, max_length=500, description="Additional notes")
+
+    class Config:
+        allow_population_by_field_name = True  # Accept both alias and original names
     
     @validator('idea', 'improved_idea', 'theme', 'constraints', 'initial_critique', 'improved_critique', 'advocacy', 'skepticism', 'notes')
     def sanitize_html(cls, v):

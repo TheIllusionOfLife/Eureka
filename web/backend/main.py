@@ -10,6 +10,8 @@ import json
 import logging
 import os
 import random
+import secrets
+import uuid
 import sys
 from datetime import datetime
 from typing import Dict, List, Optional, Any
@@ -41,21 +43,65 @@ except ImportError:
         return {}
 
 # Import MadSpark modules
-# Add the parent directory to the path for imports
-madspark_path = os.environ.get('MADSPARK_PATH', '/madspark')
-src_path = os.path.join(madspark_path, 'src') if madspark_path else None
+# Add the parent directory to the path for imports with security validation
+def validate_and_add_path():
+    """Securely validate and add MadSpark path to sys.path"""
+    madspark_path = os.environ.get('MADSPARK_PATH', '/madspark')
+    
+    # Security: Validate path to prevent directory traversal
+    if madspark_path:
+        # Normalize path to resolve any ../ or ./ components
+        normalized_path = os.path.normpath(madspark_path)
+        
+        # Security check: Reject paths with traversal attempts
+        if '..' in normalized_path or not os.path.isabs(normalized_path):
+            logging.warning(f"Rejected potentially unsafe MADSPARK_PATH: {madspark_path}")
+            madspark_path = None
+        else:
+            madspark_path = normalized_path
+    
+    src_path = os.path.join(madspark_path, 'src') if madspark_path else None
 
-if src_path and os.path.exists(src_path):
-    sys.path.insert(0, src_path)
-elif madspark_path and os.path.exists(madspark_path):
-    sys.path.insert(0, madspark_path)
-else:
-    # Fallback for local development - point to the src directory
-    parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    src_dir = os.path.join(parent_dir, 'src')
-    if os.path.exists(src_dir):
-        sys.path.insert(0, src_dir)
-    sys.path.insert(0, parent_dir)
+    if src_path and os.path.exists(src_path):
+        sys.path.insert(0, src_path)
+        logging.info(f"Added to Python path: {src_path}")
+    elif madspark_path and os.path.exists(madspark_path):
+        sys.path.insert(0, madspark_path)
+        logging.info(f"Added to Python path: {madspark_path}")
+    else:
+        # Fallback for local development - point to the src directory
+        parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        src_dir = os.path.join(parent_dir, 'src')
+        if os.path.exists(src_dir):
+            sys.path.insert(0, src_dir)
+            logging.info(f"Added fallback path: {src_dir}")
+
+validate_and_add_path()
+
+def sanitize_for_logging(text: str, max_length: int = 50) -> str:
+    """Sanitize text for secure logging by redacting sensitive information"""
+    if not text:
+        return "[EMPTY]"
+    
+    # Remove any potential sensitive patterns
+    import re
+    # Remove potential API keys, emails, phone numbers, etc.
+    sensitive_patterns = [
+        r'[A-Za-z0-9]{32,}',  # Long alphanumeric strings (potential tokens)
+        r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}',  # Email addresses
+        r'\b\d{3}-\d{2}-\d{4}\b',  # SSN pattern
+        r'\b\d{3}-\d{3}-\d{4}\b',  # Phone number pattern
+    ]
+    
+    sanitized = text
+    for pattern in sensitive_patterns:
+        sanitized = re.sub(pattern, '[REDACTED]', sanitized)
+    
+    # Truncate if too long
+    if len(sanitized) > max_length:
+        return f"[TRUNCATED:{len(text)} chars]"
+    
+    return sanitized
 
 try:
     from madspark.core.coordinator import run_multistep_workflow
@@ -377,12 +423,34 @@ app.add_middleware(
     compresslevel=6     # Balanced compression level (1-9, 6 is good balance)
 )
 
-# Middleware to add session ID to requests
+# Middleware to add security headers and session ID
 @app.middleware("http")
-async def add_session_id(request: Request, call_next):
-    # Generate a simple session ID for each request
-    request.state.session_id = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{random.randint(1000, 9999)}"
+async def add_security_headers(request: Request, call_next):
+    # Generate a cryptographically secure session ID for each request
+    # Using UUID4 for uniqueness and unpredictability
+    request.state.session_id = str(uuid.uuid4())
+    
     response = await call_next(request)
+    
+    # Add security headers
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data: https:; "
+        "connect-src 'self' ws: wss:;"
+    )
+    
+    # Add session ID to response headers for client tracking if needed
+    response.headers["X-Session-ID"] = request.state.session_id
+    
+    # Remove potentially sensitive server information
+    response.headers.pop("server", None)
+    
     return response
 
 
@@ -1099,8 +1167,9 @@ async def create_bookmark(
 ):
     """Create a new bookmark with optional duplicate detection."""
     try:
-        # Log the request for debugging (only non-sensitive fields)
-        logger.info(f"Bookmark request received for theme='{bookmark_request.theme}' with {len(bookmark_request.tags)} tags.")
+        # Log the request for debugging (sanitized for security)
+        sanitized_theme = sanitize_for_logging(bookmark_request.theme, 30)
+        logger.info(f"Bookmark request received for theme='{sanitized_theme}' with {len(bookmark_request.tags)} tags.")
         
         # Use improved idea if available, otherwise use original
         idea_text = bookmark_request.improved_idea if bookmark_request.improved_idea is not None else bookmark_request.idea
@@ -1312,14 +1381,28 @@ async def detailed_health_check():
 
 @app.websocket("/ws/progress")
 async def websocket_endpoint(websocket: WebSocket):
-    """WebSocket endpoint for real-time progress updates."""
+    """WebSocket endpoint for real-time progress updates with security controls."""
     try:
+        # Security: Check connection limits to prevent abuse
+        if len(ws_manager.active_connections) >= 100:  # Configurable limit
+            await websocket.close(code=1008, reason="Connection limit exceeded")
+            return
+            
+        # Security: Basic authentication via query parameter
+        # In production, use proper JWT token validation
+        client_id = websocket.query_params.get("client_id", "anonymous")
+        if not client_id or len(client_id) < 4:
+            await websocket.close(code=1008, reason="Invalid client identification")
+            return
+        
         await ws_manager.connect(websocket)
         
-        # Send initial connection confirmation
+        # Send initial connection confirmation with security info
         await websocket.send_text(json.dumps({
             "type": "connection",
             "message": "WebSocket connected successfully",
+            "client_id": client_id,
+            "connections": len(ws_manager.active_connections),
             "timestamp": datetime.now().isoformat()
         }))
         

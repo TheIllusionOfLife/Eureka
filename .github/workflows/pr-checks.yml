@@ -166,8 +166,8 @@ jobs:
           echo "::warning::Found console.log statements. Consider removing for production."
         fi
         
-        # Check for TODO comments
-        if grep -r "TODO\|FIXME\|XXX" --include="*.py" --include="*.ts" --include="*.tsx" src/ web/; then
+        # Check for TODO comments (excluding node_modules)
+        if grep -r "TODO\|FIXME\|XXX" --include="*.py" --include="*.ts" --include="*.tsx" --exclude-dir=node_modules src/ web/; then
           echo "::warning::Found TODO/FIXME comments. Consider addressing them."
         fi
         

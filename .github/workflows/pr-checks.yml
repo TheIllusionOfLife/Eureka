@@ -27,6 +27,17 @@ jobs:
           comment += `- **Lines deleted**: ${deletions}\n`;
           comment += `- **Total changes**: ${additions + deletions}\n\n`;
           
+          // Check if this is primarily a test PR
+          const files = await github.rest.pulls.listFiles({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            pull_number: pr.number
+          });
+          
+          const testFiles = files.data.filter(f => f.filename.includes('test'));
+          const testChanges = testFiles.reduce((acc, f) => acc + f.additions + f.deletions, 0);
+          const isTestPR = testChanges > totalChanges * 0.8; // 80% or more changes are in test files
+          
           // Size classification
           const totalChanges = additions + deletions;
           let sizeLabel = '';
@@ -43,6 +54,9 @@ jobs:
           } else if (totalChanges < 1000) {
             sizeLabel = 'size/L';
             comment += '⚠️ **Size**: L (500-1000 lines) - Large PR, difficult to review\n';
+          } else if (isTestPR && totalChanges < 5000) {
+            sizeLabel = 'size/XL-tests';
+            comment += '✅ **Size**: XL (> 1000 lines) - Large test PR, acceptable for comprehensive test coverage\n';
           } else {
             sizeLabel = 'size/XL';
             comment += '❌ **Size**: XL (> 1000 lines) - Please break into smaller PRs\n';
@@ -157,8 +171,8 @@ jobs:
           echo "::warning::Found large files (>1MB): $large_files"
         fi
         
-        # Check for API keys or secrets (excluding node_modules and legitimate config references)
-        if grep -r -E "(api_key|apikey|api-key|secret|password|token)" --include="*.py" --include="*.ts" --include="*.tsx" src/ web/backend/ web/frontend/src/ | grep -v -E "(test|mock|example|sample|node_modules|os\.environ\.get|process\.env|your-api-key-here)"; then
+        # Check for API keys or secrets (excluding node_modules, test files, and legitimate config references)
+        if grep -r -E "(api_key|apikey|api-key|secret|password|token)" --include="*.py" --include="*.ts" --include="*.tsx" src/ web/backend/ web/frontend/src/ | grep -v -E "(test|mock|example|sample|node_modules|os\.environ\.get|process\.env|your-api-key-here|tests/|test_)"; then
           echo "::error::Potential secrets found. Please review."
           exit 1
         fi

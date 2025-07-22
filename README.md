@@ -81,8 +81,13 @@ This enhancement addresses the limitation where valuable agent insights were onl
 # Run the basic workflow
 python -m madspark.core.coordinator
 
-# Use the CLI interface
-python -m madspark.cli.cli "Your theme" "Your constraints" --temperature 0.8
+# Use the CLI interface with topic and context
+python -m madspark.cli.cli "Your topic" "Your context" --temperature 0.8
+
+# Examples with different topic formats:
+# - Simple topic: python -m madspark.cli.cli "Sustainable transportation" "Low-cost solutions"
+# - Question: python -m madspark.cli.cli "What are the best ways to reduce plastic waste?" "Focus on community engagement"
+# - Request: python -m madspark.cli.cli "Suggest 5 innovative education ideas" "For remote learning"
 
 # Interactive mode
 python -m madspark.cli.interactive_mode

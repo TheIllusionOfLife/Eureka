@@ -132,8 +132,11 @@ def create_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Basic usage
+  # Basic usage with topic and context
   %(prog)s "Future transportation" "Budget-friendly, eco-friendly"
+  
+  # Question format as topic
+  %(prog)s "What are the best ways to reduce urban pollution?" "Focus on low-cost solutions"
   
   # High creativity with novelty filtering
   %(prog)s "Smart cities" "Scalable solutions" -tp creative --novelty-threshold 0.6
@@ -163,16 +166,18 @@ Examples:
     )
     
     # Positional arguments for basic workflow
+    # Note: Keeping argument names as 'theme' and 'constraints' for backward compatibility
+    # but using 'topic' and 'context' in help text for consistency with codebase
     parser.add_argument(
         'theme',
         nargs='?',
-        help='Theme for idea generation'
+        help='Topic for idea generation (can be a phrase, question, or request)'
     )
     
     parser.add_argument(
         'constraints',
         nargs='?',
-        help='Constraints and criteria for idea generation'
+        help='Context and criteria for idea generation (optional additional information)'
     )
     
     # Interactive mode

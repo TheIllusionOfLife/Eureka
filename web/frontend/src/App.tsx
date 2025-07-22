@@ -8,7 +8,7 @@ import DuplicateWarningDialog from './components/DuplicateWarningDialog';
 import KeyboardShortcutsDialog from './components/KeyboardShortcutsDialog';
 import { bookmarkService } from './services/bookmarkService';
 import { ToastContainer } from 'react-toastify';
-import { showSuccess, showError, showInfo } from './utils/toast';
+import { showSuccess, showInfo } from './utils/toast';
 import { handleBookmarkError, handleIdeaGenerationError, handleWebSocketError } from './utils/errorHandler';
 import { logger, logUserAction, logWebSocketEvent, logApiCall } from './utils/logger';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
@@ -22,7 +22,6 @@ import {
   ConnectionStatus,
   SavedBookmark,
   SimilarBookmark,
-  EnhancedBookmarkResponse,
   KeyboardShortcut
 } from './types';
 
@@ -104,7 +103,7 @@ function App() {
         showSuccess('Bookmark deleted successfully! Please refresh to see updated list.');
       }
     } catch (error: any) {
-      const errorDetails = handleBookmarkError(error, 'deletion');
+      handleBookmarkError(error, 'deletion');
       logger.bookmarkAction('delete', bookmarkId, false);
       
       // Special handling for 404 - bookmark may have been deleted already
@@ -595,7 +594,6 @@ function App() {
               onBookmarkToggle={async (result: IdeaResult, index: number) => {
                 try {
                   // Check if this result is already bookmarked
-                  const ideaText = result.improved_idea || result.idea;
                   const existingBookmark = savedBookmarks.find(bookmark => 
                     bookmark.text === result.idea || 
                     (result.improved_idea && bookmark.text === result.improved_idea)

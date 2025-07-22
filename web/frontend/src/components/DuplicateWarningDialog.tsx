@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { SimilarBookmark } from '../types';
-import { showSuccess, showError, showWarning } from '../utils/toast';
+import { showWarning } from '../utils/toast';
 
 interface DuplicateWarningDialogProps {
   isOpen: boolean;

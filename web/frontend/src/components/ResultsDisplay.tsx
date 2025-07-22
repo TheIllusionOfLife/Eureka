@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { IdeaResult, SavedBookmark } from '../types';
 import RadarChartComponent from './RadarChart';
 import ComparisonRadarChart from './ComparisonRadarChart';
@@ -26,7 +26,6 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
   onBookmarkToggle,
   savedBookmarks = []
 }) => {
-  const [selectedTab, setSelectedTab] = useState<number>(0);
   const [expandedSections, setExpandedSections] = useState<{[key: string]: boolean}>({});
   const [bookmarkingIds, setBookmarkingIds] = useState<Set<number>>(new Set());
   const [sharingIds, setSharingIds] = useState<Set<number>>(new Set());

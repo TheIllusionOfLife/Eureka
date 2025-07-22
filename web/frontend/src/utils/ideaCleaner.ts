@@ -16,9 +16,9 @@ import {
 } from '../constants';
 import { CompiledPatterns } from '../types';
 
-// Legacy aliases for backward compatibility
-const META_HEADERS = CLEANER_META_HEADERS;
-const META_PHRASES = CLEANER_META_PHRASES;
+// Legacy aliases for backward compatibility - kept for potential future use
+// const META_HEADERS = CLEANER_META_HEADERS;
+// const META_PHRASES = CLEANER_META_PHRASES;
 
 let compiledPatternsCache: CompiledPatterns | null = null;
 

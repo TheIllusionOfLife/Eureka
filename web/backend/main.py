@@ -449,7 +449,8 @@ async def add_security_headers(request: Request, call_next):
     response.headers["X-Session-ID"] = request.state.session_id
     
     # Remove potentially sensitive server information
-    response.headers.pop("server", None)
+    if "server" in response.headers:
+        del response.headers["server"]
     
     return response
 

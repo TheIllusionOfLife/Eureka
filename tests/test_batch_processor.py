@@ -149,17 +149,15 @@ class TestBatchProcessor:
     async def test_load_batch_from_json(self, batch_processor, tmp_path):
         """Test loading batch from JSON."""
         json_file = tmp_path / "test_batch.json"
-        json_data = {
-            "batch": [
-                {
-                    "theme": "AI Testing",
-                    "constraints": "Simple",
-                    "temperature_preset": "balanced",
-                    "num_candidates": 2,
-                    "tags": ["test"]
-                }
-            ]
-        }
+        json_data = [
+            {
+                "theme": "AI Testing",
+                "constraints": "Simple",
+                "temperature_preset": "balanced",
+                "num_candidates": 2,
+                "tags": ["test"]
+            }
+        ]
         
         with open(json_file, 'w') as f:
             json.dump(json_data, f)
@@ -182,8 +180,11 @@ class TestBatchProcessor:
             constraints="Test Constraints"
         )
         
-        # Process single item
-        await batch_processor.process_item(item)
+        # Process single item using the actual method - use sync version for simplicity
+        batch_processor.process_single_item_sync(
+            item, 
+            {"enable_novelty_filter": True}
+        )
         
         assert item.status == "completed"
         assert item.result is not None
@@ -201,7 +202,10 @@ class TestBatchProcessor:
             constraints="Test Constraints"
         )
         
-        await batch_processor.process_item(item)
+        batch_processor.process_single_item_sync(
+            item,
+            {"enable_novelty_filter": True}
+        )
         
         assert item.status == "failed"
         assert item.error == "Test error"
@@ -221,10 +225,10 @@ class TestBatchProcessor:
             for i in range(3)
         ]
         
-        results = await batch_processor.process_batch(items)
+        results = batch_processor.process_batch(items)
         
-        assert len(results) == 3
-        assert all(item.status in ["completed", "failed"] for item in results)
+        assert "total_items" in results
+        assert results["total_items"] == 3
     
     @pytest.mark.asyncio
     async def test_export_results(self, batch_processor, tmp_path):
@@ -238,21 +242,19 @@ class TestBatchProcessor:
             items.append(item)
         
         # Export results
-        export_path = await batch_processor.export_results(
+        export_files = batch_processor.export_batch_results(
             items,
-            format="json",
-            filename_prefix="test_batch"
+            batch_id="test_batch"
         )
         
-        assert export_path.exists()
-        assert export_path.suffix == ".json"
+        assert "summary" in export_files
+        assert os.path.exists(export_files["summary"])
         
-        # Verify content
-        with open(export_path, 'r') as f:
+        # Verify summary content
+        with open(export_files["summary"], 'r') as f:
             data = json.load(f)
-            assert "metadata" in data
-            assert "results" in data
-            assert len(data["results"]) == 2
+            assert "total_items" in data
+            assert data["total_items"] == 2
 
 
 class TestCreateSampleBatchFile:
@@ -283,7 +285,7 @@ class TestCreateSampleBatchFile:
         # Verify content structure
         with open(output_file, 'r') as f:
             data = json.load(f)
-            assert "batch" in data
-            assert len(data["batch"]) > 0
-            assert "theme" in data["batch"][0]
-            assert "constraints" in data["batch"][0]
+            assert isinstance(data, list)
+            assert len(data) > 0
+            assert "theme" in data[0]
+            assert "constraints" in data[0]

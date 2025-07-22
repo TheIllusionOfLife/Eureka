@@ -262,14 +262,14 @@ For detailed usage instructions, see the documentation in the `docs/` directory:
 
 #### Session Learnings
 
-- **Merge Conflict Resolution**: Use template-based string formatting over concatenated f-strings following KISS principle for better readability (from PR #99 conflict resolution)
-- **API Backward Compatibility**: Pydantic field aliases with `allow_population_by_field_name = True` enables seamless field name evolution while maintaining compatibility (from PR #99)
-- **Flexible Prompt Design**: User input placeholders should preserve original phrasing rather than forcing inputs into rigid sentence structures (from PR #98)
-- **Terminology Consistency**: Align UI terminology with internal codebase naming for better developer experience while maintaining API compatibility (from PR #99)
-- **Systematic PR Reviews**: Follow the 4-Phase Review Protocol in `CLAUDE.md` to systematically find all feedback across the three GitHub API sources (PR comments, reviews, and line comments) (from PR #95)
-- **Docker Dependency Resolution**: When containers have module issues, install inside container and use type workarounds for conflicting @types packages (from PR #95)
-- **Performance Stack**: GZip compression + pagination + memoization provides comprehensive performance optimization (from PR #95)
-- **Error Architecture**: Centralized error handling with categorization enables consistent UX and debugging across the application (from PR #95)
+- **Merge Conflict Resolution**: Use template-based string formatting over complex f-string expressions or long chains of string concatenation, following the KISS principle for better readability (from PR #99 conflict resolution).
+- **API Backward Compatibility**: Pydantic field aliases with `allow_population_by_field_name = True` enables seamless field name evolution while maintaining compatibility (from PR #99).
+- **Flexible Prompt Design**: User input placeholders should preserve original phrasing rather than forcing inputs into rigid sentence structures (from PR #98).
+- **Terminology Consistency**: Align UI terminology with internal codebase naming for better developer experience while maintaining API compatibility (from PR #99).
+- **Systematic PR Reviews**: Follow the 4-Phase Review Protocol in `CLAUDE.md` to systematically find all feedback across the three GitHub API sources (PR comments, reviews, and line comments) (from PR #95).
+- **Docker Dependency Resolution**: When containers have module issues, install inside container and use type workarounds for conflicting @types packages (from PR #95).
+- **Performance Stack**: GZip compression + pagination + memoization provides comprehensive performance optimization (from PR #95).
+- **Error Architecture**: Centralized error handling with categorization enables consistent UX and debugging across the application (from PR #95).
 
 ## License
 

@@ -20,11 +20,25 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
+from fastapi.openapi.utils import get_openapi
 from pydantic import BaseModel, Field, validator, ValidationError
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 import html
+
+# Import OpenAPI enhancements
+try:
+    from openapi_enhancements import (
+        API_EXAMPLES, API_TAGS, ENDPOINT_DESCRIPTIONS, 
+        get_openapi_customization
+    )
+except ImportError:
+    API_EXAMPLES = {}
+    API_TAGS = []
+    ENDPOINT_DESCRIPTIONS = {}
+    def get_openapi_customization():
+        return {}
 
 # Import MadSpark modules
 # Add the parent directory to the path for imports
@@ -624,7 +638,40 @@ async def health_check():
         )
 
 
-@app.get("/api/temperature-presets")
+@app.get(
+    "/api/temperature-presets",
+    tags=["configuration"],
+    summary="Get temperature presets",
+    description=ENDPOINT_DESCRIPTIONS.get("get_temperature_presets", ""),
+    responses={
+        200: {
+            "description": "Temperature presets retrieved successfully",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "status": "success",
+                        "presets": {
+                            "conservative": {
+                                "idea_generation": 0.3,
+                                "evaluation": 0.2,
+                                "advocacy": 0.4,
+                                "skepticism": 0.6,
+                                "description": "Low creativity, focused on practical ideas"
+                            },
+                            "balanced": {
+                                "idea_generation": 0.7,
+                                "evaluation": 0.5,
+                                "advocacy": 0.6,
+                                "skepticism": 0.5,
+                                "description": "Moderate creativity (default)"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+)
 async def get_temperature_presets():
     """Get available temperature presets."""
     try:
@@ -650,7 +697,26 @@ async def get_temperature_presets():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/generate-ideas", response_model=IdeaGenerationResponse)
+@app.post(
+    "/api/generate-ideas", 
+    response_model=IdeaGenerationResponse,
+    tags=["idea-generation"],
+    summary="Generate creative ideas",
+    description=ENDPOINT_DESCRIPTIONS.get("generate_ideas", ""),
+    responses={
+        200: {
+            "description": "Ideas generated successfully",
+            "content": {
+                "application/json": {
+                    "example": API_EXAMPLES.get("idea_generation_response", {}).get("value", {})
+                }
+            }
+        },
+        422: {"$ref": "#/components/responses/ValidationError"},
+        429: {"$ref": "#/components/responses/RateLimitError"},
+        500: {"description": "Internal server error"}
+    }
+)
 @limiter.limit("5/minute")  # Allow 5 idea generation requests per minute
 async def generate_ideas(request: Request, idea_request: IdeaGenerationRequest):
     """Generate ideas using the async MadSpark multi-agent workflow."""
@@ -853,7 +919,28 @@ async def generate_ideas_async(request: Request, idea_request: IdeaGenerationReq
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/bookmarks/check-duplicates", response_model=DuplicateCheckResponse)
+@app.post(
+    "/api/bookmarks/check-duplicates", 
+    response_model=DuplicateCheckResponse,
+    tags=["bookmarks"],
+    summary="Check for duplicate ideas",
+    description=ENDPOINT_DESCRIPTIONS.get("check_duplicates", ""),
+    responses={
+        200: {
+            "description": "Duplicate check completed",
+            "content": {
+                "application/json": {
+                    "examples": {
+                        "no_duplicates": API_EXAMPLES.get("duplicate_check", {}).get("response_no_duplicates", {}),
+                        "with_duplicates": API_EXAMPLES.get("duplicate_check", {}).get("response_with_duplicates", {})
+                    }
+                }
+            }
+        },
+        422: {"$ref": "#/components/responses/ValidationError"},
+        429: {"$ref": "#/components/responses/RateLimitError"}
+    }
+)
 @limiter.limit("15/minute")  # Allow 15 duplicate checks per minute
 async def check_bookmark_duplicates(request: Request, duplicate_request: DuplicateCheckRequest):
     """Check for potential duplicate bookmarks."""
@@ -1271,6 +1358,47 @@ async def websocket_endpoint(websocket: WebSocket):
         logger.error(f"WebSocket connection error: {e}")
     finally:
         ws_manager.disconnect(websocket)
+
+
+# Custom OpenAPI schema
+def custom_openapi():
+    """Generate custom OpenAPI schema with enhanced documentation."""
+    if app.openapi_schema:
+        return app.openapi_schema
+    
+    openapi_schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+    
+    # Apply customizations from openapi_enhancements
+    customizations = get_openapi_customization()
+    
+    # Update info section
+    if "info" in customizations:
+        openapi_schema["info"].update(customizations["info"])
+    
+    # Add servers
+    if "servers" in customizations:
+        openapi_schema["servers"] = customizations["servers"]
+    
+    # Add tags
+    if "tags" in customizations:
+        openapi_schema["tags"] = customizations["tags"]
+    
+    # Update components
+    if "components" in customizations:
+        if "components" not in openapi_schema:
+            openapi_schema["components"] = {}
+        openapi_schema["components"].update(customizations["components"])
+    
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+# Override the default OpenAPI function
+app.openapi = custom_openapi
 
 
 if __name__ == "__main__":

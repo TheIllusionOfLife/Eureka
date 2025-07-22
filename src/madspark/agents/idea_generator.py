@@ -72,22 +72,29 @@ def _validate_non_empty_string(value: Any, param_name: str) -> None:
 
 
 def build_generation_prompt(topic: str, context: str) -> str:
-  """Builds a prompt for generating ideas based on a topic and context.
+  """Builds a prompt for generating ideas based on user input and context.
 
   Args:
-    topic: The main topic for idea generation.
+    topic: The user's prompt/request for idea generation (can be questions, 
+           statements, requests, or simple topics).
     context: Additional context or constraints for the idea generation process.
 
   Returns:
     A formatted prompt string to be used by the idea generator agent.
   """
-  return (
-      LANGUAGE_CONSISTENCY_INSTRUCTION +
-      f"Use the user's main prompt and context below to {IDEA_GENERATION_INSTRUCTION}."
-      f" Make sure the ideas are actionable and innovative."
-      f"\n\nUser's main prompt:\n{topic}"
-      f"\n\nContext:\n{context}\n\nIdeas:"
-  )
+  # Use a clean template-based approach for better readability (KISS principle)
+  prompt_template = f"""{LANGUAGE_CONSISTENCY_INSTRUCTION}Use the user's main prompt and context below to {IDEA_GENERATION_INSTRUCTION}.
+Make sure the ideas are actionable and innovative.
+
+User's main prompt:
+{topic}
+
+Context:
+{context}
+
+Ideas:
+"""
+  return prompt_template
 
 
 # Configure the Google GenAI client

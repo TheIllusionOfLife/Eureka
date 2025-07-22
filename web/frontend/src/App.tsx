@@ -4,7 +4,8 @@ import IdeaGenerationForm from './components/IdeaGenerationForm';
 import ResultsDisplay from './components/ResultsDisplay';
 import ProgressIndicator from './components/ProgressIndicator';
 import BookmarkManager from './components/BookmarkManager';
-import { bookmarkService, SavedBookmark } from './services/bookmarkService';
+import DuplicateWarningDialog from './components/DuplicateWarningDialog';
+import { bookmarkService, SavedBookmark, SimilarBookmark, EnhancedBookmarkResponse } from './services/bookmarkService';
 import { ToastContainer } from 'react-toastify';
 import { showSuccess, showError, showInfo } from './utils/toast';
 import { handleBookmarkError, handleIdeaGenerationError, handleWebSocketError } from './utils/errorHandler';
@@ -82,6 +83,21 @@ function App() {
   const [savedBookmarks, setSavedBookmarks] = useState<SavedBookmark[]>([]);
   const [showBookmarkManager, setShowBookmarkManager] = useState(false);
   const [selectedBookmarkIds, setSelectedBookmarkIds] = useState<string[]>([]);
+  
+  // WebSocket connection status
+  const [wsConnectionStatus, setWsConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'reconnecting'>('connecting');
+  
+  // Duplicate warning dialog state
+  const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
+  const [duplicateWarningData, setDuplicateWarningData] = useState<{
+    result: IdeaResult;
+    index: number;
+    theme: string;
+    constraints: string;
+    similarBookmarks: SimilarBookmark[];
+    recommendation: 'block' | 'warn' | 'notice' | 'allow';
+    message: string;
+  } | null>(null);
 
   // Load bookmarks on mount
   useEffect(() => {
@@ -138,6 +154,68 @@ function App() {
     }
   };
 
+  // Helper function to create bookmark without duplicate checking
+  const createBookmarkDirect = async (result: IdeaResult, theme: string, constraints: string, forceSave: boolean) => {
+    logger.bookmarkAction('create', undefined, false);
+    
+    const response = await bookmarkService.createBookmarkWithDuplicateCheck(
+      result, 
+      theme,
+      constraints,
+      forceSave
+    );
+    
+    if (response.bookmark_created && response.bookmark_id) {
+      setBookmarkedIdeas(new Set(Array.from(bookmarkedIdeas).concat(response.bookmark_id)));
+      
+      // Reload bookmarks with error handling
+      try {
+        await loadBookmarks();
+        showSuccess('Idea bookmarked successfully!');
+        logger.bookmarkAction('create', response.bookmark_id, true);
+      } catch (reloadError) {
+        handleBookmarkError(reloadError, 'reloading after creation');
+        showSuccess('Idea bookmarked successfully! Please refresh to see updated list.');
+        logger.bookmarkAction('create', response.bookmark_id, true);
+      }
+    } else {
+      throw new Error(response.message || 'Failed to create bookmark');
+    }
+  };
+
+  // Duplicate warning dialog handlers
+  const handleSaveBookmarkAnyway = async () => {
+    if (!duplicateWarningData) return;
+    
+    try {
+      await createBookmarkDirect(
+        duplicateWarningData.result, 
+        duplicateWarningData.theme, 
+        duplicateWarningData.constraints, 
+        true // force save
+      );
+      
+      showSuccess('Bookmark saved successfully despite similar content found.');
+      setShowDuplicateWarning(false);
+      setDuplicateWarningData(null);
+    } catch (error) {
+      handleBookmarkError(error, 'force save');
+      setShowDuplicateWarning(false);
+      setDuplicateWarningData(null);
+    }
+  };
+
+  const handleCancelDuplicateWarning = () => {
+    if (duplicateWarningData) {
+      logUserAction('cancel_duplicate_warning', { 
+        ideaIndex: duplicateWarningData.index, 
+        recommendation: duplicateWarningData.recommendation 
+      });
+    }
+    setShowDuplicateWarning(false);
+    setDuplicateWarningData(null);
+  };
+
   // Initialize WebSocket connection with reconnection logic
   useEffect(() => {
     let ws: WebSocket | null = null;
@@ -155,10 +233,12 @@ function App() {
         const wsUrl = `${wsProtocol}//${wsHost}:${wsPort}/ws/progress`;
         
         logger.debug(`Connecting to WebSocket: ${wsUrl}`, 'WS');
+        setWsConnectionStatus(reconnectAttempts > 0 ? 'reconnecting' : 'connecting');
         ws = new WebSocket(wsUrl);
         
         ws.onopen = () => {
           logWebSocketEvent('connected');
+          setWsConnectionStatus('connected');
           reconnectAttempts = 0; // Reset counter on successful connection
           
           // Set up ping interval for keep-alive
@@ -207,10 +287,14 @@ function App() {
           // Attempt reconnection if not manually closed and under max attempts
           if (event.code !== 1000 && reconnectAttempts < maxReconnectAttempts) {
             reconnectAttempts++;
+            setWsConnectionStatus('reconnecting');
             logger.info(`Attempting WebSocket reconnection ${reconnectAttempts}/${maxReconnectAttempts}`, 'WS');
             reconnectInterval = setTimeout(connectWebSocket, reconnectDelay);
           } else if (reconnectAttempts >= maxReconnectAttempts) {
+            setWsConnectionStatus('disconnected');
             logger.warn('Max WebSocket reconnection attempts reached', 'WS');
+          } else {
+            setWsConnectionStatus('disconnected');
           }
         };
         
@@ -312,6 +396,34 @@ function App() {
                   <p className="text-sm text-gray-600">
                     AI-Powered Multi-Agent Idea Generation System
                   </p>
+                  {/* WebSocket Connection Status */}
+                  <div className="flex items-center mt-1">
+                    <div className={`inline-flex items-center text-xs px-2 py-1 rounded-full ${
+                      wsConnectionStatus === 'connected' 
+                        ? 'bg-green-100 text-green-800' 
+                        : wsConnectionStatus === 'connecting' 
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : wsConnectionStatus === 'reconnecting'
+                            ? 'bg-orange-100 text-orange-800'
+                            : 'bg-red-100 text-red-800'
+                    }`}>
+                      <div className={`w-2 h-2 rounded-full mr-2 ${
+                        wsConnectionStatus === 'connected' 
+                          ? 'bg-green-400' 
+                          : wsConnectionStatus === 'connecting' 
+                            ? 'bg-yellow-400 animate-pulse'
+                            : wsConnectionStatus === 'reconnecting'
+                              ? 'bg-orange-400 animate-pulse'
+                              : 'bg-red-400'
+                      }`}></div>
+                      <span>
+                        {wsConnectionStatus === 'connected' && 'Connected'}
+                        {wsConnectionStatus === 'connecting' && 'Connecting...'}
+                        {wsConnectionStatus === 'reconnecting' && 'Reconnecting...'}
+                        {wsConnectionStatus === 'disconnected' && 'Disconnected'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
               <button
@@ -416,36 +528,38 @@ function App() {
                     logUserAction('remove_bookmark', { bookmarkId: existingBookmark.id, ideaIndex: index });
                     await handleDeleteBookmark(existingBookmark.id);
                   } else {
-                    // Create bookmark via API with better error handling
-                    // Use the theme and constraints from the current state, or fallback to defaults
+                    // Create bookmark with duplicate detection
                     const bookmarkTheme = lastFormData?.theme || 'General';
                     const bookmarkConstraints = lastFormData?.constraints || 'No specific constraints';
                     
-                    logUserAction('create_bookmark', { ideaIndex: index, theme: bookmarkTheme });
-                    logger.bookmarkAction('create', undefined, false); // Will be updated to true on success
+                    logUserAction('create_bookmark_with_duplicate_check', { ideaIndex: index, theme: bookmarkTheme });
                     
-                    const response = await bookmarkService.createBookmark(
-                      result, 
-                      bookmarkTheme,
-                      bookmarkConstraints
-                    );
-                    
-                    if (response.status === 'success' && response.bookmark_id) {
-                      setBookmarkedIdeas(new Set(Array.from(bookmarkedIdeas).concat(response.bookmark_id)));
+                    try {
+                      // First check for duplicates using improved idea if available
+                      const ideaToCheck = result.improved_idea || result.idea;
+                      const duplicateCheck = await bookmarkService.checkForDuplicates(ideaToCheck, bookmarkTheme);
                       
-                      // Reload bookmarks with error handling
-                      try {
-                        await loadBookmarks();
-                        showSuccess('Idea bookmarked successfully!');
-                        logger.bookmarkAction('create', response.bookmark_id, true);
-                      } catch (reloadError) {
-                        handleBookmarkError(reloadError, 'reloading after creation');
-                        // Still show success since bookmark was created
-                        showSuccess('Idea bookmarked successfully! Please refresh to see updated list.');
-                        logger.bookmarkAction('create', response.bookmark_id, true);
+                      if (duplicateCheck.has_duplicates && duplicateCheck.recommendation !== 'allow') {
+                        // Show duplicate warning dialog
+                        setDuplicateWarningData({
+                          result,
+                          index,
+                          theme: bookmarkTheme,
+                          constraints: bookmarkConstraints,
+                          similarBookmarks: duplicateCheck.similar_bookmarks,
+                          recommendation: duplicateCheck.recommendation,
+                          message: duplicateCheck.message
+                        });
+                        setShowDuplicateWarning(true);
+                      } else {
+                        // No significant duplicates or user preference to skip check, save directly
+                        await createBookmarkDirect(result, bookmarkTheme, bookmarkConstraints, false);
                       }
-                    } else {
-                      throw new Error(response.message || 'Failed to create bookmark');
+                    } catch (duplicateCheckError) {
+                      // If duplicate check fails, fall back to regular bookmark creation with warning
+                      console.warn('Duplicate check failed, proceeding with regular bookmark creation:', duplicateCheckError);
+                      showInfo('Duplicate detection unavailable, saving bookmark normally.');
+                      await createBookmarkDirect(result, bookmarkTheme, bookmarkConstraints, false);
                     }
                   }
                 } catch (error: any) {
@@ -466,6 +580,18 @@ function App() {
         onDeleteBookmark={handleDeleteBookmark}
         onSelectBookmarks={setSelectedBookmarkIds}
         selectedBookmarkIds={selectedBookmarkIds}
+      />
+      
+      {/* Duplicate Warning Dialog */}
+      <DuplicateWarningDialog
+        isOpen={showDuplicateWarning}
+        onClose={handleCancelDuplicateWarning}
+        onSaveAnyway={handleSaveBookmarkAnyway}
+        onCancel={handleCancelDuplicateWarning}
+        similarBookmarks={duplicateWarningData?.similarBookmarks || []}
+        recommendation={duplicateWarningData?.recommendation || 'allow'}
+        message={duplicateWarningData?.message || ''}
+        ideaText={duplicateWarningData ? (duplicateWarningData.result.improved_idea || duplicateWarningData.result.idea) : ''}
       />
       
       {/* Toast Container */}

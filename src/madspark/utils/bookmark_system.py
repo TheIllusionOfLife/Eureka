@@ -1,8 +1,8 @@
-"""Bookmark and Remix System.
+"""Bookmark and Remix System with Duplicate Detection.
 
-This module implements a simple file-based bookmark system for saving
-and managing ideas, with remix functionality for generating new ideas
-based on saved ones.
+This module implements a file-based bookmark system for saving
+and managing ideas, with remix functionality and comprehensive
+duplicate detection to prevent saving similar bookmarks.
 """
 import json
 import os
@@ -14,38 +14,29 @@ import logging
 
 try:
     from madspark.utils.constants import HIGH_SCORE_THRESHOLD, MAX_REMIX_BOOKMARKS
+    from madspark.utils.models import BookmarkedIdea
+    from madspark.utils.duplicate_detector import DuplicateDetector, DuplicateCheckResult, check_bookmark_duplicates
 except ImportError:
     from constants import HIGH_SCORE_THRESHOLD, MAX_REMIX_BOOKMARKS
+    from models import BookmarkedIdea
+    from duplicate_detector import DuplicateDetector, DuplicateCheckResult, check_bookmark_duplicates
 
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class BookmarkedIdea:
-    """Container for a bookmarked idea with metadata."""
-    id: str
-    text: str
-    theme: str
-    constraints: str
-    score: int
-    critique: str
-    advocacy: str
-    skepticism: str
-    bookmarked_at: str
-    tags: List[str]
-
-
 class BookmarkManager:
-    """Manages bookmarked ideas with file-based storage."""
+    """Manages bookmarked ideas with file-based storage and duplicate detection."""
     
-    def __init__(self, bookmark_file: str = "bookmarks.json"):
+    def __init__(self, bookmark_file: str = "bookmarks.json", similarity_threshold: float = 0.8):
         """Initialize the bookmark manager.
         
         Args:
             bookmark_file: Path to the bookmark storage file
+            similarity_threshold: Threshold for duplicate detection (0.0-1.0)
         """
         self.bookmark_file = bookmark_file
         self.bookmarks: Dict[str, BookmarkedIdea] = {}
+        self.duplicate_detector = DuplicateDetector(similarity_threshold)
         self._load_bookmarks()
     
     def _load_bookmarks(self):
@@ -206,6 +197,156 @@ class BookmarkManager:
         # Sort by bookmark date (newest first)
         matches.sort(key=lambda x: x.bookmarked_at, reverse=True)
         return matches
+    
+    def check_for_duplicates(
+        self, 
+        idea_text: str, 
+        theme: str,
+        exclude_bookmark_id: Optional[str] = None
+    ) -> DuplicateCheckResult:
+        """Check if a bookmark idea would be a duplicate.
+        
+        Args:
+            idea_text: The idea text to check for duplicates
+            theme: Theme/topic of the idea
+            exclude_bookmark_id: Optional bookmark ID to exclude from comparison
+            
+        Returns:
+            DuplicateCheckResult with similarity findings
+        """
+        existing_bookmarks = []
+        for bookmark in self.bookmarks.values():
+            # Skip the bookmark being updated (for edit scenarios)
+            if exclude_bookmark_id and bookmark.id == exclude_bookmark_id:
+                continue
+            existing_bookmarks.append(bookmark)
+        
+        return self.duplicate_detector.check_for_duplicates(
+            idea_text, theme, existing_bookmarks
+        )
+    
+    def find_similar_bookmarks(
+        self, 
+        idea_text: str, 
+        theme: str,
+        max_results: int = 5
+    ) -> List[Dict[str, Any]]:
+        """Find bookmarks similar to the given text.
+        
+        Args:
+            idea_text: Text to find similar bookmarks for
+            theme: Theme of the idea
+            max_results: Maximum number of results to return
+            
+        Returns:
+            List of similar bookmark information with similarity scores
+        """
+        existing_bookmarks = list(self.bookmarks.values())
+        similar_results = self.duplicate_detector.find_duplicates(
+            idea_text, theme, existing_bookmarks
+        )
+        
+        # Convert to user-friendly format
+        similar_bookmarks = []
+        for result in similar_results[:max_results]:
+            bookmark = self.get_bookmark(result.bookmark_id)
+            if bookmark:
+                similar_bookmarks.append({
+                    'id': result.bookmark_id,
+                    'text': bookmark.text,
+                    'theme': bookmark.theme,
+                    'score': bookmark.score,
+                    'similarity_score': result.similarity_score,
+                    'match_type': result.match_type,
+                    'matched_features': result.matched_features,
+                    'bookmarked_at': bookmark.bookmarked_at
+                })
+        
+        return similar_bookmarks
+    
+    def bookmark_idea_with_duplicate_check(
+        self,
+        idea_text: str,
+        theme: str,
+        constraints: str,
+        score: int = 0,
+        critique: str = "",
+        advocacy: str = "",
+        skepticism: str = "",
+        tags: Optional[List[str]] = None,
+        force_save: bool = False
+    ) -> Dict[str, Any]:
+        """Bookmark an idea with comprehensive duplicate checking.
+        
+        Args:
+            idea_text: The idea text to bookmark
+            theme: Theme used to generate the idea
+            constraints: Constraints used to generate the idea
+            score: Critic score for the idea
+            critique: Critic's feedback
+            advocacy: Advocate's arguments
+            skepticism: Skeptic's analysis
+            tags: Optional tags for organization
+            force_save: If True, save even if duplicates are found
+            
+        Returns:
+            Dictionary with bookmark result and duplicate information
+        """
+        if tags is None:
+            tags = []
+        
+        # Check for duplicates first
+        duplicate_check = self.check_for_duplicates(idea_text, theme)
+        
+        result = {
+            'duplicate_check': {
+                'has_duplicates': duplicate_check.has_duplicates,
+                'similar_count': len(duplicate_check.similar_bookmarks),
+                'recommendation': duplicate_check.recommendation,
+                'similarity_threshold': duplicate_check.similarity_threshold
+            },
+            'similar_bookmarks': [],
+            'bookmark_created': False,
+            'bookmark_id': None,
+            'message': ''
+        }
+        
+        # Add similar bookmark details
+        for similar in duplicate_check.similar_bookmarks:
+            bookmark = self.get_bookmark(similar.bookmark_id)
+            if bookmark:
+                result['similar_bookmarks'].append({
+                    'id': similar.bookmark_id,
+                    'text': bookmark.text[:200] + '...' if len(bookmark.text) > 200 else bookmark.text,
+                    'theme': bookmark.theme,
+                    'similarity_score': similar.similarity_score,
+                    'match_type': similar.match_type
+                })
+        
+        # Decide whether to save based on duplicate check and force_save flag
+        should_save = True
+        if duplicate_check.recommendation == "block" and not force_save:
+            should_save = False
+            result['message'] = "Bookmark appears to be a duplicate of existing content. Use force_save=True to save anyway."
+        elif duplicate_check.recommendation == "warn" and not force_save:
+            should_save = False
+            result['message'] = "Similar bookmark found. Please review or use force_save=True to save anyway."
+        
+        if should_save or force_save:
+            # Save the bookmark
+            bookmark_id = self.bookmark_idea(
+                idea_text, theme, constraints, score, 
+                critique, advocacy, skepticism, tags
+            )
+            result['bookmark_created'] = True
+            result['bookmark_id'] = bookmark_id
+            
+            if duplicate_check.has_duplicates:
+                result['message'] = f"Bookmark saved despite {len(duplicate_check.similar_bookmarks)} similar bookmark(s) found."
+            else:
+                result['message'] = "Bookmark saved successfully."
+        
+        return result
     
     def get_remix_context(self, bookmark_ids: Optional[List[str]] = None) -> str:
         """Generate context for remixing based on bookmarked ideas.

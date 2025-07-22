@@ -64,6 +64,7 @@ try:
     from madspark.utils.bookmark_system import BookmarkManager
     from madspark.utils.cache_manager import CacheManager, CacheConfig
     from madspark.utils.improved_idea_cleaner import clean_improved_ideas_in_results
+    from madspark.utils.duplicate_detector import DuplicateCheckResult
 except ImportError as e:
     logging.error(f"Failed to import MadSpark modules: {e}")
     # Try alternative paths for different deployment scenarios
@@ -88,6 +89,7 @@ except ImportError as e:
         from src.madspark.utils.bookmark_system import BookmarkManager
         from src.madspark.utils.cache_manager import CacheManager, CacheConfig
         from src.madspark.utils.improved_idea_cleaner import clean_improved_ideas_in_results
+        from src.madspark.utils.duplicate_detector import DuplicateCheckResult
     except ImportError as e2:
         logging.error(f"Failed to import MadSpark modules with fallback paths: {e2}")
         raise e
@@ -470,6 +472,59 @@ class BookmarkResponse(BaseModel):
     bookmark_id: Optional[str] = None
 
 
+class SimilarBookmark(BaseModel):
+    """Information about a similar bookmark."""
+    id: str
+    text: str
+    theme: str
+    similarity_score: float
+    match_type: str
+    matched_features: List[str]
+
+
+class DuplicateCheckRequest(BaseModel):
+    """Request model for duplicate checking."""
+    idea: str = Field(..., min_length=10, max_length=10000, description="Idea text to check for duplicates")
+    theme: str = Field(
+        ...,
+        min_length=1,
+        max_length=200,
+        description="Topic/theme of the idea",
+        alias="topic"
+    )
+    similarity_threshold: Optional[float] = Field(default=0.8, ge=0.1, le=1.0, description="Custom similarity threshold")
+
+    class Config:
+        allow_population_by_field_name = True
+
+    @validator('idea', 'theme')
+    def sanitize_html(cls, v):
+        if v is None:
+            return None
+        return html.escape(v.strip())
+
+
+class DuplicateCheckResponse(BaseModel):
+    """Response model for duplicate checking."""
+    status: str
+    has_duplicates: bool
+    similar_count: int
+    recommendation: str  # 'block', 'warn', 'notice', 'allow'
+    similarity_threshold: float
+    similar_bookmarks: List[SimilarBookmark]
+    message: str
+
+
+class EnhancedBookmarkResponse(BaseModel):
+    """Enhanced bookmark response with duplicate detection info."""
+    status: str
+    message: str
+    bookmark_id: Optional[str] = None
+    bookmark_created: bool
+    duplicate_check: Optional[Dict[str, Any]] = None
+    similar_bookmarks: List[SimilarBookmark] = []
+
+
 class WebSocketManager:
     """Manages WebSocket connections for real-time updates."""
     
@@ -798,6 +853,113 @@ async def generate_ideas_async(request: Request, idea_request: IdeaGenerationReq
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/api/bookmarks/check-duplicates", response_model=DuplicateCheckResponse)
+@limiter.limit("15/minute")  # Allow 15 duplicate checks per minute
+async def check_bookmark_duplicates(request: Request, duplicate_request: DuplicateCheckRequest):
+    """Check for potential duplicate bookmarks."""
+    try:
+        # Initialize bookmark manager with custom similarity threshold if provided
+        if duplicate_request.similarity_threshold:
+            bookmark_manager = BookmarkManager(
+                bookmark_system.bookmark_file, 
+                duplicate_request.similarity_threshold
+            )
+        else:
+            bookmark_manager = bookmark_system
+        
+        # Check for duplicates
+        duplicate_result = bookmark_manager.check_for_duplicates(
+            duplicate_request.idea,
+            duplicate_request.theme
+        )
+        
+        # Convert to API response format
+        similar_bookmarks = []
+        for similar in duplicate_result.similar_bookmarks:
+            bookmark = bookmark_manager.get_bookmark(similar.bookmark_id)
+            if bookmark:
+                similar_bookmarks.append(SimilarBookmark(
+                    id=similar.bookmark_id,
+                    text=bookmark.text[:300] + '...' if len(bookmark.text) > 300 else bookmark.text,
+                    theme=bookmark.theme,
+                    similarity_score=similar.similarity_score,
+                    match_type=similar.match_type,
+                    matched_features=similar.matched_features
+                ))
+        
+        # Generate appropriate message
+        message = "No similar bookmarks found."
+        if duplicate_result.recommendation == "block":
+            message = f"Potential duplicate detected! Found {len(similar_bookmarks)} very similar bookmark(s)."
+        elif duplicate_result.recommendation == "warn":
+            message = f"Similar bookmarks found. Found {len(similar_bookmarks)} bookmark(s) with high similarity."
+        elif duplicate_result.recommendation == "notice":
+            message = f"Some similar bookmarks found. Found {len(similar_bookmarks)} bookmark(s) with moderate similarity."
+        
+        return DuplicateCheckResponse(
+            status="success",
+            has_duplicates=duplicate_result.has_duplicates,
+            similar_count=len(similar_bookmarks),
+            recommendation=duplicate_result.recommendation,
+            similarity_threshold=duplicate_result.similarity_threshold,
+            similar_bookmarks=similar_bookmarks,
+            message=message
+        )
+        
+    except Exception as e:
+        error_context = {
+            'idea_length': len(duplicate_request.idea),
+            'theme': duplicate_request.theme,
+            'error_type': type(e).__name__
+        }
+        error_tracker.track_error('duplicate_check', str(e), error_context)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/bookmarks/similar")
+@limiter.limit("20/minute")  # Allow 20 similarity searches per minute
+async def find_similar_bookmarks(
+    request: Request,
+    idea: str = Field(..., min_length=10, description="Idea text to find similar bookmarks for"),
+    theme: str = Field(..., min_length=1, description="Theme of the idea"),
+    max_results: int = Field(default=5, ge=1, le=20, description="Maximum number of results")
+):
+    """Find bookmarks similar to the given idea text."""
+    try:
+        similar_bookmarks_data = bookmark_system.find_similar_bookmarks(
+            idea, theme, max_results
+        )
+        
+        # Convert to API response format
+        similar_bookmarks = []
+        for bookmark_data in similar_bookmarks_data:
+            similar_bookmarks.append(SimilarBookmark(
+                id=bookmark_data['id'],
+                text=bookmark_data['text'][:300] + '...' if len(bookmark_data['text']) > 300 else bookmark_data['text'],
+                theme=bookmark_data['theme'],
+                similarity_score=bookmark_data['similarity_score'],
+                match_type=bookmark_data['match_type'],
+                matched_features=bookmark_data['matched_features']
+            ))
+        
+        return {
+            "status": "success",
+            "similar_bookmarks": similar_bookmarks,
+            "total_found": len(similar_bookmarks),
+            "search_idea": idea[:100] + '...' if len(idea) > 100 else idea
+        }
+        
+    except Exception as e:
+        error_context = {
+            'idea_length': len(idea),
+            'theme': theme,
+            'max_results': max_results,
+            'error_type': type(e).__name__
+        }
+        error_tracker.track_error('similar_search', str(e), error_context)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/bookmarks")
 @limiter.limit("30/minute")  # Allow 30 requests per minute for reading bookmarks
 async def get_bookmarks(request: Request, tags: Optional[str] = None):
@@ -835,10 +997,15 @@ async def get_bookmarks(request: Request, tags: Optional[str] = None):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/bookmarks", response_model=BookmarkResponse)
+@app.post("/api/bookmarks", response_model=EnhancedBookmarkResponse)
 @limiter.limit("10/minute")  # Allow 10 bookmark creations per minute
-async def create_bookmark(request: Request, bookmark_request: BookmarkRequest):
-    """Create a new bookmark."""
+async def create_bookmark(
+    request: Request, 
+    bookmark_request: BookmarkRequest,
+    check_duplicates: bool = Field(default=True, description="Enable duplicate detection"),
+    force_save: bool = Field(default=False, description="Force save even if duplicates found")
+):
+    """Create a new bookmark with optional duplicate detection."""
     try:
         # Log the request for debugging (only non-sensitive fields)
         logger.info(f"Bookmark request received for theme='{bookmark_request.theme}' with {len(bookmark_request.tags)} tags.")
@@ -848,22 +1015,62 @@ async def create_bookmark(request: Request, bookmark_request: BookmarkRequest):
         score = bookmark_request.improved_score if bookmark_request.improved_score is not None else bookmark_request.initial_score
         critique = bookmark_request.improved_critique if bookmark_request.improved_critique is not None else bookmark_request.initial_critique
         
-        bookmark_id = bookmark_system.bookmark_idea(
-            idea_text=idea_text,
-            theme=bookmark_request.theme,
-            constraints=bookmark_request.constraints,
-            score=round(score, 1),  # Keep precision but convert to compatible format
-            critique=critique or "",
-            advocacy=bookmark_request.advocacy or "",
-            skepticism=bookmark_request.skepticism or "",
-            tags=bookmark_request.tags
-        )
-        
-        return BookmarkResponse(
-            status="success",
-            message="Bookmark created successfully",
-            bookmark_id=bookmark_id
-        )
+        if check_duplicates:
+            # Use enhanced bookmark creation with duplicate detection
+            result = bookmark_system.bookmark_idea_with_duplicate_check(
+                idea_text=idea_text,
+                theme=bookmark_request.theme,
+                constraints=bookmark_request.constraints,
+                score=round(score, 1),
+                critique=critique or "",
+                advocacy=bookmark_request.advocacy or "",
+                skepticism=bookmark_request.skepticism or "",
+                tags=bookmark_request.tags,
+                force_save=force_save
+            )
+            
+            # Convert similar bookmarks to API format
+            similar_bookmarks = []
+            for similar in result['similar_bookmarks']:
+                similar_bookmarks.append(SimilarBookmark(
+                    id=similar['id'],
+                    text=similar['text'],
+                    theme=similar['theme'],
+                    similarity_score=similar['similarity_score'],
+                    match_type=similar['match_type'],
+                    matched_features=[]  # Simplified for API response
+                ))
+            
+            return EnhancedBookmarkResponse(
+                status="success" if result['bookmark_created'] else "warning",
+                message=result['message'],
+                bookmark_id=result['bookmark_id'],
+                bookmark_created=result['bookmark_created'],
+                duplicate_check=result['duplicate_check'],
+                similar_bookmarks=similar_bookmarks
+            )
+        else:
+            # Traditional bookmark creation without duplicate checking
+            bookmark_id = bookmark_system.bookmark_idea(
+                idea_text=idea_text,
+                theme=bookmark_request.theme,
+                constraints=bookmark_request.constraints,
+                score=round(score, 1),
+                critique=critique or "",
+                advocacy=bookmark_request.advocacy or "",
+                skepticism=bookmark_request.skepticism or "",
+                tags=bookmark_request.tags
+            )
+            
+            return EnhancedBookmarkResponse(
+                status="success",
+                message="Bookmark created successfully (duplicate checking disabled)",
+                bookmark_id=bookmark_id,
+                bookmark_created=True,
+                duplicate_check=None,
+                similar_bookmarks=[]
+            )
+            
     except RequestValidationError as e:
         logger.error(f"Validation error in bookmark request: {e}")
         raise HTTPException(status_code=422, detail=str(e))
@@ -872,6 +1079,8 @@ async def create_bookmark(request: Request, bookmark_request: BookmarkRequest):
             'theme': bookmark_request.theme,
             'idea_length': len(bookmark_request.idea),
             'tags_count': len(bookmark_request.tags),
+            'check_duplicates': check_duplicates,
+            'force_save': force_save,
             'error_type': type(e).__name__
         }
         

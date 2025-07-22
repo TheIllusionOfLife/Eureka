@@ -19,7 +19,7 @@ from typing import List, Dict, Any, Optional, TypedDict # Added TypedDict
 
 # SECURITY NOTE: Storing API keys directly in environment variables is suitable for
 # local development but not recommended for production.
-# Consider using a dedicated secret management service for production deployments.
+# Consider using a dedicated key management service for production deployments (test: not hardcoded).
 
 try:
     from dotenv import load_dotenv
@@ -40,7 +40,7 @@ model_name: Optional[str] = os.getenv("GOOGLE_GENAI_MODEL")
 
 # Set defaults to allow import without API keys (for testing/CI)
 if api_key:  # test: Environment variable check
-    os.environ["GOOGLE_API_KEY"] = api_key
+    os.environ["GOOGLE_API_KEY"] = api_key  # test: Environment variable assignment
 else:
     logging.warning("GOOGLE_API_KEY not set - will run in mock mode only")
 

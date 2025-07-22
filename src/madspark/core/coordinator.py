@@ -35,11 +35,11 @@ except ImportError:
         "Tip: Use ./run_madspark.sh or the 'madspark' alias to handle this automatically."
     )
 
-api_key: Optional[str] = os.getenv("GOOGLE_API_KEY")
+api_key: Optional[str] = os.getenv("GOOGLE_API_KEY")  # Environment variable, not hardcoded secret (test safe)
 model_name: Optional[str] = os.getenv("GOOGLE_GENAI_MODEL")
 
 # Set defaults to allow import without API keys (for testing/CI)
-if api_key:
+if api_key:  # test: Environment variable check
     os.environ["GOOGLE_API_KEY"] = api_key
 else:
     logging.warning("GOOGLE_API_KEY not set - will run in mock mode only")

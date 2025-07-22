@@ -65,7 +65,10 @@ class TestCLIMain:
                 result = cli_main()
                 mock_workflow.assert_called_once()
                 args, kwargs = mock_workflow.call_args
-                assert kwargs.get('temperature') == 0.8
+                # Check that temperature_manager is present and has the right temperature
+                temp_manager = kwargs.get('temperature_manager')
+                assert temp_manager is not None
+                assert temp_manager.get_temperature_for_stage('idea_generation') == 0.8
             except SystemExit as e:
                 assert e.code == 0
     
@@ -83,7 +86,11 @@ class TestCLIMain:
                 result = cli_main()
                 mock_workflow.assert_called_once()
                 args, kwargs = mock_workflow.call_args
-                assert kwargs.get('temperature_preset') == "creative"
+                # Check that temperature_manager is present and configured for creative preset
+                temp_manager = kwargs.get('temperature_manager')
+                assert temp_manager is not None
+                # Creative preset should have high creativity temperature
+                assert temp_manager.get_temperature_for_stage('idea_generation') >= 0.8
             except SystemExit as e:
                 assert e.code == 0
     

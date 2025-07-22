@@ -15,10 +15,19 @@ class TestCLIMain:
     @patch('madspark.cli.cli.run_multistep_workflow')
     def test_cli_basic_execution(self, mock_workflow):
         """Test basic CLI execution."""
-        mock_workflow.return_value = {
-            "ideas": [{"title": "Test Idea", "description": "Test description"}],
-            "evaluations": [{"idea_title": "Test Idea", "overall_score": 8.0}]
-        }
+        mock_workflow.return_value = [
+            {
+                "idea": "Test Idea",
+                "initial_score": 8.0,
+                "initial_critique": "Good idea",
+                "advocacy": "Strong potential",
+                "skepticism": "Some concerns",
+                "multi_dimensional_evaluation": None,
+                "improved_idea": "Improved Test Idea",
+                "improved_score": 9.0,
+                "improved_critique": "Great improvement"
+            }
+        ]
         
         # Mock sys.argv
         test_args = ["cli.py", "AI automation", "Cost-effective"]
@@ -35,9 +44,19 @@ class TestCLIMain:
     @patch('madspark.cli.cli.run_multistep_workflow')
     def test_cli_with_verbose_flag(self, mock_workflow):
         """Test CLI with verbose flag."""
-        mock_workflow.return_value = {
-            "ideas": [{"title": "Test Idea", "description": "Test description"}]
-        }
+        mock_workflow.return_value = [
+            {
+                "idea": "Test Idea",
+                "initial_score": 7.5,
+                "initial_critique": "Decent idea",
+                "advocacy": "Good foundation",
+                "skepticism": "Needs work",
+                "multi_dimensional_evaluation": None,
+                "improved_idea": "Improved Test Idea",
+                "improved_score": 8.5,
+                "improved_critique": "Better now"
+            }
+        ]
         
         test_args = ["cli.py", "AI automation", "Cost-effective", "--verbose"]
         
@@ -54,9 +73,19 @@ class TestCLIMain:
     @patch('madspark.cli.cli.run_multistep_workflow')
     def test_cli_with_temperature_settings(self, mock_workflow):
         """Test CLI with temperature settings."""
-        mock_workflow.return_value = {
-            "ideas": [{"title": "Test Idea", "description": "Test description"}]
-        }
+        mock_workflow.return_value = [
+            {
+                "idea": "Test Idea",
+                "initial_score": 7.5,
+                "initial_critique": "Decent idea",
+                "advocacy": "Good foundation",
+                "skepticism": "Needs work",
+                "multi_dimensional_evaluation": None,
+                "improved_idea": "Improved Test Idea",
+                "improved_score": 8.5,
+                "improved_critique": "Better now"
+            }
+        ]
         
         test_args = ["cli.py", "AI automation", "Cost-effective", "--temperature", "0.8"]
         
@@ -75,9 +104,19 @@ class TestCLIMain:
     @patch('madspark.cli.cli.run_multistep_workflow')
     def test_cli_with_temperature_preset(self, mock_workflow):
         """Test CLI with temperature preset."""
-        mock_workflow.return_value = {
-            "ideas": [{"title": "Test Idea", "description": "Test description"}]
-        }
+        mock_workflow.return_value = [
+            {
+                "idea": "Test Idea",
+                "initial_score": 7.5,
+                "initial_critique": "Decent idea",
+                "advocacy": "Good foundation",
+                "skepticism": "Needs work",
+                "multi_dimensional_evaluation": None,
+                "improved_idea": "Improved Test Idea",
+                "improved_score": 8.5,
+                "improved_critique": "Better now"
+            }
+        ]
         
         test_args = ["cli.py", "AI automation", "Cost-effective", "--temperature-preset", "creative"]
         
@@ -97,9 +136,19 @@ class TestCLIMain:
     @patch('madspark.cli.cli.run_multistep_workflow')
     def test_cli_with_timeout(self, mock_workflow):
         """Test CLI with timeout parameter."""
-        mock_workflow.return_value = {
-            "ideas": [{"title": "Test Idea", "description": "Test description"}]
-        }
+        mock_workflow.return_value = [
+            {
+                "idea": "Test Idea",
+                "initial_score": 7.5,
+                "initial_critique": "Decent idea",
+                "advocacy": "Good foundation",
+                "skepticism": "Needs work",
+                "multi_dimensional_evaluation": None,
+                "improved_idea": "Improved Test Idea",
+                "improved_score": 8.5,
+                "improved_critique": "Better now"
+            }
+        ]
         
         test_args = ["cli.py", "AI automation", "Cost-effective", "--timeout", "30"]
         
@@ -115,9 +164,19 @@ class TestCLIMain:
     @patch('madspark.cli.cli.run_multistep_workflow')
     def test_cli_with_enhanced_reasoning(self, mock_workflow):
         """Test CLI with enhanced reasoning flag."""
-        mock_workflow.return_value = {
-            "ideas": [{"title": "Test Idea", "description": "Test description"}]
-        }
+        mock_workflow.return_value = [
+            {
+                "idea": "Test Idea",
+                "initial_score": 7.5,
+                "initial_critique": "Decent idea",
+                "advocacy": "Good foundation",
+                "skepticism": "Needs work",
+                "multi_dimensional_evaluation": None,
+                "improved_idea": "Improved Test Idea",
+                "improved_score": 8.5,
+                "improved_critique": "Better now"
+            }
+        ]
         
         test_args = ["cli.py", "AI automation", "Cost-effective", "--enhanced-reasoning"]
         
@@ -231,32 +290,22 @@ class TestCLIIntegration:
     @patch('madspark.cli.cli.run_multistep_workflow')
     def test_cli_full_workflow_integration(self, mock_workflow):
         """Test full CLI workflow integration."""
-        mock_workflow.return_value = {
-            "ideas": [
-                {
-                    "title": "AI-Powered Productivity Suite",
-                    "description": "A comprehensive productivity platform",
+        mock_workflow.return_value = [
+            {
+                "idea": "AI-Powered Productivity Suite: A comprehensive productivity platform",
+                "initial_score": 7.5,
+                "initial_critique": "Strong concept with good market demand and technical feasibility, but faces competition and complexity challenges",
+                "advocacy": "Solves real problems, Scalable solution, Improves workplace efficiency",
+                "skepticism": "High development cost, Market saturation, Medium to high risk",
+                "multi_dimensional_evaluation": {
                     "innovation_score": 8,
                     "feasibility_score": 7
-                }
-            ],
-            "evaluations": [
-                {
-                    "idea_title": "AI-Powered Productivity Suite",
-                    "overall_score": 7.5,
-                    "strengths": ["Market demand", "Technical feasibility"],
-                    "weaknesses": ["Competition", "Complexity"]
-                }
-            ],
-            "advocacy": {
-                "key_strengths": ["Solves real problems", "Scalable solution"],
-                "value_proposition": "Improves workplace efficiency"
-            },
-            "criticism": {
-                "key_concerns": ["High development cost", "Market saturation"],
-                "risk_assessment": "Medium to high risk"
+                },
+                "improved_idea": "Enhanced AI-Powered Productivity Suite with unique differentiators",
+                "improved_score": 8.5,
+                "improved_critique": "Improved positioning and feature set to stand out from competition"
             }
-        }
+        ]
         
         test_args = ["cli.py", "AI automation", "Cost-effective solutions", "--verbose", "--enhanced-reasoning"]
         
@@ -298,10 +347,19 @@ class TestCLIIntegration:
     @patch('madspark.cli.cli.run_multistep_workflow')
     def test_cli_output_formatting(self, mock_workflow):
         """Test CLI output formatting."""
-        mock_workflow.return_value = {
-            "ideas": [{"title": "Test Idea", "description": "Test description"}],
-            "evaluations": [{"idea_title": "Test Idea", "overall_score": 8.0}]
-        }
+        mock_workflow.return_value = [
+            {
+                "idea": "Test Idea: Test description",
+                "initial_score": 8.0,
+                "initial_critique": "Good test idea",
+                "advocacy": "Strong potential",
+                "skepticism": "Some concerns",
+                "multi_dimensional_evaluation": None,
+                "improved_idea": "Improved Test Idea",
+                "improved_score": 9.0,
+                "improved_critique": "Great improvement"
+            }
+        ]
         
         test_args = ["cli.py", "AI automation", "Cost-effective", "--verbose"]
         

@@ -157,8 +157,8 @@ jobs:
           echo "::warning::Found large files (>1MB): $large_files"
         fi
         
-        # Check for API keys or secrets
-        if grep -r -E "(api_key|apikey|api-key|secret|password|token)" --include="*.py" --include="*.ts" --include="*.tsx" src/ web/ | grep -v -E "(test|mock|example|sample)"; then
+        # Check for API keys or secrets (excluding node_modules and legitimate config references)
+        if grep -r -E "(api_key|apikey|api-key|secret|password|token)" --include="*.py" --include="*.ts" --include="*.tsx" src/ web/backend/ web/frontend/src/ | grep -v -E "(test|mock|example|sample|node_modules|os\.environ\.get|process\.env|your-api-key-here)"; then
           echo "::error::Potential secrets found. Please review."
           exit 1
         fi

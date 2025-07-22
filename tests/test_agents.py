@@ -228,9 +228,14 @@ class TestAgentIntegration:
     
     def test_agent_error_handling(self):
         """Test that agents handle errors gracefully."""
-        # Test with invalid input
-        result = generate_ideas("", "")
-        assert result is None or "error" in result
+        # Test with invalid input - should raise ValidationError
+        from madspark.utils.errors import ValidationError
+        
+        try:
+            result = generate_ideas("", "")
+            assert False, "Should have raised ValidationError"
+        except ValidationError as e:
+            assert "topic" in str(e)  # Expected behavior
         
         # Test with None input - these should raise ValueError, so we need to catch them
         try:

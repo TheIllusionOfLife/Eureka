@@ -165,10 +165,10 @@ class TestBookmarkManager:
             )
             
             # Retrieve ideas
-            bookmarks = manager.get_random_bookmarks(count=1)
+            bookmarks = manager.list_bookmarks()
             
             assert len(bookmarks) == 1
-            assert bookmarks[0]["title"] == "Test Idea"
+            assert "Test Idea" in bookmarks[0].text
     
     def test_bookmark_with_tags(self):
         """Test bookmark tagging system."""
@@ -190,9 +190,9 @@ class TestBookmarkManager:
             )
             
             # Test tag-based retrieval
-            bookmarks = manager.get_random_bookmarks(count=1)
+            bookmarks = manager.list_bookmarks(tags=["ai"])
             assert len(bookmarks) == 1
-            assert "ai" in bookmarks[0].get("tags", [])
+            assert "ai" in bookmarks[0].tags
     
     def test_bookmark_duplicate_handling(self):
         """Test handling of duplicate bookmarks."""
@@ -221,10 +221,10 @@ class TestBookmarkManager:
                 tags=["test"]
             )
             
-            bookmarks = manager.get_random_bookmarks(count=10)
+            bookmarks = manager.list_bookmarks()
             
-            # Should handle duplicates appropriately
-            assert len(bookmarks) >= 1
+            # Should have stored both bookmarks
+            assert len(bookmarks) == 2
 
 
 class TestNoveltyFilter:
@@ -236,42 +236,28 @@ class TestNoveltyFilter:
         
         assert filter_obj is not None
         assert hasattr(filter_obj, 'filter_idea')
-        assert hasattr(filter_obj, 'add_idea')
     
     def test_novelty_detection(self):
         """Test novelty detection."""
         filter_obj = NoveltyFilter(similarity_threshold=0.8)
         
-        idea1 = {
-            "title": "AI Assistant",
-            "description": "An AI-powered productivity assistant"
-        }
-        
-        idea2 = {
-            "title": "AI Helper",
-            "description": "An AI-powered productivity helper"
-        }
+        idea1_text = "AI Assistant - An AI-powered productivity assistant"
+        idea2_text = "AI Helper - An AI-powered productivity helper"
         
         # First idea should be novel
-        assert filter_obj.is_novel(idea1) == True
-        filter_obj.add_idea(idea1)
+        result1 = filter_obj.filter_idea(idea1_text)
+        assert result1.is_novel == True
         
         # Very similar idea should not be novel
-        assert filter_obj.is_novel(idea2) == False
+        result2 = filter_obj.filter_idea(idea2_text)
+        assert result2.is_novel == False
     
     def test_novelty_filter_with_different_ideas(self):
         """Test novelty filter with different ideas."""
         filter_obj = NoveltyFilter(similarity_threshold=0.8)
         
-        idea1 = {
-            "title": "AI Assistant",
-            "description": "An AI-powered productivity assistant"
-        }
-        
-        idea2 = {
-            "title": "Smart Home System",
-            "description": "IoT-based home automation platform"
-        }
+        idea1_text = "AI Assistant - An AI-powered productivity assistant"
+        idea2_text = "Smart Home System - IoT-based home automation platform"
         
         # Both ideas should be novel
         result1 = filter_obj.filter_idea(idea1_text)
@@ -288,19 +274,21 @@ class TestNoveltyFilter:
         # Low threshold (lenient)
         lenient_filter = NoveltyFilter(similarity_threshold=0.5)
         
-        idea1 = {"title": "AI Assistant", "description": "Productivity tool"}
-        idea2 = {"title": "AI Helper", "description": "Productivity tool"}
+        idea1_text = "AI Assistant - Productivity tool"
+        idea2_text = "AI Helper - Productivity tool"
         
-        strict_filter.add_idea(idea1)
-        lenient_filter.add_idea(idea1)
+        # Process first idea with both filters
+        strict_filter.filter_idea(idea1_text)
+        lenient_filter.filter_idea(idea1_text)
         
         # Strict filter should reject similar ideas
-        assert strict_filter.is_novel(idea2) == False
+        strict_result = strict_filter.filter_idea(idea2_text)
+        assert strict_result.is_novel == False
         
         # Lenient filter might accept similar ideas
         # (depends on exact similarity calculation)
-        lenient_result = lenient_filter.is_novel(idea2)
-        assert isinstance(lenient_result, bool)
+        lenient_result = lenient_filter.filter_idea(idea2_text)
+        assert isinstance(lenient_result.is_novel, bool)
 
 
 class TestIdeaCleaner:

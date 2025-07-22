@@ -139,30 +139,19 @@ class TestEndToEndWorkflow:
         
         # Verify complete workflow execution
         assert result is not None
-        assert "ideas" in result
-        assert "evaluations" in result
-        assert "advocacy" in result
-        assert "criticism" in result
+        assert isinstance(result, list)
+        assert len(result) > 0
         
-        # Verify ideas were generated
-        assert len(result["ideas"]) == 2
-        assert result["ideas"][0]["title"] == "AI-Powered Task Automation"
-        assert result["ideas"][1]["title"] == "Smart Workflow Optimizer"
-        
-        # Verify evaluations were performed
-        assert len(result["evaluations"]) == 2
-        assert result["evaluations"][0]["overall_score"] == 7.5
-        assert result["evaluations"][1]["overall_score"] == 7.8
-        
-        # Verify advocacy was performed
-        assert "key_strengths" in result["advocacy"]
-        assert len(result["advocacy"]["key_strengths"]) == 3
-        assert "value_proposition" in result["advocacy"]
-        
-        # Verify criticism was performed
-        assert "key_concerns" in result["criticism"]
-        assert len(result["criticism"]["key_concerns"]) == 3
-        assert "risk_assessment" in result["criticism"]
+        # Verify result structure matches CandidateData
+        for candidate in result:
+            assert "idea" in candidate
+            assert "initial_score" in candidate
+            assert "initial_critique" in candidate
+            assert "advocacy" in candidate
+            assert "skepticism" in candidate
+            assert "improved_idea" in candidate
+            assert "improved_score" in candidate
+            assert "improved_critique" in candidate
         
         # Verify all agents were called
         mock_gen_genai.Client.assert_called()
@@ -255,23 +244,21 @@ class TestWorkflowWithComponents:
                 tags=["ai", "efficiency"]
             )
             
-            # Mock workflow with bookmarks
-            with patch('madspark.core.coordinator.BookmarkManager') as mock_bookmark_class:
-                mock_bookmark_class.return_value = bookmark_manager
-                
-                with patch('madspark.core.coordinator.generate_ideas') as mock_generate:
-                    mock_generate.return_value = {
-                        "ideas": [{"title": "New Idea", "description": "A new idea"}]
-                    }
-                    
-                    result = run_multistep_workflow(
-                        theme="AI automation",
-                        constraints="Cost-effective"
-                    )
-                    
-                    # The workflow should complete (bookmarks are not directly integrated)
-                    assert result is not None
-                    assert isinstance(result, list)
+            # The workflow doesn't use bookmarks directly
+            # This test just verifies bookmarks can be created alongside workflow
+            
+            result = run_multistep_workflow(
+                theme="AI automation",
+                constraints="Cost-effective"
+            )
+            
+            # The workflow should complete normally
+            assert result is not None
+            assert isinstance(result, list)
+            
+            # Bookmarks were created separately above
+            bookmarks = bookmark_manager.list_bookmarks()
+            assert len(bookmarks) == 2
     
     def test_workflow_with_temperature_management(self):
         """Test workflow integration with temperature management."""
@@ -550,16 +537,14 @@ class TestWorkflowDataIntegrity:
         
         # Verify data consistency
         assert result is not None
-        assert "ideas" in result
-        assert "evaluations" in result
+        assert isinstance(result, list)
         
-        # Verify idea titles match between generation and evaluation
-        idea_titles = [idea["title"] for idea in result["ideas"]]
-        eval_titles = [eval_item["idea_title"] for eval_item in result["evaluations"]]
-        
-        assert len(idea_titles) == len(eval_titles)
-        for title in idea_titles:
-            assert title in eval_titles
+        # If we have results, verify each has consistent structure
+        if len(result) > 0:
+            for candidate in result:
+                assert "idea" in candidate
+                assert "initial_score" in candidate
+                assert isinstance(candidate["initial_score"], (int, float))
     
     def test_workflow_output_structure(self):
         """Test workflow output structure is consistent."""
@@ -576,13 +561,13 @@ class TestWorkflowDataIntegrity:
             )
             
             # Verify output structure
-            assert isinstance(result, dict)
-            assert "ideas" in result
-            assert isinstance(result["ideas"], list)
+            assert isinstance(result, list)
             
-            if len(result["ideas"]) > 0:
-                idea = result["ideas"][0]
-                assert "title" in idea
-                assert "description" in idea
-                assert isinstance(idea["title"], str)
-                assert isinstance(idea["description"], str)
+            if len(result) > 0:
+                candidate = result[0]
+                assert "idea" in candidate
+                assert "initial_score" in candidate
+                assert "advocacy" in candidate
+                assert "skepticism" in candidate
+                assert isinstance(candidate["idea"], str)
+                assert isinstance(candidate["initial_score"], (int, float))

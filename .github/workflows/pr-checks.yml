@@ -179,7 +179,7 @@ jobs:
         
         # Check for API keys or secrets (excluding node_modules, test files, and legitimate config references)
         # Note: This check looks for hardcoded secrets, not environment variable usage
-        secrets_found=$(grep -r -E "(api_key|apikey|api-key|secret|password|token)" --include="*.py" --include="*.ts" --include="*.tsx" src/ web/backend/ web/frontend/src/ 2>/dev/null | grep -v -E "(test|mock|example|sample|node_modules|os\.environ\.get|process\.env|your-api-key-here|tests/|test_|\.test\.|_test\.|getenv|environ\[|GOOGLE_API_KEY|SECRET_KEY|JWT_SECRET|google_api_key.*os\.environ|api_key.*environ)" || true)
+        secrets_found=$(grep -r -E "(api_key|apikey|api-key|secret|password|token)" --include="*.py" --include="*.ts" --include="*.tsx" src/ web/backend/ web/frontend/src/ 2>/dev/null | grep -v -E "(test|mock|example|sample|node_modules|os\.environ\.get|process\.env|your-api-key-here|tests/|test_|\.test\.|_test\.|getenv|environ\[|GOOGLE_API_KEY|SECRET_KEY|JWT_SECRET)" | grep -v -E "google_api_key.*os\.environ|api_key.*environ" || true)
         
         if [ ! -z "$secrets_found" ]; then
           echo "::error::Potential secrets found. Please review:"

@@ -225,7 +225,8 @@ class TestBatchProcessor:
             for i in range(3)
         ]
         
-        results = batch_processor.process_batch(items)
+        # Use the async method directly instead of process_batch which uses asyncio.run
+        results = await batch_processor.process_batch_async(items, {})
         
         assert "total_items" in results
         assert results["total_items"] == 3
@@ -238,7 +239,7 @@ class TestBatchProcessor:
         for i in range(2):
             item = BatchItem(f"Theme{i}", f"Constraints{i}")
             item.status = "completed"
-            item.result = [{"idea": f"Idea{i}", "score": 7.0 + i}]
+            item.result = [{"idea": f"Idea{i}", "initial_score": 7.0 + i}]
             items.append(item)
         
         # Export results

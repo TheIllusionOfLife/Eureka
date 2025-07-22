@@ -233,15 +233,19 @@ jobs:
         MADSPARK_MODE: mock
         GOOGLE_API_KEY: test_key_for_ci
       run: |
-        # Run backend in background
-        cd web/backend && python main.py &
+        # Store repo root
+        REPO_ROOT=$(pwd)
+        
+        # Run backend in background from its directory
+        cd web/backend
+        python main.py &
         BACKEND_PID=$!
         
-        # Wait for backend to start
+        # Return to repo root and wait for backend
+        cd "$REPO_ROOT"
         sleep 10
         
-        # Run integration tests (from repo root)
-        cd ../../
+        # Run integration tests from repo root
         python -m pytest tests/test_integration.py -v
         
         # Cleanup

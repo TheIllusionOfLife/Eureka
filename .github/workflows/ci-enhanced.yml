@@ -220,6 +220,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r config/requirements.txt
+        pip install -r web/backend/requirements.txt
         pip install pytest pytest-asyncio httpx
     
     - name: Install frontend dependencies
@@ -229,6 +230,8 @@ jobs:
     - name: Run integration tests
       env:
         PYTHONPATH: src
+        MADSPARK_MODE: mock
+        GOOGLE_API_KEY: test_key_for_ci
       run: |
         # Run backend in background
         cd web/backend && python main.py &
@@ -237,8 +240,8 @@ jobs:
         # Wait for backend to start
         sleep 10
         
-        # Run integration tests
-        cd ../..
+        # Run integration tests (from repo root)
+        cd ../../
         python -m pytest tests/test_integration.py -v
         
         # Cleanup

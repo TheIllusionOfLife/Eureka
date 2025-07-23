@@ -78,9 +78,9 @@ jobs:
       
       - name: Run tests with coverage
         run: |
-          # Run tests in parallel, skipping slow/performance tests for PRs
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            # PR: Fast tests only with parallel execution
+          # Run tests in parallel, skipping slow/performance tests for PRs and feature branches
+          if [ "${{ github.event_name }}" = "pull_request" ] || [ "${{ github.ref }}" != "refs/heads/main" ]; then
+            # PR/Feature branch: Fast tests only with parallel execution
             PYTHONPATH=src pytest tests/ -n auto -v --cov=src --cov-report=xml --cov-report=html \
               -k "not test_workflow_execution_time and not test_async_workflow_performance and not test_async_workflow_integration" \
               -m "not slow" || true
@@ -90,7 +90,7 @@ jobs:
           fi
       
       - name: Upload coverage
-        if: matrix.python-version == '3.10' && github.event_name == 'pull_request'
+        if: matrix.python-version == '3.10' && (github.event_name == 'pull_request' || github.ref != 'refs/heads/main')
         uses: codecov/codecov-action@v3
         with:
           file: ./coverage.xml

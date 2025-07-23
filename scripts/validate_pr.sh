@@ -51,15 +51,15 @@ fi
 
 # 4. Run tests
 echo "🧪 Running tests..."
-export PYTHONPATH="${PYTHONPATH}:src"
+export PYTHONPATH="src"
 export MADSPARK_MODE="mock"
 pytest tests/ -v --tb=short
 check_result "Tests"
 
 # 5. Check PR size
 echo "📊 Checking PR size..."
-FILES_CHANGED=$(git diff --name-only main... | wc -l)
-LINES_CHANGED=$(git diff --stat main... | tail -1 | awk '{print $4}')
+FILES_CHANGED=$(git diff --name-only main... | wc -l || echo "0")
+LINES_CHANGED=$(git diff --numstat main... | awk '{added+=$1; deleted+=$2} END {print added+deleted+0}')
 
 echo "Files changed: $FILES_CHANGED"
 echo "Lines changed: $LINES_CHANGED"
@@ -70,7 +70,10 @@ if [ "$FILES_CHANGED" -gt 20 ]; then
 fi
 
 if [ "$LINES_CHANGED" -gt 500 ]; then
-    echo -e "${YELLOW}⚠️  Warning: PR has many line changes ($LINES_CHANGED > 500)${NC}"
+    echo -e "${RED}❌ PR is too large ($LINES_CHANGED > 500 lines)${NC}"
+    FAILURES=$((FAILURES + 1))
+elif [ "$LINES_CHANGED" -gt 300 ]; then
+    echo -e "${YELLOW}⚠️  Warning: PR is getting large ($LINES_CHANGED > 300 lines)${NC}"
 fi
 
 # 6. Check for security issues

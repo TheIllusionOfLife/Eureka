@@ -131,8 +131,8 @@ def generate_ideas(topic: str, context: str, temperature: float = 0.9) -> str:
 
   prompt: str = build_generation_prompt(topic=topic, context=context)
   
-  if not GENAI_AVAILABLE:
-    # Return mock response for CI/testing environments with language matching demo
+  if not GENAI_AVAILABLE or idea_generator_client is None:
+    # Return mock response for CI/testing environments or when API key is not configured
     # Simple language detection for mock responses
     if any(char >= '\u3040' and char <= '\u309F' or char >= '\u30A0' and char <= '\u30FF' or char >= '\u4E00' and char <= '\u9FAF' for char in topic + context):
         return f"モック生成されたアイデア '{topic}' のトピックで '{context}' のコンテキスト (温度 {temperature})"

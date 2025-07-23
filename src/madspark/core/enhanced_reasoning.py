@@ -40,7 +40,7 @@ class ContextData:
         if not self.context_id:
             # Generate unique context ID based on content and timestamp
             content = f"{self.agent}_{self.input_data}_{self.output_data}_{self.timestamp}"
-            self.context_id = hashlib.md5(content.encode()).hexdigest()[:12]
+            self.context_id = hashlib.md5(content.encode(), usedforsecurity=False).hexdigest()[:12]
 
 
 @dataclass

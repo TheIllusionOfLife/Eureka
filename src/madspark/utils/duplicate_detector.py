@@ -89,7 +89,7 @@ class TextProcessor:
     def create_text_fingerprint(text: str) -> str:
         """Create a hash-based fingerprint for exact duplicate detection."""
         normalized = TextProcessor.normalize_text(text)
-        return hashlib.md5(normalized.encode()).hexdigest()
+        return hashlib.md5(normalized.encode(), usedforsecurity=False).hexdigest()
 
 
 class SimilarityCalculator:

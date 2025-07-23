@@ -14,7 +14,7 @@ def test_openapi_docs():
     # Test OpenAPI JSON endpoint
     print("\n1. Testing OpenAPI JSON endpoint...")
     try:
-        response = requests.get(f"{base_url}/openapi.json")
+        response = requests.get(f"{base_url}/openapi.json", timeout=30)
         if response.status_code == 200:
             print("✅ OpenAPI JSON endpoint is accessible")
             openapi_spec = response.json()
@@ -32,7 +32,7 @@ def test_openapi_docs():
     # Test Swagger UI
     print("\n2. Testing Swagger UI...")
     try:
-        response = requests.get(f"{base_url}/docs")
+        response = requests.get(f"{base_url}/docs", timeout=30)
         if response.status_code == 200:
             print("✅ Swagger UI is accessible at /docs")
         else:
@@ -45,7 +45,7 @@ def test_openapi_docs():
     # Test ReDoc
     print("\n3. Testing ReDoc...")
     try:
-        response = requests.get(f"{base_url}/redoc")
+        response = requests.get(f"{base_url}/redoc", timeout=30)
         if response.status_code == 200:
             print("✅ ReDoc is accessible at /redoc")
         else:

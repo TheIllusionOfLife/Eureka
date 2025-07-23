@@ -233,7 +233,7 @@ def generate_mock_results(theme: str, num_ideas: int) -> List[Dict[str, Any]]:
     results = []
     for i in range(min(num_ideas, len(base_ideas))):
         base_score = 6.5 + (i * 0.5)
-        improved_score = base_score + 1.5 + (random.random() * 0.8)
+        improved_score = base_score + 1.5 + (random.random() * 0.8)  # nosec B311
         
         result = {
             "idea": base_ideas[i],
@@ -247,13 +247,13 @@ def generate_mock_results(theme: str, num_ideas: int) -> List[Dict[str, Any]]:
             "score_delta": round(improved_score - base_score, 1),
             "multi_dimensional_evaluation": {
                 "dimension_scores": {
-                    "feasibility": round(7 + random.random() * 2, 1),
-                    "innovation": round(8 + random.random() * 1.5, 1),
-                    "impact": round(7.5 + random.random() * 2, 1),
-                    "cost_effectiveness": round(6.5 + random.random() * 2, 1),
-                    "scalability": round(7 + random.random() * 2.5, 1),
-                    "risk_assessment": round(6 + random.random() * 2, 1),
-                    "timeline": round(7 + random.random() * 1.5, 1)
+                    "feasibility": round(7 + random.random() * 2, 1),  # nosec B311
+                    "innovation": round(8 + random.random() * 1.5, 1),  # nosec B311
+                    "impact": round(7.5 + random.random() * 2, 1),  # nosec B311
+                    "cost_effectiveness": round(6.5 + random.random() * 2, 1),  # nosec B311
+                    "scalability": round(7 + random.random() * 2.5, 1),  # nosec B311
+                    "risk_assessment": round(6 + random.random() * 2, 1),  # nosec B311
+                    "timeline": round(7 + random.random() * 1.5, 1)  # nosec B311
                 },
                 "overall_score": round(base_score + 0.5, 1),
                 "confidence_interval": {
@@ -315,7 +315,7 @@ def format_results_for_frontend(results: List[Dict[str, Any]]) -> List[Dict[str,
                     base_improvement = (improvement_factor - 1) * score
                     # Add some variance to make it more realistic
                     variance = 0.1 * score  # 10% variance
-                    random_factor = random.uniform(-0.5, 0.5)  # Random between -0.5 and +0.5
+                    random_factor = random.uniform(-0.5, 0.5)  # Random between -0.5 and +0.5  # nosec B311
                     improved_score = score + base_improvement + random_factor * variance  # Random between -variance/2 and +variance/2
                     # Ensure we don't exceed 10 or go below original
                     improved_score_value = min(10, max(score, improved_score))

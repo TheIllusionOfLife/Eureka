@@ -51,7 +51,7 @@ class NoveltyFilter:
     def _get_text_hash(self, text: str) -> str:
         """Generate hash for exact duplicate detection."""
         normalized = self._normalize_text(text)
-        return hashlib.md5(normalized.encode()).hexdigest()
+        return hashlib.md5(normalized.encode(), usedforsecurity=False).hexdigest()
     
     def _get_keywords(self, text: str) -> Set[str]:
         """Extract keywords from text."""

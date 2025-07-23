@@ -163,7 +163,7 @@ jobs:
       working-directory: web
       run: |
         echo "Verifying Docker builds..."
-        docker-compose build --no-cache
+        docker compose build --no-cache
 
   # Phase 4: Comprehensive testing - only run if builds pass
   backend-tests:

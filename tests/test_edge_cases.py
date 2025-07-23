@@ -199,7 +199,7 @@ def test_file_operations_edge_cases():
             
             try:
                 with open(non_existent, 'r') as f:
-                    content = f.read()
+                    _ = f.read()
                 print("❌ Non-existent file: Should have failed")
                 results.append(False)
             except FileNotFoundError:

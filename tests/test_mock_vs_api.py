@@ -18,7 +18,7 @@ def test_mock_mode():
         del os.environ['GOOGLE_API_KEY']
     
     try:
-        from madspark.agents.idea_generator import generate_ideas, GENAI_AVAILABLE
+        from madspark.agents.idea_generator import GENAI_AVAILABLE
         from madspark.agents.genai_client import get_genai_client
         
         print(f"✓ GENAI_AVAILABLE: {GENAI_AVAILABLE}")
@@ -54,7 +54,7 @@ def test_api_mode_simulation():
     os.environ['GOOGLE_API_KEY'] = 'fake-api-key-for-testing'
     
     try:
-        from madspark.agents.idea_generator import generate_ideas, GENAI_AVAILABLE
+        from madspark.agents.idea_generator import GENAI_AVAILABLE
         from madspark.agents.genai_client import get_genai_client
         
         print(f"✓ GENAI_AVAILABLE: {GENAI_AVAILABLE}")

@@ -1,6 +1,7 @@
 """Comprehensive tests for MadSpark coordinator modules."""
 import pytest
 import asyncio
+import os
 from unittest.mock import patch
 
 from madspark.core.coordinator import run_multistep_workflow

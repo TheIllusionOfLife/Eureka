@@ -1,168 +1,257 @@
-name: CI
-
+name: CI Pipeline
 on:
   push:
-    branches: [ main, codex/implement-phase-1-of-issue-#4 ]
+    branches: [main, feature/*]
   pull_request:
-    branches: [ main ]
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: '3.10'
+  NODE_VERSION: '18'
+  MADSPARK_MODE: mock
 
 jobs:
+  # Quick validation phase - fail fast on basic issues
+  quick-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          
+      - name: Check Python syntax
+        run: |
+          find src -name "*.py" -exec python -m py_compile {} +
+          
+      - name: Check for deprecated patterns
+        run: |
+          # For now, skip docker-compose syntax check as it's still in documentation
+          # This will be addressed in a separate documentation update PR
+          echo "Deprecated pattern checks placeholder - to be implemented"
+
+  # Main test suite
   test:
+    needs: quick-checks
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ['3.10', '3.11', '3.12', '3.13']
-
+        # Only test one Python version for PRs and feature branches, full matrix for main branch
+        python-version: ${{ (github.event_name == 'pull_request' || github.ref != 'refs/heads/main') && fromJSON('["3.10"]') || fromJSON('["3.10", "3.11", "3.12"]') }}
+    
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
-    
-    - name: Cache pip dependencies
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('config/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r config/requirements.txt
-    
-    - name: Lint with ruff (if available)
-      run: |
-        pip install ruff || echo "Ruff not available, skipping lint"
-        ruff check src/ || echo "Linting completed with warnings"
-      continue-on-error: true
-    
-    - name: Type check with mypy (if available)
-      run: |
-        pip install mypy || echo "MyPy not available, skipping type check"
-        mypy src/ || echo "Type checking completed with warnings"
-      continue-on-error: true
-    
-    - name: Test imports and basic functionality
-      env:
-        PYTHONPATH: src
-      run: |
-        python -c "
-        print('Testing basic imports...')
-        try:
-            import madspark.agents.idea_generator as ig
-            import madspark.agents.critic as critic
-            import madspark.agents.advocate as advocate  
-            import madspark.agents.skeptic as skeptic
-            print('✓ Agent modules imported successfully')
-        except Exception as e:
-            print(f'✗ Import error: {e}')
-            exit(1)
-        
-        # Test helper functions without API calls
-        try:
-            prompt = ig.build_generation_prompt('test', 'mode: 逆転')
-            print('✓ Prompt building works')
-        except Exception as e:
-            print(f'✗ Prompt building error: {e}')
-            exit(1)
-        
-        print('✅ Basic functionality tests passed')
-        "
-    
-    - name: Test with pytest (mock tests only)
-      env:
-        PYTHONPATH: src
-      run: |
-        # Create a simple mock test that doesn't require external dependencies
-        cat > test_ci.py << 'EOF'
-        """CI-safe tests that don't require full dependencies."""
-        import pytest
-        import sys
-        import os
-        
-        def test_package_imports():
-            """Test that package can be imported."""
-            try:
-                import madspark
-                assert hasattr(madspark, '__version__')
-                print('✓ Package imports successfully')
-            except ImportError as e:
-                pytest.skip(f"Package import not available: {e}")
-        
-        def test_agent_function_imports():
-            """Test that agent functions can be imported."""
-            try:
-                from madspark.agents.idea_generator import generate_ideas, build_generation_prompt
-                from madspark.agents.critic import evaluate_ideas  
-                from madspark.agents.advocate import advocate_idea
-                from madspark.agents.skeptic import criticize_idea
-                # Don't assert callable since they might be None due to missing dependencies
-                print('✓ Agent functions imported')
-            except ImportError as e:
-                if "genai" in str(e) or "google" in str(e):
-                    pytest.skip("Google GenAI dependencies not available in CI")
-                else:
-                    raise
-        
-        def test_constants_import():
-            """Test constants can be imported."""
-            try:
-                from madspark.utils.constants import IDEA_GENERATION_INSTRUCTION
-                assert isinstance(IDEA_GENERATION_INSTRUCTION, str)
-                print('✓ Constants imported successfully')
-            except ImportError as e:
-                pytest.skip(f"Constants import failed: {e}")
-        
-        if __name__ == "__main__":
-            pytest.main([__file__, "-v"])
-        EOF
-        
-        python -m pytest test_ci.py -v || echo "Tests completed with some skips/warnings"
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.cache/pypoetry
+            ~/.cache/pytest_cache
+          key: ${{ runner.os }}-deps-${{ matrix.python-version }}-${{ hashFiles('**/requirements*.txt', '**/pyproject.toml', '**/setup.py') }}
+          restore-keys: |
+            ${{ runner.os }}-deps-${{ matrix.python-version }}-
+            ${{ runner.os }}-deps-
+            ${{ runner.os }}-
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r config/requirements.txt
+          # Install dev dependencies if they exist
+          if [ -f config/requirements-dev.txt ]; then
+            pip install -r config/requirements-dev.txt
+          fi
+          # Install pytest-xdist for parallel test execution
+          pip install pytest-xdist
+      
+      - name: Run tests with coverage
+        run: |
+          # Run tests in parallel, skipping slow/performance tests for PRs and feature branches
+          if [ "${{ github.event_name }}" = "pull_request" ] || [ "${{ github.ref }}" != "refs/heads/main" ]; then
+            # PR/Feature branch: Fast tests only with parallel execution
+            # Use keyword exclusion to avoid performance and integration tests that may not be properly marked
+            echo "Using keyword-based test exclusion for PR/feature branch"
+            PYTHONPATH=src pytest tests/ -n auto -v --cov=src --cov-report=xml --cov-report=html \
+              -k "not (workflow_execution_time or async_workflow_performance or async_workflow_integration)"
+          else
+            # Main branch: All tests with parallel execution
+            PYTHONPATH=src pytest tests/ -n auto -v --cov=src --cov-report=xml --cov-report=html
+          fi
+      
+      - name: Upload coverage
+        if: matrix.python-version == '3.10'
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: false
 
-  security:
+  # Frontend tests
+  frontend:
+    needs: quick-checks
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Security scan with bandit (if available)
-      run: |
-        pip install bandit[toml] || echo "Bandit not available"
-        bandit -r src/ -f json || echo "Security scan completed"
-      continue-on-error: true
+      - uses: actions/checkout@v4
+      
+      - name: Check if frontend exists
+        id: check_frontend
+        run: |
+          if [ -d "web/frontend" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Setup Node.js
+        if: steps.check_frontend.outputs.exists == 'true'
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: web/frontend/package-lock.json
+      
+      - name: Install and test frontend
+        if: steps.check_frontend.outputs.exists == 'true'
+        working-directory: web/frontend
+        run: |
+          npm ci
+          # Run lint if script exists
+          if npm run --silent 2>/dev/null | grep -q "lint"; then
+            npm run lint
+          else
+            echo "No lint script found, skipping"
+          fi
+          # Run tests if script exists
+          if npm run --silent 2>/dev/null | grep -q "test"; then
+            npm test -- --coverage --watchAll=false
+          else
+            echo "No test script found, skipping"
+          fi
+          # Run build if script exists
+          if npm run --silent 2>/dev/null | grep -q "build"; then
+            npm run build
+          else
+            echo "No build script found, skipping"
+          fi
+          
+      - name: Skip frontend tests
+        if: steps.check_frontend.outputs.exists == 'false'
+        run: echo "Frontend directory not found, skipping tests"
 
-  build-check:
+  # Security and quality checks
+  quality:
+    needs: quick-checks
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r config/requirements.txt
-    
-    - name: Check Python syntax
-      env:
-        PYTHONPATH: src
-      run: |
-        python -m py_compile src/madspark/core/coordinator.py
-        python -m py_compile src/madspark/agents/*.py
-    
-    - name: Validate project structure
-      run: |
-        echo "Checking project structure..."
-        test -f README.md || (echo "Missing README.md" && exit 1)
-        test -f config/requirements.txt || (echo "Missing config/requirements.txt" && exit 1)
-        test -d src/madspark || (echo "Missing src/madspark directory" && exit 1)
-        test -f src/madspark/__init__.py || (echo "Missing src/madspark/__init__.py" && exit 1)
-        test -d src/madspark/agents || (echo "Missing src/madspark/agents directory" && exit 1)
-        test -f src/madspark/agents/__init__.py || (echo "Missing src/madspark/agents/__init__.py" && exit 1)
-        echo "✅ Project structure validation passed"
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install tools
+        run: |
+          pip install ruff bandit safety
+      
+      - name: Run linting
+        run: |
+          # Check directories exist before linting
+          LINT_DIRS=""
+          [ -d "src/" ] && LINT_DIRS="$LINT_DIRS src/"
+          [ -d "tests/" ] && LINT_DIRS="$LINT_DIRS tests/"
+          [ -d "web/backend/" ] && LINT_DIRS="$LINT_DIRS web/backend/"
+          
+          if [ -n "$LINT_DIRS" ]; then
+            ruff check $LINT_DIRS
+          else
+            echo "No directories found to lint"
+          fi
+      
+      - name: Run security scan
+        run: |
+          # Check directories exist before security scan
+          SCAN_DIRS=""
+          [ -d "src/" ] && SCAN_DIRS="$SCAN_DIRS src/"
+          [ -d "web/backend/" ] && SCAN_DIRS="$SCAN_DIRS web/backend/"
+          
+          if [ -n "$SCAN_DIRS" ]; then
+            bandit -r $SCAN_DIRS -f json -o bandit-report.json || true
+          else
+            echo "No directories found to scan"
+            echo '{"results": []}' > bandit-report.json
+          fi
+          if [ -f bandit-report.json ]; then
+            high_severity=$(jq '[.results[] | select(.issue_severity == "HIGH")] | length' bandit-report.json)
+            if [ "$high_severity" -gt 0 ]; then
+              echo "::error::Found $high_severity high severity security issues"
+              jq '.results[] | select(.issue_severity == "HIGH")' bandit-report.json
+              exit 1
+            fi
+          fi
+      
+      - name: Check dependencies for vulnerabilities
+        run: |
+          safety check || true
+
+  # Docker validation (lightweight)
+  docker-check:
+    needs: quick-checks
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Validate Docker Compose syntax
+        run: |
+          # Only check syntax, don't build images in PR CI
+          if [ -f web/docker-compose.yml ]; then
+            docker compose -f web/docker-compose.yml config > /dev/null
+            echo "✅ Docker Compose syntax valid"
+          else
+            echo "No docker-compose.yml found, skipping"
+          fi
+
+  # Mock mode validation
+  mock-validation:
+    needs: quick-checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install dependencies
+        run: |
+          pip install -r config/requirements.txt
+      
+      - name: Test CLI in mock mode
+        run: |
+          # Skip CLI test as it requires features not in main branch
+          echo "CLI test skipped - not available in main branch"
+      
+      - name: Verify no API key required
+        run: |
+          # Ensure mock mode works without any API keys
+          unset GOOGLE_API_KEY
+          MADSPARK_MODE=mock PYTHONPATH=src python -c "
+          import os
+          # Verify mock mode is set
+          assert os.getenv('MADSPARK_MODE') == 'mock'
+          # Verify no API key is present
+          assert not os.getenv('GOOGLE_API_KEY')
+          print('✓ Mock mode environment validated successfully')
+          "

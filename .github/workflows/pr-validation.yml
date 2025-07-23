@@ -1,0 +1,208 @@
+name: PR Validation
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  pr-size-check:
+    runs-on: ubuntu-latest
+    outputs:
+      size_ok: ${{ steps.check.outputs.size_ok }}
+      
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Check PR Size
+        id: check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const maxFiles = 20;
+            const maxChanges = 500;
+            
+            // Get PR diff to analyze files
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number
+            });
+            
+            // Categorize files
+            const testFiles = files.filter(f => 
+              f.filename.includes('/test') || 
+              f.filename.includes('test_') ||
+              f.filename.endsWith('.test.ts') ||
+              f.filename.endsWith('.test.tsx')
+            );
+            
+            // CI/Infrastructure files get higher limits
+            const ciFiles = files.filter(f => 
+              f.filename.startsWith('.github/workflows/') ||
+              f.filename.includes('ci-policy') ||
+              f.filename === 'CLAUDE.md' ||
+              f.filename === 'README.md'
+            );
+            
+            const regularFiles = files.filter(f => !testFiles.includes(f) && !ciFiles.includes(f));
+            const totalChanges = pr.additions + pr.deletions;
+            
+            let sizeOk = true;
+            let message = '## 📏 PR Size Analysis\n\n';
+            
+            // Check if this is primarily a CI/infrastructure PR
+            const isCiPr = ciFiles.length >= files.length * 0.7; // 70% of files are CI-related
+            const maxFilesLimit = isCiPr ? 50 : maxFiles; // Higher limit for CI PRs
+            const maxChangesLimit = isCiPr ? 2000 : maxChanges; // Higher limit for CI PRs
+            
+            // Check regular files with appropriate limits
+            if (files.length <= maxFilesLimit && totalChanges <= maxChangesLimit) {
+              message += `✅ **Size Check Passed**\n\n`;
+              if (isCiPr) {
+                message += `*CI/Infrastructure PR - using extended limits*\n\n`;
+              }
+            } else {
+              sizeOk = false;
+              message += `❌ **Size Check Failed**\n\n`;
+              
+              if (files.length > maxFilesLimit) {
+                message += `- 📁 Too many files changed: ${files.length} (limit: ${maxFilesLimit})\n`;
+              }
+              if (totalChanges > maxChangesLimit) {
+                message += `- 📊 Too many line changes: ${totalChanges} (limit: ${maxChangesLimit})\n`;
+              }
+            }
+            
+            // File breakdown
+            message += `### File Breakdown\n`;
+            message += `- Regular files: ${regularFiles.length}\n`;
+            message += `- Test files: ${testFiles.length}\n`;
+            message += `- CI/Infrastructure files: ${ciFiles.length}\n`;
+            message += `- Total changes: +${pr.additions} -${pr.deletions}\n\n`;
+            
+            // Suggestions for large PRs
+            if (!sizeOk) {
+              message += `### 💡 Suggestions\n`;
+              message += `Consider splitting this PR:\n`;
+              message += `1. Group related changes together\n`;
+              message += `2. Separate features from tests\n`;
+              message += `3. Split by component or module\n`;
+            }
+            
+            // Set output
+            core.setOutput('size_ok', sizeOk);
+            
+            // Post comment
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number
+            });
+            
+            const botComment = comments.data.find(c => 
+              c.user.type === 'Bot' && c.body.includes('PR Size Analysis')
+            );
+            
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: message
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body: message
+              });
+            }
+            
+            if (!sizeOk) {
+              core.setFailed('PR exceeds size limits');
+            }
+
+  pr-checklist:
+    runs-on: ubuntu-latest
+    needs: pr-size-check
+    if: always()
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Generate PR Checklist
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const sizeOk = '${{ needs.pr-size-check.outputs.size_ok }}' === 'true';
+            
+            let checklist = '## ✅ Automated PR Checklist\n\n';
+            
+            // Size check
+            checklist += sizeOk ? '✅ ' : '❌ ';
+            checklist += 'PR size within limits\n';
+            
+            // Check PR description
+            const hasDescription = pr.body && pr.body.length > 50;
+            checklist += hasDescription ? '✅ ' : '❌ ';
+            checklist += 'PR has detailed description\n';
+            
+            // Check for issue reference
+            const hasIssueRef = pr.body && /#\d+/.test(pr.body);
+            checklist += hasIssueRef ? '✅ ' : '⚠️ ';
+            checklist += 'References related issue\n';
+            
+            // Check for tests
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number
+            });
+            
+            const hasTests = files.some(f => f.filename.includes('test'));
+            checklist += hasTests ? '✅ ' : '⚠️ ';
+            checklist += 'Includes test changes\n';
+            
+            // Manual checklist reminder
+            checklist += '\n### 📋 Manual Checklist\n';
+            checklist += 'Please ensure:\n';
+            checklist += '- [ ] Tests pass locally\n';
+            checklist += '- [ ] Code follows project conventions\n';
+            checklist += '- [ ] Documentation updated if needed\n';
+            checklist += '- [ ] No sensitive data exposed\n';
+            
+            // Find or update checklist comment
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number
+            });
+            
+            const checklistComment = comments.data.find(c => 
+              c.user.type === 'Bot' && c.body.includes('Automated PR Checklist')
+            );
+            
+            if (checklistComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: checklistComment.id,
+                body: checklist
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body: checklist
+              });
+            }

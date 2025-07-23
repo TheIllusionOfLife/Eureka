@@ -4,7 +4,6 @@ This module defines the Idea Generator agent and its associated tools.
 The agent is responsible for generating novel ideas based on a given topic
 and contextual information.
 """
-import os
 import logging
 from typing import Any
 
@@ -19,10 +18,10 @@ except ImportError:
     types = None
     GENAI_AVAILABLE = False
 try:
-    from madspark.utils.errors import IdeaGenerationError, ValidationError, ConfigurationError
+    from madspark.utils.errors import ValidationError
 except ImportError:
     # Fallback for local development/testing
-    from errors import IdeaGenerationError, ValidationError, ConfigurationError
+    from errors import ValidationError
 
 # Import prompt constants from constants module
 try:
@@ -147,7 +146,8 @@ def generate_ideas(topic: str, context: str, temperature: float = 0.9) -> str:
         return f"Mock idea generated for topic '{topic}' with context '{context}' at temperature {temperature}"
   
   if idea_generator_client is None:
-    raise ConfigurationError("GOOGLE_API_KEY not configured - cannot generate ideas")
+    from madspark.utils.errors import ConfigurationError
+    raise ConfigurationError("Idea generator client is not configured but GENAI is enabled")
   
   try:
     # Create the generation config with system instruction
@@ -193,7 +193,7 @@ def build_improvement_prompt(
     A formatted prompt string for idea improvement.
   """
   return (
-      f"You are helping to enhance an innovative idea based on comprehensive feedback.\n" +
+      "You are helping to enhance an innovative idea based on comprehensive feedback.\n" +
       LANGUAGE_CONSISTENCY_INSTRUCTION +
       f"ORIGINAL THEME: {theme}\n\n"
       f"ORIGINAL IDEA:\n{original_idea}\n\n"
@@ -283,12 +283,9 @@ def improve_idea(
       theme=theme
   )
   
-  if not GENAI_AVAILABLE:
+  if not GENAI_AVAILABLE or idea_generator_client is None:
     # Return mock improvement for CI/testing environments
     return f"Improved version of: {original_idea}\n\nEnhancements based on feedback:\n- Addressed critique points\n- Incorporated advocacy strengths\n- Resolved skeptical concerns"
-  
-  if idea_generator_client is None:
-    raise ConfigurationError("GOOGLE_API_KEY not configured - cannot improve ideas")
   
   try:
     # Create the generation config with module-level safety settings

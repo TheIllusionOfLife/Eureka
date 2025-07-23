@@ -7,7 +7,7 @@ import re
 import json
 import time
 import logging
-from typing import Any, Dict, List, Optional, Callable, TypeVar, cast
+from typing import Any, Dict, List, Optional, Callable, TypeVar
 from functools import wraps
 
 T = TypeVar('T')
@@ -87,6 +87,10 @@ def parse_json_with_fallback(
         List of parsed dictionaries
     """
     results: List[Dict[str, Any]] = []
+    
+    # Handle None or empty input
+    if text is None or text == "":
+        return []
     
     # Strategy 1: Try to parse as a complete JSON array
     try:

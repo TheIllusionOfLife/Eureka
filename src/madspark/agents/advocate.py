@@ -4,9 +4,7 @@ This module defines the Advocate agent and its associated tools.
 The agent is responsible for constructing persuasive arguments in favor of
 an idea, considering its evaluation and context.
 """
-import os
 import logging
-from typing import Any
 
 # Optional import for Google GenAI - graceful fallback for CI/testing
 try:
@@ -20,12 +18,10 @@ except ImportError:
 
 try:
     from madspark.utils.constants import ADVOCATE_EMPTY_RESPONSE, ADVOCATE_SYSTEM_INSTRUCTION, LANGUAGE_CONSISTENCY_INSTRUCTION
-    from madspark.utils.errors import ConfigurationError
     from madspark.agents.genai_client import get_genai_client, get_model_name
 except ImportError:
     # Fallback for local development/testing
     from constants import ADVOCATE_EMPTY_RESPONSE, ADVOCATE_SYSTEM_INSTRUCTION, LANGUAGE_CONSISTENCY_INSTRUCTION
-    from errors import ConfigurationError
     from .genai_client import get_genai_client, get_model_name
 
 # Configure the Google GenAI client
@@ -95,7 +91,8 @@ def advocate_idea(idea: str, evaluation: str, context: str, temperature: float =
         return "STRENGTHS:\n• Mock strength 1\n• Mock strength 2\n\nOPPORTUNITIES:\n• Mock opportunity 1\n• Mock opportunity 2\n\nADDRESSING CONCERNS:\n• Mock mitigation 1\n• Mock mitigation 2"
   
   if advocate_client is None:
-    raise ConfigurationError("GOOGLE_API_KEY not configured - cannot advocate ideas")
+    from madspark.utils.errors import ConfigurationError
+    raise ConfigurationError("Advocate client is not configured but GENAI is enabled")
   
   try:
     config = types.GenerateContentConfig(

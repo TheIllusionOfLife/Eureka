@@ -35,8 +35,8 @@ def test_package_imports():
 def test_core_module_imports():
     """Test that core modules can be imported."""
     try:
-        from madspark.core.coordinator import run_multistep_workflow
-        from madspark.core.async_coordinator import AsyncCoordinator
+        from madspark.core.coordinator import run_multistep_workflow  # noqa: F401
+        from madspark.core.async_coordinator import AsyncCoordinator  # noqa: F401
         print('✓ Core modules imported successfully')
     except ImportError as e:
         if "genai" in str(e) or "google" in str(e):
@@ -48,10 +48,10 @@ def test_core_module_imports():
 def test_agent_function_imports():
     """Test that agent functions can be imported."""
     try:
-        from madspark.agents.idea_generator import generate_ideas, build_generation_prompt
-        from madspark.agents.critic import evaluate_ideas  
-        from madspark.agents.advocate import advocate_idea
-        from madspark.agents.skeptic import criticize_idea
+        from madspark.agents.idea_generator import generate_ideas, build_generation_prompt  # noqa: F401
+        from madspark.agents.critic import evaluate_ideas  # noqa: F401
+        from madspark.agents.advocate import advocate_idea  # noqa: F401
+        from madspark.agents.skeptic import criticize_idea  # noqa: F401
         print('✓ Agent functions imported')
     except ImportError as e:
         if "genai" in str(e) or "google" in str(e):
@@ -64,9 +64,9 @@ def test_utils_imports():
     """Test that utility modules can be imported."""
     try:
         from madspark.utils.constants import IDEA_GENERATION_INSTRUCTION
-        from madspark.utils.utils import exponential_backoff_retry, parse_json_with_fallback
-        from madspark.utils.temperature_control import TemperatureManager
-        from madspark.utils.bookmark_system import BookmarkManager
+        from madspark.utils.utils import exponential_backoff_retry, parse_json_with_fallback  # noqa: F401
+        from madspark.utils.temperature_control import TemperatureManager  # noqa: F401
+        from madspark.utils.bookmark_system import BookmarkManager  # noqa: F401
         assert isinstance(IDEA_GENERATION_INSTRUCTION, str)
         print('✓ Utility modules imported successfully')
     except ImportError as e:
@@ -76,8 +76,8 @@ def test_utils_imports():
 def test_cli_imports():
     """Test that CLI modules can be imported."""
     try:
-        from madspark.cli.cli import main
-        from madspark.cli.interactive_mode import run_interactive_workflow
+        from madspark.cli.cli import main  # noqa: F401
+        from madspark.cli.interactive_mode import run_interactive_mode  # noqa: F401
         print('✓ CLI modules imported successfully')
     except ImportError as e:
         if "genai" in str(e) or "google" in str(e):

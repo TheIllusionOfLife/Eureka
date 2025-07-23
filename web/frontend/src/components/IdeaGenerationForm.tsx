@@ -1,32 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
-import { SavedBookmark } from '../services/bookmarkService';
+import { showError } from '../utils/toast';
 
-interface FormData {
-  theme: string;
-  constraints: string;
-  num_top_candidates: number;
-  enable_novelty_filter: boolean;
-  novelty_threshold: number;
-  temperature_preset: string | null;
-  temperature: number | null;
-  enhanced_reasoning: boolean;
-  multi_dimensional_eval: boolean;
-  logical_inference: boolean;
-  verbose: boolean;
-  show_detailed_results: boolean;
-  bookmark_ids?: string[];
-}
-
-interface TemperaturePreset {
-  [key: string]: {
-    idea_generation: number;
-    evaluation: number;
-    advocacy: number;
-    skepticism: number;
-    description: string;
-  };
-}
+import { FormData, TemperaturePreset, SavedBookmark } from '../types';
 
 interface IdeaGenerationFormProps {
   onSubmit: (data: FormData) => void;
@@ -60,7 +36,9 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({
     show_detailed_results: false,
   });
 
-  const [temperaturePresets, setTemperaturePresets] = useState<TemperaturePreset>({});
+  const [temperaturePresets, setTemperaturePresets] = useState<Record<string, TemperaturePreset>>({});
+  const [presetsLoading, setPresetsLoading] = useState(true);
+  const [presetsError, setPresetsError] = useState<string | null>(null);
   const [useCustomTemperature, setUseCustomTemperature] = useState(false);
   const [useBookmarks, setUseBookmarks] = useState(false);
 
@@ -68,13 +46,22 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({
   useEffect(() => {
     const loadPresets = async () => {
       try {
+        setPresetsLoading(true);
+        setPresetsError(null);
         const response = await api.get('/api/temperature-presets');
-        console.log('Temperature presets response:', response.data);
+        // Temperature presets loaded successfully
         if (response.data.status === 'success' && response.data.presets) {
           setTemperaturePresets(response.data.presets);
+        } else {
+          throw new Error('Invalid presets response format');
         }
       } catch (error) {
         console.error('Failed to load temperature presets:', error);
+        const errorMessage = 'Failed to load creativity presets. Using default presets.';
+        setPresetsError(errorMessage);
+        showError(errorMessage);
+      } finally {
+        setPresetsLoading(false);
       }
     };
     loadPresets();
@@ -195,28 +182,50 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({
             </div>
             
             {!useCustomTemperature && (
-              <select
-                name="temperature_preset"
-                value={formData.temperature_preset || 'balanced'}
-                onChange={handleInputChange}
-                className="ml-6 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              >
-                <option value="">Select a preset...</option>
-                {Object.keys(temperaturePresets).length > 0 ? (
-                  Object.entries(temperaturePresets).map(([key, preset]) => (
-                    <option key={key} value={key}>
-                      {key.charAt(0).toUpperCase() + key.slice(1)} - {(preset as any).description || `${key} preset`}
-                    </option>
-                  ))
-                ) : (
-                  <>
-                    <option value="conservative">Conservative - Low creativity, focused ideas</option>
-                    <option value="balanced">Balanced - Moderate creativity (default)</option>
-                    <option value="creative">Creative - High creativity, innovative ideas</option>
-                    <option value="wild">Wild - Maximum creativity, experimental ideas</option>
-                  </>
+              <div className="ml-6 relative">
+                <select
+                  name="temperature_preset"
+                  value={formData.temperature_preset || 'balanced'}
+                  onChange={handleInputChange}
+                  disabled={presetsLoading}
+                  className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {presetsLoading ? (
+                    <option value="">Loading presets...</option>
+                  ) : (
+                    <>
+                      <option value="">Select a preset...</option>
+                      {Object.keys(temperaturePresets).length > 0 ? (
+                        Object.entries(temperaturePresets).map(([key, preset]) => (
+                          <option key={key} value={key}>
+                            {key.charAt(0).toUpperCase() + key.slice(1)} - {(preset as any).description || `${key} preset`}
+                          </option>
+                        ))
+                      ) : (
+                        <>
+                          <option value="conservative">Conservative - Low creativity, focused ideas</option>
+                          <option value="balanced">Balanced - Moderate creativity (default)</option>
+                          <option value="creative">Creative - High creativity, innovative ideas</option>
+                          <option value="wild">Wild - Maximum creativity, experimental ideas</option>
+                        </>
+                      )}
+                    </>
+                  )}
+                </select>
+                {presetsLoading && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <svg className="animate-spin h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  </div>
                 )}
-              </select>
+                {presetsError && (
+                  <p className="mt-1 text-xs text-amber-600">
+                    ⚠️ {presetsError}
+                  </p>
+                )}
+              </div>
             )}
 
             <div className="flex items-center">

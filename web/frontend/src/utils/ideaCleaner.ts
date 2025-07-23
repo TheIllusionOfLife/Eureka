@@ -14,20 +14,11 @@ import {
   CLEANER_TITLE_KEYWORDS,
   CLEANER_REPLACEMENT_PATTERNS
 } from '../constants';
+import { CompiledPatterns } from '../types';
 
-// Legacy aliases for backward compatibility
-const META_HEADERS = CLEANER_META_HEADERS;
-const META_PHRASES = CLEANER_META_PHRASES;
-
-// Compiled regex patterns cache
-interface CompiledPatterns {
-  replacementPatterns: Array<[RegExp, string]>;
-  frameworkPattern: RegExp;
-  titleExtractionPattern: RegExp;
-  titleReplacementPattern: RegExp;
-  metaHeaderPatterns: RegExp[];
-  metaPhrasePatterns: RegExp[];
-}
+// Legacy aliases for backward compatibility - kept for potential future use
+// const META_HEADERS = CLEANER_META_HEADERS;
+// const META_PHRASES = CLEANER_META_PHRASES;
 
 let compiledPatternsCache: CompiledPatterns | null = null;
 

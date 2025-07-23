@@ -6,15 +6,13 @@ This module implements advanced reasoning capabilities including:
 - Multi-dimensional evaluation metrics
 - Agent memory and conversation tracking
 """
-import json
 import logging
 import hashlib
 import datetime
-from typing import Dict, List, Any, Optional, Union, TypedDict
+from typing import Dict, List, Any, Optional, TypedDict
 from dataclasses import dataclass, field
 from collections import defaultdict
 import re
-import math
 
 # Configure logging for enhanced reasoning
 reasoning_logger = logging.getLogger(__name__)
@@ -42,7 +40,7 @@ class ContextData:
         if not self.context_id:
             # Generate unique context ID based on content and timestamp
             content = f"{self.agent}_{self.input_data}_{self.output_data}_{self.timestamp}"
-            self.context_id = hashlib.md5(content.encode()).hexdigest()[:12]
+            self.context_id = hashlib.md5(content.encode(), usedforsecurity=False).hexdigest()[:12]
 
 
 @dataclass
@@ -330,7 +328,7 @@ class LogicalInference:
             # Default to simple connection
             return InferenceStep(
                 premise=f"{premise1} AND {premise2}",
-                conclusion=f"Therefore, both conditions apply",
+                conclusion="Therefore, both conditions apply",
                 confidence=0.6,
                 reasoning="Simple conjunction of premises"
             )

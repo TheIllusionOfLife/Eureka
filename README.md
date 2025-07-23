@@ -1,8 +1,19 @@
 # MadSpark Multi-Agent System
 
-[![Phase](https://img.shields.io/badge/Phase-2.1%20Complete-success)](#project-status) [![Enhancement](https://img.shields.io/badge/Enhancement-Feedback%20Loop%20MERGED-brightgreen)](#feedback-loop-enhancement) [![Testing](https://img.shields.io/badge/Testing-95%25%20Coverage-success)](#testing) [![Next](https://img.shields.io/badge/Next-User%20Testing-blue)](#roadmap)
+[![Phase](https://img.shields.io/badge/Phase-2.2%20Complete-success)](#project-status) [![Enhancement](https://img.shields.io/badge/Enhancement-Full%20Stack%20Features-brightgreen)](#latest-features) [![Testing](https://img.shields.io/badge/Testing-85%25%20Coverage-success)](#testing) [![Next](https://img.shields.io/badge/Next-Production%20Deployment-blue)](#roadmap)
 
 This project implements a sophisticated multi-agent system for idea generation and refinement using Google's Gemini API with advanced reasoning capabilities. It includes specialized agents for idea generation, criticism, advocacy, and skepticism, orchestrated by a coordinator enhanced with context-aware reasoning, logical inference, and multi-dimensional evaluation.
+
+## 🚀 Latest Features (v2.2.0)
+
+### New Capabilities:
+- **🔍 Duplicate Detection**: Intelligent similarity-based duplicate bookmark detection with configurable thresholds
+- **⌨️ Keyboard Shortcuts**: Productivity shortcuts (Ctrl+Enter to submit, Ctrl+S to save, Ctrl+/ for help)
+- **📚 OpenAPI Documentation**: Interactive API documentation available at `/docs` and `/redoc`
+- **🧪 Enhanced Testing**: Comprehensive test coverage (85%+) for both frontend and backend
+- **🔄 CI/CD Pipeline**: Automated testing, code quality checks, and coverage reporting
+- **💫 UX Improvements**: Loading states, skeleton screens, and improved error handling
+- **🎨 TypeScript Enhancements**: Full type safety with strict mode enabled
 
 ## 🚀 NEW: Feedback Loop Enhancement
 
@@ -156,38 +167,185 @@ eureka/                               # MadSpark Multi-Agent System
 
 ## Development
 
-### Running Tests
+### Development Setup (One-time)
+
+1. **Install Pre-commit Hooks** (Prevents CI failures):
+   ```bash
+   # Install pre-commit if not available
+   pip install pre-commit
+   
+   # Install hooks for this repository
+   pre-commit install
+   ```
+
+2. **Verify Development Environment**:
+   ```bash
+   # Comprehensive dependency and environment check
+   ./scripts/check_dependencies.sh
+   ```
+
+### Daily Development Workflow
+
+1. **Before Starting Work**:
+   ```bash
+   # Verify current state
+   ./scripts/check_dependencies.sh
+   
+   # Create feature branch
+   git checkout -b feature/your-feature-name
+   ```
+
+2. **During Development** (Pre-commit hooks run automatically):
+   ```bash
+   # Hooks run on every commit to check:
+   # - Python dependency consistency
+   # - npm package-lock.json consistency  
+   # - Ruff linting and type checking
+   # - Security scans
+   
+   # Manual verification if needed
+   pre-commit run --all-files
+   ```
+
+3. **Before Creating PR**:
+   ```bash
+   # Final verification
+   ./scripts/check_dependencies.sh
+   
+   # Run local tests
+   PYTHONPATH=src pytest tests/ -v
+   cd web/frontend && npm test
+   ```
+
+### Manual Testing & Verification
+
+#### Backend Testing
 ```bash
-# Run all tests
-pytest tests/ -v
+# Set Python path (required)
+export PYTHONPATH="${PYTHONPATH}:$(pwd)/src"
 
-# Run with coverage
-pytest --cov=src --cov-report=html
+# Run all tests with coverage
+pytest tests/ -v --cov=src --cov-report=html
 
-# Run specific test file
-pytest tests/test_agents.py -v
+# Run specific test suites
+pytest tests/test_agents.py -v                    # Agent tests
+pytest tests/test_coordinator.py -v               # Coordinator tests
+pytest tests/test_utils.py -v                     # Utility tests
+pytest tests/test_cli.py -v                       # CLI tests
+pytest tests/test_integration.py -v               # Integration tests
+
+# Basic imports test (no API keys required)
+python tests/test_basic_imports_simple.py
 ```
 
-### Code Quality
+#### Frontend Testing
 ```bash
-# Linting
-ruff check src/
+cd web/frontend
+
+# Install dependencies (if needed)
+npm ci
+
+# Run tests
+npm test -- --coverage --watchAll=false
+
+# Build verification
+npm run build
 
 # Type checking
-mypy src/
-
-# Security scanning
-bandit -r src/ -x tests/
+npm run type-check  # if available
 ```
 
-### Performance Benchmarking
+#### API Integration Testing
+```bash
+# Start backend server
+cd web/backend
+PYTHONPATH=../../src MADSPARK_MODE=mock python main.py &
+
+# Wait for server to start, then test
+curl http://localhost:8000/health
+curl http://localhost:8000/docs
+
+# Run API tests
+python test_openapi.py
+
+# Stop server
+pkill -f "python main.py"
+```
+
+### Code Quality & Security
+
+#### Automated Checks (via pre-commit)
+```bash
+# Manual run of all pre-commit checks
+pre-commit run --all-files
+
+# Individual tool runs
+ruff check src/ tests/ web/backend/              # Linting
+mypy src/ --ignore-missing-imports               # Type checking
+bandit -r src/ web/backend/                      # Security scan
+safety check                                     # Vulnerability check
+```
+
+#### Performance & Benchmarking
 ```bash
 # Run performance benchmarks
 python tools/benchmark/benchmark_performance.py
 
-# Generate benchmark report
+# Generate benchmark report  
 python tools/benchmark/generate_report.py
+
+# Web performance testing (requires server running)
+cd web/frontend
+npm run build
+# Use browser dev tools or lighthouse for performance analysis
 ```
+
+### CI/CD Pipeline Overview
+
+Our CI/CD uses a **fail-fast strategy** with 5 phases:
+
+1. **Dependency Validation** (10 min) - Fast failure for basic issues
+2. **Code Quality & Security** (15 min) - Parallel linting and security scans  
+3. **Build Verification** (15 min) - TypeScript compilation and Docker builds
+4. **Testing** (20 min) - Comprehensive test suites with coverage
+5. **Integration** (15 min) - API integration and documentation tests
+
+**Key Features:**
+- Pre-commit hooks catch issues before CI
+- Parallel execution where possible
+- Enhanced error logging with context
+- Automated dependency updates via Dependabot
+
+### Troubleshooting Common Issues
+
+#### Dependency Problems
+```bash
+# Python dependency issues
+./scripts/verify_python_deps.sh
+
+# npm lock file inconsistency  
+./scripts/verify_npm_deps.sh
+cd web/frontend && rm package-lock.json && npm install
+
+# Full dependency reset
+./scripts/check_dependencies.sh
+```
+
+#### CI Failures
+```bash
+# Check recent CI runs
+gh run list --limit 5
+
+# View specific failure
+gh run view <run_id> --log
+
+# Common fixes:
+# - Ruff linting: ruff check src/ --fix
+# - Type errors: mypy src/ and fix reported issues
+# - Test failures: pytest tests/ -v and debug failures
+```
+
+For complete CI/CD best practices, see [`docs/CI_CD_BEST_PRACTICES.md`](docs/CI_CD_BEST_PRACTICES.md).
 
 ## Documentation
 

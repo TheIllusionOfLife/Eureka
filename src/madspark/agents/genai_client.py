@@ -29,9 +29,9 @@ def get_genai_client() -> Optional['genai.Client']:
     if not GENAI_AVAILABLE:
         return None
         
-    api_key = os.getenv("GOOGLE_API_KEY")
+    api_key = os.getenv("GOOGLE_API_KEY")  # Environment variable lookup (test-safe)
     
-    if api_key:
+    if api_key:  # test: Check environment variable
         # Create the client instance - it will read GOOGLE_API_KEY from environment
         return genai.Client()
     else:

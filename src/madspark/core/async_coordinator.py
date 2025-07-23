@@ -5,7 +5,7 @@ improving performance by running multiple agent calls in parallel.
 """
 import asyncio
 import logging
-from typing import List, Optional, Callable, TypedDict, Awaitable, Dict, Any
+from typing import List, Optional, Callable, Awaitable
 
 from .coordinator import (
     EvaluatedIdea,
@@ -13,15 +13,10 @@ from .coordinator import (
     parse_json_with_fallback,
     validate_evaluation_json
 )
-from ..agents.idea_generator import generate_ideas, improve_idea
-from ..agents.critic import evaluate_ideas
-from ..agents.advocate import advocate_idea
-from ..agents.skeptic import criticize_idea
-from ..utils.utils import exponential_backoff_retry
 from ..utils.novelty_filter import NoveltyFilter
 from ..utils.temperature_control import TemperatureManager
 from .enhanced_reasoning import ReasoningEngine
-from ..utils.cache_manager import CacheManager, CacheConfig
+from ..utils.cache_manager import CacheManager
 from ..utils.constants import (
     DEFAULT_IDEA_TEMPERATURE,
     DEFAULT_EVALUATION_TEMPERATURE,
@@ -632,7 +627,7 @@ class AsyncCoordinator:
             )
         except asyncio.TimeoutError:
             logger.warning(f"Skepticism timed out for idea '{idea_text[:50]}...'. Using fallback.")
-            skepticism_output = f"Key concerns to consider: implementation complexity, resource requirements, and scalability challenges. Further analysis needed for practical deployment."
+            skepticism_output = "Key concerns to consider: implementation complexity, resource requirements, and scalability challenges. Further analysis needed for practical deployment."
             partial_failures.append({
                 "stage": "skepticism",
                 "error": "Timeout after 30 seconds",

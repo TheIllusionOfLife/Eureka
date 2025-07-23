@@ -6,7 +6,7 @@ import hashlib
 import json
 import logging
 import time
-from typing import Any, Dict, Optional, Union, Callable, Tuple
+from typing import Any, Dict, Optional, Callable
 from collections import OrderedDict
 import threading
 
@@ -121,7 +121,7 @@ class PerformanceCache:
             'kwargs': sorted(kwargs.items())
         }
         key_str = json.dumps(key_data, sort_keys=True, default=str)
-        return hashlib.md5(key_str.encode()).hexdigest()
+        return hashlib.md5(key_str.encode(), usedforsecurity=False).hexdigest()
     
     def get(self, key: str) -> Optional[Any]:
         """Get value from cache with logging."""
@@ -236,7 +236,7 @@ class PerformanceOptimizer:
     @staticmethod
     def optimize_json_parsing(json_str: str) -> Any:
         """Optimized JSON parsing with caching."""
-        cache_key = hashlib.md5(json_str.encode()).hexdigest()
+        cache_key = hashlib.md5(json_str.encode(), usedforsecurity=False).hexdigest()
         
         cached_result = performance_cache.get(cache_key)
         if cached_result is not None:

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ProgressUpdate } from '../App';
+import { ProgressUpdate } from '../types';
 
 interface ProgressIndicatorProps {
   progress: ProgressUpdate | null;
@@ -8,7 +8,7 @@ interface ProgressIndicatorProps {
 
 const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({ progress, isLoading }) => {
   const getProgressPercentage = () => {
-    if (progress) {
+    if (progress && progress.progress !== undefined) {
       return Math.round(progress.progress * 100);
     }
     return 0;

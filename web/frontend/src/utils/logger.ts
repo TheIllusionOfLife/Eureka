@@ -3,16 +3,7 @@
  * Provides structured logging with different levels and contexts
  */
 
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
-
-export interface LogEntry {
-  level: LogLevel;
-  message: string;
-  context?: string;
-  data?: any;
-  timestamp: string;
-  sessionId: string;
-}
+import { LogLevel, LogEntry } from '../types';
 
 class Logger {
   private logs: LogEntry[] = [];

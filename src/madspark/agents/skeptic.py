@@ -4,9 +4,7 @@ This module defines the Skeptic agent (Devil's Advocate) and its tools.
 The agent is responsible for critically analyzing ideas, challenging assumptions,
 and identifying potential flaws or risks.
 """
-import os
 import logging
-from typing import Any
 
 # Optional import for Google GenAI - graceful fallback for CI/testing
 try:
@@ -20,12 +18,10 @@ except ImportError:
 
 try:
     from madspark.utils.constants import SKEPTIC_EMPTY_RESPONSE, SKEPTIC_SYSTEM_INSTRUCTION, LANGUAGE_CONSISTENCY_INSTRUCTION
-    from madspark.utils.errors import ConfigurationError
     from madspark.agents.genai_client import get_genai_client, get_model_name
 except ImportError:
     # Fallback for local development/testing
     from constants import SKEPTIC_EMPTY_RESPONSE, SKEPTIC_SYSTEM_INSTRUCTION, LANGUAGE_CONSISTENCY_INSTRUCTION
-    from errors import ConfigurationError
     from .genai_client import get_genai_client, get_model_name
 
 # Configure the Google GenAI client
@@ -101,7 +97,9 @@ def criticize_idea(idea: str, advocacy: str, context: str, temperature: float = 
         return "CRITICAL FLAWS:\n• Mock flaw 1\n• Mock flaw 2\n\nRISKS & CHALLENGES:\n• Mock risk 1\n• Mock risk 2\n\nQUESTIONABLE ASSUMPTIONS:\n• Mock assumption 1\n• Mock assumption 2\n\nMISSING CONSIDERATIONS:\n• Mock missing factor 1\n• Mock missing factor 2"
   
   if skeptic_client is None:
-    raise ConfigurationError("GOOGLE_API_KEY not configured - cannot criticize ideas")
+    from madspark.utils.errors import ConfigurationError
+    raise ConfigurationError("Skeptic client is not configured but GENAI is enabled")
+  
   
   try:
     config = types.GenerateContentConfig(

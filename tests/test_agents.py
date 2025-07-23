@@ -1,8 +1,7 @@
 """Comprehensive tests for MadSpark agent modules."""
 import pytest
 import json
-from unittest.mock import Mock, patch, MagicMock
-from typing import Dict, Any
+from unittest.mock import Mock, patch
 
 # Import the agent functions we want to test
 from madspark.agents.idea_generator import generate_ideas, build_generation_prompt
@@ -38,29 +37,30 @@ class TestIdeaGenerator:
         mock_client.models.generate_content.return_value = mock_response
         return mock_client
     
-    @patch('madspark.agents.idea_generator.genai')
-    def test_generate_ideas_success(self, mock_genai, mock_genai_client):
+    @patch('madspark.agents.idea_generator.GENAI_AVAILABLE', True)
+    @patch('madspark.agents.idea_generator.idea_generator_client')
+    def test_generate_ideas_success(self, mock_client):
         """Test successful idea generation."""
-        mock_genai.Client.return_value = mock_genai_client
+        mock_response = Mock()
+        mock_response.text = "Test Idea 1\nTest Idea 2"
+        mock_client.models.generate_content.return_value = mock_response
         
         result = generate_ideas("AI automation", "Cost-effective solutions")
         
         assert result is not None
-        assert len(result["ideas"]) == 2
-        assert result["ideas"][0]["title"] == "Test Idea 1"
-        assert result["ideas"][1]["innovation_score"] == 9
+        assert isinstance(result, str)
+        assert "Test Idea" in result
         
-    @patch('madspark.agents.idea_generator.genai')
-    def test_generate_ideas_api_error(self, mock_genai):
+    @patch('madspark.agents.idea_generator.GENAI_AVAILABLE', True)
+    @patch('madspark.agents.idea_generator.idea_generator_client')
+    def test_generate_ideas_api_error(self, mock_client):
         """Test idea generation with API error."""
-        mock_client = Mock()
         mock_client.models.generate_content.side_effect = Exception("API Error")
-        mock_genai.Client.return_value = mock_client
         
         result = generate_ideas("AI automation", "Cost-effective solutions")
         
-        # Should return empty structure or handle gracefully
-        assert result is None or "error" in result
+        # Should return empty string when API fails
+        assert result == ""
         
     def test_build_generation_prompt(self):
         """Test prompt building functionality."""
@@ -146,37 +146,20 @@ class TestCritic:
             }
         ]
     
-    @patch('madspark.agents.critic.genai')
-    def test_evaluate_ideas_success(self, mock_genai, sample_ideas):
+    @patch('madspark.agents.critic.GENAI_AVAILABLE', True)
+    @patch('madspark.agents.critic.critic_client')
+    def test_evaluate_ideas_success(self, mock_client, sample_ideas):
         """Test successful idea evaluation."""
-        mock_client = Mock()
         mock_response = Mock()
-        mock_response.text = json.dumps({
-            "evaluations": [
-                {
-                    "idea_title": "AI-Powered Assistant",
-                    "overall_score": 7.5,
-                    "strengths": ["Practical application", "Market demand"],
-                    "weaknesses": ["High competition", "Technical complexity"]
-                },
-                {
-                    "idea_title": "Smart Home Integration",
-                    "overall_score": 8.0,
-                    "strengths": ["Growing market", "Clear value proposition"],
-                    "weaknesses": ["Privacy concerns", "Hardware dependencies"]
-                }
-            ]
-        })
+        mock_response.text = '{"score": 8, "comment": "Mock evaluation for testing"}'
         mock_client.models.generate_content.return_value = mock_response
-        mock_genai.Client.return_value = mock_client
         
-        result = evaluate_ideas(sample_ideas)
+        result = evaluate_ideas(str(sample_ideas), "innovation and feasibility", "technology startup context")
         
         assert result is not None
-        assert len(result["evaluations"]) == 2
-        assert result["evaluations"][0]["overall_score"] == 7.5
-        assert "strengths" in result["evaluations"][0]
-        assert "weaknesses" in result["evaluations"][0]
+        assert isinstance(result, str)
+        # Since the actual function returns a JSON string, not a parsed dict
+        assert '"score"' in result and '"comment"' in result
 
 
 class TestAdvocate:
@@ -192,36 +175,21 @@ class TestAdvocate:
             "feasibility_score": 8
         }
     
-    @patch('madspark.agents.advocate.genai')
-    def test_advocate_idea_success(self, mock_genai, sample_idea):
+    @patch('madspark.agents.advocate.GENAI_AVAILABLE', True)
+    @patch('madspark.agents.advocate.advocate_client')
+    def test_advocate_idea_success(self, mock_client, sample_idea):
         """Test successful idea advocacy."""
-        mock_client = Mock()
         mock_response = Mock()
-        mock_response.text = json.dumps({
-            "advocacy": {
-                "key_strengths": [
-                    "Addresses real productivity challenges",
-                    "Scalable business model",
-                    "Strong market demand"
-                ],
-                "value_proposition": "Significantly improves workplace efficiency",
-                "market_potential": "Large and growing market segment",
-                "competitive_advantages": [
-                    "Advanced AI capabilities",
-                    "User-friendly interface"
-                ]
-            }
-        })
+        mock_response.text = "STRENGTHS:\n• Mock strength 1\n• Mock strength 2"
         mock_client.models.generate_content.return_value = mock_response
-        mock_genai.Client.return_value = mock_client
         
-        result = advocate_idea(sample_idea)
+        result = advocate_idea(str(sample_idea), "positive evaluation with high potential", "technology startup context")
         
         assert result is not None
-        assert "advocacy" in result
-        assert len(result["advocacy"]["key_strengths"]) == 3
-        assert "value_proposition" in result["advocacy"]
-        assert "market_potential" in result["advocacy"]
+        assert isinstance(result, str)
+        # Since the actual function returns formatted text, not JSON
+        assert "STRENGTHS:" in result
+        assert "Mock strength" in result
 
 
 class TestSkeptic:
@@ -237,39 +205,21 @@ class TestSkeptic:
             "feasibility_score": 8
         }
     
-    @patch('madspark.agents.skeptic.genai')
-    def test_criticize_idea_success(self, mock_genai, sample_idea):
+    @patch('madspark.agents.skeptic.GENAI_AVAILABLE', True)
+    @patch('madspark.agents.skeptic.skeptic_client')
+    def test_criticize_idea_success(self, mock_client, sample_idea):
         """Test successful idea criticism."""
-        mock_client = Mock()
         mock_response = Mock()
-        mock_response.text = json.dumps({
-            "criticism": {
-                "key_concerns": [
-                    "High development costs",
-                    "Strong competition from established players",
-                    "Technical complexity and maintenance"
-                ],
-                "risk_assessment": "Medium to high risk due to market saturation",
-                "potential_failures": [
-                    "User adoption challenges",
-                    "Accuracy and reliability issues"
-                ],
-                "implementation_challenges": [
-                    "Data privacy compliance",
-                    "Integration complexity"
-                ]
-            }
-        })
+        mock_response.text = "CRITICAL FLAWS:\n• Mock flaw 1\n• Mock flaw 2"
         mock_client.models.generate_content.return_value = mock_response
-        mock_genai.Client.return_value = mock_client
         
-        result = criticize_idea(sample_idea)
+        result = criticize_idea(str(sample_idea), "strong advocacy arguments with market potential", "technology startup context")
         
         assert result is not None
-        assert "criticism" in result
-        assert len(result["criticism"]["key_concerns"]) == 3
-        assert "risk_assessment" in result["criticism"]
-        assert "potential_failures" in result["criticism"]
+        assert isinstance(result, str)
+        # Since the actual function returns formatted text, not JSON
+        assert "CRITICAL FLAWS:" in result
+        assert "Mock flaw" in result
 
 
 class TestAgentIntegration:
@@ -277,43 +227,46 @@ class TestAgentIntegration:
     
     def test_agent_error_handling(self):
         """Test that agents handle errors gracefully."""
-        # Test with invalid input
-        result = generate_ideas("", "")
-        assert result is None or "error" in result
+        # Test with invalid input - should raise ValidationError
+        from madspark.utils.errors import ValidationError
         
-        # Test with None input
-        result = evaluate_ideas(None)
-        assert result is None or "error" in result
+        try:
+            _ = generate_ideas("", "")
+            assert False, "Should have raised ValidationError"
+        except ValidationError as e:
+            assert "topic" in str(e)  # Expected behavior
+        
+        # Test with None input - these should raise ValueError, so we need to catch them
+        try:
+            _ = evaluate_ideas(None, "criteria", "context")
+            assert False, "Should have raised ValueError"
+        except ValueError:
+            pass  # Expected behavior
     
-    @patch('madspark.agents.idea_generator.genai')
-    @patch('madspark.agents.critic.genai')
-    def test_workflow_integration(self, mock_critic_genai, mock_gen_genai):
+    @patch('madspark.agents.idea_generator.GENAI_AVAILABLE', True)
+    @patch('madspark.agents.idea_generator.idea_generator_client')
+    @patch('madspark.agents.critic.GENAI_AVAILABLE', True)
+    @patch('madspark.agents.critic.critic_client')
+    def test_workflow_integration(self, mock_critic_client, mock_gen_client):
         """Test basic workflow integration between agents."""
         # Mock idea generation
-        mock_gen_client = Mock()
         mock_gen_response = Mock()
-        mock_gen_response.text = json.dumps({
-            "ideas": [{"title": "Test Idea", "description": "Test description"}]
-        })
+        mock_gen_response.text = "Test Idea 1\nTest Idea 2"
         mock_gen_client.models.generate_content.return_value = mock_gen_response
-        mock_gen_genai.Client.return_value = mock_gen_client
         
         # Mock critic evaluation
-        mock_critic_client = Mock()
         mock_critic_response = Mock()
-        mock_critic_response.text = json.dumps({
-            "evaluations": [{"idea_title": "Test Idea", "overall_score": 8.0}]
-        })
+        mock_critic_response.text = '{"score": 8, "comment": "Good idea"}'
         mock_critic_client.models.generate_content.return_value = mock_critic_response
-        mock_critic_genai.Client.return_value = mock_critic_client
         
         # Test the workflow
         ideas = generate_ideas("AI automation", "Cost-effective")
         assert ideas is not None
+        assert isinstance(ideas, str)
         
-        evaluations = evaluate_ideas(ideas["ideas"])
+        evaluations = evaluate_ideas(ideas, "innovation and market potential", "startup technology context")
         assert evaluations is not None
-        assert len(evaluations["evaluations"]) == 1
+        assert isinstance(evaluations, str)
 
 
 class TestLanguageMatching:

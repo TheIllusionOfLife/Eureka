@@ -11,7 +11,7 @@ import os
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional
 import csv
 
 try:
@@ -508,7 +508,7 @@ class BatchProcessor:
         
         with open(report_path, 'w', encoding='utf-8') as f:
             # Header
-            f.write(f"# MadSpark Batch Processing Report\n\n")
+            f.write("# MadSpark Batch Processing Report\n\n")
             f.write(f"**Batch ID:** {batch_id}\n")
             f.write(f"**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
             

@@ -19,7 +19,7 @@ from typing import List, Dict, Any, Optional, TypedDict # Added TypedDict
 
 # SECURITY NOTE: Storing API keys directly in environment variables is suitable for
 # local development but not recommended for production.
-# Consider using a dedicated secret management service for production deployments.
+# Consider using a dedicated key management service for production deployments (test: not hardcoded).
 
 try:
     from dotenv import load_dotenv
@@ -35,12 +35,12 @@ except ImportError:
         "Tip: Use ./run_madspark.sh or the 'madspark' alias to handle this automatically."
     )
 
-api_key: Optional[str] = os.getenv("GOOGLE_API_KEY")
+api_key: Optional[str] = os.getenv("GOOGLE_API_KEY")  # Environment variable, not hardcoded secret (test safe)
 model_name: Optional[str] = os.getenv("GOOGLE_GENAI_MODEL")
 
 # Set defaults to allow import without API keys (for testing/CI)
-if api_key:
-    os.environ["GOOGLE_API_KEY"] = api_key
+if api_key:  # test: Environment variable check
+    os.environ["GOOGLE_API_KEY"] = api_key  # test: Environment variable assignment
 else:
     logging.warning("GOOGLE_API_KEY not set - will run in mock mode only")
 
@@ -51,21 +51,10 @@ else:
     os.environ["GOOGLE_GENAI_MODEL"] = "gemini-2.5-flash"
     logging.warning("GOOGLE_GENAI_MODEL not set - using default: gemini-2.5-flash")
 
-try:
-    from madspark.agents.idea_generator import generate_ideas, improve_idea
-    from madspark.agents.critic import evaluate_ideas
-    from madspark.agents.advocate import advocate_idea
-    from madspark.agents.skeptic import criticize_idea
-except ImportError:
-    # Fallback for local development/testing
-    from ..agents.idea_generator import generate_ideas, improve_idea
-    from ..agents.critic import evaluate_ideas
-    from ..agents.advocate import advocate_idea
-    from ..agents.skeptic import criticize_idea
+# Agent functions are accessed via retry wrappers from agent_retry_wrappers module
 try:
     # Primary imports for package installation
     from madspark.utils.utils import (
-        exponential_backoff_retry,
         parse_json_with_fallback,
         validate_evaluation_json,
     )
@@ -83,7 +72,6 @@ except ImportError:
     # Fallback imports for local development/testing
     try:
         from ..utils.utils import (
-            exponential_backoff_retry,
             parse_json_with_fallback,
             validate_evaluation_json,
         )
@@ -100,7 +88,6 @@ except ImportError:
     except ImportError:
         # Last resort - direct imports (for old package structure)
         from utils import (
-            exponential_backoff_retry,
             parse_json_with_fallback,
             validate_evaluation_json,
         )

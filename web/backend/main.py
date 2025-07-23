@@ -10,47 +10,103 @@ import json
 import logging
 import os
 import random
+import uuid
 import sys
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Request
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Request, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
-from pydantic import BaseModel, Field, validator, ValidationError
+from fastapi.openapi.utils import get_openapi
+from pydantic import BaseModel, Field, validator
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 import html
 
-# Import MadSpark modules
-# Add the parent directory to the path for imports
-madspark_path = os.environ.get('MADSPARK_PATH', '/madspark')
-src_path = os.path.join(madspark_path, 'src') if madspark_path else None
+# Import OpenAPI enhancements
+try:
+    from openapi_enhancements import (
+        API_EXAMPLES, API_TAGS, ENDPOINT_DESCRIPTIONS, 
+        get_openapi_customization
+    )
+except ImportError:
+    API_EXAMPLES = {}
+    API_TAGS = []
+    ENDPOINT_DESCRIPTIONS = {}
+    def get_openapi_customization():
+        return {}
 
-if src_path and os.path.exists(src_path):
-    sys.path.insert(0, src_path)
-elif madspark_path and os.path.exists(madspark_path):
-    sys.path.insert(0, madspark_path)
-else:
-    # Fallback for local development - point to the src directory
-    parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    src_dir = os.path.join(parent_dir, 'src')
-    if os.path.exists(src_dir):
-        sys.path.insert(0, src_dir)
-    sys.path.insert(0, parent_dir)
+# Import MadSpark modules
+# Add the parent directory to the path for imports with security validation
+def validate_and_add_path():
+    """Securely validate and add MadSpark path to sys.path"""
+    madspark_path = os.environ.get('MADSPARK_PATH', '/madspark')
+    
+    # Security: Validate path to prevent directory traversal
+    if madspark_path:
+        # Normalize path to resolve any ../ or ./ components
+        normalized_path = os.path.normpath(madspark_path)
+        
+        # Security check: Reject paths with traversal attempts
+        if '..' in normalized_path or not os.path.isabs(normalized_path):
+            logging.warning(f"Rejected potentially unsafe MADSPARK_PATH: {madspark_path}")
+            madspark_path = None
+        else:
+            madspark_path = normalized_path
+    
+    src_path = os.path.join(madspark_path, 'src') if madspark_path else None
+
+    if src_path and os.path.exists(src_path):
+        sys.path.insert(0, src_path)
+        logging.info(f"Added to Python path: {src_path}")
+    elif madspark_path and os.path.exists(madspark_path):
+        sys.path.insert(0, madspark_path)
+        logging.info(f"Added to Python path: {madspark_path}")
+    else:
+        # Fallback for local development - point to the src directory
+        parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        src_dir = os.path.join(parent_dir, 'src')
+        if os.path.exists(src_dir):
+            sys.path.insert(0, src_dir)
+            logging.info(f"Added fallback path: {src_dir}")
+
+validate_and_add_path()
+
+def sanitize_for_logging(text: str, max_length: int = 50) -> str:
+    """Sanitize text for secure logging by redacting sensitive information"""
+    if not text:
+        return "[EMPTY]"
+    
+    # Remove any potential sensitive patterns
+    import re
+    # Remove potential API keys, emails, phone numbers, etc.
+    sensitive_patterns = [
+        r'[A-Za-z0-9]{32,}',  # Long alphanumeric strings (potential tokens)
+        r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}',  # Email addresses
+        r'\b\d{3}-\d{2}-\d{4}\b',  # SSN pattern
+        r'\b\d{3}-\d{3}-\d{4}\b',  # Phone number pattern
+    ]
+    
+    sanitized = text
+    for pattern in sensitive_patterns:
+        sanitized = re.sub(pattern, '[REDACTED]', sanitized)
+    
+    # Truncate if too long
+    if len(sanitized) > max_length:
+        return f"[TRUNCATED:{len(text)} chars]"
+    
+    return sanitized
 
 try:
-    from madspark.core.coordinator import run_multistep_workflow
     from madspark.core.async_coordinator import AsyncCoordinator
     from madspark.utils.temperature_control import TemperatureManager
     from madspark.core.enhanced_reasoning import ReasoningEngine
     from madspark.utils.constants import (
-        DEFAULT_IDEA_TEMPERATURE,
-        DEFAULT_EVALUATION_TEMPERATURE,
         DIMENSION_SCORES_KEY,
         FEASIBILITY_KEY,
         INNOVATION_KEY,
@@ -68,13 +124,10 @@ except ImportError as e:
     logging.error(f"Failed to import MadSpark modules: {e}")
     # Try alternative paths for different deployment scenarios
     try:
-        from src.madspark.core.coordinator import run_multistep_workflow
         from src.madspark.core.async_coordinator import AsyncCoordinator
         from src.madspark.utils.temperature_control import TemperatureManager
         from src.madspark.core.enhanced_reasoning import ReasoningEngine
         from src.madspark.utils.constants import (
-            DEFAULT_IDEA_TEMPERATURE,
-            DEFAULT_EVALUATION_TEMPERATURE,
             DIMENSION_SCORES_KEY,
             FEASIBILITY_KEY,
             INNOVATION_KEY,
@@ -180,27 +233,27 @@ def generate_mock_results(theme: str, num_ideas: int) -> List[Dict[str, Any]]:
     results = []
     for i in range(min(num_ideas, len(base_ideas))):
         base_score = 6.5 + (i * 0.5)
-        improved_score = base_score + 1.5 + (random.random() * 0.8)
+        improved_score = base_score + 1.5 + (random.random() * 0.8)  # nosec B311
         
         result = {
             "idea": base_ideas[i],
             "initial_score": round(base_score, 1),
-            "initial_critique": f"Interesting concept but needs more detail on implementation and feasibility",
+            "initial_critique": "Interesting concept but needs more detail on implementation and feasibility",
             "advocacy": f"This solution addresses key challenges in {theme} with innovative thinking",
-            "skepticism": f"Implementation costs and technical complexity may be barriers",
+            "skepticism": "Implementation costs and technical complexity may be barriers",
             "improved_idea": f"{base_ideas[i]}. Enhanced with AI-driven optimization, real-time monitoring, and adaptive learning capabilities for maximum efficiency",
             "improved_score": round(improved_score, 1),
-            "improved_critique": f"Comprehensive solution with clear benefits and implementation pathway",
+            "improved_critique": "Comprehensive solution with clear benefits and implementation pathway",
             "score_delta": round(improved_score - base_score, 1),
             "multi_dimensional_evaluation": {
                 "dimension_scores": {
-                    "feasibility": round(7 + random.random() * 2, 1),
-                    "innovation": round(8 + random.random() * 1.5, 1),
-                    "impact": round(7.5 + random.random() * 2, 1),
-                    "cost_effectiveness": round(6.5 + random.random() * 2, 1),
-                    "scalability": round(7 + random.random() * 2.5, 1),
-                    "risk_assessment": round(6 + random.random() * 2, 1),
-                    "timeline": round(7 + random.random() * 1.5, 1)
+                    "feasibility": round(7 + random.random() * 2, 1),  # nosec B311
+                    "innovation": round(8 + random.random() * 1.5, 1),  # nosec B311
+                    "impact": round(7.5 + random.random() * 2, 1),  # nosec B311
+                    "cost_effectiveness": round(6.5 + random.random() * 2, 1),  # nosec B311
+                    "scalability": round(7 + random.random() * 2.5, 1),  # nosec B311
+                    "risk_assessment": round(6 + random.random() * 2, 1),  # nosec B311
+                    "timeline": round(7 + random.random() * 1.5, 1)  # nosec B311
                 },
                 "overall_score": round(base_score + 0.5, 1),
                 "confidence_interval": {
@@ -242,10 +295,10 @@ def format_results_for_frontend(results: List[Dict[str, Any]]) -> List[Dict[str,
                     TIMELINE_KEY: dimension_scores.get(TIMELINE_KEY, 5)
                 },
                 'overall_score': multi_eval.get('weighted_score', 5),
-                'confidence_interval': {
-                    'lower': multi_eval.get('weighted_score', 5) - multi_eval.get('confidence_interval', 1),
-                    'upper': multi_eval.get('weighted_score', 5) + multi_eval.get('confidence_interval', 1)
-                }
+                'confidence_interval': multi_eval.get('confidence_interval', {
+                    'lower': multi_eval.get('weighted_score', 5) - 1,
+                    'upper': multi_eval.get('weighted_score', 5) + 1
+                })
             }
             
             # Generate improved multi-dimensional evaluation based on score improvement
@@ -262,7 +315,7 @@ def format_results_for_frontend(results: List[Dict[str, Any]]) -> List[Dict[str,
                     base_improvement = (improvement_factor - 1) * score
                     # Add some variance to make it more realistic
                     variance = 0.1 * score  # 10% variance
-                    random_factor = random.uniform(-0.5, 0.5)  # Random between -0.5 and +0.5
+                    random_factor = random.uniform(-0.5, 0.5)  # Random between -0.5 and +0.5  # nosec B311
                     improved_score = score + base_improvement + random_factor * variance  # Random between -variance/2 and +variance/2
                     # Ensure we don't exceed 10 or go below original
                     improved_score_value = min(10, max(score, improved_score))
@@ -361,13 +414,57 @@ app.add_middleware(
     compresslevel=6     # Balanced compression level (1-9, 6 is good balance)
 )
 
-# Middleware to add session ID to requests
+# Middleware to add security headers and session ID
 @app.middleware("http")
-async def add_session_id(request: Request, call_next):
-    # Generate a simple session ID for each request
-    request.state.session_id = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{random.randint(1000, 9999)}"
-    response = await call_next(request)
-    return response
+async def add_security_headers(request: Request, call_next):
+    """Enhanced security headers middleware with comprehensive error handling."""
+    # Generate a cryptographically secure session ID for each request
+    # Using UUID4 for uniqueness and unpredictability
+    request.state.session_id = str(uuid.uuid4())
+    
+    try:
+        response = await call_next(request)
+        
+        # Add security headers
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline'; "
+            "style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data: https:; "
+            "connect-src 'self' ws: wss:;"
+        )
+        
+        # Add session ID to response headers for client tracking if needed
+        response.headers["X-Session-ID"] = request.state.session_id
+        
+        # Remove potentially sensitive server information
+        if "server" in response.headers:
+            del response.headers["server"]
+        
+        return response
+        
+    except Exception as e:
+        # Enhanced error logging for middleware issues
+        session_id = getattr(request.state, 'session_id', 'unknown')
+        client_ip = request.client.host if request.client else 'unknown'
+        user_agent = request.headers.get('user-agent', 'unknown')
+        
+        logging.error(
+            f"Middleware error in security headers: {type(e).__name__}: {e}\n"
+            f"Session ID: {session_id}\n"
+            f"Client IP: {client_ip}\n"
+            f"User Agent: {user_agent}\n"
+            f"Request path: {request.url.path}\n"
+            f"Request method: {request.method}",
+            exc_info=True
+        )
+        
+        # Re-raise the exception to maintain FastAPI's error handling behavior
+        raise
 
 
 # Pydantic models for API requests and responses
@@ -405,7 +502,7 @@ class IdeaGenerationRequest(BaseModel):
     bookmark_ids: Optional[List[str]] = Field(default=None, description="Bookmark IDs to use for remix context")
 
     class Config:
-        allow_population_by_field_name = True  # Accept both alias and original names
+        populate_by_name = True  # Accept both alias and original names (Pydantic V2)
 
 
 class IdeaGenerationResponse(BaseModel):
@@ -449,7 +546,7 @@ class BookmarkRequest(BaseModel):
     notes: Optional[str] = Field(default=None, max_length=500, description="Additional notes")
 
     class Config:
-        allow_population_by_field_name = True  # Accept both alias and original names
+        populate_by_name = True  # Accept both alias and original names (Pydantic V2)
     
     @validator('idea', 'improved_idea', 'theme', 'constraints', 'initial_critique', 'improved_critique', 'advocacy', 'skepticism', 'notes')
     def sanitize_html(cls, v):
@@ -468,6 +565,59 @@ class BookmarkResponse(BaseModel):
     status: str
     message: str
     bookmark_id: Optional[str] = None
+
+
+class SimilarBookmark(BaseModel):
+    """Information about a similar bookmark."""
+    id: str
+    text: str
+    theme: str
+    similarity_score: float
+    match_type: str
+    matched_features: List[str]
+
+
+class DuplicateCheckRequest(BaseModel):
+    """Request model for duplicate checking."""
+    idea: str = Field(..., min_length=10, max_length=10000, description="Idea text to check for duplicates")
+    theme: str = Field(
+        ...,
+        min_length=1,
+        max_length=200,
+        description="Topic/theme of the idea",
+        alias="topic"
+    )
+    similarity_threshold: Optional[float] = Field(default=0.8, ge=0.1, le=1.0, description="Custom similarity threshold")
+
+    class Config:
+        populate_by_name = True
+
+    @validator('idea', 'theme')
+    def sanitize_html(cls, v):
+        if v is None:
+            return None
+        return html.escape(v.strip())
+
+
+class DuplicateCheckResponse(BaseModel):
+    """Response model for duplicate checking."""
+    status: str
+    has_duplicates: bool
+    similar_count: int
+    recommendation: str  # 'block', 'warn', 'notice', 'allow'
+    similarity_threshold: float
+    similar_bookmarks: List[SimilarBookmark]
+    message: str
+
+
+class EnhancedBookmarkResponse(BaseModel):
+    """Enhanced bookmark response with duplicate detection info."""
+    status: str
+    message: str
+    bookmark_id: Optional[str] = None
+    bookmark_created: bool
+    duplicate_check: Optional[Dict[str, Any]] = None
+    similar_bookmarks: List[SimilarBookmark] = []
 
 
 class WebSocketManager:
@@ -569,7 +719,40 @@ async def health_check():
         )
 
 
-@app.get("/api/temperature-presets")
+@app.get(
+    "/api/temperature-presets",
+    tags=["configuration"],
+    summary="Get temperature presets",
+    description=ENDPOINT_DESCRIPTIONS.get("get_temperature_presets", ""),
+    responses={
+        200: {
+            "description": "Temperature presets retrieved successfully",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "status": "success",
+                        "presets": {
+                            "conservative": {
+                                "idea_generation": 0.3,
+                                "evaluation": 0.2,
+                                "advocacy": 0.4,
+                                "skepticism": 0.6,
+                                "description": "Low creativity, focused on practical ideas"
+                            },
+                            "balanced": {
+                                "idea_generation": 0.7,
+                                "evaluation": 0.5,
+                                "advocacy": 0.6,
+                                "skepticism": 0.5,
+                                "description": "Moderate creativity (default)"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+)
 async def get_temperature_presets():
     """Get available temperature presets."""
     try:
@@ -595,7 +778,26 @@ async def get_temperature_presets():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/generate-ideas", response_model=IdeaGenerationResponse)
+@app.post(
+    "/api/generate-ideas", 
+    response_model=IdeaGenerationResponse,
+    tags=["idea-generation"],
+    summary="Generate creative ideas",
+    description=ENDPOINT_DESCRIPTIONS.get("generate_ideas", ""),
+    responses={
+        200: {
+            "description": "Ideas generated successfully",
+            "content": {
+                "application/json": {
+                    "example": API_EXAMPLES.get("idea_generation_response", {}).get("value", {})
+                }
+            }
+        },
+        422: {"$ref": "#/components/responses/ValidationError"},
+        429: {"$ref": "#/components/responses/RateLimitError"},
+        500: {"description": "Internal server error"}
+    }
+)
 @limiter.limit("5/minute")  # Allow 5 idea generation requests per minute
 async def generate_ideas(request: Request, idea_request: IdeaGenerationRequest):
     """Generate ideas using the async MadSpark multi-agent workflow."""
@@ -603,7 +805,12 @@ async def generate_ideas(request: Request, idea_request: IdeaGenerationRequest):
     
     # Check if running in mock mode - check environment variable properly
     google_api_key = os.environ.get("GOOGLE_API_KEY", "").strip()
-    if not google_api_key or google_api_key == "your-api-key-here":
+    environment = os.getenv('ENVIRONMENT', '').lower()
+    if (not google_api_key or 
+        google_api_key == "your-api-key-here" or 
+        google_api_key.startswith('mock-') or 
+        google_api_key.startswith('test-') or
+        environment in ['test', 'ci', 'mock']):
         logger.info("Running in mock mode - returning sample results")
         mock_results = generate_mock_results(idea_request.theme, idea_request.num_top_candidates)
         return IdeaGenerationResponse(
@@ -798,6 +1005,134 @@ async def generate_ideas_async(request: Request, idea_request: IdeaGenerationReq
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post(
+    "/api/bookmarks/check-duplicates", 
+    response_model=DuplicateCheckResponse,
+    tags=["bookmarks"],
+    summary="Check for duplicate ideas",
+    description=ENDPOINT_DESCRIPTIONS.get("check_duplicates", ""),
+    responses={
+        200: {
+            "description": "Duplicate check completed",
+            "content": {
+                "application/json": {
+                    "examples": {
+                        "no_duplicates": API_EXAMPLES.get("duplicate_check", {}).get("response_no_duplicates", {}),
+                        "with_duplicates": API_EXAMPLES.get("duplicate_check", {}).get("response_with_duplicates", {})
+                    }
+                }
+            }
+        },
+        422: {"$ref": "#/components/responses/ValidationError"},
+        429: {"$ref": "#/components/responses/RateLimitError"}
+    }
+)
+@limiter.limit("15/minute")  # Allow 15 duplicate checks per minute
+async def check_bookmark_duplicates(request: Request, duplicate_request: DuplicateCheckRequest):
+    """Check for potential duplicate bookmarks."""
+    try:
+        # Initialize bookmark manager with custom similarity threshold if provided
+        if duplicate_request.similarity_threshold:
+            bookmark_manager = BookmarkManager(
+                bookmark_system.bookmark_file, 
+                duplicate_request.similarity_threshold
+            )
+        else:
+            bookmark_manager = bookmark_system
+        
+        # Check for duplicates
+        duplicate_result = bookmark_manager.check_for_duplicates(
+            duplicate_request.idea,
+            duplicate_request.theme
+        )
+        
+        # Convert to API response format
+        similar_bookmarks = []
+        for similar in duplicate_result.similar_bookmarks:
+            bookmark = bookmark_manager.get_bookmark(similar.bookmark_id)
+            if bookmark:
+                similar_bookmarks.append(SimilarBookmark(
+                    id=similar.bookmark_id,
+                    text=bookmark.text[:300] + '...' if len(bookmark.text) > 300 else bookmark.text,
+                    theme=bookmark.theme,
+                    similarity_score=similar.similarity_score,
+                    match_type=similar.match_type,
+                    matched_features=similar.matched_features
+                ))
+        
+        # Generate appropriate message
+        message = "No similar bookmarks found."
+        if duplicate_result.recommendation == "block":
+            message = f"Potential duplicate detected! Found {len(similar_bookmarks)} very similar bookmark(s)."
+        elif duplicate_result.recommendation == "warn":
+            message = f"Similar bookmarks found. Found {len(similar_bookmarks)} bookmark(s) with high similarity."
+        elif duplicate_result.recommendation == "notice":
+            message = f"Some similar bookmarks found. Found {len(similar_bookmarks)} bookmark(s) with moderate similarity."
+        
+        return DuplicateCheckResponse(
+            status="success",
+            has_duplicates=duplicate_result.has_duplicates,
+            similar_count=len(similar_bookmarks),
+            recommendation=duplicate_result.recommendation,
+            similarity_threshold=duplicate_result.similarity_threshold,
+            similar_bookmarks=similar_bookmarks,
+            message=message
+        )
+        
+    except Exception as e:
+        error_context = {
+            'idea_length': len(duplicate_request.idea),
+            'theme': duplicate_request.theme,
+            'error_type': type(e).__name__
+        }
+        error_tracker.track_error('duplicate_check', str(e), error_context)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/bookmarks/similar")
+@limiter.limit("20/minute")  # Allow 20 similarity searches per minute
+async def find_similar_bookmarks(
+    request: Request,
+    idea: str = Query(..., min_length=10, description="Idea text to find similar bookmarks for"),
+    theme: str = Query(..., min_length=1, description="Theme of the idea"),
+    max_results: int = Query(default=5, ge=1, le=20, description="Maximum number of results")
+):
+    """Find bookmarks similar to the given idea text."""
+    try:
+        similar_bookmarks_data = bookmark_system.find_similar_bookmarks(
+            idea, theme, max_results
+        )
+        
+        # Convert to API response format
+        similar_bookmarks = []
+        for bookmark_data in similar_bookmarks_data:
+            similar_bookmarks.append(SimilarBookmark(
+                id=bookmark_data['id'],
+                text=bookmark_data['text'][:300] + '...' if len(bookmark_data['text']) > 300 else bookmark_data['text'],
+                theme=bookmark_data['theme'],
+                similarity_score=bookmark_data['similarity_score'],
+                match_type=bookmark_data['match_type'],
+                matched_features=bookmark_data['matched_features']
+            ))
+        
+        return {
+            "status": "success",
+            "similar_bookmarks": similar_bookmarks,
+            "total_found": len(similar_bookmarks),
+            "search_idea": idea[:100] + '...' if len(idea) > 100 else idea
+        }
+        
+    except Exception as e:
+        error_context = {
+            'idea_length': len(idea),
+            'theme': theme,
+            'max_results': max_results,
+            'error_type': type(e).__name__
+        }
+        error_tracker.track_error('similar_search', str(e), error_context)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/bookmarks")
 @limiter.limit("30/minute")  # Allow 30 requests per minute for reading bookmarks
 async def get_bookmarks(request: Request, tags: Optional[str] = None):
@@ -835,35 +1170,81 @@ async def get_bookmarks(request: Request, tags: Optional[str] = None):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/bookmarks", response_model=BookmarkResponse)
+@app.post("/api/bookmarks", response_model=EnhancedBookmarkResponse)
 @limiter.limit("10/minute")  # Allow 10 bookmark creations per minute
-async def create_bookmark(request: Request, bookmark_request: BookmarkRequest):
-    """Create a new bookmark."""
+async def create_bookmark(
+    request: Request, 
+    bookmark_request: BookmarkRequest,
+    check_duplicates: bool = Query(default=True, description="Enable duplicate detection"),
+    force_save: bool = Query(default=False, description="Force save even if duplicates found")
+):
+    """Create a new bookmark with optional duplicate detection."""
     try:
-        # Log the request for debugging (only non-sensitive fields)
-        logger.info(f"Bookmark request received for theme='{bookmark_request.theme}' with {len(bookmark_request.tags)} tags.")
+        # Log the request for debugging (sanitized for security)
+        sanitized_theme = sanitize_for_logging(bookmark_request.theme, 30)
+        logger.info(f"Bookmark request received for theme='{sanitized_theme}' with {len(bookmark_request.tags)} tags.")
         
         # Use improved idea if available, otherwise use original
         idea_text = bookmark_request.improved_idea if bookmark_request.improved_idea is not None else bookmark_request.idea
         score = bookmark_request.improved_score if bookmark_request.improved_score is not None else bookmark_request.initial_score
         critique = bookmark_request.improved_critique if bookmark_request.improved_critique is not None else bookmark_request.initial_critique
         
-        bookmark_id = bookmark_system.bookmark_idea(
-            idea_text=idea_text,
-            theme=bookmark_request.theme,
-            constraints=bookmark_request.constraints,
-            score=round(score, 1),  # Keep precision but convert to compatible format
-            critique=critique or "",
-            advocacy=bookmark_request.advocacy or "",
-            skepticism=bookmark_request.skepticism or "",
-            tags=bookmark_request.tags
-        )
-        
-        return BookmarkResponse(
-            status="success",
-            message="Bookmark created successfully",
-            bookmark_id=bookmark_id
-        )
+        if check_duplicates:
+            # Use enhanced bookmark creation with duplicate detection
+            result = bookmark_system.bookmark_idea_with_duplicate_check(
+                idea_text=idea_text,
+                theme=bookmark_request.theme,
+                constraints=bookmark_request.constraints,
+                score=round(score, 1),
+                critique=critique or "",
+                advocacy=bookmark_request.advocacy or "",
+                skepticism=bookmark_request.skepticism or "",
+                tags=bookmark_request.tags,
+                force_save=force_save
+            )
+            
+            # Convert similar bookmarks to API format
+            similar_bookmarks = []
+            for similar in result['similar_bookmarks']:
+                similar_bookmarks.append(SimilarBookmark(
+                    id=similar['id'],
+                    text=similar['text'],
+                    theme=similar['theme'],
+                    similarity_score=similar['similarity_score'],
+                    match_type=similar['match_type'],
+                    matched_features=[]  # Simplified for API response
+                ))
+            
+            return EnhancedBookmarkResponse(
+                status="success" if result['bookmark_created'] else "warning",
+                message=result['message'],
+                bookmark_id=result['bookmark_id'],
+                bookmark_created=result['bookmark_created'],
+                duplicate_check=result['duplicate_check'],
+                similar_bookmarks=similar_bookmarks
+            )
+        else:
+            # Traditional bookmark creation without duplicate checking
+            bookmark_id = bookmark_system.bookmark_idea(
+                idea_text=idea_text,
+                theme=bookmark_request.theme,
+                constraints=bookmark_request.constraints,
+                score=round(score, 1),
+                critique=critique or "",
+                advocacy=bookmark_request.advocacy or "",
+                skepticism=bookmark_request.skepticism or "",
+                tags=bookmark_request.tags
+            )
+            
+            return EnhancedBookmarkResponse(
+                status="success",
+                message="Bookmark created successfully (duplicate checking disabled)",
+                bookmark_id=bookmark_id,
+                bookmark_created=True,
+                duplicate_check=None,
+                similar_bookmarks=[]
+            )
+            
     except RequestValidationError as e:
         logger.error(f"Validation error in bookmark request: {e}")
         raise HTTPException(status_code=422, detail=str(e))
@@ -872,6 +1253,8 @@ async def create_bookmark(request: Request, bookmark_request: BookmarkRequest):
             'theme': bookmark_request.theme,
             'idea_length': len(bookmark_request.idea),
             'tags_count': len(bookmark_request.tags),
+            'check_duplicates': check_duplicates,
+            'force_save': force_save,
             'error_type': type(e).__name__
         }
         
@@ -1011,14 +1394,28 @@ async def detailed_health_check():
 
 @app.websocket("/ws/progress")
 async def websocket_endpoint(websocket: WebSocket):
-    """WebSocket endpoint for real-time progress updates."""
+    """WebSocket endpoint for real-time progress updates with security controls."""
     try:
+        # Security: Check connection limits to prevent abuse
+        if len(ws_manager.active_connections) >= 100:  # Configurable limit
+            await websocket.close(code=1008, reason="Connection limit exceeded")
+            return
+            
+        # Security: Basic authentication via query parameter
+        # In production, use proper JWT token validation
+        client_id = websocket.query_params.get("client_id", "anonymous")
+        if not client_id or len(client_id) < 4:
+            await websocket.close(code=1008, reason="Invalid client identification")
+            return
+        
         await ws_manager.connect(websocket)
         
-        # Send initial connection confirmation
+        # Send initial connection confirmation with security info
         await websocket.send_text(json.dumps({
             "type": "connection",
             "message": "WebSocket connected successfully",
+            "client_id": client_id,
+            "connections": len(ws_manager.active_connections),
             "timestamp": datetime.now().isoformat()
         }))
         
@@ -1045,8 +1442,8 @@ async def websocket_endpoint(websocket: WebSocket):
                         "type": "ping",
                         "timestamp": datetime.now().isoformat()
                     }))
-                except:
-                    logger.info("WebSocket connection lost during ping")
+                except Exception as e:
+                    logger.info(f"WebSocket connection lost during ping: {e}")
                     break
             except WebSocketDisconnect:
                 logger.info("WebSocket client disconnected normally")
@@ -1062,6 +1459,47 @@ async def websocket_endpoint(websocket: WebSocket):
         logger.error(f"WebSocket connection error: {e}")
     finally:
         ws_manager.disconnect(websocket)
+
+
+# Custom OpenAPI schema
+def custom_openapi():
+    """Generate custom OpenAPI schema with enhanced documentation."""
+    if app.openapi_schema:
+        return app.openapi_schema
+    
+    openapi_schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+    
+    # Apply customizations from openapi_enhancements
+    customizations = get_openapi_customization()
+    
+    # Update info section
+    if "info" in customizations:
+        openapi_schema["info"].update(customizations["info"])
+    
+    # Add servers
+    if "servers" in customizations:
+        openapi_schema["servers"] = customizations["servers"]
+    
+    # Add tags
+    if "tags" in customizations:
+        openapi_schema["tags"] = customizations["tags"]
+    
+    # Update components
+    if "components" in customizations:
+        if "components" not in openapi_schema:
+            openapi_schema["components"] = {}
+        openapi_schema["components"].update(customizations["components"])
+    
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+# Override the default OpenAPI function
+app.openapi = custom_openapi
 
 
 if __name__ == "__main__":

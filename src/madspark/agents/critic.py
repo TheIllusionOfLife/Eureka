@@ -4,8 +4,6 @@ This module defines the Critic agent and its associated tools.
 The agent is responsible for evaluating ideas based on specified criteria
 and context, providing scores and textual feedback.
 """
-import os
-from typing import Any
 
 # Optional import for Google GenAI - graceful fallback for CI/testing
 try:
@@ -18,12 +16,10 @@ except ImportError:
     GENAI_AVAILABLE = False
 
 try:
-    from madspark.utils.errors import ConfigurationError
     from madspark.agents.genai_client import get_genai_client, get_model_name
     from madspark.utils.constants import CRITIC_SYSTEM_INSTRUCTION, DEFAULT_CRITIC_TEMPERATURE, LANGUAGE_CONSISTENCY_INSTRUCTION
 except ImportError:
     # Fallback for local development/testing
-    from errors import ConfigurationError
     from .genai_client import get_genai_client, get_model_name
     from constants import CRITIC_SYSTEM_INSTRUCTION, DEFAULT_CRITIC_TEMPERATURE, LANGUAGE_CONSISTENCY_INSTRUCTION
 
@@ -94,7 +90,8 @@ def evaluate_ideas(ideas: str, criteria: str, context: str, temperature: float =
         return '{"score": 8, "comment": "Mock evaluation for testing"}'
   
   if critic_client is None:
-    raise ConfigurationError("GOOGLE_API_KEY not configured - cannot evaluate ideas")
+    from madspark.utils.errors import ConfigurationError
+    raise ConfigurationError("Critic client is not configured but GENAI is enabled")
   
   try:
     config = types.GenerateContentConfig(
@@ -107,7 +104,7 @@ def evaluate_ideas(ideas: str, criteria: str, context: str, temperature: float =
         config=config
     )
     agent_response = response.text if response.text else ""
-  except Exception as e:
+  except Exception:
     # Return empty string on any API error - coordinator will handle this
     agent_response = ""
 

@@ -7,7 +7,7 @@ Welcome! This guide helps you test the MadSpark Multi-Agent System through its w
 ### Step 1: Start the Web Interface
 ```bash
 cd mad_spark_multiagent/web
-docker-compose up
+docker compose up
 ```
 
 ### Step 2: Open Your Browser
@@ -60,7 +60,7 @@ curl http://localhost:3000
 ### If generation fails:
 - Ensure you have a valid GOOGLE_API_KEY in your `.env` file
 - Check Docker logs: `docker logs web-backend-1`
-- Verify all containers are running: `docker-compose ps`
+- Verify all containers are running: `docker compose ps`
 
 ### If you see WebSocket errors:
 - These are normal during processing and should resolve automatically

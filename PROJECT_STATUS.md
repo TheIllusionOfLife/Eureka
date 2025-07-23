@@ -139,7 +139,7 @@ The MadSpark Multi-Agent System has been successfully enhanced with multiple new
 3. **Docker Deployment**:
    ```bash
    cd web
-   docker-compose up --build
+   docker compose up --build
    ```
 
 4. **Environment Variables**:

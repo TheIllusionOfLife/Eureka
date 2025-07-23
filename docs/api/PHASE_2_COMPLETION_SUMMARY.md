@@ -111,7 +111,7 @@ python cli.py --batch-json scenarios.json --async-mode
 python cli.py --interactive
 
 # Web interface
-cd web && docker-compose up
+cd web && docker compose up
 ```
 
 #### New Configuration Options

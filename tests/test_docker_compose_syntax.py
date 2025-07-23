@@ -46,19 +46,45 @@ def find_docker_compose_references(root_dir: str = ".") -> List[Tuple[str, int, 
 
 
 def test_no_hyphenated_docker_compose():
-    """Ensure no files contain 'docker-compose' (old syntax)."""
-    findings = find_docker_compose_references()
+    """Ensure no files contain 'docker-compose' (old syntax) in commands."""
+    all_findings = find_docker_compose_references()
     
-    if findings:
-        error_msg = ["Found 'docker-compose' (old syntax) in the following locations:"]
+    # Filter out legitimate uses (file names, comments about file names, etc.)
+    legitimate_patterns = [
+        r'docker-compose\.(yml|yaml|prod\.yml|dev\.yml)',  # File names
+        r'"\*docker-compose\*"',  # Shell patterns for file names
+        r'-name\s+"docker-compose',  # Find command patterns
+        r'# .*docker-compose',  # Comments mentioning docker-compose
+        r'""".*docker-compose',  # Docstrings mentioning docker-compose
+        r'fix_docker_compose',  # Our fix script
+        r'test_docker_compose',  # Our test script
+    ]
+    
+    problematic_findings = []
+    for filepath, line_num, line_content in all_findings:
+        # Skip if it's a legitimate use
+        is_legitimate = False
+        for pattern in legitimate_patterns:
+            if re.search(pattern, line_content):
+                is_legitimate = True
+                break
+        
+        # Also skip if it's just referring to a file name context
+        if not is_legitimate and 'docker-compose' in line_content:
+            # Check if it's actually a command usage (not a file reference)
+            if re.search(r'docker-compose\s+(up|down|build|run|exec|logs|ps|stop|start|restart|pull|push|config|create|events|images|kill|pause|port|rm|scale|top|unpause|version)', line_content):
+                problematic_findings.append((filepath, line_num, line_content))
+    
+    if problematic_findings:
+        error_msg = ["Found 'docker-compose' commands (old syntax) in the following locations:"]
         error_msg.append("")
         
-        for filepath, line_num, line_content in findings:
+        for filepath, line_num, line_content in problematic_findings:
             error_msg.append(f"  {filepath}:{line_num}")
             error_msg.append(f"    {line_content}")
             error_msg.append("")
         
-        error_msg.append(f"Total occurrences: {len(findings)}")
+        error_msg.append(f"Total command occurrences: {len(problematic_findings)}")
         error_msg.append("")
         error_msg.append("Please update to 'docker compose' (Docker Compose V2 syntax)")
         

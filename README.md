@@ -104,7 +104,7 @@ python -m madspark.cli.cli "Your topic" "Your context" --temperature 0.8
 python -m madspark.cli.interactive_mode
 
 # Web interface
-cd web && docker-compose up
+cd web && docker compose up
 ```
 
 ## Project Structure

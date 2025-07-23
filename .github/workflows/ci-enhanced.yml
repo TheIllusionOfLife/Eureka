@@ -269,7 +269,7 @@ jobs:
       run: |
         docker build -t madspark-frontend:test .
     
-    - name: Test docker-compose
+    - name: Test docker compose
       working-directory: web
       run: |
         docker compose config

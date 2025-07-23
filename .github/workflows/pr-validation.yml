@@ -43,12 +43,14 @@ jobs:
               f.filename.endsWith('.test.tsx')
             );
             
-            // CI/Infrastructure files get higher limits
+            // CI/Infrastructure/Documentation files get higher limits
             const ciFiles = files.filter(f => 
               f.filename.startsWith('.github/workflows/') ||
               f.filename.includes('ci-policy') ||
               f.filename === 'CLAUDE.md' ||
-              f.filename === 'README.md'
+              f.filename === 'README.md' ||
+              f.filename.startsWith('docs/') ||
+              f.filename.endsWith('.md')
             );
             
             const regularFiles = files.filter(f => !testFiles.includes(f) && !ciFiles.includes(f));
@@ -57,8 +59,8 @@ jobs:
             let sizeOk = true;
             let message = '## 📏 PR Size Analysis\n\n';
             
-            // Check if this is primarily a CI/infrastructure PR
-            const isCiPr = ciFiles.length >= files.length * 0.7; // 70% of files are CI-related
+            // Check if this is primarily a CI/infrastructure/documentation PR
+            const isCiPr = ciFiles.length >= files.length * 0.7; // 70% of files are CI/doc-related
             const maxFilesLimit = isCiPr ? 50 : maxFiles; // Higher limit for CI PRs
             const maxChangesLimit = isCiPr ? 2000 : maxChanges; // Higher limit for CI PRs
             
@@ -66,7 +68,7 @@ jobs:
             if (files.length <= maxFilesLimit && totalChanges <= maxChangesLimit) {
               message += `✅ **Size Check Passed**\n\n`;
               if (isCiPr) {
-                message += `*CI/Infrastructure PR - using extended limits*\n\n`;
+                message += `*CI/Infrastructure/Documentation PR - using extended limits*\n\n`;
               }
             } else {
               sizeOk = false;
@@ -84,7 +86,7 @@ jobs:
             message += `### File Breakdown\n`;
             message += `- Regular files: ${regularFiles.length}\n`;
             message += `- Test files: ${testFiles.length}\n`;
-            message += `- CI/Infrastructure files: ${ciFiles.length}\n`;
+            message += `- CI/Infrastructure/Doc files: ${ciFiles.length}\n`;
             message += `- Total changes: +${pr.additions} -${pr.deletions}\n\n`;
             
             // Suggestions for large PRs

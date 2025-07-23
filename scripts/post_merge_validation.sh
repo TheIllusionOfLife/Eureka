@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Post-merge validation script
 
-set -e
+# Don't use set -e to allow all checks to run and report
 
 echo "🔍 Running post-merge validation..."
 
 # Set up environment
-export PYTHONPATH="${PYTHONPATH}:src"
+export PYTHONPATH="${PYTHONPATH}${PYTHONPATH:+:}src"
 export MADSPARK_MODE="mock"
 
 # Colors for output
@@ -46,7 +46,7 @@ check_result "Import validation"
 
 # 2. Test CLI in mock mode
 echo "🖥️  Testing CLI functionality..."
-python -m madspark.cli.cli "test topic" "test context" > /dev/null 2>&1
+python -m madspark.cli.cli "test topic" "test context" > /dev/null
 check_result "CLI mock mode test"
 
 # 3. Run core unit tests
@@ -73,10 +73,8 @@ done
 # 6. Check Docker setup (if Docker is available)
 if command -v docker &> /dev/null; then
     echo "🐳 Checking Docker configuration..."
-    cd web
-    docker compose config > /dev/null 2>&1
+    (cd web && docker compose config > /dev/null 2>&1)
     check_result "Docker configuration validation"
-    cd ..
 else
     echo -e "${YELLOW}⚠️  Docker not available, skipping Docker checks${NC}"
 fi

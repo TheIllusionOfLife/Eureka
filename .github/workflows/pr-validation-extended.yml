@@ -83,6 +83,7 @@ jobs:
         run: pip install bandit safety
           
       - name: Run Security Checks
+        id: security
         run: |
           echo "Running Bandit security scan..."
           bandit -r src/ -f json -o bandit-report.json || true

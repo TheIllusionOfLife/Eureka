@@ -1,0 +1,60 @@
+name: Integration Tests
+on:
+  push:
+    branches: [main]
+  schedule:
+    # Run nightly at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: '3.10'
+  MADSPARK_MODE: mock
+
+jobs:
+  integration-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.cache/pytest_cache
+          key: ${{ runner.os }}-integration-${{ hashFiles('**/requirements*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-integration-
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r config/requirements.txt
+          if [ -f config/requirements-dev.txt ]; then
+            pip install -r config/requirements-dev.txt
+          fi
+          pip install pytest-xdist
+      
+      - name: Run integration tests
+        run: |
+          # Run only integration and performance tests
+          PYTHONPATH=src pytest tests/ -n auto -v --cov=src --cov-report=xml \
+            -k "test_workflow_execution_time or test_async_workflow_performance or test_async_workflow_integration" \
+            -m "slow or integration" || true
+      
+      - name: Run full test suite
+        run: |
+          # Run complete test suite for validation
+          PYTHONPATH=src pytest tests/ -n auto -v --tb=short
+      
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: false

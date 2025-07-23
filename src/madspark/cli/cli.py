@@ -154,7 +154,7 @@ Examples:
   
   # Batch processing
   %(prog)s --create-sample-batch csv
-  %(prog)s --batch sample_batch.csv --batch-concurrent 5
+  %(prog)s --batch examples/data/sample_batch.csv --batch-concurrent 5
   
   # Interactive mode
   %(prog)s --interactive

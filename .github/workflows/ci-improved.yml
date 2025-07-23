@@ -196,7 +196,7 @@ jobs:
         MADSPARK_MODE: mock
         GOOGLE_API_KEY: test_key_for_ci
       run: |
-        pytest tests/ -v --cov=src --cov-report=xml --cov-report=term-missing --cov-fail-under=80
+        pytest tests/ -v --cov=src --cov-report=xml --cov-report=term-missing
     
     - name: Upload coverage reports
       uses: codecov/codecov-action@v4

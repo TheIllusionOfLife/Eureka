@@ -1,168 +1,218 @@
-name: CI
-
+name: CI Pipeline
 on:
   push:
-    branches: [ main, codex/implement-phase-1-of-issue-#4 ]
+    branches: [main, feature/*]
   pull_request:
-    branches: [ main ]
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: '3.10'
+  NODE_VERSION: '18'
+  MADSPARK_MODE: mock
 
 jobs:
+  # Quick validation phase - fail fast on basic issues
+  quick-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          
+      - name: Check Python syntax
+        run: |
+          python -m py_compile src/**/*.py || true
+          find src -name "*.py" -exec python -m py_compile {} +
+          
+      - name: Check for deprecated patterns
+        run: |
+          # Check for old docker-compose syntax
+          if grep -r "docker-compose" --include="*.md" --include="*.yml" --include="*.sh" . | grep -v "docker-compose.yml" | grep -v ".git"; then
+            echo "::error::Found deprecated docker-compose syntax"
+            exit 1
+          fi
+
+  # Main test suite
   test:
+    needs: quick-checks
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ['3.10', '3.11', '3.12', '3.13']
-
+        python-version: ['3.10', '3.11', '3.12']
+    
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
-    
-    - name: Cache pip dependencies
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('config/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r config/requirements.txt
-    
-    - name: Lint with ruff (if available)
-      run: |
-        pip install ruff || echo "Ruff not available, skipping lint"
-        ruff check src/ || echo "Linting completed with warnings"
-      continue-on-error: true
-    
-    - name: Type check with mypy (if available)
-      run: |
-        pip install mypy || echo "MyPy not available, skipping type check"
-        mypy src/ || echo "Type checking completed with warnings"
-      continue-on-error: true
-    
-    - name: Test imports and basic functionality
-      env:
-        PYTHONPATH: src
-      run: |
-        python -c "
-        print('Testing basic imports...')
-        try:
-            import madspark.agents.idea_generator as ig
-            import madspark.agents.critic as critic
-            import madspark.agents.advocate as advocate  
-            import madspark.agents.skeptic as skeptic
-            print('✓ Agent modules imported successfully')
-        except Exception as e:
-            print(f'✗ Import error: {e}')
-            exit(1)
-        
-        # Test helper functions without API calls
-        try:
-            prompt = ig.build_generation_prompt('test', 'mode: 逆転')
-            print('✓ Prompt building works')
-        except Exception as e:
-            print(f'✗ Prompt building error: {e}')
-            exit(1)
-        
-        print('✅ Basic functionality tests passed')
-        "
-    
-    - name: Test with pytest (mock tests only)
-      env:
-        PYTHONPATH: src
-      run: |
-        # Create a simple mock test that doesn't require external dependencies
-        cat > test_ci.py << 'EOF'
-        """CI-safe tests that don't require full dependencies."""
-        import pytest
-        import sys
-        import os
-        
-        def test_package_imports():
-            """Test that package can be imported."""
-            try:
-                import madspark
-                assert hasattr(madspark, '__version__')
-                print('✓ Package imports successfully')
-            except ImportError as e:
-                pytest.skip(f"Package import not available: {e}")
-        
-        def test_agent_function_imports():
-            """Test that agent functions can be imported."""
-            try:
-                from madspark.agents.idea_generator import generate_ideas, build_generation_prompt
-                from madspark.agents.critic import evaluate_ideas  
-                from madspark.agents.advocate import advocate_idea
-                from madspark.agents.skeptic import criticize_idea
-                # Don't assert callable since they might be None due to missing dependencies
-                print('✓ Agent functions imported')
-            except ImportError as e:
-                if "genai" in str(e) or "google" in str(e):
-                    pytest.skip("Google GenAI dependencies not available in CI")
-                else:
-                    raise
-        
-        def test_constants_import():
-            """Test constants can be imported."""
-            try:
-                from madspark.utils.constants import IDEA_GENERATION_INSTRUCTION
-                assert isinstance(IDEA_GENERATION_INSTRUCTION, str)
-                print('✓ Constants imported successfully')
-            except ImportError as e:
-                pytest.skip(f"Constants import failed: {e}")
-        
-        if __name__ == "__main__":
-            pytest.main([__file__, "-v"])
-        EOF
-        
-        python -m pytest test_ci.py -v || echo "Tests completed with some skips/warnings"
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.cache/pypoetry
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.python-version }}-
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r config/requirements.txt
+          pip install -r config/requirements-dev.txt
+      
+      - name: Run tests with coverage
+        run: |
+          PYTHONPATH=src pytest tests/ -v --cov=src --cov-report=xml --cov-report=html
+      
+      - name: Upload coverage
+        if: matrix.python-version == '3.10' && github.event_name == 'pull_request'
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: false
 
-  security:
+  # Frontend tests
+  frontend:
+    needs: quick-checks
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Security scan with bandit (if available)
-      run: |
-        pip install bandit[toml] || echo "Bandit not available"
-        bandit -r src/ -f json || echo "Security scan completed"
-      continue-on-error: true
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: web/frontend/package-lock.json
+      
+      - name: Install and test frontend
+        working-directory: web/frontend
+        run: |
+          npm ci
+          npm run lint
+          npm test -- --coverage --watchAll=false
+          npm run build
 
-  build-check:
+  # Security and quality checks
+  quality:
+    needs: quick-checks
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r config/requirements.txt
-    
-    - name: Check Python syntax
-      env:
-        PYTHONPATH: src
-      run: |
-        python -m py_compile src/madspark/core/coordinator.py
-        python -m py_compile src/madspark/agents/*.py
-    
-    - name: Validate project structure
-      run: |
-        echo "Checking project structure..."
-        test -f README.md || (echo "Missing README.md" && exit 1)
-        test -f config/requirements.txt || (echo "Missing config/requirements.txt" && exit 1)
-        test -d src/madspark || (echo "Missing src/madspark directory" && exit 1)
-        test -f src/madspark/__init__.py || (echo "Missing src/madspark/__init__.py" && exit 1)
-        test -d src/madspark/agents || (echo "Missing src/madspark/agents directory" && exit 1)
-        test -f src/madspark/agents/__init__.py || (echo "Missing src/madspark/agents/__init__.py" && exit 1)
-        echo "✅ Project structure validation passed"
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install tools
+        run: |
+          pip install ruff bandit safety
+      
+      - name: Run linting
+        run: |
+          ruff check src/ tests/ web/backend/
+      
+      - name: Run security scan
+        run: |
+          bandit -r src/ web/backend/ -f json -o bandit-report.json || true
+          if [ -f bandit-report.json ]; then
+            high_severity=$(jq '[.results[] | select(.issue_severity == "HIGH")] | length' bandit-report.json)
+            if [ "$high_severity" -gt 0 ]; then
+              echo "::error::Found $high_severity high severity security issues"
+              jq '.results[] | select(.issue_severity == "HIGH")' bandit-report.json
+              exit 1
+            fi
+          fi
+      
+      - name: Check dependencies for vulnerabilities
+        run: |
+          safety check || true
+
+  # Docker and integration tests
+  integration:
+    needs: [test, frontend]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Validate Docker Compose
+        run: |
+          docker compose -f web/docker-compose.yml config
+      
+      - name: Build Docker images
+        run: |
+          cd web
+          docker compose build --parallel
+      
+      - name: Start services
+        run: |
+          cd web
+          docker compose up -d
+          sleep 15  # Wait for services to start
+      
+      - name: Run health checks
+        run: |
+          # Check backend health
+          curl -f http://localhost:8000/api/health || exit 1
+          
+          # Check frontend
+          curl -f http://localhost:3000 || exit 1
+          
+          # Check Redis
+          docker compose exec -T redis redis-cli ping || exit 1
+      
+      - name: Run integration tests
+        run: |
+          PYTHONPATH=src pytest tests/test_integration.py -v
+      
+      - name: Stop services
+        if: always()
+        run: |
+          cd web
+          docker compose down -v
+
+  # Mock mode validation
+  mock-validation:
+    needs: quick-checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install dependencies
+        run: |
+          pip install -r config/requirements.txt
+      
+      - name: Test CLI in mock mode
+        run: |
+          MADSPARK_MODE=mock PYTHONPATH=src python -m madspark.cli.cli "test topic" "test context"
+      
+      - name: Verify no API key required
+        run: |
+          # Ensure mock mode works without any API keys
+          unset GOOGLE_API_KEY
+          MADSPARK_MODE=mock PYTHONPATH=src python -c "
+          from madspark.config import validate_environment
+          config = validate_environment()
+          assert config['mode'] == 'mock'
+          assert config['safe_for_ci'] == True
+          print('✓ Mock mode validated successfully')
+          "

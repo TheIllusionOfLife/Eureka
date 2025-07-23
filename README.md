@@ -356,6 +356,26 @@ For detailed usage instructions, see the documentation in the `docs/` directory:
 - **[Interactive Mode Guide](docs/INTERACTIVE_MODE_GUIDE.md)** - Real-time conversational interface
 - **[Web Interface Guide](docs/WEB_INTERFACE_GUIDE.md)** - Modern web UI with real-time updates
 
+## CI/CD and Testing
+
+Our CI/CD pipeline ensures code quality and prevents regressions. See **[CI Policy](docs/ci-policy.md)** for detailed information on:
+- When to add, modify, or remove CI tests
+- Performance guidelines and targets
+- Workflow structure and responsibilities
+- Best practices for CI efficiency
+
+### Quick CI Commands
+```bash
+# Run validation before PR
+./scripts/validate_pr.sh
+
+# Check CI status
+gh run list --limit 5
+
+# Debug failed CI
+gh run view <run-id> --log
+```
+
 ## Contributing
 
 1. Fork the repository

@@ -80,17 +80,10 @@ jobs:
           # Run tests in parallel, skipping slow/performance tests for PRs and feature branches
           if [ "${{ github.event_name }}" = "pull_request" ] || [ "${{ github.ref }}" != "refs/heads/main" ]; then
             # PR/Feature branch: Fast tests only with parallel execution
-            # Try marker-based exclusion first, fall back to keyword exclusion only on marker syntax errors
-            if ! PYTHONPATH=src pytest tests/ -n auto -v --cov=src --cov-report=xml --cov-report=html \
-              -m "not slow and not integration" --collect-only >/dev/null 2>&1; then
-              echo "Marker syntax not supported, using keyword exclusion"
-              PYTHONPATH=src pytest tests/ -n auto -v --cov=src --cov-report=xml --cov-report=html \
-                -k "not (workflow_execution_time or async_workflow_performance or async_workflow_integration)"
-            else
-              echo "Using marker-based test exclusion"
-              PYTHONPATH=src pytest tests/ -n auto -v --cov=src --cov-report=xml --cov-report=html \
-                -m "not slow and not integration"
-            fi
+            # Use keyword exclusion to avoid performance and integration tests that may not be properly marked
+            echo "Using keyword-based test exclusion for PR/feature branch"
+            PYTHONPATH=src pytest tests/ -n auto -v --cov=src --cov-report=xml --cov-report=html \
+              -k "not (workflow_execution_time or async_workflow_performance or async_workflow_integration)"
           else
             # Main branch: All tests with parallel execution
             PYTHONPATH=src pytest tests/ -n auto -v --cov=src --cov-report=xml --cov-report=html

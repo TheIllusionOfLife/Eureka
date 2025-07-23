@@ -51,14 +51,7 @@ else:
     os.environ["GOOGLE_GENAI_MODEL"] = "gemini-2.5-flash"
     logging.warning("GOOGLE_GENAI_MODEL not set - using default: gemini-2.5-flash")
 
-try:
-    from madspark.agents.idea_generator import generate_ideas, improve_idea
-    from madspark.agents.critic import evaluate_ideas
-    from madspark.agents.advocate import advocate_idea
-    from madspark.agents.skeptic import criticize_idea
-except ImportError:
-    # Fallback for local development/testing
-    pass
+# Agent functions are accessed via retry wrappers from agent_retry_wrappers module
 try:
     # Primary imports for package installation
     from madspark.utils.utils import (

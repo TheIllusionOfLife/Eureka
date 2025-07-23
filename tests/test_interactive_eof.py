@@ -51,11 +51,11 @@ def test_normal_input():
     # Test yes/no input
     with patch('builtins.input', return_value='y'):
         result = session.get_yes_no("Test prompt")
-        assert result == True
+        assert result is True
     
     with patch('builtins.input', return_value='n'):
         result = session.get_yes_no("Test prompt")
-        assert result == False
+        assert result is False
     
     print("✅ Normal input tests passed!")
 

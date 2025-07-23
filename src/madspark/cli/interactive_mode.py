@@ -84,7 +84,6 @@ class InteractiveSession:
         
     def get_yes_no(self, prompt: str, default: bool = True) -> bool:
         """Get yes/no input from user."""
-        default_str = "Y" if default else "N"
         prompt = f"{prompt} [{'Y/n' if default else 'y/N'}]: "
         
         while True:

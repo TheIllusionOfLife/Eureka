@@ -9,7 +9,12 @@ from madspark.utils.temperature_control import TemperatureManager, TemperatureCo
 from madspark.utils.bookmark_system import BookmarkManager
 from madspark.utils.novelty_filter import NoveltyFilter
 from madspark.utils.improved_idea_cleaner import clean_improved_idea
-from madspark.utils.constants import *
+from madspark.utils.constants import (
+    IDEA_GENERATION_INSTRUCTION, 
+    DEFAULT_IDEA_TEMPERATURE, 
+    DEFAULT_NUM_TOP_CANDIDATES, 
+    DEFAULT_NOVELTY_THRESHOLD
+)
 
 
 class TestUtilityFunctions:
@@ -244,15 +249,15 @@ class TestNoveltyFilter:
         
         # First idea should be novel
         result1 = filter_obj.filter_idea(idea1_text)
-        assert result1.is_novel == True
+        assert result1.is_novel is True
         
         # Different idea should also be novel
         result2 = filter_obj.filter_idea(idea2_text)
-        assert result2.is_novel == True
+        assert result2.is_novel is True
         
         # Exact duplicate should not be novel
         result3 = filter_obj.filter_idea(idea1_text)
-        assert result3.is_novel == False
+        assert result3.is_novel is False
     
     def test_novelty_filter_with_different_ideas(self):
         """Test novelty filter with different ideas."""
@@ -263,10 +268,10 @@ class TestNoveltyFilter:
         
         # Both ideas should be novel
         result1 = filter_obj.filter_idea(idea1_text)
-        assert result1.is_novel == True
+        assert result1.is_novel is True
         
         result2 = filter_obj.filter_idea(idea2_text)
-        assert result2.is_novel == True
+        assert result2.is_novel is True
     
     def test_novelty_filter_threshold_adjustment(self):
         """Test novelty filter with different thresholds."""
@@ -282,12 +287,12 @@ class TestNoveltyFilter:
         # With low threshold, even moderately similar ideas should be rejected
         # These two ideas share "AI", "Productivity", "tool" - high similarity
         result = lenient_filter.filter_idea(idea2_text)
-        assert result.is_novel == False
+        assert result.is_novel is False
         
         # Test with very different idea
         idea3_text = "Blockchain payment system for e-commerce"
         result3 = lenient_filter.filter_idea(idea3_text)
-        assert result3.is_novel == True
+        assert result3.is_novel is True
 
 
 class TestIdeaCleaner:

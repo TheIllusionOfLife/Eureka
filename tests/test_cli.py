@@ -66,7 +66,7 @@ class TestCLIMain:
                 mock_workflow.assert_called_once()
                 # Check that verbose=True was passed
                 args, kwargs = mock_workflow.call_args
-                assert kwargs.get('verbose') == True
+                assert kwargs.get('verbose') is True
             except SystemExit as e:
                 assert e.code == 0
     
@@ -188,7 +188,7 @@ class TestCLIMain:
                 result = cli_main()
                 mock_workflow.assert_called_once()
                 args, kwargs = mock_workflow.call_args
-                assert kwargs.get('enhanced_reasoning') == True
+                assert kwargs.get('enhanced_reasoning') is True
             except SystemExit as e:
                 assert e.code == 0
     
@@ -317,8 +317,8 @@ class TestCLIIntegration:
                 
                 # Verify all expected parameters were passed
                 args, kwargs = mock_workflow.call_args
-                assert kwargs.get('verbose') == True
-                assert kwargs.get('enhanced_reasoning') == True
+                assert kwargs.get('verbose') is True
+                assert kwargs.get('enhanced_reasoning') is True
                 
             except SystemExit as e:
                 assert e.code == 0

@@ -183,7 +183,7 @@ jobs:
         # Wait for server to start with retries
         echo "Waiting for server to start..."
         for i in {1..30}; do
-          if curl -s http://localhost:8000/health > /dev/null; then
+          if curl -s http://localhost:8000/api/health > /dev/null; then
             echo "Server is ready!"
             break
           fi

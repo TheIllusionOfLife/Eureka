@@ -277,7 +277,7 @@ jobs:
         # Enhanced health check with better error reporting
         echo "Waiting for server to start..."
         for i in {1..30}; do
-          if curl -f http://localhost:8000/health > /dev/null 2>&1; then
+          if curl -f http://localhost:8000/api/health > /dev/null 2>&1; then
             echo "✅ Server is ready!"
             break
           fi
@@ -294,7 +294,7 @@ jobs:
           sleep 2
         done
         
-        if ! curl -f http://localhost:8000/health > /dev/null 2>&1; then
+        if ! curl -f http://localhost:8000/api/health > /dev/null 2>&1; then
           echo "❌ Server failed to start after 60 seconds"
           kill $SERVER_PID || true
           exit 1

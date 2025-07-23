@@ -50,7 +50,7 @@ jobs:
               f.filename === 'CLAUDE.md' ||
               f.filename === 'README.md' ||
               f.filename.startsWith('docs/') ||
-              (f.filename.endsWith('.md') && (f.filename.includes('README') || f.filename.includes('GUIDE') || f.filename.includes('DOC')))
+              (f.filename.endsWith('.md') && (f.filename.toLowerCase().includes('readme') || f.filename.toLowerCase().includes('guide') || f.filename.toLowerCase().includes('doc')))
             );
             
             const regularFiles = files.filter(f => !testFiles.includes(f) && !ciFiles.includes(f));

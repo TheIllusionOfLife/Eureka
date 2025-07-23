@@ -64,6 +64,18 @@ repos:
       - id: check-merge-conflict
       - id: check-added-large-files
         args: ['--maxkb=1000']
+      - id: detect-private-key
+      - id: check-case-conflict
+
+  # Mock mode validation
+  - repo: local
+    hooks:
+      - id: mock-mode-validation
+        name: Validate mock mode functionality
+        entry: bash -c 'MADSPARK_MODE=mock PYTHONPATH=src timeout 30 python3 -m madspark.cli.cli "test" "test" > /dev/null || (echo "Mock mode validation failed! Re-run without output redirect to see details: MADSPARK_MODE=mock PYTHONPATH=src python3 -m madspark.cli.cli \"test\" \"test\"" && exit 1)'
+        language: system
+        pass_filenames: false
+        stages: [push]
 
   # Frontend hooks
   - repo: local

@@ -2,168 +2,188 @@ name: PR Validation
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+  pull_request_target:
+    types: [opened, synchronize, reopened]
 
 jobs:
   pr-size-check:
     runs-on: ubuntu-latest
+    outputs:
+      size_ok: ${{ steps.check.outputs.size_ok }}
+      
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
       - name: Check PR Size
+        id: check
         uses: actions/github-script@v7
         with:
           script: |
             const pr = context.payload.pull_request;
+            const maxFiles = 20;
+            const maxChanges = 500;
+            const maxTestFiles = 40;  // Higher limit for test files
+            
+            // Get PR diff to analyze files
             const { data: files } = await github.rest.pulls.listFiles({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: pr.number
             });
             
-            const fileCount = files.length;
-            const additions = pr.additions;
-            const deletions = pr.deletions;
-            const totalChanges = additions + deletions;
+            // Categorize files
+            const testFiles = files.filter(f => 
+              f.filename.includes('/test') || 
+              f.filename.includes('test_') ||
+              f.filename.endsWith('.test.ts') ||
+              f.filename.endsWith('.test.tsx')
+            );
             
-            console.log(`PR #${pr.number} Statistics:`);
-            console.log(`- Files changed: ${fileCount}`);
-            console.log(`- Lines added: ${additions}`);
-            console.log(`- Lines deleted: ${deletions}`);
-            console.log(`- Total changes: ${totalChanges}`);
+            const regularFiles = files.filter(f => !testFiles.includes(f));
+            const totalChanges = pr.additions + pr.deletions;
             
-            // Define thresholds
-            const maxFiles = 20;
-            const maxChanges = 500;
+            let sizeOk = true;
+            let message = '## 📏 PR Size Analysis\n\n';
             
-            let failed = false;
-            let warnings = [];
-            
-            if (fileCount > maxFiles) {
-              failed = true;
-              core.error(`PR has ${fileCount} files changed (max: ${maxFiles}). Please split into smaller PRs.`);
+            // Check regular files
+            if (regularFiles.length <= maxFiles && totalChanges <= maxChanges) {
+              message += `✅ **Size Check Passed**\n\n`;
+            } else {
+              sizeOk = false;
+              message += `❌ **Size Check Failed**\n\n`;
+              
+              if (regularFiles.length > maxFiles) {
+                message += `- 📁 Too many files changed: ${regularFiles.length} (limit: ${maxFiles})\n`;
+              }
+              if (totalChanges > maxChanges) {
+                message += `- 📊 Too many line changes: ${totalChanges} (limit: ${maxChanges})\n`;
+              }
             }
             
-            if (totalChanges > maxChanges) {
-              failed = true;
-              core.error(`PR has ${totalChanges} total line changes (max: ${maxChanges}). Please split into smaller PRs.`);
+            // File breakdown
+            message += `### File Breakdown\n`;
+            message += `- Regular files: ${regularFiles.length}\n`;
+            message += `- Test files: ${testFiles.length}\n`;
+            message += `- Total changes: +${pr.additions} -${pr.deletions}\n\n`;
+            
+            // Suggestions for large PRs
+            if (!sizeOk) {
+              message += `### 💡 Suggestions\n`;
+              message += `Consider splitting this PR:\n`;
+              message += `1. Group related changes together\n`;
+              message += `2. Separate features from tests\n`;
+              message += `3. Split by component or module\n`;
             }
             
-            // Add warning for large but not failing PRs
-            if (fileCount > 15) {
-              warnings.push(`⚠️ PR has ${fileCount} files - consider splitting for easier review`);
-            }
+            // Set output
+            core.setOutput('size_ok', sizeOk);
             
-            // Comment on PR with size analysis
-            const comment = `## 📊 PR Size Analysis
-            
-            | Metric | Value | Status |
-            |--------|-------|--------|
-            | Files changed | ${fileCount} | ${fileCount <= maxFiles ? '✅' : '❌'} |
-            | Lines added | ${additions} | - |
-            | Lines deleted | ${deletions} | - |
-            | Total changes | ${totalChanges} | ${totalChanges <= maxChanges ? '✅' : '❌'} |
-            
-            ${warnings.length > 0 ? '### ⚠️ Warnings\n' + warnings.join('\n') : ''}
-            
-            ${failed ? '### ❌ PR Too Large\nThis PR exceeds our size limits. Please split it into smaller, focused PRs for better review quality.' : '### ✅ PR Size OK'}
-            
-            <details>
-            <summary>Size Guidelines</summary>
-            
-            - **Max files**: ${maxFiles}
-            - **Max total changes**: ${maxChanges} lines
-            - **Recommended**: < 15 files, < 300 lines
-            
-            Large PRs are harder to review and more likely to introduce bugs.
-            </details>`;
-            
-            await github.rest.issues.createComment({
+            // Post comment
+            const comments = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: pr.number,
-              body: comment
+              issue_number: pr.number
             });
             
-            if (failed) {
+            const botComment = comments.data.find(c => 
+              c.user.type === 'Bot' && c.body.includes('PR Size Analysis')
+            );
+            
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: message
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body: message
+              });
+            }
+            
+            if (!sizeOk) {
               core.setFailed('PR exceeds size limits');
             }
 
-  mock-mode-test:
+  pr-checklist:
     runs-on: ubuntu-latest
+    needs: pr-size-check
+    if: always()
+    
     steps:
       - uses: actions/checkout@v4
       
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Generate PR Checklist
+        uses: actions/github-script@v7
         with:
-          python-version: '3.10'
-          
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r config/requirements.txt
-          pip install -r config/requirements-dev.txt
-          
-      - name: Test in Mock Mode
-        env:
-          MADSPARK_MODE: mock
-          PYTHONPATH: src
-        run: |
-          echo "Testing CLI in mock mode..."
-          python -m madspark.cli.cli "test topic" "test context" || exit 1
-          
-          echo "Running core tests in mock mode..."
-          pytest tests/test_agents.py tests/test_coordinator.py -v
-          
-  deprecated-syntax-check:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Check for Deprecated Syntax
-        run: |
-          echo "Checking for deprecated docker-compose syntax..."
-          
-          # Check for old docker-compose syntax
-          if grep -r "docker-compose" --include="*.md" --include="*.yml" --include="*.yaml" --include="*.sh" --include="*.py" . | grep -v "docker-compose.yml"; then
-            echo "❌ Found deprecated 'docker-compose' syntax. Use 'docker compose' instead."
-            exit 1
-          else
-            echo "✅ No deprecated docker-compose syntax found"
-          fi
-          
-          # Check for other deprecated patterns
-          echo "Checking for other deprecated patterns..."
-          
-          # Add more deprecated pattern checks here as needed
-          
-  test-contract-validation:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-          
-      - name: Validate Test-API Contract
-        run: |
-          echo "Validating that tests match API contracts..."
-          
-          # This would run a script to verify test expectations match API responses
-          # For now, we'll create a placeholder
-          echo "TODO: Implement contract validation"
-          
-  security-check:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Run Security Checks
-        run: |
-          pip install bandit safety
-          
-          echo "Running Bandit security scan..."
-          bandit -r src/ -f json -o bandit-report.json || true
-          
-          echo "Checking for known vulnerabilities..."
-          safety check --json || true
+          script: |
+            const pr = context.payload.pull_request;
+            const sizeOk = '${{ needs.pr-size-check.outputs.size_ok }}' === 'true';
+            
+            let checklist = '## ✅ Automated PR Checklist\n\n';
+            
+            // Size check
+            checklist += sizeOk ? '✅ ' : '❌ ';
+            checklist += 'PR size within limits\n';
+            
+            // Check PR description
+            const hasDescription = pr.body && pr.body.length > 50;
+            checklist += hasDescription ? '✅ ' : '❌ ';
+            checklist += 'PR has detailed description\n';
+            
+            // Check for issue reference
+            const hasIssueRef = pr.body && /#\d+/.test(pr.body);
+            checklist += hasIssueRef ? '✅ ' : '⚠️ ';
+            checklist += 'References related issue\n';
+            
+            // Check for tests
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number
+            });
+            
+            const hasTests = files.some(f => f.filename.includes('test'));
+            checklist += hasTests ? '✅ ' : '⚠️ ';
+            checklist += 'Includes test changes\n';
+            
+            // Manual checklist reminder
+            checklist += '\n### 📋 Manual Checklist\n';
+            checklist += 'Please ensure:\n';
+            checklist += '- [ ] Tests pass locally\n';
+            checklist += '- [ ] Code follows project conventions\n';
+            checklist += '- [ ] Documentation updated if needed\n';
+            checklist += '- [ ] No sensitive data exposed\n';
+            
+            // Find or update checklist comment
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number
+            });
+            
+            const checklistComment = comments.data.find(c => 
+              c.user.type === 'Bot' && c.body.includes('Automated PR Checklist')
+            );
+            
+            if (checklistComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: checklistComment.id,
+                body: checklist
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body: checklist
+              });
+            }

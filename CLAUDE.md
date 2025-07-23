@@ -134,6 +134,29 @@ cd web && docker compose up
 - **Mock Mode**: Primary testing mode to avoid API costs
 - **Coverage Goals**: 90%+ for critical paths (achieved with PR #84 comprehensive test suite)
 
+## CI/CD Management
+
+### Current CI Structure (Streamlined)
+- **ci.yml**: Main pipeline with phased validation (syntax → tests → quality → integration)
+- **pr-validation.yml**: PR-specific checks (size limits, automated checklist)
+- **post-merge-validation.yml**: Post-merge health checks with issue creation
+- **claude.yml**: Manual AI reviews (triggered by @claude comments)
+- **claude-code-review.yml**: Automated AI reviews for new PRs
+
+### CI Test Policy
+See **[docs/ci-policy.md](docs/ci-policy.md)** for complete guidelines on:
+- When to add/modify/remove CI tests
+- Performance targets (< 5 min total CI time)
+- Required checks before merge
+- Optimization strategies
+
+### Key CI Principles
+1. **No Duplication**: Each test runs exactly once per trigger
+2. **Fail Fast**: Quick checks first (< 30s) to catch obvious issues
+3. **Mock by Default**: All CI uses `MADSPARK_MODE=mock`
+4. **Clear Purpose**: Every workflow has single responsibility
+5. **Performance Matters**: Cache aggressively, parallelize when possible
+
 ## Dependencies
 - **Python**: 3.10+ required for TypedDict and modern features
 - **Core**: google-genai, python-dotenv (from `config/requirements.txt`)

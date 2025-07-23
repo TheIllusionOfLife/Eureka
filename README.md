@@ -356,15 +356,46 @@ For detailed usage instructions, see the documentation in the `docs/` directory:
 - **[Interactive Mode Guide](docs/INTERACTIVE_MODE_GUIDE.md)** - Real-time conversational interface
 - **[Web Interface Guide](docs/WEB_INTERFACE_GUIDE.md)** - Modern web UI with real-time updates
 
+## CI/CD and Testing
+
+Our CI/CD pipeline ensures code quality and prevents regressions. See **[CI Policy](docs/ci-policy.md)** for detailed information on:
+- When to add, modify, or remove CI tests
+- Performance guidelines and targets
+- Workflow structure and responsibilities
+- Best practices for CI efficiency
+
+### Quick CI Commands
+```bash
+# Run validation before PR
+./scripts/validate_pr.sh
+
+# Check CI status
+gh run list --limit 5
+
+# Debug failed CI
+gh run view <run-id> --log
+```
+
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/your-feature`
-3. Make your changes and add tests
-4. Run the test suite: `pytest tests/`
-5. Commit your changes: `git commit -m "Add your feature"`
-6. Push to the branch: `git push origin feature/your-feature`
-7. Create a Pull Request
+Please read **[CONTRIBUTING.md](CONTRIBUTING.md)** for our contribution guidelines, including:
+- Mock-first development approach
+- PR size limits (20 files, 500 lines)
+- Test-driven development requirements
+- Pre-commit hooks setup
+
+### Quick Start for Contributors
+```bash
+# Install pre-commit hooks
+pip install pre-commit
+pre-commit install
+
+# Validate changes before PR
+./scripts/validate_pr.sh
+
+# Create feature branch
+git checkout -b feature/your-feature
+```
 
 ## Session Handover
 

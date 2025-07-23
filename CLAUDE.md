@@ -159,7 +159,7 @@ See **[docs/ci-policy.md](docs/ci-policy.md)** for complete guidelines on:
 
 ### CI Performance Optimizations
 - **Conditional Python Matrix**: Only test Python 3.10 for PRs/feature branches, full matrix on main
-- **Test Exclusion**: `${{ github.event_name == 'pull_request' || github.ref != 'refs/heads/main' }}`
+- **Conditional Execution**: A simpler condition for jobs on non-main branches is `${{ github.ref != 'refs/heads/main' }}`
 - **Parallel Execution**: Use pytest-xdist for faster test runs
 - **Coverage Strategy**: Upload coverage only from single Python version to avoid duplication
 - **PR Size Intelligence**: Extended limits for CI/infrastructure/documentation PRs (70% threshold)

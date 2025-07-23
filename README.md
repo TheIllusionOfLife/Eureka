@@ -174,7 +174,7 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
 - **CI YAML Arrays**: Use `fromJSON()` for array literals in GitHub Actions expressions
 - **Shell Error Handling**: `set -e` prevents complete error reporting in validation scripts
 - **PR Review Bots**: cursor[bot] provides valuable critical feedback on shell scripts and CI config
-- **Integration Tests**: Force merge valuable test PRs even if they exceed size limits
+- **PR Size Policy**: CI validation rules for PR size should be flexible to accommodate valuable, test-heavy PRs
 
 ## License
 

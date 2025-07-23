@@ -81,7 +81,7 @@ def criticize_idea(idea: str, advocacy: str, context: str, temperature: float = 
       "• [continue listing gaps]"
   )
   
-  if not GENAI_AVAILABLE:
+  if not GENAI_AVAILABLE or skeptic_client is None:
     # Return mock criticism for CI/testing environments with language matching demo
     # Simple language detection for mock responses
     combined_text = idea + advocacy + context

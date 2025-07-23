@@ -1,0 +1,11 @@
+# Development dependencies for MadSpark
+# Code quality and linting
+ruff>=0.1.0
+bandit>=1.7.0
+safety>=2.3.0
+
+# Type checking
+mypy>=1.5.0
+
+# Testing enhancements
+pytest-xdist>=3.3.0  # Parallel test execution

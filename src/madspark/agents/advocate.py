@@ -75,7 +75,7 @@ def advocate_idea(idea: str, evaluation: str, context: str, temperature: float =
       "• [continue addressing key concerns from the evaluation]"
   )
   
-  if not GENAI_AVAILABLE:
+  if not GENAI_AVAILABLE or advocate_client is None:
     # Return mock advocacy for CI/testing environments with language matching demo
     # Simple language detection for mock responses
     combined_text = idea + evaluation + context

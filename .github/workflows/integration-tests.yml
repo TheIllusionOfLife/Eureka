@@ -41,17 +41,10 @@ jobs:
           fi
           pip install pytest-xdist
       
-      - name: Run integration tests
+      - name: Run complete test suite
         run: |
-          # Run only integration and performance tests
-          PYTHONPATH=src pytest tests/ -n auto -v --cov=src --cov-report=xml \
-            -k "test_workflow_execution_time or test_async_workflow_performance or test_async_workflow_integration" \
-            -m "slow or integration"
-      
-      - name: Run full test suite
-        run: |
-          # Run complete test suite for validation
-          PYTHONPATH=src pytest tests/ -n auto -v --tb=short
+          # Run comprehensive test suite including all integration and performance tests
+          PYTHONPATH=src pytest tests/ -n auto -v --cov=src --cov-report=xml --tb=short
       
       - name: Upload coverage
         uses: codecov/codecov-action@v3

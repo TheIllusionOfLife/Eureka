@@ -1,0 +1,86 @@
+name: Post-Merge Validation
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  validate-merge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r config/requirements.txt
+          pip install -r config/requirements-dev.txt
+      
+      - name: Run validation script
+        id: validation
+        env:
+          MADSPARK_MODE: mock
+          PYTHONPATH: src
+        run: |
+          echo "Running post-merge validation..."
+          
+          # Test CLI in mock mode
+          echo "Testing CLI functionality..."
+          python -m madspark.cli.cli "test topic" "test context" || echo "CLI_FAILED=true" >> $GITHUB_OUTPUT
+          
+          # Run core tests
+          echo "Running core tests..."
+          pytest tests/test_agents.py tests/test_coordinators.py -v || echo "TESTS_FAILED=true" >> $GITHUB_OUTPUT
+          
+          # Check imports
+          echo "Checking imports..."
+          python -c "from madspark.core.coordinator import run_multistep_workflow" || echo "IMPORTS_FAILED=true" >> $GITHUB_OUTPUT
+          
+      - name: Create issue if validation fails
+        if: steps.validation.outputs.CLI_FAILED == 'true' || steps.validation.outputs.TESTS_FAILED == 'true' || steps.validation.outputs.IMPORTS_FAILED == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = '🚨 Post-Merge Validation Failed';
+            const body = `## Post-Merge Validation Issues
+            
+            The following validation checks failed after merging to main:
+            
+            ${process.env.CLI_FAILED === 'true' ? '- ❌ CLI functionality test failed\n' : ''}
+            ${process.env.TESTS_FAILED === 'true' ? '- ❌ Core tests failed\n' : ''}
+            ${process.env.IMPORTS_FAILED === 'true' ? '- ❌ Import validation failed\n' : ''}
+            
+            ### Details
+            - **Commit**: ${context.sha}
+            - **Author**: ${context.actor}
+            - **Workflow Run**: [View Run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+            
+            ### Action Required
+            Please investigate and fix these issues as soon as possible to maintain main branch stability.
+            `;
+            
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              body: body,
+              labels: ['bug', 'ci/cd', 'urgent']
+            });
+        env:
+          CLI_FAILED: ${{ steps.validation.outputs.CLI_FAILED }}
+          TESTS_FAILED: ${{ steps.validation.outputs.TESTS_FAILED }}
+          IMPORTS_FAILED: ${{ steps.validation.outputs.IMPORTS_FAILED }}
+      
+      - name: Report success
+        if: steps.validation.outputs.CLI_FAILED != 'true' && steps.validation.outputs.TESTS_FAILED != 'true' && steps.validation.outputs.IMPORTS_FAILED != 'true'
+        run: echo "✅ All post-merge validations passed!"

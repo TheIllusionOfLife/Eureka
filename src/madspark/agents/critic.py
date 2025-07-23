@@ -74,8 +74,8 @@ def evaluate_ideas(ideas: str, criteria: str, context: str, temperature: float =
       "Provide your JSON evaluations now (one per line, in the same order as the input ideas):"
   )
   
-  if not GENAI_AVAILABLE:
-    # Return mock evaluation for CI/testing environments with language matching demo
+  if not GENAI_AVAILABLE or critic_client is None:
+    # Return mock evaluation for CI/testing environments or when API key is not configured
     # Simple language detection for mock responses
     combined_text = ideas + criteria + context
     if any(char >= '\u3040' and char <= '\u309F' or char >= '\u30A0' and char <= '\u30FF' or char >= '\u4E00' and char <= '\u9FAF' for char in combined_text):

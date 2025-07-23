@@ -62,8 +62,12 @@ fi
 
 # 5. Check PR size
 echo "📊 Checking PR size..."
-FILES_CHANGED=$(git diff --name-only main... | wc -l || echo "0")
-LINES_CHANGED=$(git diff --numstat main... | awk '{added+=$1; deleted+=$2} END {print added+deleted+0}')
+# Detect default branch
+DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "main")
+echo "Using base branch: $DEFAULT_BRANCH"
+
+FILES_CHANGED=$(git diff --name-only "${DEFAULT_BRANCH}..." | wc -l || echo "0")
+LINES_CHANGED=$(git diff --numstat "${DEFAULT_BRANCH}..." 2>/dev/null | awk '{added+=$1; deleted+=$2} END {print added+deleted+0}' || echo "0")
 
 echo "Files changed: $FILES_CHANGED"
 echo "Lines changed: $LINES_CHANGED"

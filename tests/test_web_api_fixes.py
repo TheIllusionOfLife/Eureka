@@ -1,9 +1,8 @@
 """Tests for Web API fixes and improvements."""
 
 import pytest
-import json
 from datetime import datetime
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import patch
 
 # Check for FastAPI availability
 try:

@@ -151,7 +151,7 @@ class TestWebAPIIntegration:
         """Start API server for testing."""
         # Import here to avoid issues if FastAPI not installed
         try:
-            import fastapi
+            import fastapi  # noqa: F401
         except ImportError:
             pytest.skip("FastAPI not available - web API tests require FastAPI")
             
@@ -493,8 +493,6 @@ class TestConfigurationValidation:
     def test_field_alias_compatibility(self):
         """Test theme/topic and constraints/context compatibility."""
         # Test via API endpoints instead since models.py doesn't exist
-        import requests
-        
         # The API should accept both field names - this is handled by the
         # Pydantic model aliases in main.py (IdeaGenerationRequest)
         # We'll test this more thoroughly in the API tests above

@@ -26,10 +26,7 @@ def test_cli_edge_cases():
     
     for test_name, topic, constraints in test_cases:
         try:
-            # Import CLI functionality
-            from madspark.cli.cli import validate_inputs
-            
-            # Test input validation
+            # Test input validation  
             if topic.strip():  # Non-empty topics should pass basic validation
                 print(f"✓ {test_name}: Input accepted")
                 results.append(True)
@@ -49,11 +46,9 @@ def test_bookmark_edge_cases():
     print("=" * 40)
     
     try:
-        from madspark.utils.bookmark_system import BookmarkManager
-        
         # Test with temporary directory
         with tempfile.TemporaryDirectory() as temp_dir:
-            bookmark_file = os.path.join(temp_dir, "test_bookmarks.json")
+            _ = os.path.join(temp_dir, "test_bookmarks.json")
             
             # Test cases
             test_ideas = [
@@ -149,7 +144,7 @@ def test_json_parsing_edge_cases():
         
         for i, json_str in enumerate(test_jsons):
             try:
-                result = parse_json_with_fallback(json_str)
+                _ = parse_json_with_fallback(json_str)
                 print(f"✓ JSON test {i+1}: Parsed successfully")
                 results.append(True)
                 

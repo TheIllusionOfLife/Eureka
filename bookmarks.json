@@ -61,5 +61,53 @@
       "AI",
       "privacy"
     ]
+  },
+  "bookmark_20250723_161834_1e2ff832": {
+    "id": "bookmark_20250723_161834_1e2ff832",
+    "text": "Improved test idea",
+    "theme": "test theme",
+    "constraints": "test constraints",
+    "score": 8.5,
+    "critique": "Improved critique",
+    "advocacy": "test advocacy",
+    "skepticism": "test skepticism",
+    "bookmarked_at": "2025-07-23T16:18:34.692183",
+    "tags": []
+  },
+  "bookmark_20250723_161903_94e0fa18": {
+    "id": "bookmark_20250723_161903_94e0fa18",
+    "text": "Test idea 3",
+    "theme": "test topic",
+    "constraints": "test constraints",
+    "score": 7.2,
+    "critique": "",
+    "advocacy": "",
+    "skepticism": "",
+    "bookmarked_at": "2025-07-23T16:19:03.631541",
+    "tags": []
+  },
+  "bookmark_20250723_161927_2438d301": {
+    "id": "bookmark_20250723_161927_2438d301",
+    "text": "Test idea that is long enough",
+    "theme": "test topic",
+    "constraints": "test context",
+    "score": 7.0,
+    "critique": "",
+    "advocacy": "",
+    "skepticism": "",
+    "bookmarked_at": "2025-07-23T16:19:27.269238",
+    "tags": []
+  },
+  "bookmark_20250723_161934_8694bad9": {
+    "id": "bookmark_20250723_161934_8694bad9",
+    "text": "Test idea for bookmarking",
+    "theme": "test topic",
+    "constraints": "test context",
+    "score": 7.5,
+    "critique": "",
+    "advocacy": "",
+    "skepticism": "",
+    "bookmarked_at": "2025-07-23T16:19:34.300864",
+    "tags": []
   }
 }

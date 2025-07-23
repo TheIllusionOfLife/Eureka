@@ -386,6 +386,31 @@ async def lifespan(app: FastAPI):
 
 
 # Initialize FastAPI app
+
+# Helper function for test initialization
+def initialize_components_for_testing():
+    """Initialize components for testing without running lifespan."""
+    global temp_manager, reasoning_engine, bookmark_system, cache_manager
+    
+    if temp_manager is None:
+        temp_manager = TemperatureManager()
+    if reasoning_engine is None:
+        reasoning_engine = ReasoningEngine()
+    if bookmark_system is None:
+        bookmark_system = BookmarkManager()
+    
+    # Set app start time for uptime calculation
+    if not hasattr(app.state, 'start_time'):
+        app.state.start_time = datetime.now()
+    
+    return {
+        "temp_manager": temp_manager,
+        "reasoning_engine": reasoning_engine,
+        "bookmark_system": bookmark_system,
+        "cache_manager": cache_manager
+    }
+
+
 app = FastAPI(
     title="MadSpark API",
     description="Web API for the MadSpark Multi-Agent Idea Generation System",
@@ -702,6 +727,11 @@ async def health_check():
         reasoning_status = reasoning_engine is not None
         bookmark_status = bookmark_system is not None
         
+        # Calculate uptime
+        uptime = 0
+        if hasattr(app.state, 'start_time'):
+            uptime = (datetime.now() - app.state.start_time).total_seconds()
+        
         return {
             "status": "healthy" if all([temp_status, reasoning_status, bookmark_status]) else "degraded",
             "components": {
@@ -709,6 +739,7 @@ async def health_check():
                 "reasoning_engine": reasoning_status,
                 "bookmark_system": bookmark_status
             },
+            "uptime": uptime,
             "timestamp": datetime.now().isoformat()
         }
     except Exception as e:

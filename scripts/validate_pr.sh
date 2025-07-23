@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # PR validation script - runs checks before creating a PR
 
-set -e
+# Don't use set -e to allow all checks to run and report
 
 echo "🔍 Running PR validation checks..."
 
@@ -53,8 +53,12 @@ fi
 echo "🧪 Running tests..."
 export PYTHONPATH="src"
 export MADSPARK_MODE="mock"
-pytest tests/ -v --tb=short
-check_result "Tests"
+if pytest tests/ -v --tb=short; then
+    echo -e "${GREEN}✅ Tests passed${NC}"
+else
+    echo -e "${RED}❌ Tests failed${NC}"
+    FAILURES=$((FAILURES + 1))
+fi
 
 # 5. Check PR size
 echo "📊 Checking PR size..."

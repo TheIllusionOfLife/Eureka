@@ -6,7 +6,7 @@ including hash-based similarity, keyword overlap, and semantic similarity.
 """
 import hashlib
 import re
-from typing import List, Set, Tuple, Dict
+from typing import List, Set, Tuple
 from dataclasses import dataclass
 import logging
 

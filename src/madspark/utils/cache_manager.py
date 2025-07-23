@@ -4,12 +4,12 @@ import json
 import hashlib
 import logging
 from typing import Optional, Dict, Any, List, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime
 from dataclasses import dataclass, asdict
 try:
     from madspark.utils.errors import CacheError, CacheConnectionError, CacheSerializationError
 except ImportError:
-    from .errors import CacheError, CacheConnectionError, CacheSerializationError
+    pass
 
 try:
     import redis.asyncio as redis

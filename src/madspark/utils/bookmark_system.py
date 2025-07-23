@@ -9,7 +9,7 @@ import os
 import uuid
 from datetime import datetime
 from typing import List, Dict, Any, Optional
-from dataclasses import dataclass, asdict
+from dataclasses import asdict
 import logging
 
 try:
@@ -19,7 +19,7 @@ try:
 except ImportError:
     from constants import HIGH_SCORE_THRESHOLD, MAX_REMIX_BOOKMARKS
     from models import BookmarkedIdea
-    from duplicate_detector import DuplicateDetector, DuplicateCheckResult, check_bookmark_duplicates
+    from duplicate_detector import DuplicateDetector, DuplicateCheckResult
 
 logger = logging.getLogger(__name__)
 

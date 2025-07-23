@@ -4,7 +4,6 @@ This module defines the Idea Generator agent and its associated tools.
 The agent is responsible for generating novel ideas based on a given topic
 and contextual information.
 """
-import os
 import logging
 from typing import Any
 
@@ -19,10 +18,10 @@ except ImportError:
     types = None
     GENAI_AVAILABLE = False
 try:
-    from madspark.utils.errors import IdeaGenerationError, ValidationError, ConfigurationError
+    from madspark.utils.errors import ValidationError
 except ImportError:
     # Fallback for local development/testing
-    from errors import IdeaGenerationError, ValidationError, ConfigurationError
+    from errors import ValidationError
 
 # Import prompt constants from constants module
 try:
@@ -194,7 +193,7 @@ def build_improvement_prompt(
     A formatted prompt string for idea improvement.
   """
   return (
-      f"You are helping to enhance an innovative idea based on comprehensive feedback.\n" +
+      "You are helping to enhance an innovative idea based on comprehensive feedback.\n" +
       LANGUAGE_CONSISTENCY_INSTRUCTION +
       f"ORIGINAL THEME: {theme}\n\n"
       f"ORIGINAL IDEA:\n{original_idea}\n\n"

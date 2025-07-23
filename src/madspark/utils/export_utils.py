@@ -6,7 +6,6 @@ to various formats including JSON, CSV, Markdown, and PDF.
 """
 import json
 import csv
-import os
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 from pathlib import Path
@@ -147,16 +146,16 @@ class ExportManager:
                 result_dict = dict(result)  # Convert to dict for safe access
                 f.write(f"## 💡 Idea #{i}\n\n")
                 f.write(f"**Score:** {result_dict['initial_score']}/10 ⭐\n\n")
-                f.write(f"### Description\n\n")
+                f.write("### Description\n\n")
                 f.write(f"{result_dict['idea']}\n\n")
                 
-                f.write(f"### 🔍 Initial Critique\n\n")
+                f.write("### 🔍 Initial Critique\n\n")
                 f.write(f"{result_dict['initial_critique']}\n\n")
                 
-                f.write(f"### ✅ Advocacy\n\n")
+                f.write("### ✅ Advocacy\n\n")
                 f.write(f"{result_dict['advocacy']}\n\n")
                 
-                f.write(f"### ⚠️ Skeptical Analysis\n\n")
+                f.write("### ⚠️ Skeptical Analysis\n\n")
                 f.write(f"{result_dict['skepticism']}\n\n")
                 
                 if i < len(results):

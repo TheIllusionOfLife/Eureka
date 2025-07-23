@@ -8,7 +8,7 @@ import os
 import sys
 import json
 import logging
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Tuple
 from datetime import datetime
 
 try:
@@ -142,7 +142,7 @@ class InteractiveSession:
         )
         
         # Confirm
-        print(f"\n📋 Summary:")
+        print("\n📋 Summary:")
         print(f"   Theme: {theme}")
         print(f"   Constraints: {constraints}")
         
@@ -342,15 +342,15 @@ class InteractiveSession:
         self.print_section("Configuration Summary")
         
         print("📋 Your Settings:")
-        print(f"\n🎯 Topic:")
+        print("\n🎯 Topic:")
         print(f"   Theme: {theme}")
         print(f"   Constraints: {constraints}")
         
-        print(f"\n🌡️  Temperature:")
+        print("\n🌡️  Temperature:")
         print(f"   Overall: {self.temp_manager.config.base_temperature}")
         print(f"   Preset: {self.current_preset or 'custom'}")
         
-        print(f"\n⚙️  Workflow:")
+        print("\n⚙️  Workflow:")
         print(f"   Top candidates: {config['num_top_candidates']}")
         print(f"   Novelty filter: {'Yes' if config['enable_novelty_filter'] else 'No'}")
         if config['enable_novelty_filter']:
@@ -361,7 +361,7 @@ class InteractiveSession:
         print(f"   Async execution: {'Yes' if config['async'] else 'No'}")
         print(f"   Caching: {'Yes' if config['enable_cache'] else 'No'}")
         
-        print(f"\n📤 Output:")
+        print("\n📤 Output:")
         print(f"   Format: {config['output_format']}")
         if config.get('export'):
             print(f"   Export: {config['export']} to {config['export_dir']}/")

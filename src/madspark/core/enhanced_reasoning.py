@@ -6,15 +6,13 @@ This module implements advanced reasoning capabilities including:
 - Multi-dimensional evaluation metrics
 - Agent memory and conversation tracking
 """
-import json
 import logging
 import hashlib
 import datetime
-from typing import Dict, List, Any, Optional, Union, TypedDict
+from typing import Dict, List, Any, Optional, TypedDict
 from dataclasses import dataclass, field
 from collections import defaultdict
 import re
-import math
 
 # Configure logging for enhanced reasoning
 reasoning_logger = logging.getLogger(__name__)
@@ -330,7 +328,7 @@ class LogicalInference:
             # Default to simple connection
             return InferenceStep(
                 premise=f"{premise1} AND {premise2}",
-                conclusion=f"Therefore, both conditions apply",
+                conclusion="Therefore, both conditions apply",
                 confidence=0.6,
                 reasoning="Simple conjunction of premises"
             )

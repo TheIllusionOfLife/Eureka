@@ -5,13 +5,9 @@ modules including error handling, logging, caching, and content safety.
 """
 
 import pytest
-import tempfile
 import os
-import json
-import logging
 import time
-from unittest.mock import Mock, patch, MagicMock
-from typing import Dict, Any
+from unittest.mock import patch
 from io import StringIO
 
 # Import modules to test

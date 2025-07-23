@@ -1,8 +1,7 @@
 """Comprehensive tests for MadSpark agent modules."""
 import pytest
 import json
-from unittest.mock import Mock, patch, MagicMock
-from typing import Dict, Any
+from unittest.mock import Mock, patch
 
 # Import the agent functions we want to test
 from madspark.agents.idea_generator import generate_ideas, build_generation_prompt

@@ -58,10 +58,7 @@ try:
     from madspark.agents.skeptic import criticize_idea
 except ImportError:
     # Fallback for local development/testing
-    from ..agents.idea_generator import generate_ideas, improve_idea
-    from ..agents.critic import evaluate_ideas
-    from ..agents.advocate import advocate_idea
-    from ..agents.skeptic import criticize_idea
+    pass
 try:
     # Primary imports for package installation
     from madspark.utils.utils import (
@@ -100,7 +97,6 @@ except ImportError:
     except ImportError:
         # Last resort - direct imports (for old package structure)
         from utils import (
-            exponential_backoff_retry,
             parse_json_with_fallback,
             validate_evaluation_json,
         )

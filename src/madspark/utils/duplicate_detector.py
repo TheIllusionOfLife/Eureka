@@ -7,7 +7,7 @@ duplicate bookmarks while avoiding false positives.
 
 import re
 import hashlib
-from typing import List, Dict, Tuple, Set, Any, Optional
+from typing import List, Set
 from dataclasses import dataclass
 import logging
 

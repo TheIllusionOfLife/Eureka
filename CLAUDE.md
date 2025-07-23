@@ -18,6 +18,116 @@ Eureka features the MadSpark Multi-Agent System, a sophisticated AI-powered expe
 - **Web Interface**: `cd web && docker-compose up`
 - **Run Tests**: `PYTHONPATH=src pytest` (comprehensive test suite with 90%+ coverage) or `python tests/test_basic_imports_simple.py` (basic imports only)
 
+## Manual Verification Workflows
+
+### Pre-Development Setup (One-time)
+```bash
+# Install pre-commit hooks to prevent CI failures
+pip install pre-commit
+pre-commit install
+
+# Verify environment is properly configured
+./scripts/check_dependencies.sh
+```
+
+### Daily Development Verification
+```bash
+# Before starting work - verify clean state
+./scripts/check_dependencies.sh
+
+# Create feature branch (ALWAYS required)
+git checkout -b feature/descriptive-name
+
+# During development - hooks run automatically on commit
+# Manual verification if needed:
+pre-commit run --all-files
+
+# Before creating PR - final verification
+./scripts/check_dependencies.sh
+PYTHONPATH=src pytest tests/ -v
+cd web/frontend && npm test
+```
+
+### Comprehensive Testing Commands
+```bash
+# Backend testing (set PYTHONPATH first)
+export PYTHONPATH="${PYTHONPATH}:$(pwd)/src"
+
+# Run comprehensive test suite
+pytest tests/ -v --cov=src --cov-report=html
+
+# Test individual components
+pytest tests/test_agents.py -v           # Agent functionality
+pytest tests/test_coordinator.py -v     # Core coordination logic  
+pytest tests/test_utils.py -v           # Utilities and helpers
+pytest tests/test_cli.py -v             # CLI interface
+pytest tests/test_integration.py -v     # End-to-end integration
+
+# Quick import verification (no API keys needed)
+python tests/test_basic_imports_simple.py
+
+# Frontend testing
+cd web/frontend
+npm ci                                   # Install dependencies
+npm test -- --coverage --watchAll=false # Run tests with coverage
+npm run build                           # Verify build process
+
+# API integration testing  
+cd web/backend
+PYTHONPATH=../../src MADSPARK_MODE=mock python main.py &
+sleep 5                                 # Wait for server
+curl http://localhost:8000/health       # Health check
+python test_openapi.py                  # API documentation tests
+pkill -f "python main.py"              # Stop server
+```
+
+### Code Quality Verification
+```bash
+# Pre-commit hooks (automatic)
+pre-commit run --all-files
+
+# Manual quality checks
+ruff check src/ tests/ web/backend/      # Linting
+ruff check src/ --fix                   # Auto-fix issues
+mypy src/ --ignore-missing-imports      # Type checking
+bandit -r src/ web/backend/             # Security scanning
+safety check                           # Vulnerability checking
+
+# Performance benchmarking
+python tools/benchmark/benchmark_performance.py
+python tools/benchmark/generate_report.py
+```
+
+### CI/CD Pipeline Verification
+```bash
+# Check recent CI runs
+gh run list --limit 5
+
+# View specific failure details
+gh run view <run_id> --log
+
+# Local CI simulation (key checks)
+./scripts/check_dependencies.sh         # Dependency validation
+ruff check src/ tests/ web/backend/     # Code quality
+pytest tests/ -v                       # Backend tests
+cd web/frontend && npm test            # Frontend tests
+```
+
+### Troubleshooting Common Issues
+```bash
+# Dependency resolution problems
+./scripts/verify_python_deps.sh         # Python dependencies
+./scripts/verify_npm_deps.sh           # npm dependencies
+./scripts/verify_frontend.sh           # Frontend build verification
+
+# Reset lock files if needed
+cd web/frontend && rm package-lock.json && npm install
+
+# Docker container issues
+cd web && docker-compose build --no-cache
+cd web && docker-compose up
+```
+
 ## Testing Approach
 - **CI-Safe Tests**: Tests must run without external API calls using comprehensive mocking
 - **Current Infrastructure**: Full comprehensive test suite with 6 test modules (agents, coordinators, utils, cli, integration, interactive EOF)

@@ -2,7 +2,7 @@
 import pytest
 import sys
 import io
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import patch
 from contextlib import redirect_stdout, redirect_stderr
 
 from madspark.cli.cli import main as cli_main
@@ -395,7 +395,7 @@ class TestCLIUtilities:
             try:
                 result = cli_main()
                 # Should handle empty strings appropriately
-            except SystemExit as e:
+            except SystemExit:
                 # May exit with error for empty arguments
                 pass
     
@@ -418,6 +418,6 @@ class TestCLIUtilities:
             try:
                 result = cli_main()
                 # May or may not have version flag
-            except SystemExit as e:
+            except SystemExit:
                 # Version flag may exit with 0 or 2 (unrecognized)
                 pass

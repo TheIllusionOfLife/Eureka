@@ -3,7 +3,7 @@ OpenAPI Documentation Enhancements for MadSpark API
 Provides detailed schemas, examples, and descriptions for API documentation
 """
 
-from typing import Dict, Any, List
+from typing import Dict, Any
 
 # API Examples for request/response models
 API_EXAMPLES = {

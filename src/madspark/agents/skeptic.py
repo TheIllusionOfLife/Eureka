@@ -4,9 +4,7 @@ This module defines the Skeptic agent (Devil's Advocate) and its tools.
 The agent is responsible for critically analyzing ideas, challenging assumptions,
 and identifying potential flaws or risks.
 """
-import os
 import logging
-from typing import Any
 
 # Optional import for Google GenAI - graceful fallback for CI/testing
 try:
@@ -20,12 +18,10 @@ except ImportError:
 
 try:
     from madspark.utils.constants import SKEPTIC_EMPTY_RESPONSE, SKEPTIC_SYSTEM_INSTRUCTION, LANGUAGE_CONSISTENCY_INSTRUCTION
-    from madspark.utils.errors import ConfigurationError
     from madspark.agents.genai_client import get_genai_client, get_model_name
 except ImportError:
     # Fallback for local development/testing
     from constants import SKEPTIC_EMPTY_RESPONSE, SKEPTIC_SYSTEM_INSTRUCTION, LANGUAGE_CONSISTENCY_INSTRUCTION
-    from errors import ConfigurationError
     from .genai_client import get_genai_client, get_model_name
 
 # Configure the Google GenAI client

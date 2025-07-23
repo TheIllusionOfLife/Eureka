@@ -6,7 +6,6 @@ consistent logging behavior across the application.
 """
 
 import logging
-import time
 from typing import Optional, Dict, Any
 
 logger = logging.getLogger(__name__)

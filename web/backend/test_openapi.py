@@ -3,7 +3,6 @@
 Test script to verify OpenAPI documentation is working correctly
 """
 import requests
-import json
 import sys
 
 def test_openapi_docs():

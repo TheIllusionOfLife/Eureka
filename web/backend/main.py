@@ -10,7 +10,6 @@ import json
 import logging
 import os
 import random
-import secrets
 import uuid
 import sys
 from datetime import datetime
@@ -23,7 +22,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from fastapi.openapi.utils import get_openapi
-from pydantic import BaseModel, Field, validator, ValidationError
+from pydantic import BaseModel, Field, validator
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -104,13 +103,10 @@ def sanitize_for_logging(text: str, max_length: int = 50) -> str:
     return sanitized
 
 try:
-    from madspark.core.coordinator import run_multistep_workflow
     from madspark.core.async_coordinator import AsyncCoordinator
     from madspark.utils.temperature_control import TemperatureManager
     from madspark.core.enhanced_reasoning import ReasoningEngine
     from madspark.utils.constants import (
-        DEFAULT_IDEA_TEMPERATURE,
-        DEFAULT_EVALUATION_TEMPERATURE,
         DIMENSION_SCORES_KEY,
         FEASIBILITY_KEY,
         INNOVATION_KEY,
@@ -124,18 +120,14 @@ try:
     from madspark.utils.bookmark_system import BookmarkManager
     from madspark.utils.cache_manager import CacheManager, CacheConfig
     from madspark.utils.improved_idea_cleaner import clean_improved_ideas_in_results
-    from madspark.utils.duplicate_detector import DuplicateCheckResult
 except ImportError as e:
     logging.error(f"Failed to import MadSpark modules: {e}")
     # Try alternative paths for different deployment scenarios
     try:
-        from src.madspark.core.coordinator import run_multistep_workflow
         from src.madspark.core.async_coordinator import AsyncCoordinator
         from src.madspark.utils.temperature_control import TemperatureManager
         from src.madspark.core.enhanced_reasoning import ReasoningEngine
         from src.madspark.utils.constants import (
-            DEFAULT_IDEA_TEMPERATURE,
-            DEFAULT_EVALUATION_TEMPERATURE,
             DIMENSION_SCORES_KEY,
             FEASIBILITY_KEY,
             INNOVATION_KEY,
@@ -149,7 +141,6 @@ except ImportError as e:
         from src.madspark.utils.bookmark_system import BookmarkManager
         from src.madspark.utils.cache_manager import CacheManager, CacheConfig
         from src.madspark.utils.improved_idea_cleaner import clean_improved_ideas_in_results
-        from src.madspark.utils.duplicate_detector import DuplicateCheckResult
     except ImportError as e2:
         logging.error(f"Failed to import MadSpark modules with fallback paths: {e2}")
         raise e
@@ -247,12 +238,12 @@ def generate_mock_results(theme: str, num_ideas: int) -> List[Dict[str, Any]]:
         result = {
             "idea": base_ideas[i],
             "initial_score": round(base_score, 1),
-            "initial_critique": f"Interesting concept but needs more detail on implementation and feasibility",
+            "initial_critique": "Interesting concept but needs more detail on implementation and feasibility",
             "advocacy": f"This solution addresses key challenges in {theme} with innovative thinking",
-            "skepticism": f"Implementation costs and technical complexity may be barriers",
+            "skepticism": "Implementation costs and technical complexity may be barriers",
             "improved_idea": f"{base_ideas[i]}. Enhanced with AI-driven optimization, real-time monitoring, and adaptive learning capabilities for maximum efficiency",
             "improved_score": round(improved_score, 1),
-            "improved_critique": f"Comprehensive solution with clear benefits and implementation pathway",
+            "improved_critique": "Comprehensive solution with clear benefits and implementation pathway",
             "score_delta": round(improved_score - base_score, 1),
             "multi_dimensional_evaluation": {
                 "dimension_scores": {
@@ -1451,8 +1442,8 @@ async def websocket_endpoint(websocket: WebSocket):
                         "type": "ping",
                         "timestamp": datetime.now().isoformat()
                     }))
-                except:
-                    logger.info("WebSocket connection lost during ping")
+                except Exception as e:
+                    logger.info(f"WebSocket connection lost during ping: {e}")
                     break
             except WebSocketDisconnect:
                 logger.info("WebSocket client disconnected normally")

@@ -3,13 +3,12 @@ import pytest
 import asyncio
 import tempfile
 import os
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 
 from madspark.core.coordinator import run_multistep_workflow
 from madspark.core.async_coordinator import AsyncCoordinator
 from madspark.utils.bookmark_system import BookmarkManager
 from madspark.utils.temperature_control import TemperatureManager
-from madspark.utils.novelty_filter import NoveltyFilter
 
 
 class TestEndToEndWorkflow:

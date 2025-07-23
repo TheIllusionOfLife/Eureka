@@ -9,15 +9,11 @@ import asyncio
 import json
 import sys
 import os
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 import logging
 from datetime import datetime
 
-# Import idea cleaner
-try:
-    from madspark.utils.improved_idea_cleaner import clean_improved_idea
-except ImportError:
-    from ..utils.improved_idea_cleaner import clean_improved_idea
+# Import idea cleaner (removed unused import)
 
 # Import MadSpark components with fallback for local development
 try:
@@ -30,7 +26,6 @@ try:
     )
     from madspark.utils.bookmark_system import (
         BookmarkManager,
-        bookmark_from_result,
         list_bookmarks_cli,
         remix_with_bookmarks
     )
@@ -48,7 +43,6 @@ except ImportError:
     )
     from bookmark_system import (
         BookmarkManager,
-        bookmark_from_result,
         list_bookmarks_cli,
         remix_with_bookmarks
     )
@@ -450,7 +444,7 @@ def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
             # Add multi-dimensional evaluation if available
             if 'multi_dimensional_evaluation' in result:
                 eval_data = result['multi_dimensional_evaluation']
-                lines.append(f"\nMulti-Dimensional Evaluation:")
+                lines.append("\nMulti-Dimensional Evaluation:")
                 lines.append(f"  Overall Score: {eval_data.get('overall_score', 'N/A')}")
                 
                 if 'dimension_scores' in eval_data:
@@ -569,7 +563,7 @@ def main():
             elif args.batch.endswith('.json'):
                 batch_items = processor.load_batch_from_json(args.batch)
             else:
-                print(f"❌ Unsupported batch file format. Use .csv or .json")
+                print("❌ Unsupported batch file format. Use .csv or .json")
                 sys.exit(1)
                 
             print(f"📋 Loaded {len(batch_items)} items for batch processing")
@@ -586,7 +580,6 @@ def main():
             
             # Process batch
             print("🚀 Starting batch processing...")
-            start_time = datetime.now()
             
             summary = processor.process_batch(batch_items, workflow_options)
             
@@ -596,7 +589,7 @@ def main():
             report_path = processor.create_batch_report(batch_items, batch_id)
             
             # Print summary
-            print(f"\n✅ Batch processing completed!")
+            print("\n✅ Batch processing completed!")
             print(f"⏱️  Total time: {summary['total_processing_time']:.2f}s")
             print(f"📊 Results: {summary['completed']} completed, {summary['failed']} failed")
             print(f"📁 Exports saved to: {args.batch_export_dir}/")
@@ -729,7 +722,7 @@ def main():
                     exported_files = export_manager.export_all_formats(
                         results, metadata, args.export_filename
                     )
-                    print(f"\n📁 Export Results:")
+                    print("\n📁 Export Results:")
                     for format_name, file_path in exported_files.items():
                         print(f"  {format_name.upper()}: {file_path}")
                 else:

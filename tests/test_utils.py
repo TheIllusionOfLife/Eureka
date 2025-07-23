@@ -1,10 +1,8 @@
 """Comprehensive tests for MadSpark utility modules."""
 import pytest
-import json
 import tempfile
 import os
-from unittest.mock import Mock, patch, MagicMock
-from typing import Dict, Any
+from unittest.mock import Mock
 
 from madspark.utils.utils import exponential_backoff_retry, parse_json_with_fallback
 from madspark.utils.temperature_control import TemperatureManager, TemperatureConfig

@@ -7,7 +7,7 @@ import re
 import json
 import time
 import logging
-from typing import Any, Dict, List, Optional, Callable, TypeVar, cast
+from typing import Any, Dict, List, Optional, Callable, TypeVar
 from functools import wraps
 
 T = TypeVar('T')

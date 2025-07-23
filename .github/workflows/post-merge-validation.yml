@@ -1,0 +1,145 @@
+name: Post-Merge Validation
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  validate-merge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Get full history for comparisons
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r config/requirements.txt
+          pip install -r config/requirements-dev.txt
+      
+      - name: Create validation report
+        id: validation
+        run: |
+          # Create report directory
+          mkdir -p validation_reports
+          REPORT_FILE="validation_reports/post_merge_$(date +%Y%m%d_%H%M%S).md"
+          
+          # Initialize report
+          cat > $REPORT_FILE << EOF
+          # Post-Merge Validation Report
+          
+          **Commit**: ${{ github.sha }}
+          **Author**: ${{ github.actor }}
+          **Date**: $(date)
+          
+          ## Tests
+          EOF
+          
+          # Run tests
+          echo "### Mock Mode Validation" >> $REPORT_FILE
+          if MADSPARK_MODE=mock PYTHONPATH=src timeout 30 python -m madspark.cli.cli "test" "test" > /dev/null 2>&1; then
+            echo "✅ Mock mode CLI works" >> $REPORT_FILE
+          else
+            echo "❌ Mock mode CLI failed" >> $REPORT_FILE
+            echo "validation_failed=true" >> $GITHUB_OUTPUT
+          fi
+          
+          echo "### Test Execution" >> $REPORT_FILE
+          if PYTHONPATH=src pytest tests/ --tb=short -v >> $REPORT_FILE 2>&1; then
+            echo "✅ All tests passed" >> $REPORT_FILE
+          else
+            echo "❌ Some tests failed" >> $REPORT_FILE
+            echo "validation_failed=true" >> $GITHUB_OUTPUT
+          fi
+          
+          # Upload report
+          echo "report_file=$REPORT_FILE" >> $GITHUB_OUTPUT
+      
+      - name: Check for deprecated patterns
+        run: |
+          # Check docker-compose syntax
+          if grep -r "docker-compose" --include="*.md" --include="*.yml" --include="*.sh" . | grep -v "docker-compose.yml" | grep -v ".git"; then
+            echo "❌ Found deprecated docker-compose syntax"
+            echo "validation_failed=true" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Performance check
+        run: |
+          # Simple performance benchmark
+          cat > perf_test.py << 'EOF'
+          import time
+          import asyncio
+          import os
+          os.environ['MADSPARK_MODE'] = 'mock'
+          from madspark.core.async_coordinator import AsyncCoordinator
+          
+          async def test():
+              start = time.time()
+              coordinator = AsyncCoordinator()
+              result = await coordinator.run_workflow("test", "test", num_top_candidates=1)
+              elapsed = time.time() - start
+              
+              if elapsed > 10:  # Mock mode should be fast
+                  print(f"❌ Performance issue: {elapsed:.2f}s (expected < 10s)")
+                  exit(1)
+              else:
+                  print(f"✅ Performance OK: {elapsed:.2f}s")
+          
+          asyncio.run(test())
+          EOF
+          
+          PYTHONPATH=src python perf_test.py
+      
+      - name: Upload validation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-report-${{ github.sha }}
+          path: validation_reports/
+      
+      - name: Comment on commit
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('${{ steps.validation.outputs.report_file }}', 'utf8');
+            
+            await github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: `## ⚠️ Post-Merge Validation Failed\n\n${report}\n\nPlease investigate and fix any issues.`
+            });
+      
+      - name: Create issue if validation fails
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Post-merge validation failed for ${context.sha.substring(0, 7)}`,
+              body: `The post-merge validation failed for commit ${context.sha}.
+              
+              **Author**: @${{ github.actor }}
+              **Branch**: ${{ github.ref }}
+              
+              Please check the [workflow run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.
+              
+              Common issues:
+              - Mock mode not working
+              - Tests failing
+              - Deprecated syntax used
+              - Performance regression
+              `,
+              labels: ['bug', 'validation-failure']
+            });

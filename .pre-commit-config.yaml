@@ -24,7 +24,7 @@ repos:
       # Docker Compose syntax check
       - id: docker-compose-syntax-check
         name: Check for old docker-compose syntax
-        entry: python tests/test_docker_compose_syntax.py
+        entry: python3 tests/test_docker_compose_syntax.py
         language: python
         types: [text]
         always_run: true
@@ -64,6 +64,18 @@ repos:
       - id: check-merge-conflict
       - id: check-added-large-files
         args: ['--maxkb=1000']
+      - id: detect-private-key
+      - id: check-case-conflict
+
+  # Mock mode validation
+  - repo: local
+    hooks:
+      - id: mock-mode-validation
+        name: Validate mock mode functionality
+        entry: bash -c 'MADSPARK_MODE=mock PYTHONPATH=src timeout 30 python3 -m madspark.cli.cli "test" "test" > /dev/null 2>&1 || (echo "Mock mode validation failed!" && exit 1)'
+        language: system
+        pass_filenames: false
+        stages: [push]
 
   # Frontend hooks
   - repo: local

@@ -1,0 +1,73 @@
+# Pre-commit hooks configuration for CI/CD reliability
+# Prevents common issues that cause CI failures
+repos:
+  # Local hooks for dependency verification
+  - repo: local
+    hooks:
+      # Python dependency verification
+      - id: python-requirements-check
+        name: Verify Python requirements can be installed
+        entry: scripts/verify_python_deps.sh
+        language: script
+        files: (requirements.*\.txt|pyproject\.toml)$
+        always_run: false
+        
+      # npm package lock consistency check
+      - id: npm-lockfile-consistency
+        name: Verify npm package-lock.json consistency
+        entry: scripts/verify_npm_deps.sh
+        language: script
+        files: (package\.json|package-lock\.json)$
+        always_run: false
+        pass_filenames: false
+
+  # Code quality and security
+  - repo: https://github.com/psf/black
+    rev: 24.8.0
+    hooks:
+      - id: black
+        language_version: python3
+        files: ^(src/|tests/|web/backend/).*\.py$
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.0
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+        files: ^(src/|tests/|web/backend/).*\.py$
+
+  # Security scanning
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.10
+    hooks:
+      - id: bandit
+        args: [-r, -f, json, -o, bandit-report.json]
+        files: ^(src/|web/backend/).*\.py$
+
+  # Git hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+
+  # Frontend hooks
+  - repo: local
+    hooks:
+      - id: frontend-lint
+        name: Frontend TypeScript and React linting
+        entry: scripts/verify_frontend.sh
+        language: script
+        files: ^web/frontend/.*\.(ts|tsx|js|jsx)$
+        always_run: false
+        pass_filenames: false
+
+# Configuration
+default_stages: [commit, push]
+fail_fast: true
+minimum_pre_commit_version: 3.0.0

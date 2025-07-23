@@ -1,0 +1,104 @@
+# Dependabot configuration to prevent CI failures from outdated dependencies
+# Automatically creates PRs for dependency updates
+version: 2
+updates:
+  # GitHub Actions updates
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "TheIllusionOfLife"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+
+  # Python dependencies (main project)
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "TheIllusionOfLife"
+    labels:
+      - "dependencies"
+      - "python"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    ignore:
+      # Ignore major version updates for critical packages
+      - dependency-name: "fastapi"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "uvicorn"
+        update-types: ["version-update:semver-major"]
+
+  # Python dependencies (backend)
+  - package-ecosystem: "pip"
+    directory: "/web/backend"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "10:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "TheIllusionOfLife"
+    labels:
+      - "dependencies"
+      - "python"
+      - "backend"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+
+  # npm dependencies (frontend)
+  - package-ecosystem: "npm"
+    directory: "/web/frontend"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "TheIllusionOfLife"
+    labels:
+      - "dependencies"
+      - "npm"
+      - "frontend"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    ignore:
+      # Ignore major React updates unless manually approved
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/react"
+        update-types: ["version-update:semver-major"]
+
+  # Docker dependencies
+  - package-ecosystem: "docker"
+    directory: "/web"
+    schedule:
+      interval: "monthly"
+      day: "first-monday"
+      time: "09:00"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "TheIllusionOfLife"
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "docker"
+      include: "scope"

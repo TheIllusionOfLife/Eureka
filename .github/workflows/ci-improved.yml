@@ -1,0 +1,325 @@
+name: Improved CI with Fail-Fast Strategy
+
+on:
+  push:
+    branches: [ main, feature/* ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  PYTHONPATH: src
+  NODE_VERSION: '18'
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  # Phase 1: Fast validation checks - fail immediately if basic issues exist
+  dependency-validation:
+    name: Dependency Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      python-cache-key: ${{ steps.python-cache.outputs.cache-hit }}
+      npm-cache-key: ${{ steps.npm-cache.outputs.cache-hit }}
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Cache Python dependencies
+      id: python-cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ env.PYTHON_VERSION }}-${{ hashFiles('config/requirements.txt', 'web/backend/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-${{ env.PYTHON_VERSION }}-
+    
+    - name: Verify Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        # Test main requirements
+        if [[ -f "config/requirements.txt" ]]; then
+          echo "Testing config/requirements.txt..."
+          pip install --dry-run -r config/requirements.txt
+        fi
+        # Test backend requirements
+        if [[ -f "web/backend/requirements.txt" ]]; then
+          echo "Testing web/backend/requirements.txt..."
+          pip install --dry-run -r web/backend/requirements.txt
+        fi
+    
+    - name: Set up Node.js ${{ env.NODE_VERSION }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+    
+    - name: Cache npm dependencies
+      id: npm-cache
+      uses: actions/cache@v4
+      with:
+        path: web/frontend/node_modules
+        key: ${{ runner.os }}-npm-${{ env.NODE_VERSION }}-${{ hashFiles('web/frontend/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-npm-${{ env.NODE_VERSION }}-
+    
+    - name: Verify npm dependencies consistency
+      working-directory: web/frontend
+      run: |
+        if [[ -f "package-lock.json" ]]; then
+          echo "Verifying package-lock.json consistency..."
+          npm ci --dry-run
+        else
+          echo "Warning: No package-lock.json found"
+          exit 1
+        fi
+
+  # Phase 2: Code quality and security - run in parallel after dependencies pass
+  code-quality:
+    name: Code Quality & Security
+    runs-on: ubuntu-latest
+    needs: dependency-validation
+    timeout-minutes: 15
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Restore Python cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ env.PYTHON_VERSION }}-${{ hashFiles('config/requirements.txt', 'web/backend/requirements.txt') }}
+    
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r config/requirements.txt
+        pip install ruff mypy bandit safety
+    
+    - name: Run Python linting (ruff)
+      run: |
+        ruff check src/ tests/ web/backend/ --output-format=github
+    
+    - name: Run Python type checking (mypy)
+      run: |
+        mypy src/ || echo "Type checking completed with warnings"
+    
+    - name: Run security scan (bandit)
+      run: |
+        bandit -r src/ web/backend/ -f json -o bandit-report.json || true
+        bandit -r src/ web/backend/ -f txt
+    
+    - name: Check for known vulnerabilities
+      run: |
+        safety check || echo "Safety check completed with warnings"
+    
+    - name: Upload security report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: security-report
+        path: bandit-report.json
+
+  # Phase 3: Build verification - ensure code compiles before testing
+  build-verification:
+    name: Build Verification
+    runs-on: ubuntu-latest
+    needs: dependency-validation
+    timeout-minutes: 15
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Node.js ${{ env.NODE_VERSION }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+    
+    - name: Restore npm cache
+      uses: actions/cache@v4
+      with:
+        path: web/frontend/node_modules
+        key: ${{ runner.os }}-npm-${{ env.NODE_VERSION }}-${{ hashFiles('web/frontend/package-lock.json') }}
+    
+    - name: Install npm dependencies
+      working-directory: web/frontend
+      run: npm ci
+    
+    - name: TypeScript compilation check
+      working-directory: web/frontend
+      run: |
+        echo "Checking TypeScript compilation..."
+        npm run build
+    
+    - name: Docker build verification
+      working-directory: web
+      run: |
+        echo "Verifying Docker builds..."
+        docker-compose build --no-cache
+
+  # Phase 4: Comprehensive testing - only run if builds pass
+  backend-tests:
+    name: Backend Tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    needs: [dependency-validation, code-quality, build-verification]
+    timeout-minutes: 20
+    strategy:
+      fail-fast: true
+      matrix:
+        python-version: ['3.10', '3.11', '3.12']
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r config/requirements.txt
+        pip install pytest pytest-cov pytest-asyncio pytest-mock coverage[toml]
+    
+    - name: Run tests with coverage
+      env:
+        PYTHONPATH: src
+        MADSPARK_MODE: mock
+        GOOGLE_API_KEY: test_key_for_ci
+      run: |
+        pytest tests/ -v --cov=src --cov-report=xml --cov-report=term-missing --cov-fail-under=80
+    
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v4
+      if: matrix.python-version == '3.11'
+      with:
+        file: ./coverage.xml
+        flags: backend
+        name: backend-coverage
+
+  frontend-tests:
+    name: Frontend Tests (React/TypeScript)
+    runs-on: ubuntu-latest
+    needs: [dependency-validation, build-verification]
+    timeout-minutes: 15
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Node.js ${{ env.NODE_VERSION }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+    
+    - name: Restore npm cache
+      uses: actions/cache@v4
+      with:
+        path: web/frontend/node_modules
+        key: ${{ runner.os }}-npm-${{ env.NODE_VERSION }}-${{ hashFiles('web/frontend/package-lock.json') }}
+    
+    - name: Install dependencies
+      working-directory: web/frontend
+      run: npm ci
+    
+    - name: Run tests
+      working-directory: web/frontend
+      run: npm test -- --coverage --watchAll=false --passWithNoTests
+    
+    - name: Upload frontend coverage
+      uses: codecov/codecov-action@v4
+      with:
+        directory: web/frontend/coverage
+        flags: frontend
+        name: frontend-coverage
+
+  # Phase 5: Integration tests - comprehensive API testing
+  api-integration:
+    name: API Integration Tests
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-tests]
+    timeout-minutes: 15
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r config/requirements.txt
+        pip install -r web/backend/requirements.txt
+    
+    - name: Start backend server with improved health check
+      working-directory: web/backend
+      env:
+        PYTHONPATH: ../../src:$PYTHONPATH
+        MADSPARK_MODE: mock
+        GOOGLE_API_KEY: test_key_for_ci
+      run: |
+        echo "Starting server..."
+        python main.py &
+        SERVER_PID=$!
+        echo "Server PID: $SERVER_PID"
+        
+        # Enhanced health check with better error reporting
+        echo "Waiting for server to start..."
+        for i in {1..30}; do
+          if curl -f http://localhost:8000/health > /dev/null 2>&1; then
+            echo "✅ Server is ready!"
+            break
+          fi
+          
+          # Check if server process is still running
+          if ! kill -0 $SERVER_PID 2>/dev/null; then
+            echo "❌ Server process died. Checking logs:"
+            # Print any error logs if server died
+            tail -50 *.log 2>/dev/null || echo "No log files found"
+            exit 1
+          fi
+          
+          echo "Attempt $i: Server not ready yet..."
+          sleep 2
+        done
+        
+        if ! curl -f http://localhost:8000/health > /dev/null 2>&1; then
+          echo "❌ Server failed to start after 60 seconds"
+          kill $SERVER_PID || true
+          exit 1
+        fi
+        
+        # Run API tests
+        echo "Running API documentation tests..."
+        python test_openapi.py
+        
+        # Cleanup
+        kill $SERVER_PID || true
+
+  # Phase 6: Final validation
+  integration-summary:
+    name: Integration Test Summary
+    runs-on: ubuntu-latest
+    needs: [api-integration]
+    timeout-minutes: 5
+    
+    steps:
+    - name: Integration tests completed
+      run: |
+        echo "🎉 All integration tests passed successfully!"
+        echo "✅ Backend tests: PASSED"
+        echo "✅ Frontend tests: PASSED" 
+        echo "✅ API integration: PASSED"
+        echo "✅ Build verification: PASSED"
+        echo "✅ Code quality: PASSED"

@@ -426,33 +426,54 @@ app.add_middleware(
 # Middleware to add security headers and session ID
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
+    """Enhanced security headers middleware with comprehensive error handling."""
     # Generate a cryptographically secure session ID for each request
     # Using UUID4 for uniqueness and unpredictability
     request.state.session_id = str(uuid.uuid4())
     
-    response = await call_next(request)
-    
-    # Add security headers
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "DENY"
-    response.headers["X-XSS-Protection"] = "1; mode=block"
-    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    response.headers["Content-Security-Policy"] = (
-        "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline'; "
-        "style-src 'self' 'unsafe-inline'; "
-        "img-src 'self' data: https:; "
-        "connect-src 'self' ws: wss:;"
-    )
-    
-    # Add session ID to response headers for client tracking if needed
-    response.headers["X-Session-ID"] = request.state.session_id
-    
-    # Remove potentially sensitive server information
-    if "server" in response.headers:
-        del response.headers["server"]
-    
-    return response
+    try:
+        response = await call_next(request)
+        
+        # Add security headers
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline'; "
+            "style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data: https:; "
+            "connect-src 'self' ws: wss:;"
+        )
+        
+        # Add session ID to response headers for client tracking if needed
+        response.headers["X-Session-ID"] = request.state.session_id
+        
+        # Remove potentially sensitive server information
+        if "server" in response.headers:
+            del response.headers["server"]
+        
+        return response
+        
+    except Exception as e:
+        # Enhanced error logging for middleware issues
+        session_id = getattr(request.state, 'session_id', 'unknown')
+        client_ip = request.client.host if request.client else 'unknown'
+        user_agent = request.headers.get('user-agent', 'unknown')
+        
+        logging.error(
+            f"Middleware error in security headers: {type(e).__name__}: {e}\n"
+            f"Session ID: {session_id}\n"
+            f"Client IP: {client_ip}\n"
+            f"User Agent: {user_agent}\n"
+            f"Request path: {request.url.path}\n"
+            f"Request method: {request.method}",
+            exc_info=True
+        )
+        
+        # Re-raise the exception to maintain FastAPI's error handling behavior
+        raise
 
 
 # Pydantic models for API requests and responses

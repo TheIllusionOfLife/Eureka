@@ -48,7 +48,7 @@ python -m madspark.core.coordinator
 python -m madspark.cli.cli "Sustainable transportation" "Low-cost solutions"
 
 # Web interface
-cd web && docker-compose up
+cd web && docker compose up
 ```
 
 ## Project Structure

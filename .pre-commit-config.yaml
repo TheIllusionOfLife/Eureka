@@ -20,6 +20,15 @@ repos:
         files: (package\.json|package-lock\.json)$
         always_run: false
         pass_filenames: false
+        
+      # Docker Compose syntax check
+      - id: docker-compose-syntax-check
+        name: Check for old docker-compose syntax
+        entry: python tests/test_docker_compose_syntax.py
+        language: python
+        types: [text]
+        always_run: true
+        pass_filenames: false
 
   # Code quality and security
   - repo: https://github.com/psf/black

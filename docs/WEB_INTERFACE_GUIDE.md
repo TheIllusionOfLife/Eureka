@@ -10,7 +10,7 @@ The MadSpark Web Interface provides a modern, user-friendly way to generate idea
 
 ```bash
 cd web
-docker-compose up
+docker compose up
 ```
 
 Services will start on:

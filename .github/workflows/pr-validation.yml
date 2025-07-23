@@ -27,7 +27,6 @@ jobs:
             const pr = context.payload.pull_request;
             const maxFiles = 20;
             const maxChanges = 500;
-            const maxTestFiles = 40;  // Higher limit for test files
             
             // Get PR diff to analyze files
             const { data: files } = await github.rest.pulls.listFiles({

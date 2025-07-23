@@ -29,7 +29,7 @@ REACT_APP_API_BASE_URL=http://localhost:8000
 ### 3. Deploy with Docker Compose
 ```bash
 cd web
-docker-compose up --build
+docker compose up --build
 ```
 
 The application will be available at:
@@ -92,7 +92,7 @@ docker build -f frontend/Dockerfile -t madspark-frontend:latest .
 2. **Run with Docker Compose**:
 ```bash
 # Production configuration
-docker-compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml up -d
 ```
 
 ### Manual Deployment

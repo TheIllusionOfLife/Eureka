@@ -154,7 +154,7 @@ check_docker() {
     
     local docker_files=()
     
-    # Find Dockerfiles and docker-compose files
+    # Find Dockerfiles and docker compose files
     while IFS= read -r -d '' file; do
         docker_files+=("$file")
     done < <(find . -name "Dockerfile*" -o -name "docker-compose*.yml" -o -name "docker-compose*.yaml" -not -path "./node_modules/*" -print0)
@@ -169,15 +169,15 @@ check_docker() {
         
         # Basic syntax check for docker-compose files
         if [[ "$file" == *"docker-compose"* ]]; then
-            if command -v docker-compose >/dev/null 2>&1; then
-                if docker-compose -f "$file" config >/dev/null 2>&1; then
-                    echo "  ✅ Valid docker-compose syntax"
+            if command -v docker >/dev/null 2>&1; then
+                if docker compose -f "$file" config >/dev/null 2>&1; then
+                    echo "  ✅ Valid docker compose syntax"
                 else
-                    echo "  ❌ Invalid docker-compose syntax"
+                    echo "  ❌ Invalid docker compose syntax"
                     EXIT_CODE=1
                 fi
             else
-                echo "  ⚠️  docker-compose not available for validation"
+                echo "  ⚠️  docker not available for validation"
             fi
         fi
     done

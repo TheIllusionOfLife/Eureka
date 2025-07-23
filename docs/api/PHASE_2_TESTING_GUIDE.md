@@ -137,7 +137,7 @@ ls -la exports/
 ```bash
 # Start the web interface (requires Docker)
 cd ../web
-docker-compose up
+docker compose up
 
 # Access in browser:
 # - Frontend: http://localhost:3000
@@ -340,12 +340,12 @@ docker run -d -p 6379:6379 redis:alpine
 docker --version
 
 # Check container logs
-docker-compose logs -f
+docker compose logs -f
 
 # Rebuild if needed
-docker-compose down
-docker-compose build --no-cache
-docker-compose up
+docker compose down
+docker compose build --no-cache
+docker compose up
 ```
 
 ## Testing Checklist

@@ -85,7 +85,7 @@ def criticize_idea(idea: str, advocacy: str, context: str, temperature: float = 
       "• [continue listing gaps]"
   )
   
-  if not GENAI_AVAILABLE or skeptic_client is None:
+  if not GENAI_AVAILABLE:
     # Return mock criticism for CI/testing environments with language matching demo
     # Simple language detection for mock responses
     combined_text = idea + advocacy + context
@@ -99,6 +99,10 @@ def criticize_idea(idea: str, advocacy: str, context: str, temperature: float = 
         return "KRITISCHE SCHWÄCHEN:\n• Mock-Schwäche 1\n• Mock-Schwäche 2\n\nRISIKEN UND HERAUSFORDERUNGEN:\n• Mock-Risiko 1\n• Mock-Risiko 2\n\nFRAGWÜRDIGE ANNAHMEN:\n• Mock-Annahme 1\n• Mock-Annahme 2\n\nFEHLENDE ÜBERLEGUNGEN:\n• Mock-fehlender Faktor 1\n• Mock-fehlender Faktor 2"
     else:
         return "CRITICAL FLAWS:\n• Mock flaw 1\n• Mock flaw 2\n\nRISKS & CHALLENGES:\n• Mock risk 1\n• Mock risk 2\n\nQUESTIONABLE ASSUMPTIONS:\n• Mock assumption 1\n• Mock assumption 2\n\nMISSING CONSIDERATIONS:\n• Mock missing factor 1\n• Mock missing factor 2"
+  
+  if skeptic_client is None:
+    from madspark.utils.errors import ConfigurationError
+    raise ConfigurationError("Skeptic client is not configured but GENAI is enabled")
   
   
   try:

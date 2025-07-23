@@ -79,7 +79,7 @@ def advocate_idea(idea: str, evaluation: str, context: str, temperature: float =
       "• [continue addressing key concerns from the evaluation]"
   )
   
-  if not GENAI_AVAILABLE or advocate_client is None:
+  if not GENAI_AVAILABLE:
     # Return mock advocacy for CI/testing environments with language matching demo
     # Simple language detection for mock responses
     combined_text = idea + evaluation + context
@@ -93,6 +93,10 @@ def advocate_idea(idea: str, evaluation: str, context: str, temperature: float =
         return "STÄRKEN:\n• Mock-Stärke 1\n• Mock-Stärke 2\n\nCHANCEN:\n• Mock-Chance 1\n• Mock-Chance 2\n\nBEDENKEN ANSPRECHEN:\n• Mock-Milderung 1\n• Mock-Milderung 2"
     else:
         return "STRENGTHS:\n• Mock strength 1\n• Mock strength 2\n\nOPPORTUNITIES:\n• Mock opportunity 1\n• Mock opportunity 2\n\nADDRESSING CONCERNS:\n• Mock mitigation 1\n• Mock mitigation 2"
+  
+  if advocate_client is None:
+    from madspark.utils.errors import ConfigurationError
+    raise ConfigurationError("Advocate client is not configured but GENAI is enabled")
   
   try:
     config = types.GenerateContentConfig(

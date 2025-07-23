@@ -132,7 +132,7 @@ def generate_ideas(topic: str, context: str, temperature: float = 0.9) -> str:
 
   prompt: str = build_generation_prompt(topic=topic, context=context)
   
-  if not GENAI_AVAILABLE or idea_generator_client is None:
+  if not GENAI_AVAILABLE:
     # Return mock response for CI/testing environments with language matching demo
     # Simple language detection for mock responses
     if any(char >= '\u3040' and char <= '\u309F' or char >= '\u30A0' and char <= '\u30FF' or char >= '\u4E00' and char <= '\u9FAF' for char in topic + context):
@@ -145,6 +145,10 @@ def generate_ideas(topic: str, context: str, temperature: float = 0.9) -> str:
         return f"Mock-Idee generiert für Thema '{topic}' mit Kontext '{context}' bei Temperatur {temperature}"
     else:
         return f"Mock idea generated for topic '{topic}' with context '{context}' at temperature {temperature}"
+  
+  if idea_generator_client is None:
+    from madspark.utils.errors import ConfigurationError
+    raise ConfigurationError("Idea generator client is not configured but GENAI is enabled")
   
   try:
     # Create the generation config with system instruction

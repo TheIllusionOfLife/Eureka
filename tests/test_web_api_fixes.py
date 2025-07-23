@@ -7,7 +7,7 @@ from unittest.mock import Mock, patch, MagicMock
 
 # Check for FastAPI availability
 try:
-    import fastapi
+    import fastapi  # noqa: F401
     FASTAPI_AVAILABLE = True
 except ImportError:
     FASTAPI_AVAILABLE = False
@@ -166,8 +166,7 @@ class TestWebAPIFixes:
     @patch('web.backend.main.bookmark_system')
     def test_health_check_degraded_state(self, mock_bookmark, mock_reasoning, mock_temp, client):
         """Test health check shows degraded when components are missing."""
-        # Simulate one component being None
-        mock_temp = None
+        # Simulate one component being None by patching it to None
         
         with patch('web.backend.main.temp_manager', None):
             response = client.get("/health")

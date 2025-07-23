@@ -15,6 +15,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 # Set environment for testing
 os.environ["MADSPARK_MODE"] = "mock"
 
+# Import after setting environment
+from madspark.core.coordinator import run_multistep_workflow
+
 # Base URL for API tests
 API_BASE_URL = "http://localhost:8000"
 
@@ -192,7 +195,7 @@ class TestWebAPIIntegration:
     def test_idea_generation_endpoint(self, api_server):
         """Test idea generation via API."""
         # Initialize components for testing
-        init_response = requests.post(f"{API_BASE_URL}/test/init")
+        requests.post(f"{API_BASE_URL}/test/init")
         
         response = requests.post(
             f"{API_BASE_URL}/api/generate-ideas",

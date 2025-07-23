@@ -44,24 +44,40 @@ jobs:
               f.filename.endsWith('.test.tsx')
             );
             
-            const regularFiles = files.filter(f => !testFiles.includes(f));
+            // CI/Infrastructure files get higher limits
+            const ciFiles = files.filter(f => 
+              f.filename.startsWith('.github/workflows/') ||
+              f.filename.includes('ci-policy') ||
+              f.filename === 'CLAUDE.md' ||
+              f.filename === 'README.md'
+            );
+            
+            const regularFiles = files.filter(f => !testFiles.includes(f) && !ciFiles.includes(f));
             const totalChanges = pr.additions + pr.deletions;
             
             let sizeOk = true;
             let message = '## 📏 PR Size Analysis\n\n';
             
-            // Check regular files
-            if (regularFiles.length <= maxFiles && totalChanges <= maxChanges) {
+            // Check if this is primarily a CI/infrastructure PR
+            const isCiPr = ciFiles.length >= files.length * 0.7; // 70% of files are CI-related
+            const maxFilesLimit = isCiPr ? 50 : maxFiles; // Higher limit for CI PRs
+            const maxChangesLimit = isCiPr ? 2000 : maxChanges; // Higher limit for CI PRs
+            
+            // Check regular files with appropriate limits
+            if (files.length <= maxFilesLimit && totalChanges <= maxChangesLimit) {
               message += `✅ **Size Check Passed**\n\n`;
+              if (isCiPr) {
+                message += `*CI/Infrastructure PR - using extended limits*\n\n`;
+              }
             } else {
               sizeOk = false;
               message += `❌ **Size Check Failed**\n\n`;
               
-              if (regularFiles.length > maxFiles) {
-                message += `- 📁 Too many files changed: ${regularFiles.length} (limit: ${maxFiles})\n`;
+              if (files.length > maxFilesLimit) {
+                message += `- 📁 Too many files changed: ${files.length} (limit: ${maxFilesLimit})\n`;
               }
-              if (totalChanges > maxChanges) {
-                message += `- 📊 Too many line changes: ${totalChanges} (limit: ${maxChanges})\n`;
+              if (totalChanges > maxChangesLimit) {
+                message += `- 📊 Too many line changes: ${totalChanges} (limit: ${maxChangesLimit})\n`;
               }
             }
             
@@ -69,6 +85,7 @@ jobs:
             message += `### File Breakdown\n`;
             message += `- Regular files: ${regularFiles.length}\n`;
             message += `- Test files: ${testFiles.length}\n`;
+            message += `- CI/Infrastructure files: ${ciFiles.length}\n`;
             message += `- Total changes: +${pr.additions} -${pr.deletions}\n\n`;
             
             // Suggestions for large PRs

@@ -231,14 +231,14 @@ class TestAgentIntegration:
         from madspark.utils.errors import ValidationError
         
         try:
-            result = generate_ideas("", "")
+            _ = generate_ideas("", "")
             assert False, "Should have raised ValidationError"
         except ValidationError as e:
             assert "topic" in str(e)  # Expected behavior
         
         # Test with None input - these should raise ValueError, so we need to catch them
         try:
-            result = evaluate_ideas(None, "criteria", "context")
+            _ = evaluate_ideas(None, "criteria", "context")
             assert False, "Should have raised ValueError"
         except ValueError:
             pass  # Expected behavior

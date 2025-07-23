@@ -9,7 +9,7 @@ from typing import Optional
 from dataclasses import dataclass
 import logging
 try:
-    from madspark.utils.errors import TemperatureError, ValidationError
+    from madspark.utils.errors import TemperatureError
 except ImportError:
     from .errors import TemperatureError
 

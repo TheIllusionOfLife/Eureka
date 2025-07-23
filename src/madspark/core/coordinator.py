@@ -55,7 +55,6 @@ else:
 try:
     # Primary imports for package installation
     from madspark.utils.utils import (
-        exponential_backoff_retry,
         parse_json_with_fallback,
         validate_evaluation_json,
     )
@@ -73,7 +72,6 @@ except ImportError:
     # Fallback imports for local development/testing
     try:
         from ..utils.utils import (
-            exponential_backoff_retry,
             parse_json_with_fallback,
             validate_evaluation_json,
         )

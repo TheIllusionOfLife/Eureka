@@ -93,12 +93,12 @@ class TestSyncCoordinator:
         assert isinstance(result, list)
         assert len(result) == 0
     
-    @patch('madspark.core.coordinator.generate_ideas')
-    @patch('madspark.core.coordinator.evaluate_ideas')
-    def test_run_multistep_workflow_partial_failure(self, mock_evaluate, mock_generate):
+    @patch('madspark.core.coordinator.call_idea_generator_with_retry')
+    @patch('madspark.core.coordinator.call_critic_with_retry')
+    def test_run_multistep_workflow_partial_failure(self, mock_critic, mock_idea_gen):
         """Test workflow with partial agent failure."""
-        mock_generate.return_value = {"ideas": [{"title": "Test", "description": "Test"}]}
-        mock_evaluate.side_effect = Exception("Evaluation failed")
+        mock_idea_gen.return_value = "Idea 1: Test AI solution\nIdea 2: Another test idea"
+        mock_critic.side_effect = Exception("Evaluation failed")
         
         result = run_multistep_workflow(
             theme="AI automation",
@@ -107,8 +107,12 @@ class TestSyncCoordinator:
         
         # Should handle partial failures gracefully
         assert isinstance(result, list)
-        # When evaluation fails, no results are returned
-        assert len(result) == 0
+        # When evaluation fails, fallback results are returned with default values
+        assert len(result) == 2  # Two ideas from the mocked generator
+        # Verify fallback behavior - ideas should have default values
+        for candidate in result:
+            assert candidate['initial_score'] == 0
+            assert candidate['initial_critique'] == 'N/A (CriticAgent failed)'
     
     @patch('madspark.core.coordinator.call_idea_generator_with_retry')
     def test_workflow_parameter_validation(self, mock_generate):

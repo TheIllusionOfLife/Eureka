@@ -343,7 +343,7 @@ class TestCacheManager:
     def test_cache_manager_redis_unavailable(self):
         """Test cache manager behavior when Redis is unavailable."""
         with patch('madspark.utils.cache_manager.logger') as mock_logger:
-            manager = CacheManager()
+            _ = CacheManager()
             
             # Should log warning about Redis unavailability
             mock_logger.warning.assert_called_once_with("Redis not available. Caching disabled.")

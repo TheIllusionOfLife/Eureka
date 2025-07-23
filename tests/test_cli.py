@@ -62,7 +62,7 @@ class TestCLIMain:
         
         with patch.object(sys, 'argv', test_args):
             try:
-                result = cli_main()
+                _ = cli_main()
                 mock_workflow.assert_called_once()
                 # Check that verbose=True was passed
                 args, kwargs = mock_workflow.call_args
@@ -91,7 +91,7 @@ class TestCLIMain:
         
         with patch.object(sys, 'argv', test_args):
             try:
-                result = cli_main()
+                _ = cli_main()
                 mock_workflow.assert_called_once()
                 args, kwargs = mock_workflow.call_args
                 # Check that temperature_manager is present and has the right temperature
@@ -125,7 +125,7 @@ class TestCLIMain:
         
         with patch.object(sys, 'argv', test_args):
             try:
-                result = cli_main()
+                _ = cli_main()
                 mock_workflow.assert_called_once()
                 args, kwargs = mock_workflow.call_args
                 # Check that temperature_manager is present and configured for creative preset
@@ -157,7 +157,7 @@ class TestCLIMain:
         
         with patch.object(sys, 'argv', test_args):
             try:
-                result = cli_main()
+                _ = cli_main()
                 mock_workflow.assert_called_once()
                 args, kwargs = mock_workflow.call_args
                 assert kwargs.get('timeout') == 30
@@ -185,7 +185,7 @@ class TestCLIMain:
         
         with patch.object(sys, 'argv', test_args):
             try:
-                result = cli_main()
+                _ = cli_main()
                 mock_workflow.assert_called_once()
                 args, kwargs = mock_workflow.call_args
                 assert kwargs.get('enhanced_reasoning') is True
@@ -198,7 +198,7 @@ class TestCLIMain:
         
         with patch.object(sys, 'argv', test_args):
             try:
-                result = cli_main()
+                _ = cli_main()
                 # Should exit with error
                 assert False, "Should have raised SystemExit"
             except SystemExit as e:
@@ -312,7 +312,7 @@ class TestCLIIntegration:
         
         with patch.object(sys, 'argv', test_args):
             try:
-                result = cli_main()
+                _ = cli_main()
                 mock_workflow.assert_called_once()
                 
                 # Verify all expected parameters were passed
@@ -336,7 +336,7 @@ class TestCLIIntegration:
         for test_args in error_scenarios:
             with patch.object(sys, 'argv', test_args):
                 try:
-                    result = cli_main()
+                    _ = cli_main()
                     # Should handle errors gracefully
                 except SystemExit as e:
                     # Expected for invalid arguments
@@ -371,7 +371,7 @@ class TestCLIIntegration:
         with patch.object(sys, 'argv', test_args):
             with redirect_stdout(captured_output), redirect_stderr(captured_error):
                 try:
-                    result = cli_main()
+                    _ = cli_main()
                     
                     output = captured_output.getvalue()
                     error = captured_error.getvalue()
@@ -393,7 +393,7 @@ class TestCLIUtilities:
         
         with patch.object(sys, 'argv', test_args):
             try:
-                result = cli_main()
+                _ = cli_main()
                 # Should handle empty strings appropriately
             except SystemExit:
                 # May exit with error for empty arguments
@@ -405,7 +405,7 @@ class TestCLIUtilities:
         
         with patch.object(sys, 'argv', test_args):
             try:
-                result = cli_main()
+                _ = cli_main()
                 assert False, "Should have raised SystemExit for help"
             except SystemExit as e:
                 assert e.code == 0  # Help should exit with 0
@@ -416,7 +416,7 @@ class TestCLIUtilities:
         
         with patch.object(sys, 'argv', test_args):
             try:
-                result = cli_main()
+                _ = cli_main()
                 # May or may not have version flag
             except SystemExit:
                 # Version flag may exit with 0 or 2 (unrecognized)

@@ -15,7 +15,7 @@ import logging
 try:
     from madspark.utils.constants import HIGH_SCORE_THRESHOLD, MAX_REMIX_BOOKMARKS
     from madspark.utils.models import BookmarkedIdea
-    from madspark.utils.duplicate_detector import DuplicateDetector, DuplicateCheckResult, check_bookmark_duplicates
+    from madspark.utils.duplicate_detector import DuplicateDetector, DuplicateCheckResult
 except ImportError:
     from constants import HIGH_SCORE_THRESHOLD, MAX_REMIX_BOOKMARKS
     from models import BookmarkedIdea

@@ -182,10 +182,8 @@ class TestWorkflowWithComponents:
         with patch('madspark.core.coordinator.TemperatureManager') as mock_temp_class:
             mock_temp_class.return_value = temp_manager
             
-            with patch('madspark.core.coordinator.generate_ideas') as mock_generate:
-                mock_generate.return_value = {
-                    "ideas": [{"title": "Test Idea", "description": "Temperature test"}]
-                }
+            with patch('madspark.core.coordinator.call_idea_generator_with_retry') as mock_generate:
+                mock_generate.return_value = "Test Idea: Temperature test solution"
                 
                 result = run_multistep_workflow(
                     theme="AI automation",
@@ -204,13 +202,8 @@ class TestWorkflowWithComponents:
             mock_filter.is_novel.return_value = True
             mock_novelty_class.return_value = mock_filter
             
-            with patch('madspark.core.coordinator.generate_ideas') as mock_generate:
-                mock_generate.return_value = {
-                    "ideas": [
-                        {"title": "Novel Idea 1", "description": "First novel idea"},
-                        {"title": "Novel Idea 2", "description": "Second novel idea"}
-                    ]
-                }
+            with patch('madspark.core.coordinator.call_idea_generator_with_retry') as mock_generate:
+                mock_generate.return_value = "Novel Idea: Unique AI solution"
                 
                 result = run_multistep_workflow(
                     theme="AI automation",
@@ -361,7 +354,7 @@ class TestWorkflowPerformance:
             coordinator = AsyncCoordinator()
             start_time = time.time()
             
-            result = await coordinator.run_workflow(
+            _ = await coordinator.run_workflow(
                 theme="AI automation",
                 constraints="Cost-effective"
             )

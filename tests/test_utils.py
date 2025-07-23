@@ -99,7 +99,7 @@ class TestTemperatureManager:
     
     def test_temperature_presets(self):
         """Test temperature presets."""
-        manager = TemperatureManager()
+        _ = TemperatureManager()
         
         # Test different presets by accessing the config attribute
         conservative_manager = TemperatureManager.from_preset("conservative")

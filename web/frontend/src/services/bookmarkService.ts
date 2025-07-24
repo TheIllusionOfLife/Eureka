@@ -51,17 +51,23 @@ class BookmarkService {
       // Creating bookmark with duplicate check
       
       // Ensure all required fields meet minimum requirements
+      // Truncate long fields to stay within backend limits (10000 chars)
+      const truncate = (str: string | undefined, maxLength: number = 10000): string | undefined => {
+        if (!str) return str;
+        return str.length > maxLength ? str.substring(0, maxLength - 3) + '...' : str;
+      };
+
       const bookmarkData: BookmarkData = {
-        idea: result.idea || 'No idea text provided',
-        improved_idea: result.improved_idea || undefined,
+        idea: truncate(result.idea || 'No idea text provided')!,
+        improved_idea: truncate(result.improved_idea),
         theme: theme || 'General',
         constraints: constraints ?? '',
         initial_score: result.initial_score ?? 0,
         improved_score: result.improved_score ?? undefined,
-        initial_critique: result.initial_critique || '',
-        improved_critique: result.improved_critique || undefined,
-        advocacy: result.advocacy || '',
-        skepticism: result.skepticism || '',
+        initial_critique: truncate(result.initial_critique || ''),
+        improved_critique: truncate(result.improved_critique),
+        advocacy: truncate(result.advocacy || ''),
+        skepticism: truncate(result.skepticism || ''),
         tags: [],
       };
 
@@ -136,17 +142,23 @@ class BookmarkService {
       // Creating bookmark
       
       // Ensure all required fields meet minimum requirements
+      // Truncate long fields to stay within backend limits (10000 chars)
+      const truncate = (str: string | undefined, maxLength: number = 10000): string | undefined => {
+        if (!str) return str;
+        return str.length > maxLength ? str.substring(0, maxLength - 3) + '...' : str;
+      };
+
       const bookmarkData: BookmarkData = {
-        idea: result.idea || 'No idea text provided',  // Required field with min_length - handle empty strings
-        improved_idea: result.improved_idea || undefined,  // Optional field - handle empty strings as undefined
+        idea: truncate(result.idea || 'No idea text provided')!,  // Required field with min_length - handle empty strings
+        improved_idea: truncate(result.improved_idea),  // Optional field - handle empty strings as undefined
         theme: theme || 'General',  // Required field with min_length - handle empty strings
         constraints: constraints ?? '',  // Allows empty strings - only handle null/undefined
         initial_score: result.initial_score ?? 0,  // Numeric field - preserve 0, handle null/undefined
         improved_score: result.improved_score ?? undefined,  // Numeric field - preserve 0, handle null/undefined
-        initial_critique: result.initial_critique || '',  // Optional field, sent as empty string if falsy
-        improved_critique: result.improved_critique || undefined,  // Optional field - handle empty strings as undefined
-        advocacy: result.advocacy || '',  // Optional field, sent as empty string if falsy
-        skepticism: result.skepticism || '',  // Optional field, sent as empty string if falsy
+        initial_critique: truncate(result.initial_critique || ''),  // Optional field, sent as empty string if falsy
+        improved_critique: truncate(result.improved_critique),  // Optional field - handle empty strings as undefined
+        advocacy: truncate(result.advocacy || ''),  // Optional field, sent as empty string if falsy
+        skepticism: truncate(result.skepticism || ''),  // Optional field, sent as empty string if falsy
         tags: [], // Can be enhanced to allow user-defined tags
       };
 

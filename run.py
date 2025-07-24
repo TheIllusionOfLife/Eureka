@@ -38,16 +38,32 @@ if len(sys.argv) < 2:
 command = sys.argv[1]
 
 if command == "coordinator":
-    import runpy
-    runpy.run_module('madspark.core.coordinator', run_name='__main__')
+    try:
+        import runpy
+        runpy.run_module('madspark.core.coordinator', run_name='__main__')
+    except ImportError as e:
+        print(f"❌ Failed to import coordinator module: {e}")
+        print("💡 Make sure you're in the correct directory and dependencies are installed")
+        sys.exit(1)
+    except Exception as e:
+        print(f"❌ Coordinator execution failed: {e}")
+        sys.exit(1)
 elif command == "cli":
     if len(sys.argv) < 4:
         print("Error: CLI requires topic and context arguments")
         print("Usage: ./run.py cli <topic> <context>")
         sys.exit(1)
-    import runpy
-    sys.argv = ['cli', sys.argv[2], sys.argv[3]]
-    runpy.run_module('madspark.cli.cli', run_name='__main__')
+    try:
+        import runpy
+        sys.argv = ['cli', sys.argv[2], sys.argv[3]]
+        runpy.run_module('madspark.cli.cli', run_name='__main__')
+    except ImportError as e:
+        print(f"❌ Failed to import CLI module: {e}")
+        print("💡 Make sure you're in the correct directory and dependencies are installed")
+        sys.exit(1)
+    except Exception as e:
+        print(f"❌ CLI execution failed: {e}")
+        sys.exit(1)
 elif command == "test":
     subprocess.run([sys.executable, "-m", "pytest", "tests/", "-v"])
 else:

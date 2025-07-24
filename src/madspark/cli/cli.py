@@ -907,10 +907,15 @@ def main():
             print("No ideas were generated. Check the logs for details.")
             sys.exit(1)
         
-        # Bookmark results if requested
-        if args.bookmark_results:
+        # Bookmark results if requested (either automatic or with custom reference)
+        if args.bookmark_results or args.save_bookmark:
             manager = BookmarkManager(args.bookmark_file)
             for result in results:
+                # Use the save_bookmark name as a tag if provided
+                bookmark_tags = args.bookmark_tags or []
+                if args.save_bookmark:
+                    bookmark_tags.append(f"name:{args.save_bookmark}")
+                
                 bookmark_id = manager.bookmark_idea(
                     idea_text=result.get("idea", ""),
                     theme=args.theme,
@@ -919,8 +924,10 @@ def main():
                     critique=result.get("initial_critique", ""),
                     advocacy=result.get("advocacy", ""),
                     skepticism=result.get("skepticism", ""),
-                    tags=args.bookmark_tags or []
+                    tags=bookmark_tags
                 )
+                if args.save_bookmark:
+                    print(f"✅ Saved bookmark: {args.save_bookmark} (ID: {bookmark_id})")
                 logger.info(f"Bookmarked result as {bookmark_id}")
         
         # Export results if requested (Phase 2.2)

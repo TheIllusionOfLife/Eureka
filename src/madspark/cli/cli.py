@@ -832,6 +832,10 @@ def main():
     
     # Setup temperature management
     try:
+        # Map creativity preset to temperature_preset if provided
+        if hasattr(args, 'creativity') and args.creativity:
+            args.temperature_preset = args.creativity
+            
         temp_manager = create_temperature_manager_from_args(args)
         logger.info(temp_manager.describe_settings())
     except (ValueError, ValidationError) as e:
@@ -866,9 +870,9 @@ def main():
         workflow_kwargs = {
             "theme": args.theme,
             "constraints": args.constraints,
-            "num_top_candidates": args.num_candidates,
+            "num_top_candidates": args.top_ideas,  # Use the new --top-ideas option
             "enable_novelty_filter": not args.disable_novelty_filter,
-            "novelty_threshold": args.novelty_threshold,
+            "novelty_threshold": args.similarity_threshold if args.similarity_threshold is not None else args.novelty_threshold,
             "temperature_manager": temp_manager,
             "verbose": args.verbose,
             "enhanced_reasoning": args.enhanced_reasoning,

@@ -11,7 +11,19 @@ from pathlib import Path
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root / "src"))
 
-# Import mode detection utilities
+# Check if running in virtual environment FIRST
+if not hasattr(sys, 'prefix') or sys.prefix == sys.base_prefix:
+    venv_python = project_root / "venv" / "bin" / "python"
+    if venv_python.exists():
+        # Re-run this script with venv Python
+        os.execv(str(venv_python), [str(venv_python)] + sys.argv)
+    else:
+        print("⚠️  Virtual environment not found. Please run:")
+        print("   python -m venv venv")
+        print("   ./venv/bin/pip install -r config/requirements.txt")
+        sys.exit(1)
+
+# Now in venv, do mode detection
 try:
     from madspark.agents.genai_client import get_mode, is_api_key_configured, load_env_file
     
@@ -31,21 +43,11 @@ try:
             if not os.getenv("SUPPRESS_MODE_MESSAGE"):
                 print("✅ API key found. Running with Google Gemini API...")
                 print("")
-except ImportError:
+except (ImportError, ModuleNotFoundError, Exception) as e:
     # If imports fail, continue without mode detection
-    pass
-
-# Check if running in virtual environment
-if not hasattr(sys, 'prefix') or sys.prefix == sys.base_prefix:
-    venv_python = project_root / "venv" / "bin" / "python"
-    if venv_python.exists():
-        # Re-run this script with venv Python
-        os.execv(str(venv_python), [str(venv_python)] + sys.argv)
-    else:
-        print("⚠️  Virtual environment not found. Please run:")
-        print("   python -m venv venv")
-        print("   ./venv/bin/pip install -r config/requirements.txt")
-        sys.exit(1)
+    # This handles more error types than just ImportError
+    if "MADSPARK_DEBUG" in os.environ:
+        print(f"Mode detection error: {e}")
 
 # Now we can run the command
 if len(sys.argv) < 2:

@@ -9,6 +9,17 @@ BLUE='\033[0;34m'
 PURPLE='\033[0;35m'
 NC='\033[0m' # No Color
 
+# Function to create mock mode .env file
+create_mock_env() {
+    cat > "$ENV_FILE" << EOF
+# Google API Configuration
+GOOGLE_API_KEY="YOUR_API_KEY_HERE"
+GOOGLE_GENAI_MODEL="gemini-2.5-flash"
+# Running in mock mode - no API key configured
+MADSPARK_MODE="mock"
+EOF
+}
+
 echo -e "${PURPLE}🚀 Setting up MadSpark Multi-Agent System...${NC}"
 echo ""
 
@@ -80,25 +91,13 @@ EOF
                 echo -e "${RED}❌ Invalid API key format. Keys should start with 'AIza'.${NC}"
                 echo -e "${YELLOW}⚠️  Setting up for mock mode instead...${NC}"
                 # Create .env for mock mode
-                cat > "$ENV_FILE" << EOF
-# Google API Configuration
-GOOGLE_API_KEY="YOUR_API_KEY_HERE"
-GOOGLE_GENAI_MODEL="gemini-2.5-flash"
-# Running in mock mode - no API key configured
-MADSPARK_MODE="mock"
-EOF
+                create_mock_env
             fi
             ;;
         *)
             echo -e "${BLUE}🤖 Setting up for mock mode...${NC}"
             # Create .env for mock mode
-            cat > "$ENV_FILE" << EOF
-# Google API Configuration
-GOOGLE_API_KEY="YOUR_API_KEY_HERE"
-GOOGLE_GENAI_MODEL="gemini-2.5-flash"
-# Running in mock mode - no API key configured
-MADSPARK_MODE="mock"
-EOF
+            create_mock_env
             ;;
     esac
 else
@@ -170,14 +169,18 @@ INSTALL_LOCATIONS=(
 
 for loc in "${INSTALL_LOCATIONS[@]}"; do
     if [ -d "$loc" ] && [ -w "$loc" ]; then
-        ln -sf "$(pwd)/src/madspark/bin/mad_spark" "$loc/mad_spark" 2>/dev/null
+        # Calculate relative path from target to source
+        SCRIPT_PATH="$(pwd)/src/madspark/bin/mad_spark"
+        RELATIVE_PATH=$(python3 -c "import os.path; print(os.path.relpath('$SCRIPT_PATH', '$loc'))")
+        
+        ln -sf "$RELATIVE_PATH" "$loc/mad_spark" 2>/dev/null
         if [ $? -eq 0 ]; then
             echo -e "${GREEN}✅ Installed mad_spark to $loc${NC}"
             INSTALLED=true
             
             # Also create madspark (no underscore) and ms aliases
-            ln -sf "$(pwd)/src/madspark/bin/mad_spark" "$loc/madspark" 2>/dev/null
-            ln -sf "$(pwd)/src/madspark/bin/mad_spark" "$loc/ms" 2>/dev/null
+            ln -sf "$RELATIVE_PATH" "$loc/madspark" 2>/dev/null
+            ln -sf "$RELATIVE_PATH" "$loc/ms" 2>/dev/null
             break
         fi
     fi

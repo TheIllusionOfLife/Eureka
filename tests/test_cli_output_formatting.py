@@ -49,21 +49,22 @@ class TestOutputFormatting:
         
         # Should have proper structure order
         lines = output.split('\n')
-        idea_line_idx = None
-        score_line_idx = None
+        original_line_idx = None
+        initial_score_line_idx = None
         improved_line_idx = None
         
         for i, line in enumerate(lines):
-            if 'Idea:' in line or line.startswith('Create vertical'):
-                idea_line_idx = i
-            elif 'Score:' in line:
-                score_line_idx = i
-            elif 'Improved' in line and 'Enhanced vertical' in line:
+            if '💭 Original:' in line or 'Create vertical farms' in line:
+                original_line_idx = i
+            elif '📊 Initial Score:' in line:
+                initial_score_line_idx = i
+            elif '✨ Improved:' in line or 'farming network' in line:
                 improved_line_idx = i
         
-        # Check order: Idea should come before score, improved should come after
-        assert idea_line_idx is not None, "Should contain the main idea"
+        # Check order: Original should come before improved
+        assert original_line_idx is not None, "Should contain the original idea"
         assert improved_line_idx is not None, "Should contain improved idea"
+        assert original_line_idx < improved_line_idx, "Original should come before improved"
         
         # Should be clean and readable
         assert not any(line.startswith('2025-') for line in lines), "Should not contain timestamps"
@@ -132,7 +133,7 @@ class TestOutputFormatting:
             'initial_critique': 'Long critique that should be hidden',
             'advocacy': 'Long advocacy that should be hidden',
             'skepticism': 'Long skepticism that should be hidden',
-            'improved_idea': 'Final improved idea',
+            'improved_idea': 'Final idea',
             'improved_score': 8.5
         }]
         
@@ -140,7 +141,7 @@ class TestOutputFormatting:
         output = format_results(mock_results, 'brief')
         
         # Should contain final result
-        assert 'Final improved idea' in output
+        assert 'Final idea' in output
         assert '8.5' in str(output)
         
         # Should NOT contain verbose agent interactions

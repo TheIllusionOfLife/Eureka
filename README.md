@@ -35,25 +35,62 @@ mad_spark config  # Interactive configuration
 ### Usage
 
 ```bash
-# Generate ideas with simplified syntax
-mad_spark "consciousness" "what is it?"
-mad_spark "sustainable cities"  # Context is optional
+# Questions (how to solve problems)
+mad_spark "how to reduce carbon footprint?" "small business"
+mad_spark "how to make cities more livable?" "limited budget"
 
-# Run the coordinator
+# Requests (come up with ideas) 
+mad_spark "Come up with innovative ways to teach math" "elementary school"
+mad_spark "Come up with creative fundraising ideas" "local animal shelter"
+
+# General phrases (I want to...)
+mad_spark "I want to start a sustainable business. Support me." "zero initial capital"  
+mad_spark "I want to learn AI. Guide me." "complete beginner"
+
+# Topic with context (traditional format)
+mad_spark "renewable energy storage" "cost under $100/kWh"
+mad_spark "urban transportation" "zero emissions by 2030"
+
+# Output modes for different needs
+mad_spark "healthcare AI" --brief              # Quick summary only
+mad_spark "education innovation" --detailed     # Full agent analysis
+mad_spark "climate solutions" --simple         # Clean, user-friendly (default)
+
+# Advanced options
+mad_spark "space exploration" --top-ideas 3 --creativity creative
+mad_spark "quantum computing" --enhanced --logical
+
+# Run the coordinator for comprehensive analysis
 mad_spark coordinator
 
-# Configure API key (to switch from mock to real AI)
+# Configure API key  
 mad_spark config
 
-# Even shorter with aliases
+# Aliases work too
 ms "future of AI"
 
 # Web interface
 cd web && docker compose up
 ```
 
+### Non-Interactive Setup (CI/CD, Automation)
+
+For automated environments where interactive prompts aren't available:
+
+```bash
+# Create .env file with your API key (root directory)
+echo 'GOOGLE_API_KEY="YOUR_API_KEY_HERE"' > .env
+echo 'GOOGLE_GENAI_MODEL="gemini-2.5-flash"' >> .env
+
+# Verify configuration
+mad_spark config --status
+
+# Run ideas generation
+mad_spark "your topic here" "your context here"
+```
+
 <details>
-<summary>Manual Setup (if needed)</summary>
+<summary>Manual Setup (Advanced)</summary>
 
 ```bash
 # Create virtual environment
@@ -64,13 +101,13 @@ pip install -r config/requirements.txt
 # Set Python path
 export PYTHONPATH="${PYTHONPATH}:$(pwd)/src"
 
-# Configure API
-echo 'GOOGLE_API_KEY="YOUR_API_KEY_HERE"' > src/madspark/.env
-echo 'GOOGLE_GENAI_MODEL="gemini-2.5-flash"' >> src/madspark/.env
+# Configure API (use root .env file)
+echo 'GOOGLE_API_KEY="YOUR_API_KEY_HERE"' > .env
+echo 'GOOGLE_GENAI_MODEL="gemini-2.5-flash"' >> .env
 
 # Run commands
+mad_spark "sustainable transportation" "low-cost solutions"
 mad_spark coordinator
-mad_spark "Sustainable transportation" "Low-cost solutions"
 ```
 
 </details>

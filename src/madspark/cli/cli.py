@@ -701,11 +701,9 @@ def main():
     if (hasattr(args, 'no_logs') and args.no_logs) or \
        (hasattr(args, 'output_mode') and args.output_mode in ['simple', 'brief']) or \
        (hasattr(args, 'output_format') and args.output_format in ['simple', 'brief']):
-        import logging
         # Suppress all logging except critical errors
         logging.getLogger().setLevel(logging.CRITICAL)
         # Also suppress progress messages in non-verbose modes
-        import os
         os.environ["SUPPRESS_MODE_MESSAGE"] = "1"
     
     # Handle standalone commands

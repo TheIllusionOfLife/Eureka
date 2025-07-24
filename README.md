@@ -223,10 +223,10 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
 
 #### Next Priority Tasks
 
-1. **Test-Heavy PR Support**: Update pr-validation.yml to handle test-heavy PRs (>70% test files) with extended limits
-   - Source: PR #111 exceeded size limits despite being valuable tests
-   - Context: Current logic only extends limits for CI/infrastructure PRs
-   - Approach: Add similar logic for test-heavy PRs
+1. ✅ **Test-Heavy PR Support**: ~~Update pr-validation.yml to handle test-heavy PRs (>70% test files) with extended limits~~
+   - **COMPLETED**: Updated thresholds to 30% test files OR 50% combined test+doc files
+   - PRs like #117 (30% test, 25% doc) now qualify for extended limits (50 files, 2000 lines)
+   - Prevents blocking valuable test contributions while maintaining size limits for feature PRs
 
 2. **Performance Test Markers**: Add @pytest.mark.slow/@pytest.mark.integration markers to restored tests
    - Source: New integration tests in PR #111

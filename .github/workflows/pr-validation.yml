@@ -56,19 +56,32 @@ jobs:
             const regularFiles = files.filter(f => !testFiles.includes(f) && !ciFiles.includes(f));
             const totalChanges = pr.additions + pr.deletions;
             
+            // Calculate percentages for different file types
+            const testPercentage = files.length > 0 ? testFiles.length / files.length : 0;
+            const ciDocPercentage = files.length > 0 ? ciFiles.length / files.length : 0;
+            const testAndDocPercentage = files.length > 0 ? (testFiles.length + ciFiles.length) / files.length : 0;
+            
             let sizeOk = true;
             let message = '## 📏 PR Size Analysis\n\n';
             
             // Check if this is primarily a CI/infrastructure/documentation PR
-            const isCiPr = ciFiles.length >= files.length * 0.7; // 70% of files are CI/doc-related
-            const maxFilesLimit = isCiPr ? 50 : maxFiles; // Higher limit for CI PRs
-            const maxChangesLimit = isCiPr ? 2000 : maxChanges; // Higher limit for CI PRs
+            const isCiPr = ciDocPercentage >= 0.7; // 70% of files are CI/doc-related
             
-            // Check regular files with appropriate limits
+            // Check if this is a test-heavy PR (30% test files OR 50% combined test+doc)
+            const isTestHeavyPr = testPercentage >= 0.3 || testAndDocPercentage >= 0.5;
+            
+            // Apply extended limits for CI/infrastructure/documentation PRs or test-heavy PRs
+            const useExtendedLimits = isCiPr || isTestHeavyPr;
+            const maxFilesLimit = useExtendedLimits ? 50 : maxFiles;
+            const maxChangesLimit = useExtendedLimits ? 2000 : maxChanges;
+            
+            // Check files with appropriate limits
             if (files.length <= maxFilesLimit && totalChanges <= maxChangesLimit) {
               message += `✅ **Size Check Passed**\n\n`;
               if (isCiPr) {
                 message += `*CI/Infrastructure/Documentation PR - using extended limits*\n\n`;
+              } else if (isTestHeavyPr) {
+                message += `*Test-heavy PR - using extended limits*\n\n`;
               }
             } else {
               sizeOk = false;

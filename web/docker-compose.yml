@@ -6,9 +6,9 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
+    env_file:
+      - ../.env  # Use primary .env file from project root
     environment:
-      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
-      - GOOGLE_GENAI_MODEL=${GOOGLE_GENAI_MODEL}
       - MADSPARK_PATH=/madspark
       - REDIS_URL=redis://redis:6379/0
     volumes:

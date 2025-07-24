@@ -218,8 +218,8 @@ Examples:
     workflow_group.add_argument(
         '--num-candidates', '-n',
         type=int,
-        default=2,
-        help='Number of top candidates to fully process (default: 2)'
+        default=1,
+        help='Number of top candidates to fully process (default: 1)'
     )
     
     workflow_group.add_argument(
@@ -642,6 +642,11 @@ def main():
     # Run the main workflow
     logger.info(f"Running MadSpark workflow with theme: '{args.theme}'")
     logger.info(f"Constraints: {args.constraints}")
+    
+    # Show progress message to user
+    if os.getenv("MADSPARK_MODE") != "mock":
+        print("\n🚀 Generating ideas with Google Gemini API...")
+        print("⏳ This may take 30-60 seconds for quality results...\n")
     
     try:
         # Extract common workflow arguments to avoid duplication

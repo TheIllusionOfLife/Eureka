@@ -1,10 +1,8 @@
 """Test the new mad_spark config command."""
 import os
 import sys
-import subprocess
 from pathlib import Path
-import pytest
-from unittest.mock import patch, mock_open, MagicMock
+from unittest.mock import patch, mock_open
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))

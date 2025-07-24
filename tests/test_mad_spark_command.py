@@ -1,10 +1,8 @@
 """Tests for mad_spark command line interface."""
 import os
-import subprocess
-import sys
 import tempfile
 import pytest
-from unittest.mock import patch, Mock
+from unittest.mock import patch
 
 
 class TestMadSparkCommand:

@@ -6,7 +6,6 @@ following the DRY principle to avoid code duplication.
 import os
 import logging
 from typing import Optional
-from pathlib import Path
 
 try:
     from google import genai

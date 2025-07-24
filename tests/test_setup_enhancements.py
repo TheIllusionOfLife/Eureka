@@ -112,15 +112,13 @@ class TestSetupEnhancements:
         """Test that setup installs mad_spark command to system."""
         # Check if mad_spark symlink/script is created
         # This will test after implementation
-        locations = [
-            '/usr/local/bin/mad_spark',
-            os.path.expanduser('~/.local/bin/mad_spark'),
-            os.path.join(temp_project_dir, 'mad_spark')
-        ]
+        # Expected locations:
+        # - /usr/local/bin/mad_spark
+        # - ~/.local/bin/mad_spark
+        # - [temp_project_dir]/mad_spark
         
         # At least one location should have the command
         # We'll verify this after implementation
-        # Check existence will be verified after implementation
         assert True  # Placeholder
     
     def test_setup_handles_permission_errors(self):

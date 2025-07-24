@@ -5,7 +5,7 @@ This test file defines the expected behavior for CLI output formatting.
 These tests should FAIL initially and then pass after implementation.
 """
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 import sys
 import os
 

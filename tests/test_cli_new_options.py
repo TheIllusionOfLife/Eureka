@@ -5,14 +5,13 @@ Tests for new CLI options that should match web interface functionality.
 These tests should FAIL initially and pass after implementation.
 """
 import pytest
-from unittest.mock import patch, MagicMock
 import sys
 import os
 
 # Add src to path for testing
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from madspark.cli.cli import create_parser, main
+from madspark.cli.cli import create_parser
 
 
 class TestNewCLIOptions:

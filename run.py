@@ -51,15 +51,27 @@ if not hasattr(sys, 'prefix') or sys.prefix == sys.base_prefix:
 if len(sys.argv) < 2:
     print("MadSpark Multi-Agent System")
     print("\nUsage:")
-    print("  ./run.py coordinator                           # Run the coordinator")
-    print("  ./run.py cli <topic> <context>                # Run CLI with topic and context")
-    print("  ./run.py test                                 # Run tests")
+    print("  mad_spark                              # Show this help")
+    print("  mad_spark coordinator                  # Run the coordinator")
+    print("  mad_spark 'topic' ['context']         # Generate ideas (simplified!)")
+    print("  mad_spark test                         # Run tests")
     print("\nExamples:")
-    print("  ./run.py coordinator")
-    print("  ./run.py cli 'Sustainable transport' 'Low-cost'")
+    print("  mad_spark 'consciousness' 'what is it?'")
+    print("  mad_spark 'sustainable cities'")
+    print("  mad_spark coordinator")
+    print("\nAliases: mad_spark, madspark, ms")
     sys.exit(0)
 
+# Handle simplified syntax - if first arg is not a command, treat as topic
 command = sys.argv[1]
+if command not in ['coordinator', 'cli', 'test', '--help', '-h', '--version']:
+    # This is a topic, not a command - convert to CLI format
+    topic = command
+    context = sys.argv[2] if len(sys.argv) > 2 else ""
+    
+    # Convert to CLI command format
+    sys.argv = [sys.argv[0], 'cli', topic, context]
+    command = 'cli'
 
 if command == "coordinator":
     try:

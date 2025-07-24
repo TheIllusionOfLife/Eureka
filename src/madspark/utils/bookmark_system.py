@@ -416,7 +416,7 @@ def bookmark_from_result(
     )
 
 
-def list_bookmarks_cli(bookmark_file: str = "bookmarks.json") -> List[Dict[str, Any]]:
+def list_bookmarks_cli(bookmark_file: str = "examples/data/bookmarks.json") -> List[Dict[str, Any]]:
     """List bookmarks for CLI display.
     
     Args:

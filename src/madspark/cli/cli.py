@@ -154,7 +154,7 @@ Examples:
   
   # Batch processing
   %(prog)s --create-sample-batch csv
-  %(prog)s --batch examples/data/sample_batch.csv --batch-concurrent 5
+  %(prog)s --batch sample_batch.csv --batch-concurrent 5
   
   # Interactive mode
   %(prog)s --interactive
@@ -274,7 +274,7 @@ Examples:
     
     bookmark_group.add_argument(
         '--bookmark-file',
-        default='bookmarks.json',
+        default='examples/data/bookmarks.json',
         help='File to store bookmarks (default: bookmarks.json)'
     )
     

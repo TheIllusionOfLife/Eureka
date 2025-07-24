@@ -47,7 +47,7 @@ def test_bookmark_edge_cases():
     
     try:
         # Test with temporary directory (bookmark functionality not tested, just input handling)
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with tempfile.TemporaryDirectory():
             
             # Test cases
             test_ideas = [

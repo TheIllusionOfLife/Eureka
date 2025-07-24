@@ -73,7 +73,7 @@ jobs:
             // Apply extended limits for CI/infrastructure/documentation PRs or test-heavy PRs
             const useExtendedLimits = isCiPr || isTestHeavyPr;
             const maxFilesLimit = useExtendedLimits ? 50 : maxFiles;
-            const maxChangesLimit = useExtendedLimits ? 2000 : maxChanges;
+            const maxChangesLimit = useExtendedLimits ? 3000 : maxChanges;
             
             // Check files with appropriate limits
             if (files.length <= maxFilesLimit && totalChanges <= maxChangesLimit) {

@@ -9,7 +9,7 @@
  * @returns Truncated string or undefined if input was undefined
  */
 export const truncateField = (str: string | undefined, maxLength: number = 10000): string | undefined => {
-  if (!str) return str;
+  if (!str) return undefined;  // Convert falsy values (including empty strings) to undefined
   return str.length > maxLength ? str.substring(0, maxLength - 3) + '...' : str;
 };
 

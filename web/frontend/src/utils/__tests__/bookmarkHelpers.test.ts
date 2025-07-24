@@ -6,8 +6,8 @@ describe('bookmarkHelpers', () => {
       expect(truncateField(undefined)).toBeUndefined();
     });
 
-    it('returns empty string for empty string input', () => {
-      expect(truncateField('')).toBe('');
+    it('returns undefined for empty string input', () => {
+      expect(truncateField('')).toBeUndefined();
     });
 
     it('returns short strings unchanged', () => {

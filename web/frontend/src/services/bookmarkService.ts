@@ -104,8 +104,11 @@ class BookmarkService {
   }> {
     try {
       const url = new URL(`${API_BASE_URL}/api/bookmarks/similar`);
-      url.searchParams.append('idea', truncateRequiredField(idea));
-      url.searchParams.append('theme', truncateRequiredField(theme));
+      // Limit URL parameter length to avoid exceeding URL limits (typically ~2048 chars)
+      // Use more aggressive truncation for URL parameters
+      const maxUrlParamLength = 500;  // Conservative limit for URL parameters
+      url.searchParams.append('idea', truncateRequiredField(idea, maxUrlParamLength));
+      url.searchParams.append('topic', truncateRequiredField(theme, maxUrlParamLength));  // Backend expects 'topic' not 'theme'
       url.searchParams.append('max_results', maxResults.toString());
 
       const response = await fetch(url.toString());

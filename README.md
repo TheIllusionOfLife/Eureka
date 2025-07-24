@@ -23,9 +23,30 @@ A sophisticated multi-agent system for idea generation and refinement using Goog
 ### Installation
 
 ```bash
-# Clone and setup
+# Clone and setup (easy way)
 git clone https://github.com/TheIllusionOfLife/Eureka.git
 cd Eureka
+./setup.sh  # This handles everything automatically!
+```
+
+### Usage
+
+```bash
+# Basic workflow
+./run.py coordinator
+
+# CLI with topic and context
+./run.py cli "Sustainable transportation" "Low-cost solutions"
+
+# Web interface
+cd web && docker compose up
+```
+
+<details>
+<summary>Manual Setup (if needed)</summary>
+
+```bash
+# Create virtual environment
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r config/requirements.txt
@@ -36,20 +57,13 @@ export PYTHONPATH="${PYTHONPATH}:$(pwd)/src"
 # Configure API
 echo 'GOOGLE_API_KEY="YOUR_API_KEY_HERE"' > src/madspark/.env
 echo 'GOOGLE_GENAI_MODEL="gemini-2.5-flash"' >> src/madspark/.env
-```
 
-### Usage
-
-```bash
-# Basic workflow
+# Run commands
 python -m madspark.core.coordinator
-
-# CLI with topic and context
 python -m madspark.cli.cli "Sustainable transportation" "Low-cost solutions"
-
-# Web interface
-cd web && docker compose up
 ```
+
+</details>
 
 ## Project Structure
 

@@ -1,4 +1,7 @@
+# Version field required for compatibility with older Docker Compose versions and CI/CD tools
+# This field is deprecated in Docker Compose v2+ but kept for backward compatibility
 version: '3.8'
+
 services:
   backend:
     build: 
@@ -7,10 +10,14 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
-      - GOOGLE_GENAI_MODEL=${GOOGLE_GENAI_MODEL}
-      - MADSPARK_PATH=/madspark
-      - REDIS_URL=redis://redis:6379/0
+      # Use environment variable substitution with defaults for CI/testing
+      # Values will be read from host environment or use defaults if not set
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-test_api_key}
+      GOOGLE_GENAI_MODEL: ${GOOGLE_GENAI_MODEL:-gemini-2.5-flash}
+      GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT:-test_project}
+      MADSPARK_MODE: ${MADSPARK_MODE:-mock}
+      MADSPARK_PATH: /madspark
+      REDIS_URL: redis://redis:6379/0
     volumes:
       - ./backend:/app
       - ../:/madspark  # Mount parent directory for MadSpark imports

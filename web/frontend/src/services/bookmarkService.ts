@@ -8,6 +8,7 @@ import {
   EnhancedBookmarkResponse,
   BookmarksListResponse
 } from '../types';
+import { truncateField, truncateRequiredField, mapBookmarkToApiFormat } from '../utils/bookmarkHelpers';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000';
 
@@ -15,8 +16,8 @@ class BookmarkService {
   async checkForDuplicates(idea: string, theme: string, similarityThreshold?: number): Promise<DuplicateCheckResponse> {
     try {
       const requestData = {
-        idea: idea,
-        topic: theme,  // Using new terminology
+        idea: truncateRequiredField(idea),
+        topic: truncateRequiredField(theme),  // Using new terminology, also truncate theme
         similarity_threshold: similarityThreshold
       };
 
@@ -49,19 +50,17 @@ class BookmarkService {
   ): Promise<EnhancedBookmarkResponse> {
     try {
       // Creating bookmark with duplicate check
-      
-      // Ensure all required fields meet minimum requirements
       const bookmarkData: BookmarkData = {
-        idea: result.idea || 'No idea text provided',
-        improved_idea: result.improved_idea || undefined,
-        theme: theme || 'General',
-        constraints: constraints ?? '',
+        idea: truncateRequiredField(result.idea || 'No idea text provided'),
+        improved_idea: truncateField(result.improved_idea),
+        theme: truncateRequiredField(theme || 'General'),
+        constraints: truncateRequiredField(constraints ?? ''),
         initial_score: result.initial_score ?? 0,
         improved_score: result.improved_score ?? undefined,
-        initial_critique: result.initial_critique || '',
-        improved_critique: result.improved_critique || undefined,
-        advocacy: result.advocacy || '',
-        skepticism: result.skepticism || '',
+        initial_critique: truncateRequiredField(result.initial_critique),
+        improved_critique: truncateField(result.improved_critique),
+        advocacy: truncateRequiredField(result.advocacy),
+        skepticism: truncateRequiredField(result.skepticism),
         tags: [],
       };
 
@@ -72,12 +71,15 @@ class BookmarkService {
         url.searchParams.append('force_save', 'true');
       }
 
+      // Transform frontend field names to backend field names
+      const apiData = mapBookmarkToApiFormat(bookmarkData);
+
       const response = await fetch(url.toString(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(bookmarkData),
+        body: JSON.stringify(apiData),
       });
 
       if (!response.ok) {
@@ -102,8 +104,11 @@ class BookmarkService {
   }> {
     try {
       const url = new URL(`${API_BASE_URL}/api/bookmarks/similar`);
-      url.searchParams.append('idea', idea);
-      url.searchParams.append('theme', theme);
+      // Limit URL parameter length to avoid exceeding URL limits (typically ~2048 chars)
+      // Use more aggressive truncation for URL parameters
+      const maxUrlParamLength = 500;  // Conservative limit for URL parameters
+      url.searchParams.append('idea', truncateRequiredField(idea, maxUrlParamLength));
+      url.searchParams.append('topic', truncateRequiredField(theme, maxUrlParamLength));  // Backend expects 'topic' not 'theme'
       url.searchParams.append('max_results', maxResults.toString());
 
       const response = await fetch(url.toString());
@@ -124,31 +129,32 @@ class BookmarkService {
   async createBookmark(result: IdeaResult, theme: string, constraints: string): Promise<BookmarkResponse> {
     try {
       // Creating bookmark
-      
-      // Ensure all required fields meet minimum requirements
       const bookmarkData: BookmarkData = {
-        idea: result.idea || 'No idea text provided',  // Required field with min_length - handle empty strings
-        improved_idea: result.improved_idea || undefined,  // Optional field - handle empty strings as undefined
-        theme: theme || 'General',  // Required field with min_length - handle empty strings
-        constraints: constraints ?? '',  // Allows empty strings - only handle null/undefined
+        idea: truncateRequiredField(result.idea || 'No idea text provided'),  // Required field with min_length - handle empty strings
+        improved_idea: truncateField(result.improved_idea),  // Optional field - handle empty strings as undefined
+        theme: truncateRequiredField(theme || 'General'),  // Required field with min_length - handle empty strings
+        constraints: truncateRequiredField(constraints ?? ''),  // Allows empty strings - only handle null/undefined
         initial_score: result.initial_score ?? 0,  // Numeric field - preserve 0, handle null/undefined
         improved_score: result.improved_score ?? undefined,  // Numeric field - preserve 0, handle null/undefined
-        initial_critique: result.initial_critique || '',  // Optional field, sent as empty string if falsy
-        improved_critique: result.improved_critique || undefined,  // Optional field - handle empty strings as undefined
-        advocacy: result.advocacy || '',  // Optional field, sent as empty string if falsy
-        skepticism: result.skepticism || '',  // Optional field, sent as empty string if falsy
+        initial_critique: truncateRequiredField(result.initial_critique),  // Optional field, sent as empty string if falsy
+        improved_critique: truncateField(result.improved_critique),  // Optional field - handle empty strings as undefined
+        advocacy: truncateRequiredField(result.advocacy),  // Optional field, sent as empty string if falsy
+        skepticism: truncateRequiredField(result.skepticism),  // Optional field, sent as empty string if falsy
         tags: [], // Can be enhanced to allow user-defined tags
       };
 
       // Log bookmark data for debugging purposes before sending to the API.
       // Bookmark data prepared for transmission
 
+      // Transform frontend field names to backend field names
+      const apiData = mapBookmarkToApiFormat(bookmarkData);
+
       const response = await fetch(`${API_BASE_URL}/api/bookmarks`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(bookmarkData),
+        body: JSON.stringify(apiData),
       });
 
       if (!response.ok) {

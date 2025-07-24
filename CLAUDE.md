@@ -133,6 +133,8 @@ cd web && docker compose up
 - **Current Infrastructure**: Full comprehensive test suite with 6 test modules (agents, coordinators, utils, cli, integration, interactive EOF)
 - **Mock Mode**: Primary testing mode to avoid API costs
 - **Coverage Goals**: 90%+ for critical paths (achieved with PR #84 comprehensive test suite)
+- **TypeScript Projects**: ALWAYS run `npm run typecheck` or `tsc --noEmit` after any .ts/.tsx file changes
+- **Frontend Changes**: Test in browser after modifications, especially after fixing compilation errors
 
 ## CI/CD Management
 

@@ -117,7 +117,9 @@ class TestDockerIntegration:
             capture_output=True,
             text=True
         )
+        # Docker compose should validate successfully
         assert result.returncode == 0
+        # Ensure both services are defined in the configuration
         assert "frontend" in result.stdout
         assert "backend" in result.stdout
     
@@ -139,7 +141,9 @@ class TestDockerIntegration:
             text=True
         )
         
-        # Verify services can communicate
+        # Docker compose should validate successfully
+        assert result.returncode == 0
+        # Verify network configuration exists
         assert "madspark-network" in result.stdout or "networks:" in result.stdout
 
 

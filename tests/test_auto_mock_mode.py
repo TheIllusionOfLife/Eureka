@@ -1,5 +1,6 @@
 """Tests for automatic mock mode detection when no API key is present."""
 import os
+import pytest
 from unittest.mock import patch, Mock
 import tempfile
 from pathlib import Path

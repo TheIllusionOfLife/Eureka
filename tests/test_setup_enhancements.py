@@ -1,6 +1,6 @@
 """Tests for enhanced setup.sh script functionality."""
 import os
-import subprocess
+import shutil
 import tempfile
 import pytest
 from unittest.mock import patch

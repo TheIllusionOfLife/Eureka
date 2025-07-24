@@ -56,6 +56,21 @@ def validate_api_key(key):
     return key.startswith("AIza") and len(key) > 30
 
 def main():
+    # Check for command line arguments
+    if len(sys.argv) > 1:
+        if sys.argv[1] in ["--help", "-h"]:
+            print("Usage: mad_spark config [--status]")
+            print("  --status  Show current configuration and exit")
+            return
+        elif sys.argv[1] == "--status":
+            show_status_only = True
+        else:
+            print(f"Unknown option: {sys.argv[1]}")
+            print("Use --help for usage")
+            sys.exit(1)
+    else:
+        show_status_only = False
+    
     print(f"{PURPLE}🔧 MadSpark Configuration{NC}")
     print()
     
@@ -83,6 +98,22 @@ def main():
         print(f"{BLUE}📍 Currently running in mock mode{NC}")
         print()
     
+    # If just showing status, exit here
+    if show_status_only:
+        print(f"{PURPLE}Current Configuration:{NC}")
+        print(f"  API Key: {'✅ Configured' if validate_api_key(current_key) else '❌ Not configured'}")
+        print(f"  Mode: {'Mock' if current_mode == 'mock' or not validate_api_key(current_key) else 'API'}")
+        print(f"  Model: {config.get('GOOGLE_GENAI_MODEL', 'gemini-2.5-flash')}")
+        return
+    
+    # Check if running in interactive mode
+    if not sys.stdin.isatty():
+        print(f"{YELLOW}⚠️  Non-interactive mode detected{NC}")
+        print()
+        print("Run this command in an interactive terminal to configure API key")
+        print("Or use 'mad_spark config --status' to view current settings")
+        return
+    
     # Show menu
     print(f"{BLUE}What would you like to do?{NC}")
     print("  1) Configure API key for real AI responses")
@@ -91,7 +122,11 @@ def main():
     print("  4) Exit")
     print()
     
-    choice = input("Choose option (1-4): ").strip()
+    try:
+        choice = input("Choose option (1-4): ").strip()
+    except (EOFError, KeyboardInterrupt):
+        print("\nExiting...")
+        sys.exit(0)
     
     if choice == "1":
         # Configure API key
@@ -101,7 +136,11 @@ def main():
         print()
         
         # Use getpass for secure input
-        api_key = getpass.getpass("Enter your Google API key: ").strip()
+        try:
+            api_key = getpass.getpass("Enter your Google API key: ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print("\nCancelled")
+            return
         
         if validate_api_key(api_key):
             config["GOOGLE_API_KEY"] = api_key

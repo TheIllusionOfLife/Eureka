@@ -111,28 +111,15 @@ class TestDockerIntegration:
         compose_file = Path("web/docker-compose.yml")
         assert compose_file.exists()
         
-        # Create dummy .env file if not exists (for CI)
-        env_file = Path(".env")
-        if not env_file.exists():
-            env_file.write_text("""GOOGLE_API_KEY=test_key
-GOOGLE_GENAI_MODEL=gemini-2.5-flash
-GOOGLE_CLOUD_PROJECT=test_project
-""")
-        
         # Validate compose file
         result = subprocess.run(
             ["docker", "compose", "-f", str(compose_file), "config"],
             capture_output=True,
             text=True
         )
-        # Accept warnings about version attribute
-        if "level=warning" in result.stderr and "version" in result.stderr:
-            # This is just a warning, not an error
-            assert "frontend" in result.stdout or "backend" in result.stdout or result.returncode == 0
-        else:
-            assert result.returncode == 0
-            assert "frontend" in result.stdout
-            assert "backend" in result.stdout
+        assert result.returncode == 0
+        assert "frontend" in result.stdout
+        assert "backend" in result.stdout
     
     @pytest.mark.skipif(
         not os.path.exists("/.dockerenv") and subprocess.run(
@@ -145,14 +132,6 @@ GOOGLE_CLOUD_PROJECT=test_project
         """Test container networking configuration."""
         compose_file = Path("web/docker-compose.yml")
         
-        # Create dummy .env file if not exists (for CI)
-        env_file = Path(".env")
-        if not env_file.exists():
-            env_file.write_text("""GOOGLE_API_KEY=test_key
-GOOGLE_GENAI_MODEL=gemini-2.5-flash
-GOOGLE_CLOUD_PROJECT=test_project
-""")
-        
         # Check network configuration
         result = subprocess.run(
             ["docker", "compose", "-f", str(compose_file), "config"],
@@ -161,12 +140,7 @@ GOOGLE_CLOUD_PROJECT=test_project
         )
         
         # Verify services can communicate
-        # Accept warnings about version attribute
-        if result.returncode == 0 or ("level=warning" in result.stderr and "version" in result.stderr):
-            # Either check stdout for network config or accept that compose validation passed
-            assert "madspark-network" in result.stdout or "networks:" in result.stdout or result.returncode == 0 or "level=warning" in result.stderr
-        else:
-            assert "madspark-network" in result.stdout or "networks:" in result.stdout
+        assert "madspark-network" in result.stdout or "networks:" in result.stdout
 
 
 class TestWebAPIIntegration:

@@ -72,12 +72,22 @@ class BookmarkService {
         url.searchParams.append('force_save', 'true');
       }
 
+      // Transform frontend field names to backend field names
+      const apiData = {
+        ...bookmarkData,
+        topic: bookmarkData.theme,  // Backend expects 'topic' not 'theme'
+        context: bookmarkData.constraints,  // Backend expects 'context' not 'constraints'
+      };
+      // Remove the old field names to avoid confusion
+      delete (apiData as any).theme;
+      delete (apiData as any).constraints;
+
       const response = await fetch(url.toString(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(bookmarkData),
+        body: JSON.stringify(apiData),
       });
 
       if (!response.ok) {

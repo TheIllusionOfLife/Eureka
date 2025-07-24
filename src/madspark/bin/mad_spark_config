@@ -87,7 +87,29 @@ def main():
     current_key = config.get("GOOGLE_API_KEY", "YOUR_API_KEY_HERE")
     current_mode = config.get("MADSPARK_MODE", "")
     
-    # Show current status
+    # If just showing status, show it and exit
+    if show_status_only or not sys.stdin.isatty():
+        # Show current status
+        if validate_api_key(current_key):
+            print(f"{GREEN}✅ API key configured{NC}")
+            if current_mode == "mock":
+                print(f"{YELLOW}⚠️  But MADSPARK_MODE is set to 'mock'{NC}")
+        else:
+            print(f"{YELLOW}⚠️  No valid API key configured{NC}")
+            print(f"{BLUE}📍 Currently running in mock mode{NC}")
+        
+        print()
+        print(f"{PURPLE}Current Configuration:{NC}")
+        print(f"  API Key: {'✅ Configured' if validate_api_key(current_key) else '❌ Not configured'}")
+        print(f"  Mode: {'Mock' if current_mode == 'mock' or not validate_api_key(current_key) else 'API'}")
+        print(f"  Model: {config.get('GOOGLE_GENAI_MODEL', 'gemini-2.5-flash')}")
+        
+        if not sys.stdin.isatty() and not show_status_only:
+            print()
+            print(f"{YELLOW}💡 To configure interactively, run this command in a terminal{NC}")
+        return
+    
+    # Interactive mode - show status first
     if validate_api_key(current_key):
         print(f"{GREEN}✅ API key configured{NC}")
         if current_mode == "mock":
@@ -97,22 +119,6 @@ def main():
         print(f"{YELLOW}⚠️  No valid API key configured{NC}")
         print(f"{BLUE}📍 Currently running in mock mode{NC}")
         print()
-    
-    # If just showing status, exit here
-    if show_status_only:
-        print(f"{PURPLE}Current Configuration:{NC}")
-        print(f"  API Key: {'✅ Configured' if validate_api_key(current_key) else '❌ Not configured'}")
-        print(f"  Mode: {'Mock' if current_mode == 'mock' or not validate_api_key(current_key) else 'API'}")
-        print(f"  Model: {config.get('GOOGLE_GENAI_MODEL', 'gemini-2.5-flash')}")
-        return
-    
-    # Check if running in interactive mode
-    if not sys.stdin.isatty():
-        print(f"{YELLOW}⚠️  Non-interactive mode detected{NC}")
-        print()
-        print("Run this command in an interactive terminal to configure API key")
-        print("Or use 'mad_spark config --status' to view current settings")
-        return
     
     # Show menu
     print(f"{BLUE}What would you like to do?{NC}")

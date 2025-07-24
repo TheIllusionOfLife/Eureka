@@ -5,7 +5,6 @@ import sys
 import tempfile
 import pytest
 from unittest.mock import patch, Mock
-import shutil
 
 
 class TestMadSparkCommand:
@@ -35,11 +34,11 @@ class TestMadSparkCommand:
     def test_mad_spark_exists_after_setup(self):
         """Test that mad_spark command exists after running setup."""
         # Check if mad_spark is in PATH or common locations
-        locations_to_check = [
-            '/usr/local/bin/mad_spark',
-            os.path.expanduser('~/.local/bin/mad_spark'),
-            './mad_spark'
-        ]
+        # Check if mad_spark is in PATH or common locations
+        # Will be tested after implementation:
+        # - /usr/local/bin/mad_spark
+        # - ~/.local/bin/mad_spark  
+        # - ./mad_spark
         
         # At least one should exist after setup
         # We'll verify after implementation

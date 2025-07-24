@@ -557,7 +557,7 @@ def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
             # Add evaluation summary if available (clean format)
             if 'multi_dimensional_evaluation' in result:
                 eval_data = result['multi_dimensional_evaluation']
-                if 'evaluation_summary' in eval_data:
+                if eval_data and 'evaluation_summary' in eval_data:
                     summary = eval_data['evaluation_summary']
                     # Remove the "🧠 Enhanced Analysis:" prefix if present
                     summary = summary.replace('🧠 Enhanced Analysis:\n', '').replace('🧠 Enhanced Analysis:', '')

@@ -69,14 +69,14 @@ class TestMadSparkCommand:
     
     def test_mad_spark_runs_coordinator(self):
         """Test that 'mad_spark coordinator' runs the coordinator."""
-        with patch('subprocess.run'):
+        with patch('subprocess.run') as mock_run:
             # Test: mad_spark coordinator
             # Should execute: python -m madspark.core.coordinator
             pass
     
     def test_mad_spark_cli_simplified_syntax(self):
         """Test simplified CLI syntax: mad_spark "topic" "context"."""
-        with patch('subprocess.run'):
+        with patch('subprocess.run') as mock_run:
             # Test: mad_spark "AI automation" "cost effective"
             # Should execute: python -m madspark.cli.cli "AI automation" "cost effective"
             # Much simpler than: ./run.py cli "AI automation" "cost effective"
@@ -84,14 +84,14 @@ class TestMadSparkCommand:
     
     def test_mad_spark_handles_single_argument(self):
         """Test that single argument is treated as topic with empty context."""
-        with patch('subprocess.run'):
+        with patch('subprocess.run') as mock_run:
             # Test: mad_spark "consciousness"
             # Should execute: python -m madspark.cli.cli "consciousness" ""
             pass
     
     def test_mad_spark_runs_tests(self):
         """Test that 'mad_spark test' runs the test suite."""
-        with patch('subprocess.run'):
+        with patch('subprocess.run') as mock_run:
             # Test: mad_spark test
             # Should execute: pytest tests/
             pass
@@ -104,7 +104,7 @@ class TestMadSparkCommand:
         }
         
         with patch.dict(os.environ, test_env):
-            with patch('subprocess.run'):
+            with patch('subprocess.run') as mock_run:
                 # mad_spark should pass through env vars
                 # Verify subprocess receives correct environment
                 pass
@@ -117,7 +117,7 @@ class TestMadSparkCommand:
             os.chdir(tmpdir)
             
             try:
-                with patch('subprocess.run'):
+                with patch('subprocess.run') as mock_run:
                     # mad_spark should still work
                     # Should find project root and run correctly
                     pass
@@ -134,7 +134,7 @@ class TestMadSparkCommand:
     
     def test_mad_spark_version_command(self):
         """Test that 'mad_spark --version' shows version info."""
-        with patch('subprocess.run'):
+        with patch('subprocess.run') as mock_run:
             # Test: mad_spark --version
             # Should show: MadSpark Multi-Agent System v2.2
             pass

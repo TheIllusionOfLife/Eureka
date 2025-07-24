@@ -28,7 +28,8 @@ class TestAutoMockMode:
     
     def test_api_key_present_uses_real_mode(self):
         """Test that system uses real API when API key is present."""
-        with patch.dict(os.environ, {'GOOGLE_API_KEY': 'AIza_test_key_123'}):
+        # API key must be over 30 chars and start with AIza to be valid
+        with patch.dict(os.environ, {'GOOGLE_API_KEY': 'AIzaSyTest1234567890123456789012345678'}):
             from madspark.agents.genai_client import is_api_key_configured
             
             # Should detect API key
@@ -63,9 +64,9 @@ class TestAutoMockMode:
             
             env_file = os.path.join(madspark_dir, '.env')
             
-            # Write test .env file
+            # Write test .env file with valid API key format
             with open(env_file, 'w') as f:
-                f.write('GOOGLE_API_KEY=AIza_test_key_from_env\n')
+                f.write('GOOGLE_API_KEY=AIzaSyTest1234567890123456789012345678\n')
                 f.write('GOOGLE_GENAI_MODEL=gemini-2.5-flash\n')
             
             # Mock the Path to point to our temp directory
@@ -81,7 +82,7 @@ class TestAutoMockMode:
                     dotenv.load_dotenv(env_file)
                     
                     # Now test that the key was loaded
-                    assert os.getenv('GOOGLE_API_KEY') == 'AIza_test_key_from_env'
+                    assert os.getenv('GOOGLE_API_KEY') == 'AIzaSyTest1234567890123456789012345678'
                     
                     # And that is_api_key_configured detects it
                     from madspark.agents.genai_client import is_api_key_configured
@@ -108,13 +109,13 @@ class TestAutoMockMode:
             assert get_mode() == 'mock'
         
         # Test 2: API key present, no env var -> api mode
-        with patch.dict(os.environ, {'GOOGLE_API_KEY': 'AIza_test'}, clear=True):
+        with patch.dict(os.environ, {'GOOGLE_API_KEY': 'AIzaSyTest1234567890123456789012345678'}, clear=True):
             from madspark.agents.genai_client import get_mode
             assert get_mode() == 'api'
         
         # Test 3: API key present, MADSPARK_MODE=mock -> mock mode
         with patch.dict(os.environ, {
-            'GOOGLE_API_KEY': 'AIza_test',
+            'GOOGLE_API_KEY': 'AIzaSyTest1234567890123456789012345678',
             'MADSPARK_MODE': 'mock'
         }):
             from madspark.agents.genai_client import get_mode
@@ -125,7 +126,7 @@ class TestAutoMockMode:
         # Simulate no API key environment
         with patch.dict(os.environ, {}, clear=True):
             # Mock subprocess to capture run.py execution
-            with patch('subprocess.run') as mock_run:
+            with patch('subprocess.run'):
                 # Import would trigger mode detection
                 with patch('madspark.agents.genai_client.get_mode', return_value='mock'):
                     from madspark.agents.genai_client import get_mode
@@ -139,7 +140,7 @@ class TestMockModeMessages:
         """Test that appropriate message is shown when starting in mock mode."""
         # Test that mock mode shows appropriate message
         with patch.dict(os.environ, {}, clear=True):
-            with patch('builtins.print') as mock_print:
+            with patch('builtins.print'):
                 from madspark.agents.genai_client import get_mode
                 mode = get_mode()
                 if mode == 'mock':

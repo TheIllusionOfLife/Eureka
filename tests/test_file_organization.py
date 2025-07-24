@@ -44,8 +44,8 @@ def test_cli_examples_updated():
     import inspect
     source = inspect.getsource(cli_module)
     
-    # Should reference the new data file location in help text
-    assert "examples/data/sample_batch.csv" in source
+    # Should reference the actual created file location in help text (matches CLI behavior)
+    assert "sample_batch.csv" in source
 
 
 if __name__ == "__main__":

@@ -23,10 +23,13 @@ A sophisticated multi-agent system for idea generation and refinement using Goog
 ### Installation
 
 ```bash
-# Clone and setup (2 steps!)
+# Clone and setup
 git clone https://github.com/TheIllusionOfLife/Eureka.git
 cd Eureka
-./setup.sh  # Interactive setup with API key configuration
+./setup.sh  # Initial setup (defaults to mock mode)
+
+# Configure your API key (for real AI responses)
+mad_spark config  # Interactive configuration
 ```
 
 ### Usage

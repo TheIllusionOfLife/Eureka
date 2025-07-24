@@ -9,6 +9,12 @@ services:
     env_file:
       - ../.env  # Use primary .env file from project root
     environment:
+      # Fallback values for CI/testing where .env might not exist
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-test_api_key}
+      GOOGLE_GENAI_MODEL: ${GOOGLE_GENAI_MODEL:-gemini-2.5-flash}
+      GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT:-test_project}
+      MADSPARK_MODE: ${MADSPARK_MODE:-mock}
+    environment:
       - MADSPARK_PATH=/madspark
       - REDIS_URL=redis://redis:6379/0
     volumes:

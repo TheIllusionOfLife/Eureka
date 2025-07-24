@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 class BookmarkManager:
     """Manages bookmarked ideas with file-based storage and duplicate detection."""
     
-    def __init__(self, bookmark_file: str = "bookmarks.json", similarity_threshold: float = 0.8):
+    def __init__(self, bookmark_file: str = "examples/data/bookmarks.json", similarity_threshold: float = 0.8):
         """Initialize the bookmark manager.
         
         Args:
@@ -389,7 +389,7 @@ def bookmark_from_result(
     theme: str, 
     constraints: str, 
     tags: Optional[List[str]] = None,
-    bookmark_file: str = "bookmarks.json"
+    bookmark_file: str = "examples/data/bookmarks.json"
 ) -> str:
     """Bookmark an idea from a workflow result.
     
@@ -416,7 +416,7 @@ def bookmark_from_result(
     )
 
 
-def list_bookmarks_cli(bookmark_file: str = "bookmarks.json") -> List[Dict[str, Any]]:
+def list_bookmarks_cli(bookmark_file: str = "examples/data/bookmarks.json") -> List[Dict[str, Any]]:
     """List bookmarks for CLI display.
     
     Args:
@@ -434,7 +434,7 @@ def remix_with_bookmarks(
     theme: str,
     additional_constraints: str = "",
     bookmark_ids: Optional[List[str]] = None,
-    bookmark_file: str = "bookmarks.json"
+    bookmark_file: str = "examples/data/bookmarks.json"
 ) -> str:
     """Generate remix context from bookmarks.
     

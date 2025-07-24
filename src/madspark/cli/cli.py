@@ -274,8 +274,8 @@ Examples:
     
     bookmark_group.add_argument(
         '--bookmark-file',
-        default='bookmarks.json',
-        help='File to store bookmarks (default: bookmarks.json)'
+        default='examples/data/bookmarks.json',
+        help='File to store bookmarks (default: examples/data/bookmarks.json)'
     )
     
     bookmark_group.add_argument(

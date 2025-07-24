@@ -158,6 +158,7 @@ See **[docs/ci-policy.md](docs/ci-policy.md)** for complete guidelines on:
 5. **Performance Matters**: Cache aggressively, parallelize when possible
 
 ### CI Performance Optimizations
+
 - **Conditional Python Matrix**: Only test Python 3.10 for PRs/feature branches, full matrix on main
 - **Conditional Execution**: A simpler condition for jobs on non-main branches is `${{ github.ref != 'refs/heads/main' }}`
 - **Parallel Execution**: Use pytest-xdist for faster test runs

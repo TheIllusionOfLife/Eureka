@@ -26,6 +26,30 @@ describe('bookmarkHelpers', () => {
       const result = truncateField('hello world', 5);
       expect(result).toBe('he...');
     });
+
+    it('handles edge case when maxLength is 0', () => {
+      const result = truncateField('hello', 0);
+      expect(result).toBe('');
+      expect(result).toHaveLength(0);
+    });
+
+    it('handles edge case when maxLength is 1', () => {
+      const result = truncateField('hello', 1);
+      expect(result).toBe('h');
+      expect(result).toHaveLength(1);
+    });
+
+    it('handles edge case when maxLength is 2', () => {
+      const result = truncateField('hello', 2);
+      expect(result).toBe('he');
+      expect(result).toHaveLength(2);
+    });
+
+    it('adds ellipsis only when maxLength is 3 or more', () => {
+      const result = truncateField('hello world', 3);
+      expect(result).toBe('...');
+      expect(result).toHaveLength(3);
+    });
   });
 
   describe('truncateRequiredField', () => {
@@ -52,6 +76,30 @@ describe('bookmarkHelpers', () => {
     it('respects custom max length', () => {
       const result = truncateRequiredField('hello world', 5);
       expect(result).toBe('he...');
+    });
+
+    it('handles edge case when maxLength is 0', () => {
+      const result = truncateRequiredField('hello', 0);
+      expect(result).toBe('');
+      expect(result).toHaveLength(0);
+    });
+
+    it('handles edge case when maxLength is 1', () => {
+      const result = truncateRequiredField('hello', 1);
+      expect(result).toBe('h');
+      expect(result).toHaveLength(1);
+    });
+
+    it('handles edge case when maxLength is 2', () => {
+      const result = truncateRequiredField('hello', 2);
+      expect(result).toBe('he');
+      expect(result).toHaveLength(2);
+    });
+
+    it('adds ellipsis only when maxLength is 3 or more', () => {
+      const result = truncateRequiredField('hello world', 3);
+      expect(result).toBe('...');
+      expect(result).toHaveLength(3);
     });
   });
 

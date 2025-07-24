@@ -10,7 +10,12 @@
  */
 export const truncateField = (str: string | undefined, maxLength: number = 10000): string | undefined => {
   if (!str) return undefined;  // Convert falsy values (including empty strings) to undefined
-  return str.length > maxLength ? str.substring(0, maxLength - 3) + '...' : str;
+  if (str.length <= maxLength) return str;
+  
+  // Handle edge case where maxLength is too small for ellipsis
+  if (maxLength < 3) return str.substring(0, maxLength);
+  
+  return str.substring(0, maxLength - 3) + '...';
 };
 
 /**
@@ -21,7 +26,12 @@ export const truncateField = (str: string | undefined, maxLength: number = 10000
  */
 export const truncateRequiredField = (str: string | undefined, maxLength: number = 10000): string => {
   if (!str) return '';
-  return str.length > maxLength ? str.substring(0, maxLength - 3) + '...' : str;
+  if (str.length <= maxLength) return str;
+  
+  // Handle edge case where maxLength is too small for ellipsis
+  if (maxLength < 3) return str.substring(0, maxLength);
+  
+  return str.substring(0, maxLength - 3) + '...';
 };
 
 /**

@@ -150,6 +150,14 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
 
 #### Recently Completed
 
+- ✅ **PR #115**: User-friendly setup and bookmark fixes
+  - Created `run.py` and `setup.sh` for 2-step installation (was 8+ steps)
+  - Consolidated API key management to single `.env` file
+  - Fixed bookmark API field mismatch (theme→topic, constraints→context)
+  - Added character truncation for 10k char database limits
+  - Resolved all TypeScript compilation errors
+  - Addressed feedback from 5 review bots (claude, coderabbit, cursor, gemini, windsurf)
+
 - ✅ **PR #112**: Restored validation scripts and documentation
   - Fixed shell script error handling (removed `set -e` for complete reporting)
   - Dynamic git default branch detection
@@ -185,6 +193,11 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
 
 #### Session Learnings
 
+- **FILE VERIFICATION DISCIPLINE**: Always read shared files/screenshots before responding to avoid critical mistakes
+- **TypeScript Compilation**: Run `tsc --noEmit` after any .ts/.tsx changes to catch type errors early
+- **Field Truncation**: Database fields have character limits (10k chars) - truncate with ellipsis preservation
+- **API Field Mapping**: Frontend/backend field name mismatches need transformation layers
+- **URL Parameter Limits**: Keep URL parameters under 500 chars (browser limit ~2048)
 - **CI YAML Arrays**: Use `fromJSON()` for array literals in GitHub Actions expressions
 - **Shell Error Handling**: `set -e` prevents complete error reporting in validation scripts
 - **PR Review Bots**: cursor[bot] provides valuable critical feedback on shell scripts and CI config

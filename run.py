@@ -25,7 +25,7 @@ try:
             os.environ["MADSPARK_MODE"] = "mock"
             if not os.getenv("SUPPRESS_MODE_MESSAGE"):
                 print("🤖 No API key found. Running in mock mode...")
-                print("💡 To use real API: Add your key to src/madspark/.env")
+                print("💡 To use real API: Run 'mad_spark config'")
                 print("")
         else:
             if not os.getenv("SUPPRESS_MODE_MESSAGE"):

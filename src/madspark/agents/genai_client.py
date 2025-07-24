@@ -70,17 +70,13 @@ def get_model_name() -> str:
 def load_env_file():
     """Load environment variables from .env file if it exists."""
     if DOTENV_AVAILABLE:
-        # Try to find .env in the madspark directory
-        current_dir = Path(__file__).parent.parent  # Go up to madspark dir
-        env_path = current_dir / '.env'
-        
-        if env_path.exists():
-            load_dotenv(env_path)
-        else:
-            # Try to find .env using find_dotenv
-            env_file = find_dotenv()
-            if env_file:
-                load_dotenv(env_file)
+        # Use find_dotenv to search up directory tree for root .env
+        env_file = find_dotenv()
+        if env_file:
+            load_dotenv(env_file)
+
+# Load environment variables when module is imported
+load_env_file()
 
 
 def is_api_key_configured() -> bool:

@@ -80,7 +80,7 @@ def main():
         print(f"{RED}❌ Could not find MadSpark project root{NC}")
         sys.exit(1)
     
-    env_path = project_root / "src" / "madspark" / ".env"
+    env_path = project_root / ".env"
     
     # Read current configuration
     config = read_env_file(env_path)

@@ -29,7 +29,7 @@ echo -e "${BLUE}📚 Installing dependencies...${NC}"
 chmod +x run.py
 
 # Handle .env file and API key configuration
-ENV_FILE="src/madspark/.env"
+ENV_FILE=".env"
 API_KEY_CONFIGURED=false
 
 if [ -f "$ENV_FILE" ]; then

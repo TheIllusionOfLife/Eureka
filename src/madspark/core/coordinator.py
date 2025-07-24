@@ -22,34 +22,41 @@ from typing import List, Dict, Any, Optional, TypedDict # Added TypedDict
 # Consider using a dedicated key management service for production deployments (test: not hardcoded).
 
 try:
-    from dotenv import load_dotenv
-    if os.path.exists(".env"):
-        logging.info("Coordinator: .env file found, loading environment variables.")
-        load_dotenv()
+    from dotenv import load_dotenv, find_dotenv
+    # Use find_dotenv to search up the directory tree for root .env
+    env_file = find_dotenv()
+    if env_file:
+        logging.info(f"Coordinator: Loading environment from {env_file}")
+        load_dotenv(env_file)
     else:
         logging.info("Coordinator: .env file not found, relying on environment variables.")
 except ImportError:
     logging.warning(
         "Coordinator: Unable to load .env file automatically.\n"
         "Please ensure GOOGLE_API_KEY and GOOGLE_GENAI_MODEL are set in your environment.\n"
-        "Tip: Use ./run_madspark.sh or the 'madspark' alias to handle this automatically."
+        "Tip: Run 'mad_spark config' to configure your API key."
     )
 
-api_key: Optional[str] = os.getenv("GOOGLE_API_KEY")  # Environment variable, not hardcoded secret (test safe)
-model_name: Optional[str] = os.getenv("GOOGLE_GENAI_MODEL")
+def _ensure_environment_configured():
+    """Ensure environment variables are properly configured."""
+    # Get API key and model AFTER loading .env
+    api_key: Optional[str] = os.getenv("GOOGLE_API_KEY")  # Environment variable, not hardcoded secret (test safe)
+    model_name: Optional[str] = os.getenv("GOOGLE_GENAI_MODEL")
 
-# Set defaults to allow import without API keys (for testing/CI)
-if api_key:  # test: Environment variable check
-    os.environ["GOOGLE_API_KEY"] = api_key  # test: Environment variable assignment
-else:
-    logging.warning("GOOGLE_API_KEY not set - will run in mock mode only")
+    # Set defaults to allow import without API keys (for testing/CI)
+    if api_key:  # test: Environment variable check
+        os.environ["GOOGLE_API_KEY"] = api_key  # test: Environment variable assignment
+    else:
+        # Only warn if not in mock mode
+        if os.getenv("MADSPARK_MODE") != "mock":
+            logging.warning("GOOGLE_API_KEY not set - will run in mock mode only")
 
-if model_name:
-    os.environ["GOOGLE_GENAI_MODEL"] = model_name
-else:
-    # Set default model name
-    os.environ["GOOGLE_GENAI_MODEL"] = "gemini-2.5-flash"
-    logging.warning("GOOGLE_GENAI_MODEL not set - using default: gemini-2.5-flash")
+    if model_name:
+        os.environ["GOOGLE_GENAI_MODEL"] = model_name
+    else:
+        # Set default model name
+        os.environ["GOOGLE_GENAI_MODEL"] = "gemini-2.5-flash"
+        logging.info("GOOGLE_GENAI_MODEL not set - using default: gemini-2.5-flash")
 
 # Agent functions are accessed via retry wrappers from agent_retry_wrappers module
 try:
@@ -253,6 +260,9 @@ def run_multistep_workflow(
     Returns:
         List of CandidateData containing processed ideas with evaluations
     """
+    # Ensure environment is configured before running workflow
+    _ensure_environment_configured()
+    
     final_candidates_data: List[CandidateData] = []
     # raw_generated_ideas: str = "" # Type will be known after call
     parsed_ideas: List[str] = []
@@ -767,6 +777,10 @@ if __name__ == "__main__":
         format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S'
     )
+    
+    # Ensure environment is configured
+    _ensure_environment_configured()
+    
     logging.info("Starting Mad Spark Multi-Agent Workflow...")
     sample_theme: str = "Sustainable Urban Living"
     sample_constraints: str = (

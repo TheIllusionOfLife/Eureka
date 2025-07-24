@@ -238,6 +238,14 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
    - Context: Prevent CI time from creeping back up
    - Approach: GitHub Actions workflow to track CI duration trends
 
+#### Known Issues & Follow-up Items
+
+**Technical Debt (Non-User-Facing):**
+- **[Issue #118](https://github.com/TheIllusionOfLife/Eureka/issues/118)**: Coordinator evaluation parsing issues - High priority technical fix needed for coordinator command
+- **[Issue #119](https://github.com/TheIllusionOfLife/Eureka/issues/119)**: Test expectation adjustments - Low priority test maintenance to align with current implementation
+
+**Note**: These issues don't affect regular CLI usage. All user-facing functionality works correctly.
+
 #### Session Learnings
 
 - **FILE VERIFICATION DISCIPLINE**: Always read shared files/screenshots before responding to avoid critical mistakes

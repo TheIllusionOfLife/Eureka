@@ -41,10 +41,10 @@ def test_config_script_functions():
     
     # Test validate_api_key
     validate_api_key = namespace['validate_api_key']
-    assert validate_api_key("AIzaSyD-test-key-with-more-than-30-chars") == True
-    assert validate_api_key("YOUR_API_KEY_HERE") == False
-    assert validate_api_key("short") == False
-    assert validate_api_key("NotStartingWithAIza-but-long-enough-key") == False
+    assert validate_api_key("AIzaSyD-test-key-with-more-than-30-chars") is True
+    assert not validate_api_key("YOUR_API_KEY_HERE")
+    assert not validate_api_key("short")
+    assert not validate_api_key("NotStartingWithAIza-but-long-enough-key")
     
     # Test read_env_file with mock data
     test_env_content = '''

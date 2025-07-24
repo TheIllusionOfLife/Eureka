@@ -11,6 +11,30 @@ from pathlib import Path
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root / "src"))
 
+# Import mode detection utilities
+try:
+    from madspark.agents.genai_client import get_mode, is_api_key_configured, load_env_file
+    
+    # Load environment variables from .env
+    load_env_file()
+    
+    # Auto-detect mode if not explicitly set
+    if not os.getenv("MADSPARK_MODE"):
+        mode = get_mode()
+        if mode == "mock":
+            os.environ["MADSPARK_MODE"] = "mock"
+            if not os.getenv("SUPPRESS_MODE_MESSAGE"):
+                print("🤖 No API key found. Running in mock mode...")
+                print("💡 To use real API: Add your key to src/madspark/.env")
+                print("")
+        else:
+            if not os.getenv("SUPPRESS_MODE_MESSAGE"):
+                print("✅ API key found. Running with Google Gemini API...")
+                print("")
+except ImportError:
+    # If imports fail, continue without mode detection
+    pass
+
 # Check if running in virtual environment
 if not hasattr(sys, 'prefix') or sys.prefix == sys.base_prefix:
     venv_python = project_root / "venv" / "bin" / "python"

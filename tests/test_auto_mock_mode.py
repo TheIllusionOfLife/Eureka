@@ -4,6 +4,7 @@ import pytest
 from unittest.mock import patch, Mock
 import tempfile
 import shutil
+from pathlib import Path
 
 
 class TestAutoMockMode:
@@ -54,22 +55,28 @@ class TestAutoMockMode:
     
     def test_dotenv_file_reading(self):
         """Test that system reads API key from .env file."""
-        # Create a temporary directory
+        # Create a temporary directory structure
         with tempfile.TemporaryDirectory() as tmpdir:
-            env_file = os.path.join(tmpdir, '.env')
+            # Create madspark directory structure
+            madspark_dir = os.path.join(tmpdir, 'src', 'madspark')
+            os.makedirs(madspark_dir)
+            
+            env_file = os.path.join(madspark_dir, '.env')
             
             # Write test .env file
             with open(env_file, 'w') as f:
-                f.write('GOOGLE_API_KEY="AIza_test_key_from_env"\n')
-                f.write('GOOGLE_GENAI_MODEL="gemini-2.5-flash"\n')
+                f.write('GOOGLE_API_KEY=AIza_test_key_from_env\n')
+                f.write('GOOGLE_GENAI_MODEL=gemini-2.5-flash\n')
             
-            # Mock the .env file location
-            with patch('madspark.agents.genai_client.find_dotenv', return_value=env_file):
+            # Mock the Path to point to our temp directory
+            with patch('madspark.agents.genai_client.Path') as mock_path:
+                # Make Path(__file__).parent.parent return our madspark_dir
+                mock_file_path = Mock()
+                mock_file_path.parent.parent = Path(madspark_dir)
+                mock_path.return_value = mock_file_path
+                
                 with patch.dict(os.environ, {}, clear=True):
                     from madspark.agents.genai_client import load_env_file, is_api_key_configured
-                    
-                    # Load the env file
-                    load_env_file()
                     
                     # Should detect API key from file
                     assert is_api_key_configured()

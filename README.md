@@ -18,25 +18,29 @@ A sophisticated multi-agent system for idea generation and refinement using Goog
 
 ### Prerequisites
 - Python 3.10+ (required for TypedDict and modern features)
-- Google Gemini API access
+- Google Gemini API key (optional - mock mode available)
 
 ### Installation
 
 ```bash
-# Clone and setup (easy way)
+# Clone and setup (2 steps!)
 git clone https://github.com/TheIllusionOfLife/Eureka.git
 cd Eureka
-./setup.sh  # This handles everything automatically!
+./setup.sh  # Interactive setup with API key configuration
 ```
 
 ### Usage
 
 ```bash
-# Basic workflow
-./run.py coordinator
+# Generate ideas with simplified syntax
+mad_spark "consciousness" "what is it?"
+mad_spark "sustainable cities"  # Context is optional
 
-# CLI with topic and context
-./run.py cli "Sustainable transportation" "Low-cost solutions"
+# Run the coordinator
+mad_spark coordinator
+
+# Even shorter with aliases
+ms "future of AI"
 
 # Web interface
 cd web && docker compose up
@@ -59,8 +63,8 @@ echo 'GOOGLE_API_KEY="YOUR_API_KEY_HERE"' > src/madspark/.env
 echo 'GOOGLE_GENAI_MODEL="gemini-2.5-flash"' >> src/madspark/.env
 
 # Run commands
-python -m madspark.core.coordinator
-python -m madspark.cli.cli "Sustainable transportation" "Low-cost solutions"
+mad_spark coordinator
+mad_spark "Sustainable transportation" "Low-cost solutions"
 ```
 
 </details>

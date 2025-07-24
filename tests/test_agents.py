@@ -87,7 +87,7 @@ class TestIdeaGenerator:
             assert f"User's main prompt:\n{topic}" in prompt, f"Failed for {description}"
             assert "generate a list of diverse and creative ideas" in prompt
             assert "test context" in prompt
-            assert "Ideas:\n" in prompt  # Check for trailing newline
+            assert "Ideas (exactly 5):\n" in prompt  # Check for trailing newline
     
     def test_build_generation_prompt_structure(self):
         """Test the detailed structure of the generated prompt."""
@@ -108,7 +108,7 @@ class TestIdeaGenerator:
                 user_prompt_idx = i
             elif line.strip() == "Context:":
                 context_idx = i
-            elif line.strip() == "Ideas:":
+            elif line.strip().startswith("Ideas"):
                 ideas_idx = i
         
         # Verify structure

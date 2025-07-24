@@ -131,8 +131,14 @@ Examples:
   # Basic usage with topic and context
   %(prog)s "Future transportation" "Budget-friendly, eco-friendly"
   
-  # Question format as topic
-  %(prog)s "What are the best ways to reduce urban pollution?" "Focus on low-cost solutions"
+  # Questions (how to solve problems)
+  %(prog)s "How to reduce carbon footprint?" "small business"
+  
+  # Requests (come up with ideas)
+  %(prog)s "Come up with innovative ways to teach math" "elementary school"
+  
+  # General phrases (I want to...)
+  %(prog)s "I want to start a sustainable business. Support me." "zero initial capital"
   
   # High creativity with novelty filtering
   %(prog)s "Smart cities" "Scalable solutions" -tp creative --novelty-threshold 0.6
@@ -249,6 +255,7 @@ Examples:
         '--similarity',
         dest='similarity_threshold',
         type=float,
+        choices=[round(x * 0.1, 1) for x in range(11)],  # 0.0, 0.1, ..., 1.0
         help='Similarity threshold for novelty filter (0.0-1.0)'
     )
     

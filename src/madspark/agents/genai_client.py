@@ -95,8 +95,8 @@ def is_api_key_configured() -> bool:
     if api_key and api_key != "YOUR_API_KEY_HERE":
         # Remove quotes if present
         api_key = api_key.strip('"').strip("'")
-        # Basic validation - Google API keys start with AIza
-        return api_key.startswith("AIza") or (len(api_key) > 30 and not api_key.startswith("YOUR_"))
+        # Basic validation - Google API keys start with AIza and are over 30 chars
+        return api_key.startswith("AIza") and len(api_key) > 30
     
     return False
 

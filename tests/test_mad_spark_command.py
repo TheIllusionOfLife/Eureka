@@ -4,7 +4,7 @@ import subprocess
 import sys
 import tempfile
 import pytest
-from unittest.mock import patch, Mock, call
+from unittest.mock import patch, Mock
 import shutil
 
 

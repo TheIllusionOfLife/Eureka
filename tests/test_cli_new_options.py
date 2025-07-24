@@ -8,7 +8,6 @@ import pytest
 from unittest.mock import patch, MagicMock
 import sys
 import os
-from argparse import Namespace
 
 # Add src to path for testing
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
@@ -270,7 +269,7 @@ class TestOutputModeIntegration:
         
         # Should contain all information
         assert 'Test idea' in output
-        'Improved test idea' in output
+        assert 'Improved test idea' in output
         assert 'Should be visible' in output
 
 

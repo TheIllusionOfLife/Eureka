@@ -5,11 +5,9 @@ This test file defines the expected behavior for CLI output formatting.
 These tests should FAIL initially and then pass after implementation.
 """
 import pytest
-import re
 from unittest.mock import patch, MagicMock
 import sys
 import os
-from io import StringIO
 
 # Add src to path for testing
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))

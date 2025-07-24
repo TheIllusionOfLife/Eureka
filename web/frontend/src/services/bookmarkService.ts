@@ -14,8 +14,13 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000';
 class BookmarkService {
   async checkForDuplicates(idea: string, theme: string, similarityThreshold?: number): Promise<DuplicateCheckResponse> {
     try {
+      // Truncate long fields to stay within backend limits (10000 chars)
+      const truncate = (str: string, maxLength: number = 10000): string => {
+        return str.length > maxLength ? str.substring(0, maxLength - 3) + '...' : str;
+      };
+
       const requestData = {
-        idea: idea,
+        idea: truncate(idea),
         topic: theme,  // Using new terminology
         similarity_threshold: similarityThreshold
       };

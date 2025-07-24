@@ -69,10 +69,10 @@ class BookmarkService {
         constraints: constraints ?? '',
         initial_score: result.initial_score ?? 0,
         improved_score: result.improved_score ?? undefined,
-        initial_critique: truncate(result.initial_critique || ''),
+        initial_critique: truncate(result.initial_critique || '') || '',
         improved_critique: truncate(result.improved_critique),
-        advocacy: truncate(result.advocacy || ''),
-        skepticism: truncate(result.skepticism || ''),
+        advocacy: truncate(result.advocacy || '') || '',
+        skepticism: truncate(result.skepticism || '') || '',
         tags: [],
       };
 

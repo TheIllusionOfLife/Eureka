@@ -55,6 +55,7 @@ if len(sys.argv) < 2:
     print("  mad_spark coordinator                  # Run the coordinator")
     print("  mad_spark 'topic' ['context']         # Generate ideas (simplified!)")
     print("  mad_spark test                         # Run tests")
+    print("  mad_spark config                       # Configure API key")
     print("\nExamples:")
     print("  mad_spark 'consciousness' 'what is it?'")
     print("  mad_spark 'sustainable cities'")
@@ -64,7 +65,7 @@ if len(sys.argv) < 2:
 
 # Handle simplified syntax - if first arg is not a command, treat as topic
 command = sys.argv[1]
-if command not in ['coordinator', 'cli', 'test', '--help', '-h', '--version']:
+if command not in ['coordinator', 'cli', 'test', 'config', '--help', '-h', '--version']:
     # This is a topic, not a command - convert to CLI format
     topic = command
     context = sys.argv[2] if len(sys.argv) > 2 else ""
@@ -102,6 +103,14 @@ elif command == "cli":
         sys.exit(1)
 elif command == "test":
     subprocess.run([sys.executable, "-m", "pytest", "tests/", "-v"])
+elif command == "config":
+    # Run the configuration tool
+    config_script = project_root / "src" / "madspark" / "bin" / "mad_spark_config"
+    if config_script.exists():
+        subprocess.run([sys.executable, str(config_script)])
+    else:
+        print("❌ Configuration tool not found")
+        sys.exit(1)
 else:
     print(f"Unknown command: {command}")
     print("Run './run.py' for usage")

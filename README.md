@@ -39,6 +39,9 @@ mad_spark "sustainable cities"  # Context is optional
 # Run the coordinator
 mad_spark coordinator
 
+# Configure API key (to switch from mock to real AI)
+mad_spark config
+
 # Even shorter with aliases
 ms "future of AI"
 

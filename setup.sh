@@ -51,7 +51,16 @@ if [ "$API_KEY_CONFIGURED" = false ]; then
     echo "  1) Enter your API key now"
     echo "  2) Use mock mode (no API key required)"
     echo ""
-    read -p "Choose option (1 or 2): " choice
+    
+    # Default to option 2 if no input or non-interactive
+    if [ -t 0 ]; then
+        read -p "Choose option (1 or 2, default=2): " choice
+        choice=${choice:-2}  # Default to 2 if empty
+    else
+        # Non-interactive mode, default to mock
+        echo "Non-interactive mode detected, defaulting to mock mode..."
+        choice=2
+    fi
 
     case $choice in
         1)
@@ -146,6 +155,11 @@ EOF
 # Make it executable
 chmod +x src/madspark/bin/mad_spark
 
+# Also make config script executable if it exists
+if [ -f "src/madspark/bin/mad_spark_config" ]; then
+    chmod +x src/madspark/bin/mad_spark_config
+fi
+
 # Try to install to system locations
 INSTALLED=false
 INSTALL_LOCATIONS=(
@@ -193,5 +207,5 @@ echo -e "${PURPLE}Aliases available:${NC} mad_spark, madspark, ms"
 echo ""
 
 if [ "$API_KEY_CONFIGURED" = false ]; then
-    echo -e "${YELLOW}💡 To use real AI later, add your API key to: src/madspark/.env${NC}"
+    echo -e "${YELLOW}💡 To switch to real AI later, run:${NC} ${BLUE}mad_spark config${NC}"
 fi

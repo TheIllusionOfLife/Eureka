@@ -597,21 +597,22 @@ def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
             # Multi-dimensional evaluation
             if 'multi_dimensional_evaluation' in result:
                 eval_data = result['multi_dimensional_evaluation']
-                lines.append("\n📊 Multi-Dimensional Evaluation:")
-                lines.append(f"  Overall Score: {eval_data.get('overall_score', 'N/A')}")
-                
-                if 'dimension_scores' in eval_data:
-                    scores = eval_data['dimension_scores']
-                    lines.append(f"  • Feasibility: {scores.get('feasibility', 'N/A')}")
-                    lines.append(f"  • Innovation: {scores.get('innovation', 'N/A')}")
-                    lines.append(f"  • Impact: {scores.get('impact', 'N/A')}")
-                    lines.append(f"  • Cost-Effectiveness: {scores.get('cost_effectiveness', 'N/A')}")
-                    lines.append(f"  • Scalability: {scores.get('scalability', 'N/A')}")
-                    lines.append(f"  • Risk Assessment: {scores.get('risk_assessment', 'N/A')} (lower is better)")
-                    lines.append(f"  • Timeline: {scores.get('timeline', 'N/A')}")
-                
-                if 'evaluation_summary' in eval_data:
-                    lines.append(f"  Summary: {eval_data['evaluation_summary']}")
+                if eval_data:
+                    lines.append("\n📊 Multi-Dimensional Evaluation:")
+                    lines.append(f"  Overall Score: {eval_data.get('overall_score', 'N/A')}")
+                    
+                    if 'dimension_scores' in eval_data:
+                        scores = eval_data['dimension_scores']
+                        lines.append(f"  • Feasibility: {scores.get('feasibility', 'N/A')}")
+                        lines.append(f"  • Innovation: {scores.get('innovation', 'N/A')}")
+                        lines.append(f"  • Impact: {scores.get('impact', 'N/A')}")
+                        lines.append(f"  • Cost-Effectiveness: {scores.get('cost_effectiveness', 'N/A')}")
+                        lines.append(f"  • Scalability: {scores.get('scalability', 'N/A')}")
+                        lines.append(f"  • Risk Assessment: {scores.get('risk_assessment', 'N/A')} (lower is better)")
+                        lines.append(f"  • Timeline: {scores.get('timeline', 'N/A')}")
+                    
+                    if 'evaluation_summary' in eval_data:
+                        lines.append(f"  Summary: {eval_data['evaluation_summary']}")
             
             lines.append("-" * 80)
         

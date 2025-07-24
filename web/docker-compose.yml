@@ -14,9 +14,8 @@ services:
       GOOGLE_GENAI_MODEL: ${GOOGLE_GENAI_MODEL:-gemini-2.5-flash}
       GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT:-test_project}
       MADSPARK_MODE: ${MADSPARK_MODE:-mock}
-    environment:
-      - MADSPARK_PATH=/madspark
-      - REDIS_URL=redis://redis:6379/0
+      MADSPARK_PATH: /madspark
+      REDIS_URL: redis://redis:6379/0
     volumes:
       - ./backend:/app
       - ../:/madspark  # Mount parent directory for MadSpark imports

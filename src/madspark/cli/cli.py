@@ -228,11 +228,12 @@ Examples:
     # Workflow options
     workflow_group = parser.add_argument_group('workflow options')
     
+    # Note: --num-candidates is deprecated but kept for backward compatibility
     workflow_group.add_argument(
         '--num-candidates', '-n',
         type=int,
-        default=1,
-        help='Number of top candidates to fully process (default: 1)'
+        default=None,  # Changed to None to detect if explicitly set
+        help='(Deprecated: use --top-ideas instead) Number of top candidates to fully process'
     )
     
     workflow_group.add_argument(
@@ -240,7 +241,7 @@ Examples:
         dest='top_ideas',
         type=int,
         choices=range(1, 11),
-        default=1,
+        default=None,  # Changed to None to detect if explicitly set
         help='Number of top ideas to generate (1-10, default: 1 for faster execution)'
     )
     
@@ -683,6 +684,30 @@ def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
         return "\n".join(lines)
 
 
+def determine_num_candidates(args):
+    """Determine the number of candidates to use, handling backward compatibility.
+    
+    Args:
+        args: Parsed command line arguments
+        
+    Returns:
+        int: Number of candidates to process
+    """
+    # If user explicitly set --num-candidates, use it and show deprecation warning
+    if args.num_candidates is not None:
+        logger = logging.getLogger(__name__)
+        logger.warning("--num-candidates is deprecated. Please use --top-ideas instead.")
+        # Ensure it's within the valid range for top_ideas
+        return min(max(args.num_candidates, 1), 10)
+    
+    # If user explicitly set --top-ideas, use it
+    if args.top_ideas is not None:
+        return args.top_ideas
+    
+    # Default value
+    return 1
+
+
 def main():
     """Main CLI entry point."""
     parser = create_parser()
@@ -871,7 +896,7 @@ def main():
         workflow_kwargs = {
             "theme": args.theme,
             "constraints": args.constraints,
-            "num_top_candidates": args.top_ideas,  # Use the new --top-ideas option
+            "num_top_candidates": determine_num_candidates(args),  # Handle backward compatibility
             "enable_novelty_filter": not args.disable_novelty_filter,
             "novelty_threshold": args.similarity_threshold if args.similarity_threshold is not None else args.novelty_threshold,
             "temperature_manager": temp_manager,

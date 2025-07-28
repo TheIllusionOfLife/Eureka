@@ -228,12 +228,27 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
    - PRs like #117 (30% test, 25% doc) now qualify for extended limits (50 files, 2000 lines)
    - Prevents blocking valuable test contributions while maintaining size limits for feature PRs
 
-2. **Performance Test Markers**: Add @pytest.mark.slow/@pytest.mark.integration markers to restored tests
+2. **Security Enhancement for API Key Input**: Update setup.sh to use `read -s` for password input
+   - Source: PR #117 security review
+   - Context: Prevent API keys from appearing in terminal history
+   - Approach: Modify setup.sh line 79 to use `read -r -s -p` and add echo for newline
+
+3. **Implement Placeholder Tests**: Complete the TDD cycle for mad_spark command tests
+   - Source: PR #117 - tests currently use `pytest.skip()`
+   - Context: test_mad_spark_command.py has 8+ placeholder tests
+   - Approach: Implement actual test logic for command behavior verification
+
+4. **Command Aliases Documentation**: Document canonical command and deprecation strategy
+   - Source: PR #117 added mad_spark/madspark/ms aliases
+   - Context: Need clear guidance on which is primary command
+   - Approach: Add section to docs about command aliases and future strategy
+
+5. **Performance Test Markers**: Add @pytest.mark.slow/@pytest.mark.integration markers to restored tests
    - Source: New integration tests in PR #111
    - Context: Enables better test filtering in CI
    - Approach: Review test_system_integration.py and add appropriate markers
 
-3. **CI Performance Monitoring**: Set up regression detection alerts
+6. **CI Performance Monitoring**: Set up regression detection alerts
    - Source: PR #107 optimization gains
    - Context: Prevent CI time from creeping back up
    - Approach: GitHub Actions workflow to track CI duration trends

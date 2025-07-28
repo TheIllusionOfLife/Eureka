@@ -76,7 +76,8 @@ if [ "$API_KEY_CONFIGURED" = false ]; then
     case $choice in
         1)
             echo ""
-            read -r -p "Enter your Google API key: " api_key
+            read -r -s -p "Enter your Google API key: " api_key
+            echo ""  # Add newline after hidden input
             # Validate API key format
             if [[ $api_key == AIza* ]] && [ ${#api_key} -gt 30 ]; then
                 # Create .env with the provided key

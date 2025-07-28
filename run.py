@@ -67,7 +67,9 @@ if len(sys.argv) < 2:
 
 # Handle simplified syntax - if first arg is not a command, treat as topic
 command = sys.argv[1]
-if command not in ['coordinator', 'cli', 'test', 'config', '--help', '-h', '--version']:
+# List of reserved commands (not topics)
+reserved_commands = ['coordinator', 'cli', 'test', 'config', '--help', '-h', '--version']
+if command not in reserved_commands:
     # This is a topic, not a command - convert to CLI format
     topic = command
     context = sys.argv[2] if len(sys.argv) > 2 else ""

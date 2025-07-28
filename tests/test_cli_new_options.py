@@ -58,7 +58,7 @@ class TestNewCLIOptions:
         assert hasattr(args, 'num_candidates'), "Should have num_candidates attribute"
         assert args.num_candidates == 5, "Should parse --num-candidates 5"
         
-        # Should use the value from --num-candidates (clamped to 1-10 range)
+        # Should use the value from --num-candidates (clamped to 1-5 range)
         assert determine_num_candidates(args) == 5, "Should use num_candidates value"
         
         # Test that --num-candidates takes precedence when both are specified (current behavior)
@@ -93,13 +93,13 @@ class TestNewCLIOptions:
             parser.parse_args(['test topic', '--brief', '--detailed'])
     
     def test_simple_mode_default(self):
-        """Test that simple mode is the default."""
+        """Test that brief mode is the default."""
         parser = create_parser()
         args = parser.parse_args(['test topic'])
         
-        # Should default to simple mode
+        # Should default to brief mode (changed from simple to brief as default)
         assert hasattr(args, 'output_mode'), "Should have output_mode attribute"
-        assert args.output_mode == 'simple', "Should default to simple mode"
+        assert args.output_mode == 'brief', "Should default to brief mode"
     
     def test_enhanced_reasoning_option(self):
         """Test --enhanced option for enhanced reasoning."""

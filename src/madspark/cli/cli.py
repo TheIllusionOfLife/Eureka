@@ -24,6 +24,9 @@ try:
         add_temperature_arguments,
         create_temperature_manager_from_args
     )
+    from madspark.utils.constants import (
+        MIN_TIMEOUT_FOR_MULTIPLE_IDEAS_SECONDS
+    )
     from madspark.utils.bookmark_system import (
         BookmarkManager,
         list_bookmarks_cli,
@@ -40,6 +43,9 @@ except ImportError:
         TemperatureManager, 
         add_temperature_arguments,
         create_temperature_manager_from_args
+    )
+    from constants import (
+        MIN_TIMEOUT_FOR_MULTIPLE_IDEAS_SECONDS
     )
     from bookmark_system import (
         BookmarkManager,
@@ -240,9 +246,9 @@ Examples:
         '--top-ideas',
         dest='top_ideas',
         type=int,
-        choices=range(1, 11),
+        choices=range(1, 6),
         default=None,  # Changed to None to detect if explicitly set
-        help='Number of top ideas to generate (1-10, default: 1 for faster execution)'
+        help='Number of top ideas to generate (1-5, default: 1 for faster execution). Multiple ideas may take up to 5 minutes to process.'
     )
     
     workflow_group.add_argument(
@@ -389,7 +395,7 @@ Examples:
         action='store_const',
         dest='output_mode',
         const='simple',
-        help='Simple, clean output format (default)'
+        help='Simple, clean output format'
     )
     
     output_mode_group.add_argument(
@@ -397,7 +403,7 @@ Examples:
         action='store_const',
         dest='output_mode', 
         const='brief',
-        help='Brief output showing only final results'
+        help='Brief output showing only final results (default)'
     )
     
     output_mode_group.add_argument(
@@ -409,7 +415,7 @@ Examples:
     )
     
     # Set default output mode
-    parser.set_defaults(output_mode='simple')
+    parser.set_defaults(output_mode='brief')
     
     output_group.add_argument(
         '--output-format',
@@ -510,20 +516,26 @@ def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
         return json.dumps(cleaned_results, indent=2, ensure_ascii=False)
     
     elif format_type == 'brief':
-        """Brief mode: Show only final improved ideas and scores."""
+        """Brief mode: Solution-focused output with markdown headers."""
         lines = []
         for i, result in enumerate(cleaned_results, 1):
+            # Add markdown header
             if len(cleaned_results) > 1:
-                lines.append(f"💡 Idea {i}:")
+                lines.append(f"## Idea {i}")
             else:
-                lines.append("💡 Result:")
+                lines.append("## Solution")
             
             # Show improved idea if available, otherwise original
             final_idea = result.get('improved_idea', result.get('idea', 'No idea available'))
             final_score = result.get('improved_score', result.get('initial_score', 'N/A'))
             
+            # Focus on the solution first - clean presentation
             lines.append(f"{final_idea}")
-            lines.append(f"Score: {final_score}")
+            lines.append("")
+            
+            # Add score information after the solution
+            if final_score != 'N/A':
+                lines.append(f"**Score:** {final_score}/10")
             
             if i < len(cleaned_results):
                 lines.append("")  # Empty line between ideas
@@ -544,16 +556,24 @@ def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
             lines.append(f"💭 Original: {original_idea}")
             lines.append(f"📊 Initial Score: {initial_score}")
             
-            # Show improvement if available
+            # Show improvement if available and meaningful
             if 'improved_idea' in result:
                 improved_idea = result['improved_idea']
                 improved_score = result.get('improved_score', 'N/A')
                 score_delta = result.get('score_delta', 0)
                 
-                lines.append(f"✨ Improved: {improved_idea}")
-                lines.append(f"📈 Final Score: {improved_score}")
-                if score_delta > 0:
-                    lines.append(f"⬆️  Improvement: +{score_delta:.1f}")
+                # Check if improvement is meaningful (determined by coordinator)
+                is_meaningful_improvement = result.get('is_meaningful_improvement', True)
+                
+                if is_meaningful_improvement:
+                    lines.append(f"✨ Improved: {improved_idea}")
+                    lines.append(f"📈 Final Score: {improved_score}")
+                    if score_delta > 0:
+                        lines.append(f"⬆️  Improvement: +{score_delta:.1f}")
+                else:
+                    # Show only final score, indicate no meaningful improvement
+                    lines.append(f"📈 Final Score: {improved_score}")
+                    lines.append("✅ Already well-developed - no significant improvements needed")
             
             # Add evaluation summary if available (clean format)
             if 'multi_dimensional_evaluation' in result:
@@ -698,7 +718,7 @@ def determine_num_candidates(args):
         logger = logging.getLogger(__name__)
         logger.warning("--num-candidates is deprecated. Please use --top-ideas instead.")
         # Ensure it's within the valid range for top_ideas
-        return min(max(args.num_candidates, 1), 10)
+        return min(max(args.num_candidates, 1), 5)
     
     # If user explicitly set --top-ideas, use it
     if args.top_ideas is not None:
@@ -892,11 +912,15 @@ def main():
         print("⏳ This may take 30-60 seconds for quality results...\n")
     
     try:
+        # Determine number of candidates and whether to use async mode
+        num_candidates = determine_num_candidates(args)
+        use_async = (hasattr(args, 'async') and getattr(args, 'async')) or (num_candidates > 1)
+        
         # Extract common workflow arguments to avoid duplication
         workflow_kwargs = {
             "theme": args.theme,
             "constraints": args.constraints,
-            "num_top_candidates": determine_num_candidates(args),  # Handle backward compatibility
+            "num_top_candidates": num_candidates,
             "enable_novelty_filter": not args.disable_novelty_filter,
             "novelty_threshold": args.similarity_threshold if args.similarity_threshold is not None else args.novelty_threshold,
             "temperature_manager": temp_manager,
@@ -904,12 +928,16 @@ def main():
             "enhanced_reasoning": args.enhanced_reasoning,
             "multi_dimensional_eval": True,  # Always enabled as a core feature
             "logical_inference": args.logical_inference,
-            "timeout": args.timeout
+            "timeout": max(args.timeout, MIN_TIMEOUT_FOR_MULTIPLE_IDEAS_SECONDS) if num_candidates > 1 else args.timeout
         }
 
-        if hasattr(args, 'async') and getattr(args, 'async'):
-            # Use async execution
-            logger.info("Using async execution for better performance")
+        if use_async:
+            # Use async execution (auto-enabled for multiple ideas or explicitly requested)
+            if num_candidates > 1:
+                logger.info(f"Auto-enabling async mode for {num_candidates} ideas (estimated time: up to 5 minutes)")
+                print(f"⚡ Processing {num_candidates} ideas in parallel for faster results...")
+            else:
+                logger.info("Using async execution for better performance")
             
             async def run_async():
                 # Initialize cache manager if enabled
@@ -923,9 +951,15 @@ def main():
                     await cache_manager.initialize()
                     logger.info("Cache enabled for async execution")
                 
+                # Progress callback for user feedback during multiple ideas processing
+                async def progress_callback(message: str, progress: float):
+                    if num_candidates > 1:
+                        print(f"[{progress:.0%}] {message}")
+                
                 # Create async coordinator
                 async_coordinator = AsyncCoordinator(
                     max_concurrent_agents=int(os.getenv("MAX_CONCURRENT_AGENTS", "10")),
+                    progress_callback=progress_callback if num_candidates > 1 else None,
                     cache_manager=cache_manager
                 )
                 

@@ -90,6 +90,26 @@ CLEANER_META_PHRASES = [
 
 # Regex replacement patterns for idea cleaner (pattern, replacement tuples)
 CLEANER_REPLACEMENT_PATTERNS = [
+    # Remove AI response prefixes and meta-commentary
+    (r'^[Hh]ere\'s the\s+(?:improved\s+)?version\s+(?:of\s+)?(?:your\s+)?(?:idea)?.*?[:.]?\s*', ''),
+    (r'^[Hh]ere\'s an?\s+(?:improved|enhanced|better)\s+version.*?[:.]?\s*', ''),
+    (r'^[Hh]ere\'s\s+your\s+(?:improved|enhanced)\s+idea\s+(?:with\s+)?(?:better\s+)?(?:focus\s*[:.]?\s*)?', ''),
+    (r'^[Hh]ere\'s the\s+(?:refined|polished|optimized)\s+(?:version|idea).*?[:.]?\s*', ''),
+    (r'^Based on.*?feedback.*?here\s+(?:is\s+)?(?:the\s+)?(?:refined\s+)?(?:concept\s*[:.]?\s*)?', ''),
+    (r'^Taking into account.*?here\s+(?:is\s+)?(?:the\s+)?(?:refined\s+)?[:.]?\s*', ''),
+    (r'^Incorporating.*?feedback.*?[:.]?\s*', ''),
+    (r'^\s*\*\*Updated\s+(?:version|idea)\*\*[:.]?\s*', ''),
+    (r'^\s*\*\*(?:Improved|Enhanced|Refined)\s+(?:concept|idea|version)\*\*[:.]?\s*', ''),
+    
+    # Remove mock-generated phrases and headers
+    (r'^[Ii]mproved version of:\s*', ''),  # Remove "Improved version of:" at start
+    (r'^[Ee]nhanced version of:\s*', ''),  # Remove "Enhanced version of:" at start  
+    (r'^[Vv]ersion of:\s*', ''),  # Remove "version of:" at start
+    (r'\n\nEnhancements based on feedback:\s*.*', ''),  # Remove enhancement lists
+    (r'- Addressed critique points\s*\n?', ''),
+    (r'- Incorporated advocacy strengths\s*\n?', ''),
+    (r'- Resolved skeptical concerns\s*\n?', ''),
+    
     # Remove improvement references
     (r'Our enhanced approach', 'This approach'),
     (r'The enhanced concept', 'The concept'),
@@ -137,3 +157,8 @@ CLEANER_TITLE_KEYWORDS = ['Framework', 'System', 'Engine']
 # with different temperature values for each agent stage (idea_generation, evaluation, etc.)
 # The web interface uses TemperatureManager.PRESETS from temperature_control.py
 # Do NOT define simple temperature values here - the system uses complex configurations
+
+# UX and Processing Constants
+MEANINGFUL_IMPROVEMENT_SCORE_DELTA = 0.3  # Minimum score improvement to consider meaningful
+MEANINGFUL_IMPROVEMENT_SIMILARITY_THRESHOLD = 0.9  # Jaccard similarity threshold for duplicate detection
+MIN_TIMEOUT_FOR_MULTIPLE_IDEAS_SECONDS = 300  # Minimum timeout when processing multiple ideas

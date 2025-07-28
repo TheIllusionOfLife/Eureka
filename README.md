@@ -26,10 +26,26 @@ A sophisticated multi-agent system for idea generation and refinement using Goog
 # Clone and setup
 git clone https://github.com/TheIllusionOfLife/Eureka.git
 cd Eureka
-./setup.sh  # Initial setup (defaults to mock mode)
+./setup.sh  # Initial setup with interactive configuration
 
 # Configure your API key (for real AI responses)
 mad_spark config  # Interactive configuration
+```
+
+### Non-Interactive Setup (CI/CD, Automation)
+
+For automated environments where interactive prompts aren't available:
+
+```bash
+# Create .env file with your API key (root directory)
+echo 'GOOGLE_API_KEY="YOUR_API_KEY_HERE"' > .env
+echo 'GOOGLE_GENAI_MODEL="gemini-2.5-flash"' >> .env
+
+# Verify configuration
+mad_spark config --status
+
+# Run ideas generation
+mad_spark "your topic here" "your context here"
 ```
 
 ### Usage
@@ -52,41 +68,50 @@ mad_spark "renewable energy storage" "cost under $100/kWh"
 mad_spark "urban transportation" "zero emissions by 2030"
 
 # Output modes for different needs
-mad_spark "healthcare AI" --brief              # Quick summary only
+mad_spark "healthcare AI" --brief              # Quick summary (default)
 mad_spark "education innovation" --detailed     # Full agent analysis
-mad_spark "climate solutions" --simple         # Clean, user-friendly (default)
+mad_spark "climate solutions" --simple         # Clean, user-friendly
 
 # Advanced options
-mad_spark "space exploration" --top-ideas 3 --creativity creative
-mad_spark "quantum computing" --enhanced --logical
+mad_spark "space exploration" --top-ideas 3 --creativity creative    # Generate 3 ideas with high creativity
+mad_spark "quantum computing" --enhanced --logical                   # Enhanced reasoning with logical inference
 
-# Run the coordinator for comprehensive analysis
+# Run the coordinator - full multi-agent analysis system
+# Orchestrates IdeaGenerator, Critic, Advocate, and Skeptic agents
 mad_spark coordinator
 
-# Configure API key  
-mad_spark config
+# Run test suite to verify functionality
+mad_spark test
 
 # Aliases work too
 ms "future of AI"
 
 # Web interface
 cd web && docker compose up
+
+# Docker cleanup (when needed)
+cd web && docker compose down --volumes --remove-orphans
 ```
 
-### Non-Interactive Setup (CI/CD, Automation)
+### Bookmark Management
 
-For automated environments where interactive prompts aren't available:
+Save and reuse your best ideas:
 
 ```bash
-# Create .env file with your API key (root directory)
-echo 'GOOGLE_API_KEY="YOUR_API_KEY_HERE"' > .env
-echo 'GOOGLE_GENAI_MODEL="gemini-2.5-flash"' >> .env
+# Save results automatically
+mad_spark "renewable energy" "urban applications" --bookmark-results
 
-# Verify configuration
-mad_spark config --status
+# Save with custom name and tags
+mad_spark "smart cities" --save-bookmark "urban-innovation" --bookmark-tags smart tech
 
-# Run ideas generation
-mad_spark "your topic here" "your context here"
+# List saved bookmarks
+mad_spark --list-bookmarks
+
+# Search bookmarks
+mad_spark --search-bookmarks "energy"
+
+# Generate new ideas based on saved bookmarks (remix mode)
+mad_spark "future technology" --remix --bookmark-tags smart
 ```
 
 <details>

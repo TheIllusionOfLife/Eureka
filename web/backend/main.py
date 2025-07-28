@@ -514,7 +514,7 @@ class IdeaGenerationRequest(BaseModel):
         description="Context and criteria (optional)",
         alias="context"
     )
-    num_top_candidates: int = Field(default=3, ge=1, le=10, description="Number of top ideas to process")
+    num_top_candidates: int = Field(default=3, ge=1, le=5, description="Number of top ideas to process (max 5 for performance)")
     enable_novelty_filter: bool = Field(default=True, description="Enable novelty filtering")
     novelty_threshold: float = Field(default=0.8, ge=0.0, le=1.0, description="Similarity threshold for novelty filter")
     temperature_preset: Optional[str] = Field(default=None, description="Temperature preset (conservative, balanced, creative, wild)")

@@ -51,6 +51,10 @@ mad_spark "your topic here" "your context here"
 ### Usage
 
 ```bash
+# Get help and see all available options
+ms --help                              # Show detailed help with all options and examples
+
+# Basic usage
 mad_spark "how to reduce carbon footprint?" "small business"          # command "question/topic/theme" "constraints/context"
 ms "Come up with innovative ways to teach math" "elementary school"   # ms works the same way.
 ms "I want to learn AI. Guide me."                                    # Second argument is optional.

@@ -67,6 +67,23 @@ if len(sys.argv) < 2:
 
 # Handle simplified syntax - if first arg is not a command, treat as topic
 command = sys.argv[1]
+
+# Handle help commands first
+if command in ['--help', '-h']:
+    try:
+        import runpy
+        # Pass all original arguments to CLI help
+        sys.argv = ['cli'] + sys.argv[1:]
+        runpy.run_module('madspark.cli.cli', run_name='__main__')
+        sys.exit(0)
+    except ImportError as e:
+        print(f"❌ Failed to import CLI module: {e}")
+        print("💡 Make sure you're in the correct directory and dependencies are installed")
+        sys.exit(1)
+    except Exception as e:
+        print(f"❌ CLI execution failed: {e}")
+        sys.exit(1)
+
 # List of reserved commands (not topics)
 reserved_commands = ['coordinator', 'cli', 'test', 'config', '--help', '-h', '--version']
 if command not in reserved_commands:

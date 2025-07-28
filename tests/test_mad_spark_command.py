@@ -32,15 +32,15 @@ class TestMadSparkCommand:
     def test_mad_spark_exists_after_setup(self):
         """Test that mad_spark command exists after running setup."""
         # Check if mad_spark is in PATH or common locations
-        # Check if mad_spark is in PATH or common locations
-        # Will be tested after implementation:
-        # - /usr/local/bin/mad_spark
-        # - ~/.local/bin/mad_spark  
-        # - ./mad_spark
+        locations_to_check = [
+            '/usr/local/bin/mad_spark',
+            os.path.expanduser('~/.local/bin/mad_spark'),
+            './src/madspark/bin/mad_spark'
+        ]
         
         # At least one should exist after setup
-        # We'll verify after implementation
-        assert True  # Placeholder
+        found = any(os.path.exists(loc) for loc in locations_to_check)
+        assert found or os.path.exists('src/madspark/bin/mad_spark'), "mad_spark command not found in expected locations"
     
     def test_mad_spark_is_executable(self, mock_mad_spark_installed):
         """Test that mad_spark command is executable."""
@@ -50,26 +50,12 @@ class TestMadSparkCommand:
     
     def test_mad_spark_shows_help(self):
         """Test that 'mad_spark' without args shows help."""
-        # Expected behavior: mad_spark -> show help
-        with patch('subprocess.run'):
-            # Simulate running mad_spark
-            # Should show usage information
-            # Expected help format (for reference when implementing):
-            # MadSpark Multi-Agent System
-            # Usage:
-            #   mad_spark                      # Show this help
-            #   mad_spark coordinator          # Run the coordinator
-            #   mad_spark "topic" "context"    # Generate ideas (simplified!)
-            #   mad_spark test                 # Run tests
-            # We'll implement and test this
-            pass
+        # Skip until mad_spark command is fully implemented
+        pytest.skip("mad_spark help display test pending implementation")
     
     def test_mad_spark_runs_coordinator(self):
         """Test that 'mad_spark coordinator' runs the coordinator."""
-        with patch('subprocess.run'):
-            # Test: mad_spark coordinator
-            # Should execute: python -m madspark.core.coordinator
-            pass
+        pytest.skip("mad_spark coordinator test pending implementation")
     
     def test_mad_spark_cli_simplified_syntax(self):
         """Test simplified CLI syntax: mad_spark "topic" "context"."""
@@ -127,7 +113,7 @@ class TestMadSparkCommand:
         # 1. Project not found
         # 2. Dependencies missing
         # 3. Invalid arguments
-        pass
+        pytest.skip("Error handling test pending implementation")
     
     def test_mad_spark_version_command(self):
         """Test that 'mad_spark --version' shows version info."""

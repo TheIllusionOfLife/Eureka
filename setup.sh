@@ -65,7 +65,7 @@ if [ "$API_KEY_CONFIGURED" = false ]; then
     
     # Default to option 2 if no input or non-interactive
     if [ -t 0 ]; then
-        read -p "Choose option (1 or 2, default=2): " choice
+        read -r -p "Choose option (1 or 2, default=2): " choice
         choice=${choice:-2}  # Default to 2 if empty
     else
         # Non-interactive mode, default to mock
@@ -76,7 +76,7 @@ if [ "$API_KEY_CONFIGURED" = false ]; then
     case $choice in
         1)
             echo ""
-            read -p "Enter your Google API key: " api_key
+            read -r -p "Enter your Google API key: " api_key
             # Validate API key format
             if [[ $api_key == AIza* ]] && [ ${#api_key} -gt 30 ]; then
                 # Create .env with the provided key
@@ -100,15 +100,6 @@ EOF
             create_mock_env
             ;;
     esac
-else
-    # .env exists but no valid API key
-    if [ ! -f "$ENV_FILE" ]; then
-        cat > "$ENV_FILE" << EOF
-# Google API Configuration
-GOOGLE_API_KEY="YOUR_API_KEY_HERE"
-GOOGLE_GENAI_MODEL="gemini-2.5-flash"
-EOF
-    fi
 fi
 
 # Create mad_spark command

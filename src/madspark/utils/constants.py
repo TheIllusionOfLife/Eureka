@@ -157,3 +157,8 @@ CLEANER_TITLE_KEYWORDS = ['Framework', 'System', 'Engine']
 # with different temperature values for each agent stage (idea_generation, evaluation, etc.)
 # The web interface uses TemperatureManager.PRESETS from temperature_control.py
 # Do NOT define simple temperature values here - the system uses complex configurations
+
+# UX and Processing Constants
+MEANINGFUL_IMPROVEMENT_SCORE_DELTA = 0.3  # Minimum score improvement to consider meaningful
+MEANINGFUL_IMPROVEMENT_SIMILARITY_THRESHOLD = 0.9  # Jaccard similarity threshold for duplicate detection
+MIN_TIMEOUT_FOR_MULTIPLE_IDEAS_SECONDS = 300  # Minimum timeout when processing multiple ideas

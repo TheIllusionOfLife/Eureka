@@ -24,6 +24,11 @@ try:
         add_temperature_arguments,
         create_temperature_manager_from_args
     )
+    from madspark.utils.constants import (
+        MEANINGFUL_IMPROVEMENT_SCORE_DELTA,
+        MEANINGFUL_IMPROVEMENT_SIMILARITY_THRESHOLD,
+        MIN_TIMEOUT_FOR_MULTIPLE_IDEAS_SECONDS
+    )
     from madspark.utils.bookmark_system import (
         BookmarkManager,
         list_bookmarks_cli,
@@ -40,6 +45,11 @@ except ImportError:
         TemperatureManager, 
         add_temperature_arguments,
         create_temperature_manager_from_args
+    )
+    from constants import (
+        MEANINGFUL_IMPROVEMENT_SCORE_DELTA,
+        MEANINGFUL_IMPROVEMENT_SIMILARITY_THRESHOLD,
+        MIN_TIMEOUT_FOR_MULTIPLE_IDEAS_SECONDS
     )
     from bookmark_system import (
         BookmarkManager,
@@ -573,10 +583,10 @@ def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
                         # Jaccard similarity (intersection over union)
                         similarity = len(orig_words & improved_words) / len(orig_words | improved_words)
                         # Also check if score improvement is minimal
-                        score_improvement_minimal = abs(score_delta) < 0.3
+                        score_improvement_minimal = abs(score_delta) < MEANINGFUL_IMPROVEMENT_SCORE_DELTA
                         
                         # Consider improvement non-meaningful if >90% similar and minimal score change
-                        if similarity > 0.9 and score_improvement_minimal:
+                        if similarity > MEANINGFUL_IMPROVEMENT_SIMILARITY_THRESHOLD and score_improvement_minimal:
                             is_meaningful_improvement = False
                 
                 if is_meaningful_improvement:
@@ -942,7 +952,7 @@ def main():
             "enhanced_reasoning": args.enhanced_reasoning,
             "multi_dimensional_eval": True,  # Always enabled as a core feature
             "logical_inference": args.logical_inference,
-            "timeout": max(args.timeout, 300) if num_candidates > 1 else args.timeout
+            "timeout": max(args.timeout, MIN_TIMEOUT_FOR_MULTIPLE_IDEAS_SECONDS) if num_candidates > 1 else args.timeout
         }
 
         if use_async:

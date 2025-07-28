@@ -25,8 +25,6 @@ try:
         create_temperature_manager_from_args
     )
     from madspark.utils.constants import (
-        MEANINGFUL_IMPROVEMENT_SCORE_DELTA,
-        MEANINGFUL_IMPROVEMENT_SIMILARITY_THRESHOLD,
         MIN_TIMEOUT_FOR_MULTIPLE_IDEAS_SECONDS
     )
     from madspark.utils.bookmark_system import (
@@ -47,8 +45,6 @@ except ImportError:
         create_temperature_manager_from_args
     )
     from constants import (
-        MEANINGFUL_IMPROVEMENT_SCORE_DELTA,
-        MEANINGFUL_IMPROVEMENT_SIMILARITY_THRESHOLD,
         MIN_TIMEOUT_FOR_MULTIPLE_IDEAS_SECONDS
     )
     from bookmark_system import (
@@ -566,28 +562,8 @@ def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
                 improved_score = result.get('improved_score', 'N/A')
                 score_delta = result.get('score_delta', 0)
                 
-                # Check if improvement is meaningful (similarity and score-based detection)
-                is_meaningful_improvement = True
-                
-                # Simple similarity check: compare texts after basic normalization
-                if improved_idea and original_idea:
-                    # Normalize both texts for comparison
-                    orig_normalized = original_idea.lower().strip()
-                    improved_normalized = improved_idea.lower().strip()
-                    
-                    # Calculate simple similarity (percentage of identical words)
-                    orig_words = set(orig_normalized.split())
-                    improved_words = set(improved_normalized.split())
-                    
-                    if orig_words and improved_words:
-                        # Jaccard similarity (intersection over union)
-                        similarity = len(orig_words & improved_words) / len(orig_words | improved_words)
-                        # Also check if score improvement is minimal
-                        score_improvement_minimal = abs(score_delta) < MEANINGFUL_IMPROVEMENT_SCORE_DELTA
-                        
-                        # Consider improvement non-meaningful if >90% similar and minimal score change
-                        if similarity > MEANINGFUL_IMPROVEMENT_SIMILARITY_THRESHOLD and score_improvement_minimal:
-                            is_meaningful_improvement = False
+                # Check if improvement is meaningful (determined by coordinator)
+                is_meaningful_improvement = result.get('is_meaningful_improvement', True)
                 
                 if is_meaningful_improvement:
                     lines.append(f"✨ Improved: {improved_idea}")

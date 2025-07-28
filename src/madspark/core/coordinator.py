@@ -73,8 +73,11 @@ try:
         DEFAULT_EVALUATION_TEMPERATURE, 
         DEFAULT_ADVOCACY_TEMPERATURE,
         DEFAULT_SKEPTICISM_TEMPERATURE,
-        LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD
+        LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD,
+        MEANINGFUL_IMPROVEMENT_SIMILARITY_THRESHOLD,
+        MEANINGFUL_IMPROVEMENT_SCORE_DELTA
     )
+    from madspark.utils.text_similarity import is_meaningful_improvement
 except ImportError:
     # Fallback imports for local development/testing
     try:
@@ -90,8 +93,11 @@ except ImportError:
             DEFAULT_EVALUATION_TEMPERATURE, 
             DEFAULT_ADVOCACY_TEMPERATURE,
             DEFAULT_SKEPTICISM_TEMPERATURE,
-            LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD
+            LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD,
+            MEANINGFUL_IMPROVEMENT_SIMILARITY_THRESHOLD,
+            MEANINGFUL_IMPROVEMENT_SCORE_DELTA
         )
+        from ..utils.text_similarity import is_meaningful_improvement
     except ImportError:
         # Last resort - direct imports (for old package structure)
         from utils import (
@@ -106,8 +112,11 @@ except ImportError:
             DEFAULT_EVALUATION_TEMPERATURE, 
             DEFAULT_ADVOCACY_TEMPERATURE,
             DEFAULT_SKEPTICISM_TEMPERATURE,
-            LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD
+            LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD,
+            MEANINGFUL_IMPROVEMENT_SIMILARITY_THRESHOLD,
+            MEANINGFUL_IMPROVEMENT_SCORE_DELTA
         )
+        from text_similarity import is_meaningful_improvement
 # Removed unused imports - ADVOCATE_FAILED_PLACEHOLDER, SKEPTIC_FAILED_PLACEHOLDER
 # as agent tools already handle empty responses
 # from google.adk.agents import Agent # No longer needed directly for hints here
@@ -747,6 +756,15 @@ def run_multistep_workflow(
 
         # Calculate score delta
         score_delta = improved_score - candidate["score"]
+        
+        # Determine if improvement is meaningful
+        is_meaningful, similarity_score = is_meaningful_improvement(
+            idea_text,
+            improved_idea_text,
+            score_delta,
+            similarity_threshold=MEANINGFUL_IMPROVEMENT_SIMILARITY_THRESHOLD,
+            score_delta_threshold=MEANINGFUL_IMPROVEMENT_SCORE_DELTA
+        )
 
         # Create the CandidateData dictionary matching the TypedDict
         candidate_data = {
@@ -758,7 +776,9 @@ def run_multistep_workflow(
             "improved_idea": improved_idea_text,
             "improved_score": improved_score,
             "improved_critique": improved_critique,
-            "score_delta": score_delta
+            "score_delta": score_delta,
+            "is_meaningful_improvement": is_meaningful,
+            "similarity_score": similarity_score
         }
         
         # Add multi-dimensional evaluation if available

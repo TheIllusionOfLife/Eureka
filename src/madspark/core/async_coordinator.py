@@ -777,6 +777,21 @@ class AsyncCoordinator:
         # Calculate score delta
         score_delta = improved_score - candidate["score"]
         
+        # Determine if improvement is meaningful
+        from ..utils.text_similarity import is_meaningful_improvement
+        from ..utils.constants import (
+            MEANINGFUL_IMPROVEMENT_SIMILARITY_THRESHOLD,
+            MEANINGFUL_IMPROVEMENT_SCORE_DELTA
+        )
+        
+        is_meaningful, similarity_score = is_meaningful_improvement(
+            idea_text,
+            improved_idea_text,
+            score_delta,
+            similarity_threshold=MEANINGFUL_IMPROVEMENT_SIMILARITY_THRESHOLD,
+            score_delta_threshold=MEANINGFUL_IMPROVEMENT_SCORE_DELTA
+        )
+        
         logger.info(f"Finished processing for: {idea_text[:50]}...")
         if improved_idea_text != idea_text:
             logger.info(f"Score change: {candidate['score']}/10 → {improved_score}/10 (Δ{score_delta:+.1f})")
@@ -791,7 +806,9 @@ class AsyncCoordinator:
             "improved_idea": improved_idea_text,
             "improved_score": improved_score,
             "improved_critique": improved_critique,
-            "score_delta": score_delta
+            "score_delta": score_delta,
+            "is_meaningful_improvement": is_meaningful,
+            "similarity_score": similarity_score
         }
         
         # Add multi-dimensional evaluation if present

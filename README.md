@@ -272,6 +272,7 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
 - **Shell Error Handling**: `set -e` prevents complete error reporting in validation scripts
 - **PR Review Bots**: cursor[bot] provides valuable critical feedback on shell scripts and CI config
 - **PR Size Policy**: CI validation rules for PR size should be flexible to accommodate valuable, test-heavy PRs
+- **Workflow Optimization**: See [WORKFLOW_IMPROVEMENTS.md](docs/WORKFLOW_IMPROVEMENTS.md) for preventing long PR cycles
 
 ## License
 

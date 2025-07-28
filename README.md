@@ -91,7 +91,7 @@ Save and reuse your best ideas:
 ms "renewable energy" "urban applications" --bookmark-results
 
 # Save with custom name and tags
-ms "smart cities" --save-bookmark "urban-innovation" --bookmark-tags smart tech
+ms "smart cities" "sustainable infrastructure" --save-bookmark "urban-innovation" --bookmark-tags smart tech
 
 # List saved bookmarks
 ms --list-bookmarks

@@ -1,12 +1,10 @@
 """Test coordinator warning behavior."""
 import os
 import sys
-from unittest.mock import patch
+import pytest
 
 # Add src to path for imports  
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
-
-from madspark.core.coordinator import run_multistep_workflow
 
 
 class TestCoordinatorWarnings:
@@ -17,7 +15,6 @@ class TestCoordinatorWarnings:
         # Skip this test - it's testing internal warning behavior that requires
         # mocking deep inside the agent implementations, which is fragile and 
         # doesn't test actual user-facing functionality
-        import pytest
         pytest.skip("Skipping internal warning behavior test - not user-facing functionality")
     
     def test_warnings_shown_in_verbose_mode(self):
@@ -25,5 +22,4 @@ class TestCoordinatorWarnings:
         # Skip this test - it's testing internal warning behavior that requires
         # mocking deep inside the agent implementations, which is fragile and 
         # doesn't test actual user-facing functionality
-        import pytest
         pytest.skip("Skipping internal warning behavior test - not user-facing functionality")

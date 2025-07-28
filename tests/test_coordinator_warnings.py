@@ -42,16 +42,16 @@ class TestCoordinatorWarnings:
             # Mock the agents to return mismatched responses
             with patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry') as mock_generate:
                 with patch('madspark.utils.agent_retry_wrappers.call_critic_with_retry') as mock_evaluate:
-                    # Return many ideas
-                    mock_generate.return_value = "1. Idea one\n2. Idea two\n3. Idea three"
-                    # Return invalid JSON to trigger parsing failure, which will cause mismatch
-                    mock_evaluate.return_value = 'Not valid JSON - will fail to parse'
+                    # Return multiple ideas to ensure count mismatch
+                    mock_generate.return_value = "1. Idea one\n2. Idea two\n3. Idea three\n4. Idea four\n5. Idea five"
+                    # Return only one evaluation (mismatch count)
+                    mock_evaluate.return_value = '{"evaluations": [{"id": 1, "score": 5, "comment": "Good"}]}'
                     
                     # Run workflow in verbose mode
-                    run_multistep_workflow("test theme", "test constraints", verbose=True)
+                    run_multistep_workflow("test theme", "test constraints", verbose=True, num_top_candidates=1)
                     
-                    # In verbose mode, warnings should be shown for mismatches
+                    # In verbose mode, warnings should be shown for mismatches or missing evaluations
                     warning_calls = [call for call in mock_warning.call_args_list 
-                                   if any(keyword in str(call) for keyword in ['Mismatch', 'No evaluation', 'parse', 'failed'])]
+                                   if any(keyword in str(call) for keyword in ['Mismatch', 'No evaluation', 'available'])]
                     
                     assert len(warning_calls) >= 1, "Warnings should be shown in verbose mode"

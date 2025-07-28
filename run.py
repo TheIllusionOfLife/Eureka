@@ -34,12 +34,12 @@ try:
     if not os.getenv("MADSPARK_MODE"):
         mode = get_mode()
         if mode == "mock":
-            os.environ["MADSPARK_MODE"] = "mock"
             if not os.getenv("SUPPRESS_MODE_MESSAGE"):
                 print("🤖 No API key found. Running in mock mode...")
                 print("💡 To use real API: Run 'mad_spark config'")
                 print("")
         else:
+            # Don't set MADSPARK_MODE - let get_mode() handle it dynamically
             if not os.getenv("SUPPRESS_MODE_MESSAGE"):
                 print("✅ API key found. Running with Google Gemini API...")
                 print("")

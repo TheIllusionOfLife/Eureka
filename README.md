@@ -101,6 +101,7 @@ ms --search-bookmarks "energy"
 
 # Generate new ideas based on saved bookmarks (remix mode)
 ms "future technology" --remix --bookmark-tags smart
+ms "future technology" --remix --remix-ids bookmark_123,bookmark_456  # Use specific bookmark IDs
 ```
 
 <details>

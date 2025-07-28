@@ -896,6 +896,7 @@ def main():
                 theme=args.theme,
                 additional_constraints=args.constraints,
                 bookmark_ids=args.remix_ids,
+                bookmark_tags=args.bookmark_tags,
                 bookmark_file=args.bookmark_file
             )
         except Exception as e:

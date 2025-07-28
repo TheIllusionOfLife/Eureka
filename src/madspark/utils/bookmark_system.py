@@ -348,18 +348,28 @@ class BookmarkManager:
         
         return result
     
-    def get_remix_context(self, bookmark_ids: Optional[List[str]] = None) -> str:
+    def get_remix_context(self, bookmark_ids: Optional[List[str]] = None, tags: Optional[List[str]] = None) -> str:
         """Generate context for remixing based on bookmarked ideas.
         
         Args:
             bookmark_ids: Optional list of specific bookmark IDs to use.
-                         If None, uses all bookmarks.
+            tags: Optional list of tags to filter bookmarks by.
+                 If None, uses all bookmarks.
             
         Returns:
             Context string for idea generation
         """
         if bookmark_ids:
             bookmarks = [b for id in bookmark_ids if (b := self.get_bookmark(id))]
+        elif tags:
+            # Filter bookmarks by tags
+            all_bookmarks = list(self.bookmarks.values())
+            bookmarks = [
+                bookmark for bookmark in all_bookmarks
+                if any(tag in bookmark.tags for tag in tags)
+            ]
+            # Sort and limit
+            bookmarks = sorted(bookmarks, key=lambda b: b.bookmarked_at, reverse=True)[:MAX_REMIX_BOOKMARKS]
         else:
             bookmarks = sorted(self.bookmarks.values(), key=lambda b: b.bookmarked_at, reverse=True)[:MAX_REMIX_BOOKMARKS]
         
@@ -434,6 +444,7 @@ def remix_with_bookmarks(
     theme: str,
     additional_constraints: str = "",
     bookmark_ids: Optional[List[str]] = None,
+    bookmark_tags: Optional[List[str]] = None,
     bookmark_file: str = "examples/data/bookmarks.json"
 ) -> str:
     """Generate remix context from bookmarks.
@@ -442,13 +453,14 @@ def remix_with_bookmarks(
         theme: New theme for remix
         additional_constraints: Additional constraints
         bookmark_ids: Optional specific bookmarks to use
+        bookmark_tags: Optional tags to filter bookmarks by
         bookmark_file: Bookmark storage file
         
     Returns:
         Enhanced constraints with remix context
     """
     manager = BookmarkManager(bookmark_file)
-    remix_context = manager.get_remix_context(bookmark_ids)
+    remix_context = manager.get_remix_context(bookmark_ids, bookmark_tags)
     
     combined_constraints = f"{additional_constraints}\n\n{remix_context}"
     return combined_constraints.strip()

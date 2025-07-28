@@ -256,3 +256,25 @@ When encountering module resolution errors in Docker:
 - **Systematic Approaches**: No shortcuts - follow complete protocols
 - **Branch Workflow**: Always create feature branches before any work
 - **Commit at Milestones**: Commit when completing logical units of work
+
+## Code Design Patterns
+
+### Separation of Concerns
+- **Business Logic vs Presentation**: Always keep business logic (e.g., similarity calculations, data processing) in coordinator/core modules, not in CLI/formatting layers
+- **Example**: Jaccard similarity detection moved from `cli.py` formatting to `coordinator.py` business layer
+
+### Testing Patterns
+- **Warning Tests**: Use pytest's `caplog` fixture instead of skipping tests for logging behavior
+- **Example**: `test_coordinator_warnings.py` uses `caplog.at_level(logging.WARNING)` to verify warning suppression
+
+### CI Debugging
+- **Local First**: When CI fails, immediately run the same check locally (e.g., `uv run ruff check`)
+- **Common Issues**: Unused imports, incorrect assertion syntax (`is True` not `== True`)
+
+## Session Learnings
+
+### PR #121: Usability Improvements
+- **Similarity Detection**: Implemented Jaccard similarity (intersection over union) to detect duplicate text
+- **Auto-Async**: Automatically enable async mode when `num_candidates > 1` for better performance
+- **Timeout Handling**: Added proper timeout support in async coordinator with graceful degradation
+- **AI Artifact Removal**: Added 9 new regex patterns to clean AI response artifacts

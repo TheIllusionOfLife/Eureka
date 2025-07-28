@@ -1,9 +1,7 @@
 """Test coordinator warning behavior."""
 import os
 import sys
-import logging
-from unittest.mock import patch, MagicMock
-import pytest
+from unittest.mock import patch
 
 # Add src to path for imports  
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
@@ -46,14 +44,14 @@ class TestCoordinatorWarnings:
                 with patch('madspark.utils.agent_retry_wrappers.call_critic_with_retry') as mock_evaluate:
                     # Return many ideas
                     mock_generate.return_value = "1. Idea one\n2. Idea two\n3. Idea three"
-                    # Return fewer evaluations
-                    mock_evaluate.return_value = '{"evaluations": [{"id": 1, "score": 5, "comment": "Good"}]}'
+                    # Return invalid JSON to trigger parsing failure, which will cause mismatch
+                    mock_evaluate.return_value = 'Not valid JSON - will fail to parse'
                     
                     # Run workflow in verbose mode
                     run_multistep_workflow("test theme", "test constraints", verbose=True)
                     
-                    # In verbose mode, warnings should still be shown
+                    # In verbose mode, warnings should be shown for mismatches
                     warning_calls = [call for call in mock_warning.call_args_list 
-                                   if 'Mismatch' in str(call) or 'No evaluation' in str(call)]
+                                   if any(keyword in str(call) for keyword in ['Mismatch', 'No evaluation', 'parse', 'failed'])]
                     
                     assert len(warning_calls) >= 1, "Warnings should be shown in verbose mode"

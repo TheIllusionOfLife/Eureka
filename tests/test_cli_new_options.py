@@ -93,13 +93,13 @@ class TestNewCLIOptions:
             parser.parse_args(['test topic', '--brief', '--detailed'])
     
     def test_simple_mode_default(self):
-        """Test that simple mode is the default."""
+        """Test that brief mode is the default."""
         parser = create_parser()
         args = parser.parse_args(['test topic'])
         
-        # Should default to simple mode
+        # Should default to brief mode (changed from simple to brief as default)
         assert hasattr(args, 'output_mode'), "Should have output_mode attribute"
-        assert args.output_mode == 'simple', "Should default to simple mode"
+        assert args.output_mode == 'brief', "Should default to brief mode"
     
     def test_enhanced_reasoning_option(self):
         """Test --enhanced option for enhanced reasoning."""

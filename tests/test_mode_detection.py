@@ -1,8 +1,7 @@
 """Test mode detection behavior to ensure mock mode is default."""
 import os
 import sys
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 # Add src to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
@@ -55,4 +54,4 @@ class TestModeDetection:
             
             # Verify that is_api_key_configured still returns True
             # (the key exists, we just chose not to use it)
-            assert is_api_key_configured() == True
+            assert is_api_key_configured() is True

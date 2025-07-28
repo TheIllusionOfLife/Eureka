@@ -83,4 +83,4 @@ def test_readme_mentions_config():
         content = f.read()
     
     assert "mad_spark config" in content
-    assert "Configure API key" in content
+    assert "Configure your API key" in content

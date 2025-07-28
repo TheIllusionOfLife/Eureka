@@ -982,25 +982,47 @@ def main():
         # Bookmark results if requested (either automatic or with custom reference)
         if args.bookmark_results or args.save_bookmark:
             manager = BookmarkManager(args.bookmark_file)
+            bookmark_success = False
             for result in results:
-                # Use the save_bookmark name as a tag if provided
-                bookmark_tags = args.bookmark_tags or []
-                if args.save_bookmark:
-                    bookmark_tags.append(f"name:{args.save_bookmark}")
-                
-                bookmark_id = manager.bookmark_idea(
-                    idea_text=result.get("idea", ""),
-                    theme=args.theme,
-                    constraints=args.constraints,
-                    score=result.get("initial_score", 0),
-                    critique=result.get("initial_critique", ""),
-                    advocacy=result.get("advocacy", ""),
-                    skepticism=result.get("skepticism", ""),
-                    tags=bookmark_tags
-                )
-                if args.save_bookmark:
-                    print(f"✅ Saved bookmark: {args.save_bookmark} (ID: {bookmark_id})")
-                logger.info(f"Bookmarked result as {bookmark_id}")
+                try:
+                    # Validate required fields
+                    idea_text = result.get("idea", "")
+                    if not idea_text:
+                        logger.warning("Cannot bookmark result: missing 'idea' field")
+                        print("⚠️  Warning: Result missing idea text, skipping bookmark")
+                        continue
+                    
+                    # Use the save_bookmark name as a tag if provided
+                    bookmark_tags = args.bookmark_tags or []
+                    if args.save_bookmark:
+                        bookmark_tags.append(f"name:{args.save_bookmark}")
+                    
+                    bookmark_id = manager.bookmark_idea(
+                        idea_text=idea_text,
+                        theme=args.theme,
+                        constraints=args.constraints,
+                        score=result.get("initial_score", 0),
+                        critique=result.get("initial_critique", ""),
+                        advocacy=result.get("advocacy", ""),
+                        skepticism=result.get("skepticism", ""),
+                        tags=bookmark_tags
+                    )
+                    
+                    if bookmark_id:
+                        bookmark_success = True
+                        if args.save_bookmark:
+                            print(f"✅ Saved bookmark: {args.save_bookmark} (ID: {bookmark_id})")
+                        logger.info(f"Bookmarked result as {bookmark_id}")
+                    else:
+                        logger.warning("Bookmark creation returned no ID")
+                        
+                except Exception as e:
+                    logger.error(f"Failed to bookmark result: {e}")
+                    print(f"❌ Error saving bookmark: {e}")
+                    
+            if not bookmark_success and (args.bookmark_results or args.save_bookmark):
+                print("\n💡 Tip: To manually bookmark this result later, save the output to a file:")
+                print(f"   ms \"{args.theme}\" \"{args.constraints}\" --output-file result.txt")
         
         # Export results if requested (Phase 2.2)
         if args.export:

@@ -81,19 +81,41 @@ def build_generation_prompt(topic: str, context: str) -> str:
   Returns:
     A formatted prompt string to be used by the idea generator agent.
   """
+  # Detect broad/philosophical topics that need simplification
+  broad_topic_keywords = ['humanity', 'future of', 'meaning of', 'philosophy', 'existence', 
+                         'universe', 'consciousness', 'life', 'death', 'reality', 'truth']
+  is_broad_topic = any(keyword in topic.lower() for keyword in broad_topic_keywords)
+  
+  # Add extra guidance for broad topics
+  broad_topic_guidance = ""
+  if is_broad_topic:
+      broad_topic_guidance = """
+SPECIAL GUIDANCE FOR BROAD TOPICS:
+- Focus on CONCRETE, SPECIFIC ideas that people can actually implement
+- Avoid philosophical abstractions or theoretical concepts
+- Each idea should suggest a clear action, project, or initiative
+- Think "What can someone DO about this?" rather than "What does this mean?"
+
+"""
+  
   # Use a clean template-based approach for better readability (KISS principle)
   prompt_template = f"""{LANGUAGE_CONSISTENCY_INSTRUCTION}Use the user's main prompt and context below to {IDEA_GENERATION_INSTRUCTION}.
 Make sure the ideas are actionable and innovative.
 
-IMPORTANT: Generate exactly 5 diverse ideas. Not 6, not 20, just 5 ideas.
-
+IMPORTANT FORMAT REQUIREMENTS:
+- Generate exactly 5 diverse ideas
+- Start your response directly with "1." (no introductory text)
+- Keep each idea concise (2-3 sentences maximum)
+- Number each idea clearly (1., 2., 3., 4., 5.)
+- For broad or philosophical topics, focus on specific, actionable ideas
+{broad_topic_guidance}
 User's main prompt:
 {topic}
 
 Context:
 {context}
 
-Ideas (exactly 5):
+Start your response here with idea #1:
 """
   return prompt_template
 
@@ -216,7 +238,12 @@ def build_improvement_prompt(
       f"- If cost-effectiveness scored low, optimize resource usage\n"
       f"- If scalability scored low, design for growth\n"
       f"- Keep all positive aspects while fixing weaknesses\n\n"
-      f"ENHANCED CONCEPT:"
+      f"FORMAT REQUIREMENTS:\n"
+      f"- Start directly with your improved idea (no meta-commentary)\n"
+      f"- Present the idea in 2-3 clear, focused paragraphs\n"
+      f"- Keep the total response under 500 words\n"
+      f"- Make the first sentence compelling and complete\n\n"
+      f"Present your improved idea below:"
   )
 
 

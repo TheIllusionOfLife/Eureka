@@ -90,6 +90,17 @@ CLEANER_META_PHRASES = [
 
 # Regex replacement patterns for idea cleaner (pattern, replacement tuples)
 CLEANER_REPLACEMENT_PATTERNS = [
+    # Remove AI response prefixes and meta-commentary
+    (r'^[Hh]ere\'s the\s+(?:improved\s+)?version\s+(?:of\s+)?(?:your\s+)?(?:idea)?.*?[:.]?\s*', ''),
+    (r'^[Hh]ere\'s an?\s+(?:improved|enhanced|better)\s+version.*?[:.]?\s*', ''),
+    (r'^[Hh]ere\'s\s+your\s+(?:improved|enhanced)\s+idea\s+(?:with\s+)?(?:better\s+)?(?:focus\s*[:.]?\s*)?', ''),
+    (r'^[Hh]ere\'s the\s+(?:refined|polished|optimized)\s+(?:version|idea).*?[:.]?\s*', ''),
+    (r'^Based on.*?feedback.*?here\s+(?:is\s+)?(?:the\s+)?(?:refined\s+)?(?:concept\s*[:.]?\s*)?', ''),
+    (r'^Taking into account.*?here\s+(?:is\s+)?(?:the\s+)?(?:refined\s+)?[:.]?\s*', ''),
+    (r'^Incorporating.*?feedback.*?[:.]?\s*', ''),
+    (r'^\s*\*\*Updated\s+(?:version|idea)\*\*[:.]?\s*', ''),
+    (r'^\s*\*\*(?:Improved|Enhanced|Refined)\s+(?:concept|idea|version)\*\*[:.]?\s*', ''),
+    
     # Remove mock-generated phrases and headers
     (r'^[Ii]mproved version of:\s*', ''),  # Remove "Improved version of:" at start
     (r'^[Ee]nhanced version of:\s*', ''),  # Remove "Enhanced version of:" at start  

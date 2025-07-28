@@ -58,7 +58,7 @@ class TestNewCLIOptions:
         assert hasattr(args, 'num_candidates'), "Should have num_candidates attribute"
         assert args.num_candidates == 5, "Should parse --num-candidates 5"
         
-        # Should use the value from --num-candidates (clamped to 1-10 range)
+        # Should use the value from --num-candidates (clamped to 1-5 range)
         assert determine_num_candidates(args) == 5, "Should use num_candidates value"
         
         # Test that --num-candidates takes precedence when both are specified (current behavior)

@@ -240,9 +240,9 @@ Examples:
         '--top-ideas',
         dest='top_ideas',
         type=int,
-        choices=range(1, 11),
+        choices=range(1, 6),
         default=None,  # Changed to None to detect if explicitly set
-        help='Number of top ideas to generate (1-10, default: 1 for faster execution)'
+        help='Number of top ideas to generate (1-5, default: 1 for faster execution). Multiple ideas may take up to 5 minutes to process.'
     )
     
     workflow_group.add_argument(
@@ -550,16 +550,44 @@ def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
             lines.append(f"💭 Original: {original_idea}")
             lines.append(f"📊 Initial Score: {initial_score}")
             
-            # Show improvement if available
+            # Show improvement if available and meaningful
             if 'improved_idea' in result:
                 improved_idea = result['improved_idea']
                 improved_score = result.get('improved_score', 'N/A')
                 score_delta = result.get('score_delta', 0)
                 
-                lines.append(f"✨ Improved: {improved_idea}")
-                lines.append(f"📈 Final Score: {improved_score}")
-                if score_delta > 0:
-                    lines.append(f"⬆️  Improvement: +{score_delta:.1f}")
+                # Check if improvement is meaningful (similarity and score-based detection)
+                is_meaningful_improvement = True
+                
+                # Simple similarity check: compare texts after basic normalization
+                if improved_idea and original_idea:
+                    # Normalize both texts for comparison
+                    orig_normalized = original_idea.lower().strip()
+                    improved_normalized = improved_idea.lower().strip()
+                    
+                    # Calculate simple similarity (percentage of identical words)
+                    orig_words = set(orig_normalized.split())
+                    improved_words = set(improved_normalized.split())
+                    
+                    if orig_words and improved_words:
+                        # Jaccard similarity (intersection over union)
+                        similarity = len(orig_words & improved_words) / len(orig_words | improved_words)
+                        # Also check if score improvement is minimal
+                        score_improvement_minimal = abs(score_delta) < 0.3
+                        
+                        # Consider improvement non-meaningful if >90% similar and minimal score change
+                        if similarity > 0.9 and score_improvement_minimal:
+                            is_meaningful_improvement = False
+                
+                if is_meaningful_improvement:
+                    lines.append(f"✨ Improved: {improved_idea}")
+                    lines.append(f"📈 Final Score: {improved_score}")
+                    if score_delta > 0:
+                        lines.append(f"⬆️  Improvement: +{score_delta:.1f}")
+                else:
+                    # Show only final score, indicate no meaningful improvement
+                    lines.append(f"📈 Final Score: {improved_score}")
+                    lines.append("✅ Already well-developed - no significant improvements needed")
             
             # Add evaluation summary if available (clean format)
             if 'multi_dimensional_evaluation' in result:
@@ -704,7 +732,7 @@ def determine_num_candidates(args):
         logger = logging.getLogger(__name__)
         logger.warning("--num-candidates is deprecated. Please use --top-ideas instead.")
         # Ensure it's within the valid range for top_ideas
-        return min(max(args.num_candidates, 1), 10)
+        return min(max(args.num_candidates, 1), 5)
     
     # If user explicitly set --top-ideas, use it
     if args.top_ideas is not None:
@@ -898,11 +926,15 @@ def main():
         print("⏳ This may take 30-60 seconds for quality results...\n")
     
     try:
+        # Determine number of candidates and whether to use async mode
+        num_candidates = determine_num_candidates(args)
+        use_async = (hasattr(args, 'async') and getattr(args, 'async')) or (num_candidates > 1)
+        
         # Extract common workflow arguments to avoid duplication
         workflow_kwargs = {
             "theme": args.theme,
             "constraints": args.constraints,
-            "num_top_candidates": determine_num_candidates(args),  # Handle backward compatibility
+            "num_top_candidates": num_candidates,
             "enable_novelty_filter": not args.disable_novelty_filter,
             "novelty_threshold": args.similarity_threshold if args.similarity_threshold is not None else args.novelty_threshold,
             "temperature_manager": temp_manager,
@@ -910,12 +942,16 @@ def main():
             "enhanced_reasoning": args.enhanced_reasoning,
             "multi_dimensional_eval": True,  # Always enabled as a core feature
             "logical_inference": args.logical_inference,
-            "timeout": args.timeout
+            "timeout": max(args.timeout, 300) if num_candidates > 1 else args.timeout
         }
 
-        if hasattr(args, 'async') and getattr(args, 'async'):
-            # Use async execution
-            logger.info("Using async execution for better performance")
+        if use_async:
+            # Use async execution (auto-enabled for multiple ideas or explicitly requested)
+            if num_candidates > 1:
+                logger.info(f"Auto-enabling async mode for {num_candidates} ideas (estimated time: up to 5 minutes)")
+                print(f"⚡ Processing {num_candidates} ideas in parallel for faster results...")
+            else:
+                logger.info("Using async execution for better performance")
             
             async def run_async():
                 # Initialize cache manager if enabled
@@ -929,9 +965,15 @@ def main():
                     await cache_manager.initialize()
                     logger.info("Cache enabled for async execution")
                 
+                # Progress callback for user feedback during multiple ideas processing
+                async def progress_callback(message: str, progress: float):
+                    if num_candidates > 1:
+                        print(f"[{progress:.0%}] {message}")
+                
                 # Create async coordinator
                 async_coordinator = AsyncCoordinator(
                     max_concurrent_agents=int(os.getenv("MAX_CONCURRENT_AGENTS", "10")),
+                    progress_callback=progress_callback if num_candidates > 1 else None,
                     cache_manager=cache_manager
                 )
                 

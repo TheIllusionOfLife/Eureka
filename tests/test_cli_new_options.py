@@ -32,15 +32,38 @@ class TestNewCLIOptions:
         """Test --top-ideas option for controlling number of ideas."""
         parser = create_parser()
         
+        # Import determine_num_candidates to test default behavior
+        from madspark.cli.cli import determine_num_candidates
+        
         # Test default
         args = parser.parse_args(['test topic'])
         assert hasattr(args, 'top_ideas'), "Should have top_ideas attribute"
-        assert args.top_ideas == 1, "Should default to 1 for faster execution"
+        # The attribute defaults to None, but determine_num_candidates should return 1
+        assert args.top_ideas is None, "Attribute should default to None"
+        assert determine_num_candidates(args) == 1, "Should default to 1 for faster execution through determine_num_candidates"
         
         # Test custom values
         for num in [1, 3, 5]:
             args = parser.parse_args(['test topic', '--top-ideas', str(num)])
             assert args.top_ideas == num, f"Should parse --top-ideas {num}"
+            assert determine_num_candidates(args) == num, f"Should return {num} through determine_num_candidates"
+    
+    def test_num_candidates_backward_compatibility(self):
+        """Test that deprecated --num-candidates still works for backward compatibility."""
+        parser = create_parser()
+        from madspark.cli.cli import determine_num_candidates
+        
+        # Test that --num-candidates still works
+        args = parser.parse_args(['test topic', '--num-candidates', '5'])
+        assert hasattr(args, 'num_candidates'), "Should have num_candidates attribute"
+        assert args.num_candidates == 5, "Should parse --num-candidates 5"
+        
+        # Should use the value from --num-candidates (clamped to 1-10 range)
+        assert determine_num_candidates(args) == 5, "Should use num_candidates value"
+        
+        # Test that --num-candidates takes precedence when both are specified (current behavior)
+        args = parser.parse_args(['test topic', '--num-candidates', '5', '--top-ideas', '3'])
+        assert determine_num_candidates(args) == 5, "Currently --num-candidates takes precedence when both are specified"
     
     def test_temperature_option(self):
         """Test --temperature option for custom temperature values."""

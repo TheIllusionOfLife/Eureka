@@ -85,13 +85,15 @@ def build_generation_prompt(topic: str, context: str) -> str:
   prompt_template = f"""{LANGUAGE_CONSISTENCY_INSTRUCTION}Use the user's main prompt and context below to {IDEA_GENERATION_INSTRUCTION}.
 Make sure the ideas are actionable and innovative.
 
+IMPORTANT: Generate exactly 5 diverse ideas. Not 6, not 20, just 5 ideas.
+
 User's main prompt:
 {topic}
 
 Context:
 {context}
 
-Ideas:
+Ideas (exactly 5):
 """
   return prompt_template
 

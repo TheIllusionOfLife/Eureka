@@ -131,8 +131,14 @@ Examples:
   # Basic usage with topic and context
   %(prog)s "Future transportation" "Budget-friendly, eco-friendly"
   
-  # Question format as topic
-  %(prog)s "What are the best ways to reduce urban pollution?" "Focus on low-cost solutions"
+  # Questions (how to solve problems)
+  %(prog)s "How to reduce carbon footprint?" "small business"
+  
+  # Requests (come up with ideas)
+  %(prog)s "Come up with innovative ways to teach math" "elementary school"
+  
+  # General phrases (I want to...)
+  %(prog)s "I want to start a sustainable business. Support me." "zero initial capital"
   
   # High creativity with novelty filtering
   %(prog)s "Smart cities" "Scalable solutions" -tp creative --novelty-threshold 0.6
@@ -178,6 +184,13 @@ Examples:
     
     # Interactive mode
     parser.add_argument(
+        '--version',
+        action='version',
+        version='MadSpark Multi-Agent System v2.2',
+        help='Show version information and exit'
+    )
+    
+    parser.add_argument(
         '--interactive', '-i',
         action='store_true',
         help='Run in interactive mode with step-by-step guidance'
@@ -215,11 +228,36 @@ Examples:
     # Workflow options
     workflow_group = parser.add_argument_group('workflow options')
     
+    # Note: --num-candidates is deprecated but kept for backward compatibility
     workflow_group.add_argument(
         '--num-candidates', '-n',
         type=int,
-        default=2,
-        help='Number of top candidates to fully process (default: 2)'
+        default=None,  # Changed to None to detect if explicitly set
+        help='(Deprecated: use --top-ideas instead) Number of top candidates to fully process'
+    )
+    
+    workflow_group.add_argument(
+        '--top-ideas',
+        dest='top_ideas',
+        type=int,
+        choices=range(1, 11),
+        default=None,  # Changed to None to detect if explicitly set
+        help='Number of top ideas to generate (1-10, default: 1 for faster execution)'
+    )
+    
+    workflow_group.add_argument(
+        '--creativity',
+        choices=['conservative', 'balanced', 'creative', 'experimental'],
+        help='Creativity level preset'
+    )
+    
+    
+    workflow_group.add_argument(
+        '--similarity',
+        dest='similarity_threshold',
+        type=float,
+        choices=[round(x * 0.1, 1) for x in range(11)],  # 0.0, 0.1, ..., 1.0
+        help='Similarity threshold for novelty filter (0.0-1.0)'
     )
     
     workflow_group.add_argument(
@@ -290,6 +328,18 @@ Examples:
         help='Search bookmarks by text content'
     )
     
+    bookmark_group.add_argument(
+        '--save-bookmark',
+        metavar='NAME',
+        help='Save generated results as a bookmark with the given name'
+    )
+    
+    bookmark_group.add_argument(
+        '--remix-bookmarks',
+        metavar='IDS',
+        help='Remix ideas using specific bookmark IDs (comma-separated)'
+    )
+    
     # Remix functionality
     remix_group = parser.add_argument_group('remix functionality')
     
@@ -309,7 +359,7 @@ Examples:
     reasoning_group = parser.add_argument_group('enhanced reasoning (Phase 2.1)')
     
     reasoning_group.add_argument(
-        '--enhanced-reasoning',
+        '--enhanced-reasoning', '--enhanced',
         action='store_true',
         help='Enable enhanced reasoning capabilities with context awareness'
     )
@@ -323,7 +373,7 @@ Examples:
     )
     
     reasoning_group.add_argument(
-        '--logical-inference',
+        '--logical-inference', '--logical',
         action='store_true',
         help='Enable logical inference chains for enhanced reasoning'
     )
@@ -331,11 +381,40 @@ Examples:
     # Output options
     output_group = parser.add_argument_group('output options')
     
+    # Create mutually exclusive group for output modes
+    output_mode_group = output_group.add_mutually_exclusive_group()
+    
+    output_mode_group.add_argument(
+        '--simple',
+        action='store_const',
+        dest='output_mode',
+        const='simple',
+        help='Simple, clean output format (default)'
+    )
+    
+    output_mode_group.add_argument(
+        '--brief', '-b',
+        action='store_const',
+        dest='output_mode', 
+        const='brief',
+        help='Brief output showing only final results'
+    )
+    
+    output_mode_group.add_argument(
+        '--detailed', '-d',
+        action='store_const',
+        dest='output_mode',
+        const='detailed', 
+        help='Detailed output with all agent interactions'
+    )
+    
+    # Set default output mode
+    parser.set_defaults(output_mode='simple')
+    
     output_group.add_argument(
         '--output-format',
-        choices=['json', 'text', 'summary'],
-        default='text',
-        help='Output format (default: text)'
+        choices=['json', 'text', 'summary', 'simple', 'brief', 'detailed'],
+        help='Output format (overrides --simple/--brief/--detailed)'
     )
     
     output_group.add_argument(
@@ -346,7 +425,13 @@ Examples:
     output_group.add_argument(
         '--verbose', '-v',
         action='store_true',
-        help='Enable verbose logging'
+        help='Enable verbose logging and show timestamps'
+    )
+    
+    output_group.add_argument(
+        '--no-logs',
+        action='store_true',
+        help='Suppress all log output for clean results'
     )
     
     # Export options (Phase 2.2)
@@ -424,6 +509,116 @@ def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
     if format_type == 'json':
         return json.dumps(cleaned_results, indent=2, ensure_ascii=False)
     
+    elif format_type == 'brief':
+        """Brief mode: Show only final improved ideas and scores."""
+        lines = []
+        for i, result in enumerate(cleaned_results, 1):
+            if len(cleaned_results) > 1:
+                lines.append(f"💡 Idea {i}:")
+            else:
+                lines.append("💡 Result:")
+            
+            # Show improved idea if available, otherwise original
+            final_idea = result.get('improved_idea', result.get('idea', 'No idea available'))
+            final_score = result.get('improved_score', result.get('initial_score', 'N/A'))
+            
+            lines.append(f"{final_idea}")
+            lines.append(f"Score: {final_score}")
+            
+            if i < len(cleaned_results):
+                lines.append("")  # Empty line between ideas
+        
+        return "\n".join(lines)
+    
+    elif format_type == 'simple':
+        """Simple mode: Clean, user-friendly output without debug info."""
+        lines = []
+        for i, result in enumerate(cleaned_results, 1):
+            if len(cleaned_results) > 1:
+                lines.append(f"━━━ Idea {i} ━━━")
+            
+            # Original idea
+            original_idea = result.get('idea', 'No idea available')
+            initial_score = result.get('initial_score', 'N/A')
+            
+            lines.append(f"💭 Original: {original_idea}")
+            lines.append(f"📊 Initial Score: {initial_score}")
+            
+            # Show improvement if available
+            if 'improved_idea' in result:
+                improved_idea = result['improved_idea']
+                improved_score = result.get('improved_score', 'N/A')
+                score_delta = result.get('score_delta', 0)
+                
+                lines.append(f"✨ Improved: {improved_idea}")
+                lines.append(f"📈 Final Score: {improved_score}")
+                if score_delta > 0:
+                    lines.append(f"⬆️  Improvement: +{score_delta:.1f}")
+            
+            # Add evaluation summary if available (clean format)
+            if 'multi_dimensional_evaluation' in result:
+                eval_data = result['multi_dimensional_evaluation']
+                if eval_data and 'evaluation_summary' in eval_data:
+                    summary = eval_data['evaluation_summary']
+                    # Remove the "🧠 Enhanced Analysis:" prefix if present
+                    summary = summary.replace('🧠 Enhanced Analysis:\n', '').replace('🧠 Enhanced Analysis:', '')
+                    lines.append(f"📋 Analysis: {summary.strip()}")
+            
+            if i < len(cleaned_results):
+                lines.append("")  # Empty line between ideas
+        
+        return "\n".join(lines)
+    
+    elif format_type == 'detailed':
+        """Detailed mode: Show all agent interactions and analysis."""
+        lines = ["=" * 80]
+        lines.append("MADSPARK MULTI-AGENT IDEA GENERATION RESULTS")
+        lines.append("=" * 80)
+        
+        for i, result in enumerate(cleaned_results, 1):
+            lines.append(f"\n--- IDEA {i} ---")
+            lines.append(f"Text: {result.get('idea', 'No idea available')}")
+            lines.append(f"Initial Score: {result.get('initial_score', 'N/A')}")
+            lines.append(f"Initial Critique: {result.get('initial_critique', 'No critique available')}")
+            
+            # Agent feedback
+            if 'advocacy' in result:
+                lines.append(f"\n🔷 Advocacy: {result['advocacy']}")
+            if 'skepticism' in result:
+                lines.append(f"\n🔶 Skepticism: {result['skepticism']}")
+            
+            # Improved idea
+            if 'improved_idea' in result:
+                lines.append(f"\n✨ Improved Idea: {result['improved_idea']}")
+                lines.append(f"📈 Improved Score: {result.get('improved_score', 'N/A')}")
+                
+                if 'score_delta' in result:
+                    lines.append(f"⬆️  Improvement: +{result['score_delta']:.1f}")
+            
+            # Multi-dimensional evaluation
+            if 'multi_dimensional_evaluation' in result:
+                eval_data = result['multi_dimensional_evaluation']
+                if eval_data:
+                    lines.append("\n📊 Multi-Dimensional Evaluation:")
+                    lines.append(f"  Overall Score: {eval_data.get('overall_score', 'N/A')}")
+                    
+                    if 'dimension_scores' in eval_data:
+                        scores = eval_data['dimension_scores']
+                        lines.append(f"  • Feasibility: {scores.get('feasibility', 'N/A')}")
+                        lines.append(f"  • Innovation: {scores.get('innovation', 'N/A')}")
+                        lines.append(f"  • Impact: {scores.get('impact', 'N/A')}")
+                        lines.append(f"  • Cost-Effectiveness: {scores.get('cost_effectiveness', 'N/A')}")
+                        lines.append(f"  • Scalability: {scores.get('scalability', 'N/A')}")
+                        lines.append(f"  • Risk Assessment: {scores.get('risk_assessment', 'N/A')} (lower is better)")
+                        lines.append(f"  • Timeline: {scores.get('timeline', 'N/A')}")
+                    
+                    if 'evaluation_summary' in eval_data:
+                        lines.append(f"  Summary: {eval_data['evaluation_summary']}")
+            
+            lines.append("-" * 80)
+        
+        return "\n".join(lines)
+        
     elif format_type == 'summary':
         lines = [f"Generated {len(cleaned_results)} improved ideas:\n"]
         for i, result in enumerate(cleaned_results, 1):
@@ -463,18 +658,21 @@ def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
             lines.append("")  # Empty line between ideas
         return "\n".join(lines)
     
-    else:  # text format
+    else:  # text format (legacy)
         lines = ["=" * 80]
         lines.append("MADSPARK MULTI-AGENT IDEA GENERATION RESULTS")
         lines.append("=" * 80)
         
         for i, result in enumerate(cleaned_results, 1):
             lines.append(f"\n--- IDEA {i} ---")
-            lines.append(f"Text: {result['idea']}")
-            lines.append(f"Initial Score: {result['initial_score']}")
-            lines.append(f"Initial Critique: {result['initial_critique']}")
-            lines.append(f"\nAdvocacy: {result['advocacy']}")
-            lines.append(f"\nSkepticism: {result['skepticism']}")
+            lines.append(f"Text: {result.get('idea', 'No idea available')}")
+            lines.append(f"Initial Score: {result.get('initial_score', 'N/A')}")
+            lines.append(f"Initial Critique: {result.get('initial_critique', 'No critique available')}")
+            
+            if 'advocacy' in result:
+                lines.append(f"\nAdvocacy: {result['advocacy']}")
+            if 'skepticism' in result:
+                lines.append(f"\nSkepticism: {result['skepticism']}")
             
             # Include cleaned improved idea in text format
             if 'improved_idea' in result:
@@ -484,6 +682,30 @@ def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
             lines.append("-" * 80)
         
         return "\n".join(lines)
+
+
+def determine_num_candidates(args):
+    """Determine the number of candidates to use, handling backward compatibility.
+    
+    Args:
+        args: Parsed command line arguments
+        
+    Returns:
+        int: Number of candidates to process
+    """
+    # If user explicitly set --num-candidates, use it and show deprecation warning
+    if args.num_candidates is not None:
+        logger = logging.getLogger(__name__)
+        logger.warning("--num-candidates is deprecated. Please use --top-ideas instead.")
+        # Ensure it's within the valid range for top_ideas
+        return min(max(args.num_candidates, 1), 10)
+    
+    # If user explicitly set --top-ideas, use it
+    if args.top_ideas is not None:
+        return args.top_ideas
+    
+    # Default value
+    return 1
 
 
 def main():
@@ -499,6 +721,23 @@ def main():
             parser.error("Timeout must be at least 1 second")
         elif args.timeout > 3600:  # 1 hour max
             parser.error("Timeout cannot exceed 3600 seconds (1 hour)")
+    
+    
+    # Validate similarity threshold
+    if hasattr(args, 'similarity_threshold') and args.similarity_threshold is not None:
+        if args.similarity_threshold < 0.0:
+            parser.error("Similarity threshold must be at least 0.0")
+        elif args.similarity_threshold > 1.0:
+            parser.error("Similarity threshold cannot exceed 1.0")
+    
+    # Handle --no-logs option OR simple/brief modes by suppressing logging
+    if (hasattr(args, 'no_logs') and args.no_logs) or \
+       (hasattr(args, 'output_mode') and args.output_mode in ['simple', 'brief']) or \
+       (hasattr(args, 'output_format') and args.output_format in ['simple', 'brief']):
+        # Suppress all logging except critical errors
+        logging.getLogger().setLevel(logging.CRITICAL)
+        # Also suppress progress messages in non-verbose modes
+        os.environ["SUPPRESS_MODE_MESSAGE"] = "1"
     
     # Handle standalone commands
     if args.list_bookmarks:
@@ -619,6 +858,10 @@ def main():
     
     # Setup temperature management
     try:
+        # Map creativity preset to temperature_preset if provided
+        if hasattr(args, 'creativity') and args.creativity:
+            args.temperature_preset = args.creativity
+            
         temp_manager = create_temperature_manager_from_args(args)
         logger.info(temp_manager.describe_settings())
     except (ValueError, ValidationError) as e:
@@ -643,14 +886,19 @@ def main():
     logger.info(f"Running MadSpark workflow with theme: '{args.theme}'")
     logger.info(f"Constraints: {args.constraints}")
     
+    # Show progress message to user
+    if os.getenv("MADSPARK_MODE") != "mock":
+        print("\n🚀 Generating ideas with Google Gemini API...")
+        print("⏳ This may take 30-60 seconds for quality results...\n")
+    
     try:
         # Extract common workflow arguments to avoid duplication
         workflow_kwargs = {
             "theme": args.theme,
             "constraints": args.constraints,
-            "num_top_candidates": args.num_candidates,
+            "num_top_candidates": determine_num_candidates(args),  # Handle backward compatibility
             "enable_novelty_filter": not args.disable_novelty_filter,
-            "novelty_threshold": args.novelty_threshold,
+            "novelty_threshold": args.similarity_threshold if args.similarity_threshold is not None else args.novelty_threshold,
             "temperature_manager": temp_manager,
             "verbose": args.verbose,
             "enhanced_reasoning": args.enhanced_reasoning,
@@ -696,10 +944,15 @@ def main():
             print("No ideas were generated. Check the logs for details.")
             sys.exit(1)
         
-        # Bookmark results if requested
-        if args.bookmark_results:
+        # Bookmark results if requested (either automatic or with custom reference)
+        if args.bookmark_results or args.save_bookmark:
             manager = BookmarkManager(args.bookmark_file)
             for result in results:
+                # Use the save_bookmark name as a tag if provided
+                bookmark_tags = args.bookmark_tags or []
+                if args.save_bookmark:
+                    bookmark_tags.append(f"name:{args.save_bookmark}")
+                
                 bookmark_id = manager.bookmark_idea(
                     idea_text=result.get("idea", ""),
                     theme=args.theme,
@@ -708,8 +961,10 @@ def main():
                     critique=result.get("initial_critique", ""),
                     advocacy=result.get("advocacy", ""),
                     skepticism=result.get("skepticism", ""),
-                    tags=args.bookmark_tags or []
+                    tags=bookmark_tags
                 )
+                if args.save_bookmark:
+                    print(f"✅ Saved bookmark: {args.save_bookmark} (ID: {bookmark_id})")
                 logger.info(f"Bookmarked result as {bookmark_id}")
         
         # Export results if requested (Phase 2.2)
@@ -745,8 +1000,11 @@ def main():
                 logger.error(f"Export failed: {e}")
                 print(f"❌ Export failed: {e}")
         
+        # Determine output format (prioritize --output-format over mode flags)
+        output_format = args.output_format if args.output_format else args.output_mode
+        
         # Format and output results
-        formatted_output = format_results(results, args.output_format)
+        formatted_output = format_results(results, output_format)
         
         if args.output_file:
             with open(args.output_file, 'w', encoding='utf-8') as f:

@@ -51,40 +51,25 @@ mad_spark "your topic here" "your context here"
 ### Usage
 
 ```bash
-# Questions (how to solve problems)
-mad_spark "how to reduce carbon footprint?" "small business"
-mad_spark "how to make cities more livable?" "limited budget"
-
-# Requests (come up with ideas) 
-mad_spark "Come up with innovative ways to teach math" "elementary school"
-mad_spark "Come up with creative fundraising ideas" "local animal shelter"
-
-# General phrases (I want to...)
-mad_spark "I want to start a sustainable business. Support me." "zero initial capital"  
-mad_spark "I want to learn AI. Guide me." "complete beginner"
-
-# Topic with context (traditional format)
-mad_spark "renewable energy storage" "cost under $100/kWh"
-mad_spark "urban transportation" "zero emissions by 2030"
+mad_spark "how to reduce carbon footprint?" "small business"          # command "question/topic/theme" "constraints/context"
+ms "Come up with innovative ways to teach math" "elementary school"   # ms works the same way.
+ms "I want to learn AI. Guide me."                                    # Second argument is optional.
 
 # Output modes for different needs
-mad_spark "healthcare AI" --brief              # Quick summary (default)
-mad_spark "education innovation" --detailed     # Full agent analysis
-mad_spark "climate solutions" --simple         # Clean, user-friendly
+ms "healthcare AI" --brief              # Quick summary (default)
+ms "education innovation" --detailed     # Full agent analysis
+ms "climate solutions" --simple         # Clean
 
 # Advanced options
-mad_spark "space exploration" --top-ideas 3 --creativity creative    # Generate 3 ideas with high creativity
-mad_spark "quantum computing" --enhanced --logical                   # Enhanced reasoning with logical inference
+ms "space exploration" --top-ideas 3 --creativity creative    # Generate 3 ideas with high creativity. Default value is 1.
+ms "quantum computing" --enhanced --logical                   # Enhanced reasoning with logical inference
 
 # Run the coordinator - full multi-agent analysis system
 # Orchestrates IdeaGenerator, Critic, Advocate, and Skeptic agents
-mad_spark coordinator
+ms coordinator
 
 # Run test suite to verify functionality
-mad_spark test
-
-# Aliases work too
-ms "future of AI"
+ms test
 
 # Web interface
 cd web && docker compose up
@@ -99,19 +84,19 @@ Save and reuse your best ideas:
 
 ```bash
 # Save results automatically
-mad_spark "renewable energy" "urban applications" --bookmark-results
+ms "renewable energy" "urban applications" --bookmark-results
 
 # Save with custom name and tags
-mad_spark "smart cities" --save-bookmark "urban-innovation" --bookmark-tags smart tech
+ms "smart cities" --save-bookmark "urban-innovation" --bookmark-tags smart tech
 
 # List saved bookmarks
-mad_spark --list-bookmarks
+ms --list-bookmarks
 
 # Search bookmarks
-mad_spark --search-bookmarks "energy"
+ms --search-bookmarks "energy"
 
 # Generate new ideas based on saved bookmarks (remix mode)
-mad_spark "future technology" --remix --bookmark-tags smart
+ms "future technology" --remix --bookmark-tags smart
 ```
 
 <details>
@@ -131,8 +116,8 @@ echo 'GOOGLE_API_KEY="YOUR_API_KEY_HERE"' > .env
 echo 'GOOGLE_GENAI_MODEL="gemini-2.5-flash"' >> .env
 
 # Run commands
-mad_spark "sustainable transportation" "low-cost solutions"
-mad_spark coordinator
+ms "sustainable transportation" "low-cost solutions"
+ms coordinator
 ```
 
 </details>

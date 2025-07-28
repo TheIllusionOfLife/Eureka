@@ -90,6 +90,15 @@ CLEANER_META_PHRASES = [
 
 # Regex replacement patterns for idea cleaner (pattern, replacement tuples)
 CLEANER_REPLACEMENT_PATTERNS = [
+    # Remove mock-generated phrases and headers
+    (r'^[Ii]mproved version of:\s*', ''),  # Remove "Improved version of:" at start
+    (r'^[Ee]nhanced version of:\s*', ''),  # Remove "Enhanced version of:" at start  
+    (r'^[Vv]ersion of:\s*', ''),  # Remove "version of:" at start
+    (r'\n\nEnhancements based on feedback:\s*.*', ''),  # Remove enhancement lists
+    (r'- Addressed critique points\s*\n?', ''),
+    (r'- Incorporated advocacy strengths\s*\n?', ''),
+    (r'- Resolved skeptical concerns\s*\n?', ''),
+    
     # Remove improvement references
     (r'Our enhanced approach', 'This approach'),
     (r'The enhanced concept', 'The concept'),

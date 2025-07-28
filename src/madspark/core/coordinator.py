@@ -434,11 +434,18 @@ def run_multistep_workflow(
         )
 
         if len(parsed_evaluations) != len(parsed_ideas):
-            logging.warning(
-                f"Mismatch between number of ideas ({len(parsed_ideas)}) "
-                f"and number of parsed evaluations ({len(parsed_evaluations)})."
-                " Each idea will be processed; those without evaluation will receive defaults."
-            )
+            if verbose:
+                logging.warning(
+                    f"Mismatch between number of ideas ({len(parsed_ideas)}) "
+                    f"and number of parsed evaluations ({len(parsed_evaluations)})."
+                    " Each idea will be processed; those without evaluation will receive defaults."
+                )
+            else:
+                logging.debug(
+                    f"Mismatch between number of ideas ({len(parsed_ideas)}) "
+                    f"and number of parsed evaluations ({len(parsed_evaluations)})."
+                    " Each idea will be processed; those without evaluation will receive defaults."
+                )
 
         for i, idea_text in enumerate(parsed_ideas):
             if i < len(parsed_evaluations):
@@ -447,10 +454,16 @@ def run_multistep_workflow(
                 score = eval_data["score"]
                 critique = eval_data["comment"]
             else:
-                logging.warning(
-                    f"No evaluation available for idea: '{idea_text[:50]}...' (index {i}). "
-                    "Using default values."
-                )
+                if verbose:
+                    logging.warning(
+                        f"No evaluation available for idea: '{idea_text[:50]}...' (index {i}). "
+                        "Using default values."
+                    )
+                else:
+                    logging.debug(
+                        f"No evaluation available for idea: '{idea_text[:50]}...' (index {i}). "
+                        "Using default values."
+                    )
                 score = 0
                 critique = "Evaluation missing from critic response."
 

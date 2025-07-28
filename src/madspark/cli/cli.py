@@ -389,7 +389,7 @@ Examples:
         action='store_const',
         dest='output_mode',
         const='simple',
-        help='Simple, clean output format (default)'
+        help='Simple, clean output format'
     )
     
     output_mode_group.add_argument(
@@ -397,7 +397,7 @@ Examples:
         action='store_const',
         dest='output_mode', 
         const='brief',
-        help='Brief output showing only final results'
+        help='Brief output showing only final results (default)'
     )
     
     output_mode_group.add_argument(
@@ -409,7 +409,7 @@ Examples:
     )
     
     # Set default output mode
-    parser.set_defaults(output_mode='simple')
+    parser.set_defaults(output_mode='brief')
     
     output_group.add_argument(
         '--output-format',
@@ -510,20 +510,26 @@ def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
         return json.dumps(cleaned_results, indent=2, ensure_ascii=False)
     
     elif format_type == 'brief':
-        """Brief mode: Show only final improved ideas and scores."""
+        """Brief mode: Solution-focused output with markdown headers."""
         lines = []
         for i, result in enumerate(cleaned_results, 1):
+            # Add markdown header
             if len(cleaned_results) > 1:
-                lines.append(f"💡 Idea {i}:")
+                lines.append(f"## Idea {i}")
             else:
-                lines.append("💡 Result:")
+                lines.append("## Solution")
             
             # Show improved idea if available, otherwise original
             final_idea = result.get('improved_idea', result.get('idea', 'No idea available'))
             final_score = result.get('improved_score', result.get('initial_score', 'N/A'))
             
+            # Focus on the solution first - clean presentation
             lines.append(f"{final_idea}")
-            lines.append(f"Score: {final_score}")
+            lines.append("")
+            
+            # Add score information after the solution
+            if final_score != 'N/A':
+                lines.append(f"**Score:** {final_score}/10")
             
             if i < len(cleaned_results):
                 lines.append("")  # Empty line between ideas

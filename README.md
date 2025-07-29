@@ -83,7 +83,10 @@ ms "space exploration" --top-ideas 3 --creativity creative
 ms "quantum computing" --enhanced --logical
 
 # Cache results with Redis for instant repeated queries                   
-ms "how the universe began" --top-ideas 3 --enable-cache     
+ms "how the universe began" --top-ideas 3 --enable-cache
+
+# Combined options
+ms "main prompt" "context" --top-ideas 5 --creativity creative --enhanced --logical --enable-cache
 
 # Run the coordinator - full multi-agent analysis system
 # Orchestrates IdeaGenerator, Critic, Advocate, and Skeptic agents

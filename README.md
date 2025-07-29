@@ -66,7 +66,7 @@ ms "education innovation" --detailed     # Full agent analysis
 ms "climate solutions" --simple         # Clean
 
 # Advanced options
-ms "space exploration" --top-ideas 3 --creativity creative    # Generate 3 ideas with high creativity. Default value is 1.
+ms "space exploration" --top-ideas 3 --temperature-preset creative  # Generate 3 ideas with high creativity. Default value is 1.
 ms "quantum computing" --enhanced --logical                   # Enhanced reasoning with logical inference
 ms "how the universe began" --top-ideas 3 --enable-cache     # Cache results with Redis for instant repeated queries
 

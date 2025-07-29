@@ -135,8 +135,8 @@ class BetterHelpFormatter(argparse.RawDescriptionHelpFormatter):
         if prefix is None:
             prefix = 'usage: '
         
-        # Get the program name
-        prog = '%(prog)s' % dict(prog=self._prog)
+        # Get the program name - use 'ms' if running through the wrapper
+        prog = 'ms' if 'run.py' in sys.argv[0] or self._prog == 'cli' else self._prog
         
         # Build a cleaner usage string
         usage_parts = [prog]
@@ -152,10 +152,10 @@ class BetterHelpFormatter(argparse.RawDescriptionHelpFormatter):
         # Add a note about common operations
         usage += '\n'
         usage += 'Common operations:\n'
-        usage += '  %(prog)s "your topic"                    # Generate idea with default context\n' % dict(prog=self._prog)
-        usage += '  %(prog)s "your topic" "your context"     # Generate idea with specific context\n' % dict(prog=self._prog)
-        usage += '  %(prog)s --list-bookmarks                # List saved ideas\n' % dict(prog=self._prog)
-        usage += '  %(prog)s --help                          # Show this help\n' % dict(prog=self._prog)
+        usage += '  %s "your topic"                    # Generate idea with default context\n' % prog
+        usage += '  %s "your topic" "your context"     # Generate idea with specific context\n' % prog
+        usage += '  %s --list-bookmarks                # List saved ideas\n' % prog
+        usage += '  %s --help                          # Show this help\n' % prog
         
         return usage
 
@@ -168,41 +168,41 @@ def create_parser() -> argparse.ArgumentParser:
         epilog="""
 Examples:
   # Basic usage with topic and context
-  %(prog)s "Future transportation" "Budget-friendly, eco-friendly"
+  ms "Future transportation" "Budget-friendly, eco-friendly"
   
   # Questions (how to solve problems)
-  %(prog)s "How to reduce carbon footprint?" "small business"
+  ms "How to reduce carbon footprint?" "small business"
   
   # Requests (come up with ideas)
-  %(prog)s "Come up with innovative ways to teach math" "elementary school"
+  ms "Come up with innovative ways to teach math" "elementary school"
   
   # General phrases (I want to...)
-  %(prog)s "I want to start a sustainable business. Support me." "zero initial capital"
+  ms "I want to start a sustainable business. Support me." "zero initial capital"
   
   # Save results with custom tags (bookmarking is automatic)
-  %(prog)s "Smart cities" "Scalable solutions" --bookmark-tags smart urban tech
+  ms "Smart cities" "Scalable solutions" --bookmark-tags smart urban tech
   
   # Enhanced reasoning with multi-dimensional evaluation
-  %(prog)s "AI healthcare" "Rural deployment" --enhanced-reasoning --multi-dimensional-eval
+  ms "AI healthcare" "Rural deployment" --enhanced-reasoning --multi-dimensional-eval
   
   # Generate ideas based on bookmarks (remix)
-  %(prog)s "Green energy" --remix --bookmark-tags renewable
+  ms "Green energy" --remix --bookmark-tags renewable
   
   # Verbose mode with enhanced reasoning for detailed analysis
-  %(prog)s "Sustainable agriculture" "Low-cost" --verbose --enhanced-reasoning
+  ms "Sustainable agriculture" "Low-cost" --verbose --enhanced-reasoning
   
   # List saved bookmarks
-  %(prog)s --list-bookmarks
+  ms --list-bookmarks
   
   # Show temperature presets
-  %(prog)s --list-presets
+  ms --list-presets
   
   # Batch processing
-  %(prog)s --create-sample-batch csv
-  %(prog)s --batch sample_batch.csv --batch-concurrent 5
+  ms --create-sample-batch csv
+  ms --batch sample_batch.csv --batch-concurrent 5
   
   # Interactive mode
-  %(prog)s --interactive
+  ms --interactive
         """
     )
     

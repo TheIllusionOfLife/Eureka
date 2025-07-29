@@ -497,6 +497,33 @@ Examples:
     return parser
 
 
+def truncate_text_intelligently(text: str, max_length: int = 300) -> str:
+    """Truncate text at a sensible boundary (sentence or word).
+    
+    Args:
+        text: Text to truncate
+        max_length: Maximum length before truncation
+        
+    Returns:
+        Truncated text with ellipsis if needed
+    """
+    if len(text) <= max_length:
+        return text
+    
+    # Find a good breaking point (end of sentence or word)
+    truncated = text[:max_length]
+    last_period = truncated.rfind('.')
+    last_space = truncated.rfind(' ')
+    
+    # Prefer to break at sentence end, otherwise at word boundary
+    if last_period > max_length - 50:  # If period is near the end
+        truncated = truncated[:last_period + 1]
+    elif last_space > 0:
+        truncated = truncated[:last_space]
+    
+    return f"{truncated}..."
+
+
 def list_bookmarks_command(args: argparse.Namespace):
     """Handle the list bookmarks command."""
     bookmarks = list_bookmarks_cli(args.bookmark_file)
@@ -507,30 +534,9 @@ def list_bookmarks_command(args: argparse.Namespace):
     
     print(f"Found {len(bookmarks)} bookmarks:\n")
     
-    # Maximum length for displayed text (preserving readability)
-    MAX_DISPLAY_LENGTH = 300
-    
     for bookmark in bookmarks:
         print(f"ID: {bookmark['id']}")
-        
-        # Truncate text if too long, but show the beginning
-        text = bookmark['text']
-        if len(text) > MAX_DISPLAY_LENGTH:
-            # Find a good breaking point (end of sentence or word)
-            truncated = text[:MAX_DISPLAY_LENGTH]
-            last_period = truncated.rfind('.')
-            last_space = truncated.rfind(' ')
-            
-            # Prefer to break at sentence end, otherwise at word boundary
-            if last_period > MAX_DISPLAY_LENGTH - 50:  # If period is near the end
-                truncated = truncated[:last_period + 1]
-            elif last_space > 0:
-                truncated = truncated[:last_space]
-            
-            print(f"Text: {truncated}...")
-        else:
-            print(f"Text: {text}")
-            
+        print(f"Text: {truncate_text_intelligently(bookmark['text'])}")
         print(f"Theme: {bookmark['theme']}")
         print(f"Score: {bookmark['score']}")
         print(f"Bookmarked: {bookmark['bookmarked_at']}")
@@ -550,30 +556,9 @@ def search_bookmarks_command(args: argparse.Namespace):
     
     print(f"Found {len(matches)} matching bookmarks:\n")
     
-    # Maximum length for displayed text (same as list command)
-    MAX_DISPLAY_LENGTH = 300
-    
     for bookmark in matches:
         print(f"ID: {bookmark.id}")
-        
-        # Truncate text if too long
-        text = bookmark.text
-        if len(text) > MAX_DISPLAY_LENGTH:
-            # Find a good breaking point (end of sentence or word)
-            truncated = text[:MAX_DISPLAY_LENGTH]
-            last_period = truncated.rfind('.')
-            last_space = truncated.rfind(' ')
-            
-            # Prefer to break at sentence end, otherwise at word boundary
-            if last_period > MAX_DISPLAY_LENGTH - 50:  # If period is near the end
-                truncated = truncated[:last_period + 1]
-            elif last_space > 0:
-                truncated = truncated[:last_space]
-            
-            print(f"Text: {truncated}...")
-        else:
-            print(f"Text: {text}")
-            
+        print(f"Text: {truncate_text_intelligently(bookmark.text)}")
         print(f"Theme: {bookmark.theme}")
         print(f"Score: {bookmark.score}")
         print("-" * 60)
@@ -1085,7 +1070,7 @@ def main():
             sys.exit(1)
         
         # Bookmark results by default (unless disabled)
-        if not hasattr(args, 'no_bookmark') or not args.no_bookmark:
+        if not args.no_bookmark:
             logger.info(f"Bookmarking requested. Processing {len(results)} results...")
             manager = BookmarkManager(args.bookmark_file)
             bookmark_success = False
@@ -1131,7 +1116,7 @@ def main():
                     logger.error(f"Failed to bookmark result: {e}")
                     print(f"❌ Error saving bookmark: {e}")
                     
-            if not bookmark_success and (not hasattr(args, 'no_bookmark') or not args.no_bookmark):
+            if not bookmark_success and not args.no_bookmark:
                 print("\n💡 Tip: To manually bookmark this result later, save the output to a file:")
                 print(f"   ms \"{args.theme}\" \"{args.constraints}\" --output-file result.txt")
         

@@ -82,14 +82,9 @@ class TestCreativityOptionRemoval:
         """Test that --creativity option is removed from CLI (currently fails)."""
         parser = create_parser()
         
-        # Get all option strings from all action groups
-        all_options = []
-        for group in parser._action_groups:
-            for action in group._group_actions:
-                all_options.extend(action.option_strings)
-        
-        # --creativity should NOT be in the options
-        assert '--creativity' not in all_options
+        # Test that attempting to use --creativity raises an error
+        with pytest.raises(SystemExit):
+            parser.parse_args(['test topic', '--creativity', 'creative'])
     
     def test_temperature_preset_option_exists(self):
         """Test that --temperature-preset option exists and includes wild."""
@@ -128,43 +123,32 @@ class TestCreativityOptionRemoval:
 class TestCLIIntegration:
     """Integration tests for CLI with temperature options."""
     
-    @patch('madspark.cli.cli.run_multistep_workflow')
-    @patch('madspark.cli.cli.os.getenv')
-    def test_cli_with_temperature_2_0(self, mock_getenv, mock_workflow):
+    @pytest.fixture
+    def mock_cli_environment(self):
+        """Fixture to set up common CLI test environment."""
+        with patch('madspark.cli.cli.os.getenv') as mock_getenv, \
+             patch('madspark.cli.cli.run_multistep_workflow') as mock_workflow:
+            mock_getenv.return_value = "test_api_key"
+            mock_workflow.return_value = [{"idea": "test", "score": 8.0}]
+            yield mock_getenv, mock_workflow
+    
+    def run_cli_with_args(self, args):
+        """Helper method to run CLI with given arguments."""
+        with patch.object(sys, 'argv', args):
+            from madspark.cli.cli import main
+            main()
+    
+    def test_cli_with_temperature_2_0(self, mock_cli_environment):
         """Test CLI accepts temperature 2.0 (currently fails)."""
-        mock_getenv.return_value = "test_api_key"
-        mock_workflow.return_value = [{"idea": "test", "score": 8.0}]
-        
-        # Simulate command line args
-        test_args = ['cli.py', 'test topic', '--temperature', '2.0', '--no-bookmark']
-        
-        with patch.object(sys, 'argv', test_args):
-            # This should not raise an error when fixed
-            from madspark.cli.cli import main
-            main()
+        # This should not raise an error when fixed
+        self.run_cli_with_args(['cli.py', 'test topic', '--temperature', '2.0', '--no-bookmark'])
     
-    @patch('madspark.cli.cli.run_multistep_workflow')
-    @patch('madspark.cli.cli.os.getenv')
-    def test_cli_with_wild_preset(self, mock_getenv, mock_workflow):
+    def test_cli_with_wild_preset(self, mock_cli_environment):
         """Test CLI accepts wild preset."""
-        mock_getenv.return_value = "test_api_key"
-        mock_workflow.return_value = [{"idea": "test", "score": 8.0}]
-        
-        test_args = ['cli.py', 'test topic', '--temperature-preset', 'wild', '--no-bookmark']
-        
-        with patch.object(sys, 'argv', test_args):
-            from madspark.cli.cli import main
-            # Should not raise an error
-            main()
+        # Should not raise an error
+        self.run_cli_with_args(['cli.py', 'test topic', '--temperature-preset', 'wild', '--no-bookmark'])
     
-    @patch('madspark.cli.cli.os.getenv')
-    def test_cli_rejects_creativity_option(self, mock_getenv):
+    def test_cli_rejects_creativity_option(self, mock_cli_environment):
         """Test CLI rejects --creativity option (currently fails)."""
-        mock_getenv.return_value = "test_api_key"
-        
-        test_args = ['cli.py', 'test topic', '--creativity', 'wild', '--no-bookmark']
-        
-        with patch.object(sys, 'argv', test_args):
-            with pytest.raises(SystemExit):
-                from madspark.cli.cli import main
-                main()
+        with pytest.raises(SystemExit):
+            self.run_cli_with_args(['cli.py', 'test topic', '--creativity', 'wild', '--no-bookmark'])

@@ -246,7 +246,7 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
 
 **Last Updated**: July 29, 2025 04:04 PM JST
 
-#### Recently Completed
+### Recently Completed
 - ✅ **[PR #123](https://github.com/TheIllusionOfLife/Eureka/pull/123)**: CLI improvements - automatic bookmarking, optional context, and flag passing (July 29, 2025)
   - **Automatic Bookmarking**: Changed from opt-in (`--bookmark-results`) to opt-out (`--no-bookmark`) approach
   - **Optional Context**: Made second parameter optional - users can now run `ms "topic"` without context

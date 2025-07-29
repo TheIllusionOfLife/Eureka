@@ -2,7 +2,8 @@
 
 [![Phase](https://img.shields.io/badge/Phase-2.2%20Complete-success)](#project-status) [![Testing](https://img.shields.io/badge/Testing-85%25%20Coverage-success)](#testing) [![CI/CD](https://img.shields.io/badge/CI%2FCD-Optimized-brightgreen)](#development)
 
-A sophisticated multi-agent system for idea generation and refinement using Google's Gemini API. Features specialized agents for idea generation, criticism, advocacy, and skepticism with advanced reasoning capabilities.
+A sophisticated multi-agent system for idea generation and refinement using Google's Gemini API. 
+Features specialized agents for idea generation, criticism, advocacy, and skepticism with advanced reasoning capabilities.
 
 ## 🚀 Key Features
 
@@ -23,10 +24,12 @@ A sophisticated multi-agent system for idea generation and refinement using Goog
 ### Installation
 
 ```bash
-# Clone and setup
+# Clone the repo
 git clone https://github.com/TheIllusionOfLife/Eureka.git
 cd Eureka
-./setup.sh  # Initial setup with interactive configuration
+
+# Initial setup with interactive configuration
+./setup.sh  
 
 # Configure your API key (for real AI responses)
 mad_spark config  # Interactive configuration
@@ -52,13 +55,20 @@ mad_spark "your topic here" "your context here"
 
 ```bash
 # Get help and see all available options
-ms --help                              # Show detailed help with all options and examples
+ms --help
 
 # Basic usage
-mad_spark "how to reduce carbon footprint?" "small business"          # command "question/topic/theme" "constraints/context"
-ms "Come up with innovative ways to teach math" "elementary school"   # ms works the same way.
-ms "I want to learn AI. Guide me."                                    # Second argument is optional.
-ms "future technology"                                                 # Single argument works too - constraints will default
+# command "question/topic/theme" "constraints/context"
+mad_spark "how to reduce carbon footprint?" "small business"          
+
+# ms works the same way.
+ms "Come up with innovative ways to teach math" "elementary school"
+
+# Second argument is optional.   
+ms "I want to learn AI. Guide me."
+
+# Single argument works too - constraints will default                                    
+ms "future technology"                                                 
 
 # Output modes for different needs
 ms "healthcare AI" --brief              # Quick summary (default)
@@ -66,9 +76,17 @@ ms "education innovation" --detailed     # Full agent analysis
 ms "climate solutions" --simple         # Clean
 
 # Advanced options
-ms "space exploration" --top-ideas 3 --temperature-preset creative  # Generate 3 ideas with high creativity. Default value is 1.
-ms "quantum computing" --enhanced --logical                   # Enhanced reasoning with logical inference
-ms "how the universe began" --top-ideas 3 --enable-cache     # Cache results with Redis for instant repeated queries
+# Generate 3 ideas with high creativity. Default value is 1.
+ms "space exploration" --top-ideas 3 --temperature-preset creative
+
+# Enhanced reasoning with logical inference    
+ms "quantum computing" --enhanced --logical
+
+# Cache results with Redis for instant repeated queries                   
+ms "how the universe began" --top-ideas 3 --enable-cache
+
+# Combined options
+ms "main prompt" "context" --top-ideas 5 --temperature-preset creative --enhanced --logical --enable-cache
 
 # Run the coordinator - full multi-agent analysis system
 # Orchestrates IdeaGenerator, Critic, Advocate, and Skeptic agents
@@ -86,7 +104,8 @@ cd web && docker compose down --volumes --remove-orphans
 
 ### Bookmark Management
 
-MadSpark automatically saves all generated ideas as bookmarks for future reference and remixing. Each bookmark includes the improved idea text, score, theme, and timestamp.
+MadSpark automatically saves all generated ideas as bookmarks for future reference and remixing. 
+Each bookmark includes the improved idea text, score, theme, and timestamp.
 
 #### Key Features:
 - **Automatic Deduplication**: Uses Jaccard similarity (default threshold: 0.8) to prevent saving duplicate ideas
@@ -231,16 +250,6 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
 - **[Batch Processing Guide](docs/BATCH_PROCESSING_GUIDE.md)** - Process multiple themes
 - **[Interactive Mode Guide](docs/INTERACTIVE_MODE_GUIDE.md)** - Conversational interface
 - **[Web Interface Guide](docs/WEB_INTERFACE_GUIDE.md)** - Modern web UI
-
-## Contributing
-
-1. Fork the repository
-2. Create feature branch: `git checkout -b feature/your-feature`
-3. Make changes and add tests
-4. Run test suite: `pytest tests/`
-5. Commit: `git commit -m "Add feature"`
-6. Push: `git push origin feature/your-feature`
-7. Create Pull Request
 
 ## Session Handover
 

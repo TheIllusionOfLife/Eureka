@@ -189,18 +189,10 @@ echo -e "${GREEN}✅ Setup complete!${NC}"
 echo ""
 echo -e "${PURPLE}Quick start:${NC}"
 
-if [ "$API_KEY_CONFIGURED" = true ]; then
-    echo -e "  ${BLUE}mad_spark${NC} 'sustainable energy' 'low cost solutions'      # Topic + Context"
-    echo -e "  ${BLUE}mad_spark${NC} 'how to reduce waste?' 'small business'        # Question + Constraints"
-else
-    echo -e "  ${BLUE}mad_spark${NC} 'sustainable energy' 'low cost solutions'      # Topic + Context (mock mode)"
-    echo -e "  ${BLUE}mad_spark${NC} 'how to reduce waste?' 'small business'        # Question + Constraints (mock mode)"
-fi
+echo -e "  ${BLUE}mad_spark${NC} 'sustainable energy' 'low cost solutions'      # Topic + Context"
 
-echo -e "  ${BLUE}mad_spark coordinator${NC}                                   # Run full multi-agent analysis"
-echo -e "  ${BLUE}mad_spark test${NC}                                         # Run comprehensive test suite"
 echo ""
-echo -e "${PURPLE}Aliases available:${NC} mad_spark, madspark, ms"
+echo -e "${PURPLE}Aliases available:${NC} ms"
 echo ""
 
 if [ "$API_KEY_CONFIGURED" = false ]; then

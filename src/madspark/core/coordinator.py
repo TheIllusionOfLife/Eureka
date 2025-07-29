@@ -333,10 +333,6 @@ def run_multistep_workflow(
         # Validate and clean up parsed ideas
         validated_ideas = []
         for idea in parsed_ideas:
-            # Skip ideas that appear to be truncated (start with lowercase)
-            if idea and idea[0].islower() and not idea.startswith(('http', 'www', 'ftp')):
-                logging.warning(f"Skipping potentially truncated idea: '{idea[:50]}...'")
-                continue
             # Remove leading numbers and dots if present
             cleaned_idea = idea.lstrip('0123456789. \t')
             if cleaned_idea:
@@ -695,9 +691,9 @@ def run_multistep_workflow(
                 temperature=idea_temp
             )
             
-            # Validate improved idea isn't truncated
-            if improved_idea_text and improved_idea_text[0].islower() and not improved_idea_text.startswith(('http', 'www', 'ftp')):
-                logging.warning(f"Improved idea appears truncated: '{improved_idea_text[:50]}...'")
+            # Validate improved idea exists and isn't empty
+            if not improved_idea_text or not improved_idea_text.strip():
+                logging.warning("Improved idea is empty, using original")
                 improved_idea_text = idea_text  # Fallback to original
             
             improve_duration = time.time() - improve_start_time

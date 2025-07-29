@@ -1,7 +1,7 @@
 """Tests for temperature range validation and CLI option fixes."""
 import pytest
 import argparse
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 import sys
 
 from madspark.utils.temperature_control import (

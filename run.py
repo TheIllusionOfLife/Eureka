@@ -23,6 +23,22 @@ if not hasattr(sys, 'prefix') or sys.prefix == sys.base_prefix:
         print("   ./venv/bin/pip install -r config/requirements.txt")
         sys.exit(1)
 
+# Handle early help/version commands BEFORE mode detection
+if len(sys.argv) >= 2 and sys.argv[1] in ['--help', '-h', '--version']:
+    # Suppress mode message for help/version commands
+    os.environ["SUPPRESS_MODE_MESSAGE"] = "1"
+    
+    # For help, pass to CLI module
+    if sys.argv[1] in ['--help', '-h']:
+        try:
+            import runpy
+            sys.argv = ['cli'] + sys.argv[1:]
+            runpy.run_module('madspark.cli.cli', run_name='__main__')
+            sys.exit(0)
+        except Exception as e:
+            print(f"❌ Failed to show help: {e}")
+            sys.exit(1)
+
 # Now in venv, do mode detection
 try:
     from madspark.agents.genai_client import get_mode, is_api_key_configured, load_env_file
@@ -34,12 +50,12 @@ try:
     if not os.getenv("MADSPARK_MODE"):
         mode = get_mode()
         if mode == "mock":
-            os.environ["MADSPARK_MODE"] = "mock"
             if not os.getenv("SUPPRESS_MODE_MESSAGE"):
                 print("🤖 No API key found. Running in mock mode...")
                 print("💡 To use real API: Run 'mad_spark config'")
                 print("")
         else:
+            # Don't set MADSPARK_MODE - let get_mode() handle it dynamically
             if not os.getenv("SUPPRESS_MODE_MESSAGE"):
                 print("✅ API key found. Running with Google Gemini API...")
                 print("")
@@ -67,15 +83,36 @@ if len(sys.argv) < 2:
 
 # Handle simplified syntax - if first arg is not a command, treat as topic
 command = sys.argv[1]
+
+# Help commands are already handled in lines 26-41, so skip here
+
 # List of reserved commands (not topics)
 reserved_commands = ['coordinator', 'cli', 'test', 'config', '--help', '-h', '--version']
 if command not in reserved_commands:
     # This is a topic, not a command - convert to CLI format
     topic = command
-    context = sys.argv[2] if len(sys.argv) > 2 else ""
     
-    # Convert to CLI command format
-    sys.argv = [sys.argv[0], 'cli', topic, context]
+    # Find where the topic arguments end and flags begin
+    # Look for the first argument that starts with '--'
+    flag_start_idx = 2  # Default: no flags
+    for i in range(2, len(sys.argv)):
+        if sys.argv[i].startswith('--'):
+            flag_start_idx = i
+            break
+    
+    # Extract context (if present before flags)
+    context = sys.argv[2] if len(sys.argv) > 2 and not sys.argv[2].startswith('--') else ""
+    
+    # Collect any remaining flags
+    flags = sys.argv[flag_start_idx:] if flag_start_idx < len(sys.argv) else []
+    
+    # Convert to CLI command format, preserving flags
+    # Only include context if it's not empty
+    cli_args = [sys.argv[0], 'cli', topic]
+    if context:  # Only add context if it's not empty
+        cli_args.append(context)
+    cli_args.extend(flags)
+    sys.argv = cli_args
     command = 'cli'
 
 if command == "coordinator":
@@ -90,13 +127,17 @@ if command == "coordinator":
         print(f"❌ Coordinator execution failed: {e}")
         sys.exit(1)
 elif command == "cli":
-    if len(sys.argv) < 4:
-        print("Error: CLI requires topic and context arguments")
-        print("Usage: ./run.py cli <topic> <context>")
+    # Check for at least a topic (context is optional)
+    if len(sys.argv) < 3:
+        print("Error: CLI requires at least a topic argument")
+        print("Usage: ./run.py cli <topic> [context]")
         sys.exit(1)
     try:
         import runpy
-        sys.argv = ['cli', sys.argv[2], sys.argv[3]]
+        # Pass all arguments after 'cli' to the CLI module
+        # Filter out empty strings to avoid argparse issues
+        cli_args = [arg for arg in sys.argv[2:] if arg]
+        sys.argv = ['cli'] + cli_args
         runpy.run_module('madspark.cli.cli', run_name='__main__')
     except ImportError as e:
         print(f"❌ Failed to import CLI module: {e}")

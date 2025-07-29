@@ -51,9 +51,14 @@ mad_spark "your topic here" "your context here"
 ### Usage
 
 ```bash
+# Get help and see all available options
+ms --help                              # Show detailed help with all options and examples
+
+# Basic usage
 mad_spark "how to reduce carbon footprint?" "small business"          # command "question/topic/theme" "constraints/context"
 ms "Come up with innovative ways to teach math" "elementary school"   # ms works the same way.
 ms "I want to learn AI. Guide me."                                    # Second argument is optional.
+ms "future technology"                                                 # Single argument works too - constraints will default
 
 # Output modes for different needs
 ms "healthcare AI" --brief              # Quick summary (default)
@@ -63,6 +68,7 @@ ms "climate solutions" --simple         # Clean
 # Advanced options
 ms "space exploration" --top-ideas 3 --creativity creative    # Generate 3 ideas with high creativity. Default value is 1.
 ms "quantum computing" --enhanced --logical                   # Enhanced reasoning with logical inference
+ms "how the universe began" --top-ideas 3 --enable-cache     # Cache results with Redis for instant repeated queries
 
 # Run the coordinator - full multi-agent analysis system
 # Orchestrates IdeaGenerator, Critic, Advocate, and Skeptic agents
@@ -80,24 +86,59 @@ cd web && docker compose down --volumes --remove-orphans
 
 ### Bookmark Management
 
-Save and reuse your best ideas:
+MadSpark automatically saves all generated ideas as bookmarks for future reference and remixing. Each bookmark includes the improved idea text, score, theme, and timestamp.
+
+#### Key Features:
+- **Automatic Deduplication**: Uses Jaccard similarity (default threshold: 0.8) to prevent saving duplicate ideas
+- **Smart Display**: Bookmarks are truncated to 300 characters in list view for better readability
+- **Full Text Storage**: Complete idea text is preserved in the bookmarks file
+- **Flexible Management**: Add tags, search, remove, and remix bookmarks easily
 
 ```bash
-# Save results automatically
-ms "renewable energy" "urban applications" --bookmark-results
+# Generate ideas - automatically saved as bookmarks
+ms "renewable energy" "urban applications"
+ms "smart cities" --bookmark-tags urban-innovation smart tech  # Add custom tags
 
-# Save with custom name and tags
-ms "smart cities" --save-bookmark "urban-innovation" --bookmark-tags smart tech
+# Generate without saving (use --no-bookmark to disable)
+ms "test idea" --no-bookmark
 
-# List saved bookmarks
+# List all saved bookmarks (shows truncated text for readability)
 ms --list-bookmarks
 
-# Search bookmarks
+# Search bookmarks by content
 ms --search-bookmarks "energy"
+
+# Remove bookmarks by ID (single or multiple)
+ms --remove-bookmark bookmark_20250714_141829_c2f64f14
+ms --remove-bookmark bookmark_123,bookmark_456,bookmark_789
 
 # Generate new ideas based on saved bookmarks (remix mode)
 ms "future technology" --remix --bookmark-tags smart
+ms "future technology" --remix --remix-ids bookmark_123,bookmark_456  # Use specific bookmark IDs
 ```
+
+### Performance Optimization with Redis Caching
+
+If you have Redis installed, you can enable caching to dramatically speed up repeated queries:
+
+```bash
+# Install Redis (if not already installed)
+brew install redis          # macOS
+sudo apt install redis      # Ubuntu/Debian
+
+# Start Redis
+redis-server               # Or: brew services start redis (macOS)
+
+# Use --enable-cache flag
+ms "renewable energy" --enable-cache       # First run: 3-5 seconds
+ms "renewable energy" --enable-cache       # Subsequent runs: <0.1 seconds (from cache)
+```
+
+**Benefits:**
+- **10-100x faster** for repeated identical queries
+- **Cost savings** by avoiding redundant API calls
+- **Ideal for development** when iterating on the same topic
+- **Automatic cache management** - no manual intervention needed
 
 <details>
 <summary>Manual Setup (Advanced)</summary>
@@ -233,9 +274,15 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
 
 #### Session Handover
 
-**Last Updated**: July 28, 2025 7:49 PM JST
+**Last Updated**: July 29, 2025 12:45 PM JST
 
 ##### Recently Completed
+- ✅ **Bookmark System Improvements** (July 29, 2025)
+  - Fixed `ms` alias not passing `--bookmark-results` flag properly in `run.py`
+  - Implemented `--remove-bookmark` command for deleting single or multiple bookmarks
+  - Updated README with comprehensive bookmark management documentation
+  - Maintained consistency by using `--remove-bookmark` to match backend `remove_bookmark` method
+
 - ✅ **[PR #121](https://github.com/TheIllusionOfLife/Eureka/pull/121)**: Enhanced user experience with timeout fixes and improved output formatting
   - Fixed multiple ideas timeout (--top-ideas now works efficiently)
   - Limited --top-ideas range from 1-10 to 1-5

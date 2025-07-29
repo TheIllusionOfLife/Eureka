@@ -11,6 +11,14 @@ from datetime import datetime
 from typing import List, Dict, Any, Optional
 from dataclasses import asdict
 import logging
+import time
+import platform
+
+# Platform-specific imports for file locking
+if platform.system() != 'Windows':
+    import fcntl
+else:
+    fcntl = None  # File locking not supported on Windows in this implementation
 
 try:
     from madspark.utils.constants import HIGH_SCORE_THRESHOLD, MAX_REMIX_BOOKMARKS
@@ -39,17 +47,60 @@ class BookmarkManager:
         self.duplicate_detector = DuplicateDetector(similarity_threshold)
         self._load_bookmarks()
     
+    def _acquire_lock(self, file_handle, timeout: float = 5.0) -> bool:
+        """Acquire a file lock with timeout.
+        
+        Args:
+            file_handle: File handle to lock
+            timeout: Maximum time to wait for lock in seconds
+            
+        Returns:
+            True if lock acquired, False if timeout
+        """
+        if fcntl is None:  # Windows or unsupported platform
+            return True  # Always succeed on Windows
+        
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            try:
+                fcntl.flock(file_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                return True
+            except IOError:
+                time.sleep(0.1)  # Wait briefly before retrying
+        return False
+    
+    def _release_lock(self, file_handle):
+        """Release a file lock."""
+        if fcntl is None:  # Windows or unsupported platform
+            return  # Nothing to do
+        
+        try:
+            fcntl.flock(file_handle.fileno(), fcntl.LOCK_UN)
+        except IOError:
+            pass  # Lock might already be released
+    
     def _load_bookmarks(self):
-        """Load bookmarks from file."""
+        """Load bookmarks from file with file locking."""
         if os.path.exists(self.bookmark_file):
             try:
                 with open(self.bookmark_file, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                    self.bookmarks = {
-                        bookmark_id: BookmarkedIdea(**bookmark_data) 
-                        for bookmark_id, bookmark_data in data.items()
-                    }
-                logger.info(f"Loaded {len(self.bookmarks)} bookmarks from {self.bookmark_file}")
+                    if self._acquire_lock(f):
+                        try:
+                            data = json.load(f)
+                            self.bookmarks = {
+                                bookmark_id: BookmarkedIdea(**bookmark_data) 
+                                for bookmark_id, bookmark_data in data.items()
+                            }
+                            logger.info(f"Loaded {len(self.bookmarks)} bookmarks from {self.bookmark_file}")
+                        finally:
+                            self._release_lock(f)
+                    else:
+                        logger.warning("Failed to acquire lock for loading bookmarks, proceeding without lock")
+                        data = json.load(f)
+                        self.bookmarks = {
+                            bookmark_id: BookmarkedIdea(**bookmark_data) 
+                            for bookmark_id, bookmark_data in data.items()
+                        }
             except (json.JSONDecodeError, IOError, OSError) as e:
                 logger.error(f"Failed to load bookmarks: {e}")
                 self.bookmarks = {}
@@ -57,17 +108,42 @@ class BookmarkManager:
             logger.info(f"No existing bookmark file found at {self.bookmark_file}")
     
     def _save_bookmarks(self):
-        """Save bookmarks to file."""
+        """Save bookmarks to file with file locking."""
+        temp_file = None  # Initialize to avoid NameError in cleanup
         try:
             # Ensure directory exists
             os.makedirs(os.path.dirname(self.bookmark_file) if os.path.dirname(self.bookmark_file) else '.', exist_ok=True)
             
-            data = {id: asdict(bookmark) for id, bookmark in self.bookmarks.items()}
-            with open(self.bookmark_file, 'w', encoding='utf-8') as f:
-                json.dump(data, f, indent=2, ensure_ascii=False)
+            # Create temporary file to write to
+            temp_file = f"{self.bookmark_file}.tmp"
+            
+            # Write to temporary file with lock
+            with open(temp_file, 'w', encoding='utf-8') as f:
+                if self._acquire_lock(f):
+                    try:
+                        data = {id: asdict(bookmark) for id, bookmark in self.bookmarks.items()}
+                        json.dump(data, f, indent=2, ensure_ascii=False)
+                        f.flush()
+                        os.fsync(f.fileno())  # Ensure data is written to disk
+                    finally:
+                        self._release_lock(f)
+                else:
+                    logger.warning("Failed to acquire lock for saving bookmarks, proceeding without lock")
+                    data = {id: asdict(bookmark) for id, bookmark in self.bookmarks.items()}
+                    json.dump(data, f, indent=2, ensure_ascii=False)
+            
+            # Atomically replace the original file
+            os.replace(temp_file, self.bookmark_file)
             logger.debug(f"Saved {len(self.bookmarks)} bookmarks to {self.bookmark_file}")
         except (IOError, OSError) as e:
             logger.error(f"Failed to save bookmarks: {e}")
+            # Clean up temporary file if it exists
+            if temp_file:  # Only attempt cleanup if temp_file was defined
+                try:
+                    if os.path.exists(temp_file):
+                        os.remove(temp_file)
+                except OSError:
+                    pass
     
     def _generate_id(self) -> str:
         """Generate a unique ID for a bookmark."""
@@ -348,18 +424,28 @@ class BookmarkManager:
         
         return result
     
-    def get_remix_context(self, bookmark_ids: Optional[List[str]] = None) -> str:
+    def get_remix_context(self, bookmark_ids: Optional[List[str]] = None, tags: Optional[List[str]] = None) -> str:
         """Generate context for remixing based on bookmarked ideas.
         
         Args:
             bookmark_ids: Optional list of specific bookmark IDs to use.
-                         If None, uses all bookmarks.
+            tags: Optional list of tags to filter bookmarks by.
+                 If None, uses all bookmarks.
             
         Returns:
             Context string for idea generation
         """
         if bookmark_ids:
             bookmarks = [b for id in bookmark_ids if (b := self.get_bookmark(id))]
+        elif tags:
+            # Filter bookmarks by tags
+            all_bookmarks = list(self.bookmarks.values())
+            bookmarks = [
+                bookmark for bookmark in all_bookmarks
+                if any(tag in bookmark.tags for tag in tags)
+            ]
+            # Sort and limit
+            bookmarks = sorted(bookmarks, key=lambda b: b.bookmarked_at, reverse=True)[:MAX_REMIX_BOOKMARKS]
         else:
             bookmarks = sorted(self.bookmarks.values(), key=lambda b: b.bookmarked_at, reverse=True)[:MAX_REMIX_BOOKMARKS]
         
@@ -434,6 +520,7 @@ def remix_with_bookmarks(
     theme: str,
     additional_constraints: str = "",
     bookmark_ids: Optional[List[str]] = None,
+    bookmark_tags: Optional[List[str]] = None,
     bookmark_file: str = "examples/data/bookmarks.json"
 ) -> str:
     """Generate remix context from bookmarks.
@@ -442,13 +529,14 @@ def remix_with_bookmarks(
         theme: New theme for remix
         additional_constraints: Additional constraints
         bookmark_ids: Optional specific bookmarks to use
+        bookmark_tags: Optional tags to filter bookmarks by
         bookmark_file: Bookmark storage file
         
     Returns:
         Enhanced constraints with remix context
     """
     manager = BookmarkManager(bookmark_file)
-    remix_context = manager.get_remix_context(bookmark_ids)
+    remix_context = manager.get_remix_context(bookmark_ids, bookmark_tags)
     
     combined_constraints = f"{additional_constraints}\n\n{remix_context}"
     return combined_constraints.strip()

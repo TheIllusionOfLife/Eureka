@@ -127,49 +127,82 @@ def setup_logging(verbose: bool = False):
         )
 
 
+class BetterHelpFormatter(argparse.RawDescriptionHelpFormatter):
+    """Custom formatter that improves help output readability."""
+    
+    def _format_usage(self, usage, actions, groups, prefix):
+        """Format usage with better line breaks."""
+        if prefix is None:
+            prefix = 'usage: '
+        
+        # Get the program name - use 'ms' if running through the wrapper
+        prog = 'ms' if 'run.py' in sys.argv[0] or self._prog == 'cli' else self._prog
+        
+        # Build a cleaner usage string
+        usage_parts = [prog]
+        
+        # Add main arguments
+        usage_parts.append('[options]')
+        usage_parts.append('topic')
+        usage_parts.append('[context]')
+        
+        # Join with proper spacing
+        usage = '%s%s\n' % (prefix, ' '.join(usage_parts))
+        
+        # Add a note about common operations
+        usage += '\n'
+        usage += 'Common operations:\n'
+        usage += '  %s "your topic"                    # Generate idea with default context\n' % prog
+        usage += '  %s "your topic" "your context"     # Generate idea with specific context\n' % prog
+        usage += '  %s --list-bookmarks                # List saved ideas\n' % prog
+        usage += '  %s --help                          # Show this help\n' % prog
+        
+        return usage
+
+
 def create_parser() -> argparse.ArgumentParser:
     """Create the main argument parser."""
     parser = argparse.ArgumentParser(
         description='MadSpark Multi-Agent Idea Generation System',
-        formatter_class=argparse.RawDescriptionHelpFormatter,
+        formatter_class=BetterHelpFormatter,
         epilog="""
 Examples:
   # Basic usage with topic and context
-  %(prog)s "Future transportation" "Budget-friendly, eco-friendly"
+  ms "Future transportation" "Budget-friendly, eco-friendly"
   
   # Questions (how to solve problems)
-  %(prog)s "How to reduce carbon footprint?" "small business"
+  ms "How to reduce carbon footprint?" "small business"
   
   # Requests (come up with ideas)
-  %(prog)s "Come up with innovative ways to teach math" "elementary school"
+  ms "Come up with innovative ways to teach math" "elementary school"
   
   # General phrases (I want to...)
-  %(prog)s "I want to start a sustainable business. Support me." "zero initial capital"
+  ms "I want to start a sustainable business. Support me." "zero initial capital"
   
-  # High creativity with novelty filtering
-  %(prog)s "Smart cities" "Scalable solutions" -tp creative --novelty-threshold 0.6
+  # Save results with custom tags (bookmarking is automatic)
+  ms "Smart cities" "Scalable solutions" --bookmark-tags smart urban tech
   
   # Enhanced reasoning with multi-dimensional evaluation
-  %(prog)s "AI healthcare" "Rural deployment" --enhanced-reasoning --multi-dimensional-eval
+  ms "AI healthcare" "Rural deployment" --enhanced-reasoning --multi-dimensional-eval
   
   # Generate ideas based on bookmarks (remix)
-  %(prog)s "Green energy" --remix --bookmark-tags renewable
+  ms "Green energy" --remix --bookmark-tags renewable
   
   # Verbose mode with enhanced reasoning for detailed analysis
-  %(prog)s "Sustainable agriculture" "Low-cost" --verbose --enhanced-reasoning
+  ms "Sustainable agriculture" "Low-cost" --verbose --enhanced-reasoning
   
   # List saved bookmarks
-  %(prog)s --list-bookmarks
+  ms --list-bookmarks
   
   # Show temperature presets
-  %(prog)s --list-presets
+  ms --list-presets
   
   # Batch processing
-  %(prog)s --create-sample-batch csv
-  %(prog)s --batch sample_batch.csv --batch-concurrent 5
+  ms --create-sample-batch csv
+  ms --batch sample_batch.csv --batch-concurrent 5
   
   # Interactive mode
-  %(prog)s --interactive
+  ms --interactive
         """
     )
     
@@ -301,13 +334,14 @@ Examples:
     # Temperature control
     add_temperature_arguments(parser)
     
-    # Bookmark management
-    bookmark_group = parser.add_argument_group('bookmark management')
+    # Bookmark management (automatic by default)
+    bookmark_group = parser.add_argument_group('bookmark management', 
+                                              'All generated ideas are automatically bookmarked for future reference')
     
     bookmark_group.add_argument(
-        '--bookmark-results',
+        '--no-bookmark',
         action='store_true',
-        help='Automatically bookmark generated results'
+        help='Disable automatic bookmarking of generated ideas'
     )
     
     bookmark_group.add_argument(
@@ -335,9 +369,9 @@ Examples:
     )
     
     bookmark_group.add_argument(
-        '--save-bookmark',
-        metavar='NAME',
-        help='Save generated results as a bookmark with the given name'
+        '--remove-bookmark',
+        metavar='IDS',
+        help='Remove bookmarks by ID (comma-separated for multiple)'
     )
     
     bookmark_group.add_argument(
@@ -463,6 +497,33 @@ Examples:
     return parser
 
 
+def truncate_text_intelligently(text: str, max_length: int = 300) -> str:
+    """Truncate text at a sensible boundary (sentence or word).
+    
+    Args:
+        text: Text to truncate
+        max_length: Maximum length before truncation
+        
+    Returns:
+        Truncated text with ellipsis if needed
+    """
+    if len(text) <= max_length:
+        return text
+    
+    # Find a good breaking point (end of sentence or word)
+    truncated = text[:max_length]
+    last_period = truncated.rfind('.')
+    last_space = truncated.rfind(' ')
+    
+    # Prefer to break at sentence end, otherwise at word boundary
+    if last_period > max_length - 50:  # If period is near the end
+        truncated = truncated[:last_period + 1]
+    elif last_space > 0:
+        truncated = truncated[:last_space]
+    
+    return f"{truncated}..."
+
+
 def list_bookmarks_command(args: argparse.Namespace):
     """Handle the list bookmarks command."""
     bookmarks = list_bookmarks_cli(args.bookmark_file)
@@ -475,7 +536,7 @@ def list_bookmarks_command(args: argparse.Namespace):
     
     for bookmark in bookmarks:
         print(f"ID: {bookmark['id']}")
-        print(f"Text: {bookmark['text']}")
+        print(f"Text: {truncate_text_intelligently(bookmark['text'])}")
         print(f"Theme: {bookmark['theme']}")
         print(f"Score: {bookmark['score']}")
         print(f"Bookmarked: {bookmark['bookmarked_at']}")
@@ -497,10 +558,35 @@ def search_bookmarks_command(args: argparse.Namespace):
     
     for bookmark in matches:
         print(f"ID: {bookmark.id}")
-        print(f"Text: {bookmark.text}")
+        print(f"Text: {truncate_text_intelligently(bookmark.text)}")
         print(f"Theme: {bookmark.theme}")
         print(f"Score: {bookmark.score}")
         print("-" * 60)
+
+
+def remove_bookmark_command(args: argparse.Namespace):
+    """Handle the remove bookmark command."""
+    manager = BookmarkManager(args.bookmark_file)
+    
+    # Parse comma-separated IDs
+    bookmark_ids = [id.strip() for id in args.remove_bookmark.split(',')]
+    
+    removed_count = 0
+    failed_count = 0
+    
+    for bookmark_id in bookmark_ids:
+        if manager.remove_bookmark(bookmark_id):
+            print(f"✅ Removed bookmark: {bookmark_id}")
+            removed_count += 1
+        else:
+            print(f"❌ Failed to remove bookmark: {bookmark_id} (not found)")
+            failed_count += 1
+    
+    # Summary
+    print(f"\n📊 Summary: {removed_count} removed, {failed_count} failed")
+    
+    if removed_count > 0:
+        print(f"💾 Bookmarks file updated: {args.bookmark_file}")
 
 
 def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
@@ -768,6 +854,10 @@ def main():
         search_bookmarks_command(args)
         return
     
+    if args.remove_bookmark:
+        remove_bookmark_command(args)
+        return
+    
     if hasattr(args, 'list_presets') and args.list_presets:
         print(TemperatureManager.describe_presets())
         return
@@ -896,6 +986,7 @@ def main():
                 theme=args.theme,
                 additional_constraints=args.constraints,
                 bookmark_ids=args.remix_ids,
+                bookmark_tags=args.bookmark_tags,
                 bookmark_file=args.bookmark_file
             )
         except Exception as e:
@@ -978,28 +1069,56 @@ def main():
             print("No ideas were generated. Check the logs for details.")
             sys.exit(1)
         
-        # Bookmark results if requested (either automatic or with custom reference)
-        if args.bookmark_results or args.save_bookmark:
+        # Bookmark results by default (unless disabled)
+        if not args.no_bookmark:
+            logger.info(f"Bookmarking requested. Processing {len(results)} results...")
             manager = BookmarkManager(args.bookmark_file)
+            bookmark_success = False
             for result in results:
-                # Use the save_bookmark name as a tag if provided
-                bookmark_tags = args.bookmark_tags or []
-                if args.save_bookmark:
-                    bookmark_tags.append(f"name:{args.save_bookmark}")
-                
-                bookmark_id = manager.bookmark_idea(
-                    idea_text=result.get("idea", ""),
-                    theme=args.theme,
-                    constraints=args.constraints,
-                    score=result.get("initial_score", 0),
-                    critique=result.get("initial_critique", ""),
-                    advocacy=result.get("advocacy", ""),
-                    skepticism=result.get("skepticism", ""),
-                    tags=bookmark_tags
-                )
-                if args.save_bookmark:
-                    print(f"✅ Saved bookmark: {args.save_bookmark} (ID: {bookmark_id})")
-                logger.info(f"Bookmarked result as {bookmark_id}")
+                try:
+                    # Get the best version of the idea (improved if available, otherwise original)
+                    idea_text = result.get("improved_idea", "") or result.get("idea", "")
+                    if not idea_text:
+                        logger.warning("Cannot bookmark result: missing both 'improved_idea' and 'idea' fields")
+                        print("⚠️  Warning: Result missing idea text, skipping bookmark")
+                        continue
+                    
+                    # Use the best score (improved if available, otherwise initial)
+                    score = result.get("improved_score", result.get("initial_score", 0))
+                    
+                    # Use the best critique (improved if available, otherwise initial)
+                    critique = result.get("improved_critique", result.get("initial_critique", ""))
+                    
+                    # Use provided tags or empty list
+                    bookmark_tags = args.bookmark_tags or []
+                    
+                    bookmark_id = manager.bookmark_idea(
+                        idea_text=idea_text,
+                        theme=args.theme,
+                        constraints=args.constraints,
+                        score=score,
+                        critique=critique,
+                        advocacy=result.get("advocacy", ""),
+                        skepticism=result.get("skepticism", ""),
+                        tags=bookmark_tags
+                    )
+                    
+                    if bookmark_id:
+                        bookmark_success = True
+                        print(f"✅ Bookmarked result (ID: {bookmark_id})")
+                        if bookmark_tags:
+                            print(f"   Tags: {', '.join(bookmark_tags)}")
+                        logger.info(f"Bookmarked result as {bookmark_id}")
+                    else:
+                        logger.warning("Bookmark creation returned no ID")
+                        
+                except Exception as e:
+                    logger.error(f"Failed to bookmark result: {e}")
+                    print(f"❌ Error saving bookmark: {e}")
+                    
+            if not bookmark_success and not args.no_bookmark:
+                print("\n💡 Tip: To manually bookmark this result later, save the output to a file:")
+                print(f"   ms \"{args.theme}\" \"{args.constraints}\" --output-file result.txt")
         
         # Export results if requested (Phase 2.2)
         if args.export:

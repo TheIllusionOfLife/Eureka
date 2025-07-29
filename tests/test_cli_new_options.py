@@ -18,15 +18,15 @@ class TestNewCLIOptions:
     """Test suite for new CLI options that should be implemented."""
     
     def test_creativity_preset_option(self):
-        """Test --creativity option with presets."""
+        """Test --temperature-preset option with presets."""
         parser = create_parser()
         
         # Test valid presets
-        valid_presets = ['conservative', 'balanced', 'creative', 'experimental']
+        valid_presets = ['conservative', 'balanced', 'creative', 'wild']
         for preset in valid_presets:
-            args = parser.parse_args(['test topic', '--creativity', preset])
-            assert hasattr(args, 'creativity'), "Should have creativity attribute"
-            assert args.creativity == preset, f"Should parse {preset} correctly"
+            args = parser.parse_args(['test topic', '--temperature-preset', preset])
+            assert hasattr(args, 'temperature_preset'), "Should have temperature_preset attribute"
+            assert args.temperature_preset == preset, f"Should parse {preset} correctly"
     
     def test_top_ideas_option(self):
         """Test --top-ideas option for controlling number of ideas."""
@@ -207,7 +207,7 @@ class TestHelpSystem:
         
         # Should contain all new options
         expected_options = [
-            '--creativity', '--top-ideas', '--temperature', '--brief', 
+            '--temperature-preset', '--top-ideas', '--temperature', '--brief', 
             '--detailed', '--enhanced', '--logical', '--no-logs',
             '--no-bookmark', '--list-bookmarks', '--remix-bookmarks',
             '--similarity'

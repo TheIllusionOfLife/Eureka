@@ -77,7 +77,7 @@ ms "climate solutions" --simple         # Clean
 
 # Advanced options
 # Generate 3 ideas with high creativity. Default value is 1.
-ms "space exploration" --top-ideas 3 --creativity creative
+ms "space exploration" --top-ideas 3 --temperature-preset creative
 
 # Enhanced reasoning with logical inference    
 ms "quantum computing" --enhanced --logical
@@ -86,7 +86,7 @@ ms "quantum computing" --enhanced --logical
 ms "how the universe began" --top-ideas 3 --enable-cache
 
 # Combined options
-ms "main prompt" "context" --top-ideas 5 --creativity creative --enhanced --logical --enable-cache
+ms "main prompt" "context" --top-ideas 5 --temperature-preset creative --enhanced --logical --enable-cache
 
 # Run the coordinator - full multi-agent analysis system
 # Orchestrates IdeaGenerator, Critic, Advocate, and Skeptic agents
@@ -255,7 +255,7 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
 
 **Last Updated**: July 29, 2025 04:04 PM JST
 
-#### Recently Completed
+### Recently Completed
 - ✅ **[PR #123](https://github.com/TheIllusionOfLife/Eureka/pull/123)**: CLI improvements - automatic bookmarking, optional context, and flag passing (July 29, 2025)
   - **Automatic Bookmarking**: Changed from opt-in (`--bookmark-results`) to opt-out (`--no-bookmark`) approach
   - **Optional Context**: Made second parameter optional - users can now run `ms "topic"` without context

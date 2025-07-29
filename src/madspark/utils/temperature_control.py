@@ -93,7 +93,7 @@ class TemperatureManager:
         """Create manager with scaled temperatures based on a base value.
         
         Args:
-            temperature: Base temperature (0.0-1.0)
+            temperature: Base temperature (0.0-2.0)
             
         Returns:
             TemperatureManager with scaled configuration
@@ -101,7 +101,7 @@ class TemperatureManager:
         # Scale other temperatures relative to base
         config = TemperatureConfig(
             base_temperature=temperature,
-            idea_generation=min(1.0, temperature * 1.3),  # Slightly higher for creativity
+            idea_generation=min(2.0, temperature * 1.3),  # Slightly higher for creativity
             evaluation=max(0.1, temperature * 0.4),       # Lower for consistency  
             advocacy=temperature,                          # Same as base
             skepticism=temperature                         # Same as base
@@ -175,7 +175,7 @@ def add_temperature_arguments(parser: argparse.ArgumentParser):
         '--temperature', '-t',
         type=float,
         metavar='TEMP',
-        help='Base temperature for creativity (0.0-1.0, default: 0.7)'
+        help='Base temperature for creativity (0.0-2.0, default: 0.7)'
     )
     
     temp_group.add_argument(
@@ -209,8 +209,8 @@ def create_temperature_manager_from_args(args: argparse.Namespace) -> Temperatur
         return TemperatureManager.from_preset(args.temperature_preset)
     
     if hasattr(args, 'temperature') and args.temperature is not None:
-        if not 0.0 <= args.temperature <= 1.0:
-            raise TemperatureError("Temperature must be between 0.0 and 1.0")
+        if not 0.0 <= args.temperature <= 2.0:
+            raise TemperatureError("Temperature must be between 0.0 and 2.0")
         logger.info(f"Using base temperature: {args.temperature}")
         return TemperatureManager.from_base_temperature(args.temperature)
     

@@ -244,39 +244,9 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
 
 ## Session Handover
 
-##### Last updated: 2025-07-24
-
-#### Recently Completed
-
-- ✅ **PR #115**: User-friendly setup and bookmark fixes
-  - Created `run.py` and `setup.sh` for 2-step installation (was 8+ steps)
-  - Consolidated API key management to single `.env` file
-  - Fixed bookmark API field mismatch (theme→topic, constraints→context)
-  - Added character truncation for 10k char database limits
-  - Resolved all TypeScript compilation errors
-  - Addressed feedback from 5 review bots (claude, coderabbit, cursor, gemini, windsurf)
-
-- ✅ **PR #112**: Restored validation scripts and documentation
-  - Fixed shell script error handling (removed `set -e` for complete reporting)
-  - Dynamic git default branch detection
-  - Case-insensitive markdown file categorization
-
-- ✅ **PR #111**: Restored comprehensive integration tests
-  - System, Docker, Web API, error handling, and performance tests
-  - 759 lines of test coverage improvements
-
-- ✅ **PR #110**: Restored CI/CD improvements and pre-commit hooks
-  - Fixed coverage upload for main branch
-  - Corrected misleading error messages
-
-- ✅ **PR #107**: CI/CD performance optimization (20min → 2-4min, 85-90% improvement)
-  - Conditional Python matrix, parallel execution, workflow separation
-
-#### Session Handover
-
 **Last Updated**: July 29, 2025 04:04 PM JST
 
-##### Recently Completed
+#### Recently Completed
 - ✅ **[PR #123](https://github.com/TheIllusionOfLife/Eureka/pull/123)**: CLI improvements - automatic bookmarking, optional context, and flag passing (July 29, 2025)
   - **Automatic Bookmarking**: Changed from opt-in (`--bookmark-results`) to opt-out (`--no-bookmark`) approach
   - **Optional Context**: Made second parameter optional - users can now run `ms "topic"` without context
@@ -313,6 +283,20 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
    - **Potential**: Implement `--batch` processing for multiple topics
    - **Approach**: Extend existing CLI infrastructure to support batch operations
    - **Priority**: Medium - would leverage recent CLI architecture improvements
+
+#### Previous Milestones
+
+- ✅ **PR #115**: User-friendly setup and bookmark fixes (July 24, 2025)
+  - Created `run.py` and `setup.sh` for 2-step installation (was 8+ steps)
+  - Consolidated API key management to single `.env` file
+  - Fixed bookmark API field mismatch (theme→topic, constraints→context)
+
+- ✅ **PR #111**: Restored comprehensive integration tests
+  - System, Docker, Web API, error handling, and performance tests
+  - 759 lines of test coverage improvements
+
+- ✅ **PR #107**: CI/CD performance optimization (20min → 2-4min, 85-90% improvement)
+  - Conditional Python matrix, parallel execution, workflow separation
 
 #### Known Issues & Follow-up Items
 

@@ -58,6 +58,7 @@ ms --help                              # Show detailed help with all options and
 mad_spark "how to reduce carbon footprint?" "small business"          # command "question/topic/theme" "constraints/context"
 ms "Come up with innovative ways to teach math" "elementary school"   # ms works the same way.
 ms "I want to learn AI. Guide me."                                    # Second argument is optional.
+ms "future technology"                                                 # Single argument works too - constraints will default
 
 # Output modes for different needs
 ms "healthcare AI" --brief              # Quick summary (default)
@@ -90,8 +91,8 @@ Save and reuse your best ideas:
 # Save results automatically
 ms "renewable energy" "urban applications" --bookmark-results
 
-# Save with custom name and tags
-ms "smart cities" "sustainable infrastructure" --save-bookmark "urban-innovation" --bookmark-tags smart tech
+# Save with custom name and tags (use empty string "" if no constraints needed)
+ms "smart cities" "" --save-bookmark "urban-innovation" --bookmark-tags smart tech
 
 # List saved bookmarks
 ms --list-bookmarks

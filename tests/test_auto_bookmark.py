@@ -5,15 +5,12 @@ import json
 import os
 from unittest.mock import Mock, patch
 import argparse
-from pathlib import Path
 
 # Import after adding to path
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from madspark.cli.cli import main
-from madspark.utils.bookmark_system import BookmarkManager
-from madspark.core.coordinator import run_multistep_workflow
 
 
 class TestAutomaticBookmarking:

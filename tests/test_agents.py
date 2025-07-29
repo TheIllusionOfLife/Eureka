@@ -87,7 +87,7 @@ class TestIdeaGenerator:
             assert f"User's main prompt:\n{topic}" in prompt, f"Failed for {description}"
             assert "generate a list of diverse and creative ideas" in prompt
             assert "test context" in prompt
-            assert "Ideas (exactly 5):\n" in prompt  # Check for trailing newline
+            assert "Start your response here with idea #1:" in prompt  # Check for the actual prompt ending
     
     def test_build_generation_prompt_structure(self):
         """Test the detailed structure of the generated prompt."""
@@ -101,24 +101,24 @@ class TestIdeaGenerator:
         # Find the index of key sections
         user_prompt_idx = None
         context_idx = None
-        ideas_idx = None
+        start_response_idx = None
         
         for i, line in enumerate(lines):
             if line.strip() == "User's main prompt:":
                 user_prompt_idx = i
             elif line.strip() == "Context:":
                 context_idx = i
-            elif line.strip().startswith("Ideas"):
-                ideas_idx = i
+            elif "Start your response here with idea #1:" in line:
+                start_response_idx = i
         
         # Verify structure
         assert user_prompt_idx is not None, "Missing 'User's main prompt:' header"
         assert context_idx is not None, "Missing 'Context:' header"
-        assert ideas_idx is not None, "Missing 'Ideas:' header"
+        assert start_response_idx is not None, "Missing 'Start your response here' instruction"
         
         # Verify order
         assert user_prompt_idx < context_idx, "User prompt should come before context"
-        assert context_idx < ideas_idx, "Context should come before Ideas"
+        assert context_idx < start_response_idx, "Context should come before response instruction"
         
         # Verify content placement
         assert topic in lines[user_prompt_idx + 1], "Topic not found after User's main prompt header"

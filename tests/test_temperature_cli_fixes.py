@@ -133,7 +133,7 @@ class TestCLIIntegration:
     def test_cli_with_temperature_2_0(self, mock_getenv, mock_workflow):
         """Test CLI accepts temperature 2.0 (currently fails)."""
         mock_getenv.return_value = "test_api_key"
-        mock_workflow.return_value = {"idea": "test", "score": 8.0}
+        mock_workflow.return_value = [{"idea": "test", "score": 8.0}]
         
         # Simulate command line args
         test_args = ['cli.py', 'test topic', '--temperature', '2.0', '--no-bookmark']
@@ -148,7 +148,7 @@ class TestCLIIntegration:
     def test_cli_with_wild_preset(self, mock_getenv, mock_workflow):
         """Test CLI accepts wild preset."""
         mock_getenv.return_value = "test_api_key"
-        mock_workflow.return_value = {"idea": "test", "score": 8.0}
+        mock_workflow.return_value = [{"idea": "test", "score": 8.0}]
         
         test_args = ['cli.py', 'test topic', '--temperature-preset', 'wild', '--no-bookmark']
         

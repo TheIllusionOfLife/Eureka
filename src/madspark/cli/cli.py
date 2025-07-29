@@ -285,13 +285,6 @@ Examples:
     )
     
     workflow_group.add_argument(
-        '--creativity',
-        choices=['conservative', 'balanced', 'creative', 'experimental'],
-        help='Creativity level preset'
-    )
-    
-    
-    workflow_group.add_argument(
         '--similarity',
         dest='similarity_threshold',
         type=float,
@@ -968,10 +961,6 @@ def main():
     
     # Setup temperature management
     try:
-        # Map creativity preset to temperature_preset if provided
-        if hasattr(args, 'creativity') and args.creativity:
-            args.temperature_preset = args.creativity
-            
         temp_manager = create_temperature_manager_from_args(args)
         logger.info(temp_manager.describe_settings())
     except (ValueError, ValidationError) as e:

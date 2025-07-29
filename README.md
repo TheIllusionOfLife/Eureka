@@ -248,16 +248,6 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
 - **[Interactive Mode Guide](docs/INTERACTIVE_MODE_GUIDE.md)** - Conversational interface
 - **[Web Interface Guide](docs/WEB_INTERFACE_GUIDE.md)** - Modern web UI
 
-## Contributing
-
-1. Fork the repository
-2. Create feature branch: `git checkout -b feature/your-feature`
-3. Make changes and add tests
-4. Run test suite: `pytest tests/`
-5. Commit: `git commit -m "Add feature"`
-6. Push: `git push origin feature/your-feature`
-7. Create Pull Request
-
 ## Session Handover
 
 **Last Updated**: July 29, 2025 04:04 PM JST

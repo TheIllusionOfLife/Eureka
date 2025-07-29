@@ -127,11 +127,44 @@ def setup_logging(verbose: bool = False):
         )
 
 
+class BetterHelpFormatter(argparse.RawDescriptionHelpFormatter):
+    """Custom formatter that improves help output readability."""
+    
+    def _format_usage(self, usage, actions, groups, prefix):
+        """Format usage with better line breaks."""
+        if prefix is None:
+            prefix = 'usage: '
+        
+        # Get the program name
+        prog = '%(prog)s' % dict(prog=self._prog)
+        
+        # Build a cleaner usage string
+        usage_parts = [prog]
+        
+        # Add main arguments
+        usage_parts.append('[options]')
+        usage_parts.append('topic')
+        usage_parts.append('[context]')
+        
+        # Join with proper spacing
+        usage = '%s%s\n' % (prefix, ' '.join(usage_parts))
+        
+        # Add a note about common operations
+        usage += '\n'
+        usage += 'Common operations:\n'
+        usage += '  %(prog)s "your topic"                    # Generate idea with default context\n' % dict(prog=self._prog)
+        usage += '  %(prog)s "your topic" "your context"     # Generate idea with specific context\n' % dict(prog=self._prog)
+        usage += '  %(prog)s --list-bookmarks                # List saved ideas\n' % dict(prog=self._prog)
+        usage += '  %(prog)s --help                          # Show this help\n' % dict(prog=self._prog)
+        
+        return usage
+
+
 def create_parser() -> argparse.ArgumentParser:
     """Create the main argument parser."""
     parser = argparse.ArgumentParser(
         description='MadSpark Multi-Agent Idea Generation System',
-        formatter_class=argparse.RawDescriptionHelpFormatter,
+        formatter_class=BetterHelpFormatter,
         epilog="""
 Examples:
   # Basic usage with topic and context

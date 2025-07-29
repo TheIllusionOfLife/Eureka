@@ -23,6 +23,22 @@ if not hasattr(sys, 'prefix') or sys.prefix == sys.base_prefix:
         print("   ./venv/bin/pip install -r config/requirements.txt")
         sys.exit(1)
 
+# Handle early help/version commands BEFORE mode detection
+if len(sys.argv) >= 2 and sys.argv[1] in ['--help', '-h', '--version']:
+    # Suppress mode message for help/version commands
+    os.environ["SUPPRESS_MODE_MESSAGE"] = "1"
+    
+    # For help, pass to CLI module
+    if sys.argv[1] in ['--help', '-h']:
+        try:
+            import runpy
+            sys.argv = ['cli'] + sys.argv[1:]
+            runpy.run_module('madspark.cli.cli', run_name='__main__')
+            sys.exit(0)
+        except Exception as e:
+            print(f"❌ Failed to show help: {e}")
+            sys.exit(1)
+
 # Now in venv, do mode detection
 try:
     from madspark.agents.genai_client import get_mode, is_api_key_configured, load_env_file
@@ -68,7 +84,7 @@ if len(sys.argv) < 2:
 # Handle simplified syntax - if first arg is not a command, treat as topic
 command = sys.argv[1]
 
-# Handle help commands first
+# Handle help commands (already handled above, but kept for other flows)
 if command in ['--help', '-h']:
     try:
         import runpy

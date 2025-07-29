@@ -146,8 +146,8 @@ Examples:
   # General phrases (I want to...)
   %(prog)s "I want to start a sustainable business. Support me." "zero initial capital"
   
-  # High creativity with novelty filtering
-  %(prog)s "Smart cities" "Scalable solutions" -tp creative --novelty-threshold 0.6
+  # Save results with custom tags (bookmarking is automatic)
+  %(prog)s "Smart cities" "Scalable solutions" --bookmark-tags smart urban tech
   
   # Enhanced reasoning with multi-dimensional evaluation
   %(prog)s "AI healthcare" "Rural deployment" --enhanced-reasoning --multi-dimensional-eval
@@ -301,13 +301,14 @@ Examples:
     # Temperature control
     add_temperature_arguments(parser)
     
-    # Bookmark management
-    bookmark_group = parser.add_argument_group('bookmark management')
+    # Bookmark management (automatic by default)
+    bookmark_group = parser.add_argument_group('bookmark management', 
+                                              'All generated ideas are automatically bookmarked for future reference')
     
     bookmark_group.add_argument(
-        '--bookmark-results',
+        '--no-bookmark',
         action='store_true',
-        help='Automatically bookmark generated results'
+        help='Disable automatic bookmarking of generated ideas'
     )
     
     bookmark_group.add_argument(
@@ -335,9 +336,9 @@ Examples:
     )
     
     bookmark_group.add_argument(
-        '--save-bookmark',
-        metavar='NAME',
-        help='Save generated results as a bookmark with the given name'
+        '--remove-bookmark',
+        metavar='IDS',
+        help='Remove bookmarks by ID (comma-separated for multiple)'
     )
     
     bookmark_group.add_argument(
@@ -473,9 +474,30 @@ def list_bookmarks_command(args: argparse.Namespace):
     
     print(f"Found {len(bookmarks)} bookmarks:\n")
     
+    # Maximum length for displayed text (preserving readability)
+    MAX_DISPLAY_LENGTH = 300
+    
     for bookmark in bookmarks:
         print(f"ID: {bookmark['id']}")
-        print(f"Text: {bookmark['text']}")
+        
+        # Truncate text if too long, but show the beginning
+        text = bookmark['text']
+        if len(text) > MAX_DISPLAY_LENGTH:
+            # Find a good breaking point (end of sentence or word)
+            truncated = text[:MAX_DISPLAY_LENGTH]
+            last_period = truncated.rfind('.')
+            last_space = truncated.rfind(' ')
+            
+            # Prefer to break at sentence end, otherwise at word boundary
+            if last_period > MAX_DISPLAY_LENGTH - 50:  # If period is near the end
+                truncated = truncated[:last_period + 1]
+            elif last_space > 0:
+                truncated = truncated[:last_space]
+            
+            print(f"Text: {truncated}...")
+        else:
+            print(f"Text: {text}")
+            
         print(f"Theme: {bookmark['theme']}")
         print(f"Score: {bookmark['score']}")
         print(f"Bookmarked: {bookmark['bookmarked_at']}")
@@ -495,12 +517,58 @@ def search_bookmarks_command(args: argparse.Namespace):
     
     print(f"Found {len(matches)} matching bookmarks:\n")
     
+    # Maximum length for displayed text (same as list command)
+    MAX_DISPLAY_LENGTH = 300
+    
     for bookmark in matches:
         print(f"ID: {bookmark.id}")
-        print(f"Text: {bookmark.text}")
+        
+        # Truncate text if too long
+        text = bookmark.text
+        if len(text) > MAX_DISPLAY_LENGTH:
+            # Find a good breaking point (end of sentence or word)
+            truncated = text[:MAX_DISPLAY_LENGTH]
+            last_period = truncated.rfind('.')
+            last_space = truncated.rfind(' ')
+            
+            # Prefer to break at sentence end, otherwise at word boundary
+            if last_period > MAX_DISPLAY_LENGTH - 50:  # If period is near the end
+                truncated = truncated[:last_period + 1]
+            elif last_space > 0:
+                truncated = truncated[:last_space]
+            
+            print(f"Text: {truncated}...")
+        else:
+            print(f"Text: {text}")
+            
         print(f"Theme: {bookmark.theme}")
         print(f"Score: {bookmark.score}")
         print("-" * 60)
+
+
+def remove_bookmark_command(args: argparse.Namespace):
+    """Handle the remove bookmark command."""
+    manager = BookmarkManager(args.bookmark_file)
+    
+    # Parse comma-separated IDs
+    bookmark_ids = [id.strip() for id in args.remove_bookmark.split(',')]
+    
+    removed_count = 0
+    failed_count = 0
+    
+    for bookmark_id in bookmark_ids:
+        if manager.remove_bookmark(bookmark_id):
+            print(f"✅ Removed bookmark: {bookmark_id}")
+            removed_count += 1
+        else:
+            print(f"❌ Failed to remove bookmark: {bookmark_id} (not found)")
+            failed_count += 1
+    
+    # Summary
+    print(f"\n📊 Summary: {removed_count} removed, {failed_count} failed")
+    
+    if removed_count > 0:
+        print(f"💾 Bookmarks file updated: {args.bookmark_file}")
 
 
 def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
@@ -768,6 +836,10 @@ def main():
         search_bookmarks_command(args)
         return
     
+    if args.remove_bookmark:
+        remove_bookmark_command(args)
+        return
+    
     if hasattr(args, 'list_presets') and args.list_presets:
         print(TemperatureManager.describe_presets())
         return
@@ -979,30 +1051,35 @@ def main():
             print("No ideas were generated. Check the logs for details.")
             sys.exit(1)
         
-        # Bookmark results if requested (either automatic or with custom reference)
-        if args.bookmark_results or args.save_bookmark:
+        # Bookmark results by default (unless disabled)
+        if not hasattr(args, 'no_bookmark') or not args.no_bookmark:
+            logger.info(f"Bookmarking requested. Processing {len(results)} results...")
             manager = BookmarkManager(args.bookmark_file)
             bookmark_success = False
             for result in results:
                 try:
-                    # Validate required fields
-                    idea_text = result.get("idea", "")
+                    # Get the best version of the idea (improved if available, otherwise original)
+                    idea_text = result.get("improved_idea", "") or result.get("idea", "")
                     if not idea_text:
-                        logger.warning("Cannot bookmark result: missing 'idea' field")
+                        logger.warning("Cannot bookmark result: missing both 'improved_idea' and 'idea' fields")
                         print("⚠️  Warning: Result missing idea text, skipping bookmark")
                         continue
                     
-                    # Use the save_bookmark name as a tag if provided
+                    # Use the best score (improved if available, otherwise initial)
+                    score = result.get("improved_score", result.get("initial_score", 0))
+                    
+                    # Use the best critique (improved if available, otherwise initial)
+                    critique = result.get("improved_critique", result.get("initial_critique", ""))
+                    
+                    # Use provided tags or empty list
                     bookmark_tags = args.bookmark_tags or []
-                    if args.save_bookmark:
-                        bookmark_tags.append(f"name:{args.save_bookmark}")
                     
                     bookmark_id = manager.bookmark_idea(
                         idea_text=idea_text,
                         theme=args.theme,
                         constraints=args.constraints,
-                        score=result.get("initial_score", 0),
-                        critique=result.get("initial_critique", ""),
+                        score=score,
+                        critique=critique,
                         advocacy=result.get("advocacy", ""),
                         skepticism=result.get("skepticism", ""),
                         tags=bookmark_tags
@@ -1010,8 +1087,9 @@ def main():
                     
                     if bookmark_id:
                         bookmark_success = True
-                        if args.save_bookmark:
-                            print(f"✅ Saved bookmark: {args.save_bookmark} (ID: {bookmark_id})")
+                        print(f"✅ Bookmarked result (ID: {bookmark_id})")
+                        if bookmark_tags:
+                            print(f"   Tags: {', '.join(bookmark_tags)}")
                         logger.info(f"Bookmarked result as {bookmark_id}")
                     else:
                         logger.warning("Bookmark creation returned no ID")
@@ -1020,7 +1098,7 @@ def main():
                     logger.error(f"Failed to bookmark result: {e}")
                     print(f"❌ Error saving bookmark: {e}")
                     
-            if not bookmark_success and (args.bookmark_results or args.save_bookmark):
+            if not bookmark_success and (not hasattr(args, 'no_bookmark') or not args.no_bookmark):
                 print("\n💡 Tip: To manually bookmark this result later, save the output to a file:")
                 print(f"   ms \"{args.theme}\" \"{args.constraints}\" --output-file result.txt")
         

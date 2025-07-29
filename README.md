@@ -85,20 +85,31 @@ cd web && docker compose down --volumes --remove-orphans
 
 ### Bookmark Management
 
-Save and reuse your best ideas:
+MadSpark automatically saves all generated ideas as bookmarks for future reference and remixing. Each bookmark includes the improved idea text, score, theme, and timestamp.
+
+#### Key Features:
+- **Automatic Deduplication**: Uses Jaccard similarity (default threshold: 0.8) to prevent saving duplicate ideas
+- **Smart Display**: Bookmarks are truncated to 300 characters in list view for better readability
+- **Full Text Storage**: Complete idea text is preserved in the bookmarks file
+- **Flexible Management**: Add tags, search, remove, and remix bookmarks easily
 
 ```bash
-# Save results automatically
-ms "renewable energy" "urban applications" --bookmark-results
+# Generate ideas - automatically saved as bookmarks
+ms "renewable energy" "urban applications"
+ms "smart cities" --bookmark-tags urban-innovation smart tech  # Add custom tags
 
-# Save with custom name and tags (use empty string "" if no constraints needed)
-ms "smart cities" "" --save-bookmark "urban-innovation" --bookmark-tags smart tech
+# Generate without saving (use --no-bookmark to disable)
+ms "test idea" --no-bookmark
 
-# List saved bookmarks
+# List all saved bookmarks (shows truncated text for readability)
 ms --list-bookmarks
 
-# Search bookmarks
+# Search bookmarks by content
 ms --search-bookmarks "energy"
+
+# Remove bookmarks by ID (single or multiple)
+ms --remove-bookmark bookmark_20250714_141829_c2f64f14
+ms --remove-bookmark bookmark_123,bookmark_456,bookmark_789
 
 # Generate new ideas based on saved bookmarks (remix mode)
 ms "future technology" --remix --bookmark-tags smart
@@ -239,9 +250,15 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
 
 #### Session Handover
 
-**Last Updated**: July 28, 2025 7:49 PM JST
+**Last Updated**: July 29, 2025 12:45 PM JST
 
 ##### Recently Completed
+- ✅ **Bookmark System Improvements** (July 29, 2025)
+  - Fixed `ms` alias not passing `--bookmark-results` flag properly in `run.py`
+  - Implemented `--remove-bookmark` command for deleting single or multiple bookmarks
+  - Updated README with comprehensive bookmark management documentation
+  - Maintained consistency by using `--remove-bookmark` to match backend `remove_bookmark` method
+
 - ✅ **[PR #121](https://github.com/TheIllusionOfLife/Eureka/pull/121)**: Enhanced user experience with timeout fixes and improved output formatting
   - Fixed multiple ideas timeout (--top-ideas now works efficiently)
   - Limited --top-ideas range from 1-10 to 1-5

@@ -125,9 +125,10 @@ if command == "coordinator":
         print(f"❌ Coordinator execution failed: {e}")
         sys.exit(1)
 elif command == "cli":
-    if len(sys.argv) < 4:
-        print("Error: CLI requires topic and context arguments")
-        print("Usage: ./run.py cli <topic> <context>")
+    # Check for at least a topic (context is optional)
+    if len(sys.argv) < 3:
+        print("Error: CLI requires at least a topic argument")
+        print("Usage: ./run.py cli <topic> [context]")
         sys.exit(1)
     try:
         import runpy

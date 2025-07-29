@@ -47,7 +47,7 @@ class TestCLIIntegration:
         
         # Currently this fails, but should succeed after implementation
         assert result.returncode == 0, f"Command failed: {result.stderr}"
-        assert "Generated 1 complete candidates" in result.stdout
+        assert "Solution" in result.stdout  # Brief mode shows the solution directly
     
     def test_cli_works_with_empty_context(self):
         """Test that 'ms topic ""' works with empty context."""
@@ -56,7 +56,7 @@ class TestCLIIntegration:
         
         # Currently this fails, but should succeed after implementation
         assert result.returncode == 0, f"Command failed: {result.stderr}"
-        assert "Generated 1 complete candidates" in result.stdout
+        assert "Solution" in result.stdout  # Brief mode shows the solution directly
     
     def test_automatic_bookmarking(self, temp_bookmark_file):
         """Test that results are automatically bookmarked without flag."""

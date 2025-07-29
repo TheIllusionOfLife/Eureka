@@ -126,12 +126,12 @@ class TestNewCLIOptions:
         assert args.no_logs is True, "Should suppress logs"
     
     def test_save_bookmark_option(self):
-        """Test --save-bookmark option."""
+        """Test --no-bookmark option for disabling automatic bookmarking."""
         parser = create_parser()
         
-        args = parser.parse_args(['test topic', '--save-bookmark', 'my-bookmark'])
-        assert hasattr(args, 'save_bookmark'), "Should have save_bookmark attribute"
-        assert args.save_bookmark == 'my-bookmark', "Should save bookmark name"
+        args = parser.parse_args(['test topic', '--no-bookmark'])
+        assert hasattr(args, 'no_bookmark'), "Should have no_bookmark attribute"
+        assert args.no_bookmark is True, "Should disable automatic bookmarking"
     
     def test_list_bookmarks_option(self):
         """Test --list-bookmarks standalone option."""
@@ -209,7 +209,7 @@ class TestHelpSystem:
         expected_options = [
             '--creativity', '--top-ideas', '--temperature', '--brief', 
             '--detailed', '--enhanced', '--logical', '--no-logs',
-            '--save-bookmark', '--list-bookmarks', '--remix-bookmarks',
+            '--no-bookmark', '--list-bookmarks', '--remix-bookmarks',
             '--similarity'
         ]
         

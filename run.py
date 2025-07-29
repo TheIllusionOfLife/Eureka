@@ -89,10 +89,28 @@ reserved_commands = ['coordinator', 'cli', 'test', 'config', '--help', '-h', '--
 if command not in reserved_commands:
     # This is a topic, not a command - convert to CLI format
     topic = command
-    context = sys.argv[2] if len(sys.argv) > 2 else ""
     
-    # Convert to CLI command format
-    sys.argv = [sys.argv[0], 'cli', topic, context]
+    # Find where the topic arguments end and flags begin
+    # Look for the first argument that starts with '--'
+    flag_start_idx = 2  # Default: no flags
+    for i in range(2, len(sys.argv)):
+        if sys.argv[i].startswith('--'):
+            flag_start_idx = i
+            break
+    
+    # Extract context (if present before flags)
+    context = sys.argv[2] if len(sys.argv) > 2 and not sys.argv[2].startswith('--') else ""
+    
+    # Collect any remaining flags
+    flags = sys.argv[flag_start_idx:] if flag_start_idx < len(sys.argv) else []
+    
+    # Convert to CLI command format, preserving flags
+    # Only include context if it's not empty
+    cli_args = [sys.argv[0], 'cli', topic]
+    if context:  # Only add context if it's not empty
+        cli_args.append(context)
+    cli_args.extend(flags)
+    sys.argv = cli_args
     command = 'cli'
 
 if command == "coordinator":
@@ -113,7 +131,10 @@ elif command == "cli":
         sys.exit(1)
     try:
         import runpy
-        sys.argv = ['cli', sys.argv[2], sys.argv[3]]
+        # Pass all arguments after 'cli' to the CLI module
+        # Filter out empty strings to avoid argparse issues
+        cli_args = [arg for arg in sys.argv[2:] if arg]
+        sys.argv = ['cli'] + cli_args
         runpy.run_module('madspark.cli.cli', run_name='__main__')
     except ImportError as e:
         print(f"❌ Failed to import CLI module: {e}")

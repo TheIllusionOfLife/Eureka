@@ -68,6 +68,7 @@ ms "climate solutions" --simple         # Clean
 # Advanced options
 ms "space exploration" --top-ideas 3 --creativity creative    # Generate 3 ideas with high creativity. Default value is 1.
 ms "quantum computing" --enhanced --logical                   # Enhanced reasoning with logical inference
+ms "how the universe began" --top-ideas 3 --enable-cache     # Cache results with Redis for instant repeated queries
 
 # Run the coordinator - full multi-agent analysis system
 # Orchestrates IdeaGenerator, Critic, Advocate, and Skeptic agents
@@ -115,6 +116,29 @@ ms --remove-bookmark bookmark_123,bookmark_456,bookmark_789
 ms "future technology" --remix --bookmark-tags smart
 ms "future technology" --remix --remix-ids bookmark_123,bookmark_456  # Use specific bookmark IDs
 ```
+
+### Performance Optimization with Redis Caching
+
+If you have Redis installed, you can enable caching to dramatically speed up repeated queries:
+
+```bash
+# Install Redis (if not already installed)
+brew install redis          # macOS
+sudo apt install redis      # Ubuntu/Debian
+
+# Start Redis
+redis-server               # Or: brew services start redis (macOS)
+
+# Use --enable-cache flag
+ms "renewable energy" --enable-cache       # First run: 3-5 seconds
+ms "renewable energy" --enable-cache       # Subsequent runs: <0.1 seconds (from cache)
+```
+
+**Benefits:**
+- **10-100x faster** for repeated identical queries
+- **Cost savings** by avoiding redundant API calls
+- **Ideal for development** when iterating on the same topic
+- **Automatic cache management** - no manual intervention needed
 
 <details>
 <summary>Manual Setup (Advanced)</summary>

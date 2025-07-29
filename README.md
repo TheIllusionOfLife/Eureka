@@ -24,10 +24,12 @@ Features specialized agents for idea generation, criticism, advocacy, and skepti
 ### Installation
 
 ```bash
-# Clone and setup
+# Clone the repo
 git clone https://github.com/TheIllusionOfLife/Eureka.git
 cd Eureka
-./setup.sh  # Initial setup with interactive configuration
+
+# Initial setup with interactive configuration
+./setup.sh  
 
 # Configure your API key (for real AI responses)
 mad_spark config  # Interactive configuration

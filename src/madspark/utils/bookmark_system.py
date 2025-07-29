@@ -109,6 +109,7 @@ class BookmarkManager:
     
     def _save_bookmarks(self):
         """Save bookmarks to file with file locking."""
+        temp_file = None  # Initialize to avoid NameError in cleanup
         try:
             # Ensure directory exists
             os.makedirs(os.path.dirname(self.bookmark_file) if os.path.dirname(self.bookmark_file) else '.', exist_ok=True)
@@ -137,11 +138,12 @@ class BookmarkManager:
         except (IOError, OSError) as e:
             logger.error(f"Failed to save bookmarks: {e}")
             # Clean up temporary file if it exists
-            try:
-                if os.path.exists(temp_file):
-                    os.remove(temp_file)
-            except OSError:
-                pass
+            if temp_file:  # Only attempt cleanup if temp_file was defined
+                try:
+                    if os.path.exists(temp_file):
+                        os.remove(temp_file)
+                except OSError:
+                    pass
     
     def _generate_id(self) -> str:
         """Generate a unique ID for a bookmark."""

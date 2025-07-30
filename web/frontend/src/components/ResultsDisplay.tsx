@@ -33,10 +33,8 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
 
   // Reset expanded sections when results change
   React.useEffect(() => {
-    if (results.length > 0) {
-      // Clear previous expanded sections to start fresh with all collapsed
-      setExpandedSections({});
-    }
+    // Clear previous expanded sections to start fresh with all collapsed
+    setExpandedSections({});
   }, [results]);
 
   const toggleSection = (ideaIndex: number, section: string) => {
@@ -292,7 +290,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
                 type="button"
                 onClick={() => toggleSection(index, 'improved')}
                 className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-green-100 transition-colors rounded-t-lg"
-                aria-expanded={expandedSections[`${index}-improved`]}
+                aria-expanded={expandedSections[`${index}-improved`] || false}
                 aria-controls={`improved-content-${index}`}
               >
                 <div className="flex items-center justify-between flex-1">
@@ -343,7 +341,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
                   type="button"
                   onClick={() => toggleSection(index, 'multidim-simple')}
                   className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-gray-50 transition-colors rounded-t-lg"
-                  aria-expanded={expandedSections[`${index}-multidim-simple`]}
+                  aria-expanded={expandedSections[`${index}-multidim-simple`] || false}
                   aria-controls={`multidim-simple-content-${index}`}
                 >
                   <span className="font-medium text-gray-900">
@@ -457,7 +455,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
                   type="button"
                   onClick={() => toggleSection(index, 'critique')}
                   className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
-                  aria-expanded={expandedSections[`${index}-critique`]}
+                  aria-expanded={expandedSections[`${index}-critique`] || false}
                   aria-controls={`critique-content-${index}`}
                 >
                   <span className="font-medium text-gray-900">
@@ -491,7 +489,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
                   type="button"
                   onClick={() => toggleSection(index, 'advocacy')}
                   className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
-                  aria-expanded={expandedSections[`${index}-advocacy`]}
+                  aria-expanded={expandedSections[`${index}-advocacy`] || false}
                   aria-controls={`advocacy-content-${index}`}
                 >
                   <span className="font-medium text-gray-900">
@@ -525,7 +523,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
                   type="button"
                   onClick={() => toggleSection(index, 'skepticism')}
                   className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
-                  aria-expanded={expandedSections[`${index}-skepticism`]}
+                  aria-expanded={expandedSections[`${index}-skepticism`] || false}
                   aria-controls={`skepticism-content-${index}`}
                 >
                   <span className="font-medium text-gray-900">
@@ -559,7 +557,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
                   type="button"
                   onClick={() => toggleSection(index, 'improved-critique')}
                   className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
-                  aria-expanded={expandedSections[`${index}-improved-critique`]}
+                  aria-expanded={expandedSections[`${index}-improved-critique`] || false}
                   aria-controls={`improved-critique-content-${index}`}
                 >
                   <span className="font-medium text-gray-900">

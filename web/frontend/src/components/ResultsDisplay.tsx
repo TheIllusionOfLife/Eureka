@@ -31,15 +31,11 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
   const [sharingIds, setSharingIds] = useState<Set<number>>(new Set());
   const [exportingIds, setExportingIds] = useState<Set<number>>(new Set());
 
-  // Auto-expand improved ideas and multi-dimensional evaluation when results change
+  // Reset expanded sections when results change
   React.useEffect(() => {
     if (results.length > 0) {
-      const newExpandedSections: {[key: string]: boolean} = {};
-      results.forEach((_, index) => {
-        newExpandedSections[`${index}-improved`] = true;
-        newExpandedSections[`${index}-multidim-simple`] = true;
-      });
-      setExpandedSections(prev => ({ ...prev, ...newExpandedSections }));
+      // Clear previous expanded sections to start fresh with all collapsed
+      setExpandedSections({});
     }
   }, [results]);
 
@@ -347,7 +343,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
                   type="button"
                   onClick={() => toggleSection(index, 'multidim-simple')}
                   className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-gray-50 transition-colors rounded-t-lg"
-                  aria-expanded={expandedSections[`${index}-multidim-simple`] ?? true}
+                  aria-expanded={expandedSections[`${index}-multidim-simple`]}
                   aria-controls={`multidim-simple-content-${index}`}
                 >
                   <span className="font-medium text-gray-900">
@@ -355,7 +351,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
                   </span>
                   <svg
                     className={`h-5 w-5 text-gray-500 transition-transform ${
-                      (expandedSections[`${index}-multidim-simple`] ?? true) ? 'rotate-180' : ''
+                      expandedSections[`${index}-multidim-simple`] ? 'rotate-180' : ''
                     }`}
                     fill="none"
                     viewBox="0 0 24 24"
@@ -366,7 +362,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
-                {(expandedSections[`${index}-multidim-simple`] ?? true) && (
+                {expandedSections[`${index}-multidim-simple`] && (
                   <div id={`multidim-simple-content-${index}`} className="p-4">
                 {/* Use comparison chart if both original and improved evaluations exist */}
                 {result.improved_multi_dimensional_evaluation ? (

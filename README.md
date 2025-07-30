@@ -11,7 +11,7 @@ Features specialized agents for idea generation, criticism, advocacy, and skepti
 - **🔗 Feedback Loop**: Ideas are improved based on agent insights with score comparison
 - **📚 OpenAPI Documentation**: Interactive API docs at `/docs` and `/redoc`
 - **🌐 Web Interface**: React frontend with WebSocket progress updates
-- **⌨️ Keyboard Shortcuts**: Ctrl+Enter to submit, Ctrl+S to save, Ctrl+/ for help
+- **⌨️ Keyboard Shortcuts**: ? for help, Ctrl+Enter to submit, Ctrl+G to focus form
 - **🔍 Duplicate Detection**: Intelligent similarity-based bookmark filtering
 - **📤 Export Formats**: JSON, CSV, Markdown, and PDF export support
 
@@ -95,14 +95,15 @@ ms coordinator
 # Run test suite to verify functionality
 ms test
 
-# Web interface
-cd web && docker compose up
+# Web interface (after setting up aliases - see below)
+madspark-web                    # Start web interface at http://localhost:3000
+madspark-web-logs              # View logs from all services
+madspark-web-stop              # Stop web interface
 
-# Docker cleanup (when in web directory)
-docker compose down --volumes --remove-orphans
-
-# Get back to run ms commands
-cd ..
+# Manual web interface commands (without aliases)
+cd web && docker compose up -d  # Start in detached mode
+docker compose logs -f          # View logs
+docker compose down            # Stop services
 ```
 
 ### Bookmark Management
@@ -138,6 +139,37 @@ ms --remove-bookmark bookmark_123,bookmark_456,bookmark_789
 ms "future technology" --remix --bookmark-tags smart
 ms "future technology" --remix --remix-ids bookmark_123,bookmark_456  # Use specific bookmark IDs
 ```
+
+### Web Interface Setup
+
+The MadSpark web interface provides a modern React-based UI for generating ideas with real-time progress updates.
+
+**Quick Setup with Aliases (Recommended):**
+```bash
+# Add to your ~/.zshrc or ~/.bashrc:
+alias madspark-web="cd ~/Eureka && source .env && cd web && MADSPARK_MODE=api GOOGLE_API_KEY=\$GOOGLE_API_KEY GOOGLE_GENAI_MODEL=\$GOOGLE_GENAI_MODEL docker compose up -d"
+alias madspark-web-stop="cd ~/Eureka/web && docker compose down"
+alias madspark-web-logs="cd ~/Eureka/web && docker compose logs -f"
+
+# Reload shell configuration
+source ~/.zshrc  # or ~/.bashrc
+
+# Use the aliases
+madspark-web       # Start at http://localhost:3000
+madspark-web-logs  # View logs
+madspark-web-stop  # Stop services
+```
+
+**Features:**
+- Real-time progress updates via WebSocket
+- Interactive bookmark management
+- Duplicate detection with visual warnings
+- Export results in multiple formats
+- Keyboard shortcuts for power users
+
+**Notes:** 
+- The web interface uses your API key from the root `.env` file. No need to duplicate it in the web directory.
+- You may see webpack deprecation warnings about `onAfterSetupMiddleware` and `onBeforeSetupMiddleware`. These are harmless warnings from react-scripts 5.0.1 and don't affect functionality.
 
 ### Performance Optimization with Redis Caching
 

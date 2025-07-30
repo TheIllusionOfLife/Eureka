@@ -1,6 +1,5 @@
-# Version field required for compatibility with older Docker Compose versions and CI/CD tools
-# This field is deprecated in Docker Compose v2+ but kept for backward compatibility
-version: '3.8'
+# Docker Compose configuration for MadSpark web interface
+# Compatible with Docker Compose v2+ (no version field needed)
 
 services:
   backend:

@@ -128,9 +128,10 @@ Click arrows to expand/collapse:
 
 ### 1. Keyboard Shortcuts
 
-- `Ctrl/Cmd + Enter`: Generate ideas
-- `Ctrl/Cmd + R`: Reset form
-- `Ctrl/Cmd + E`: Export results
+- `?`: Show keyboard shortcuts help
+- `Ctrl/Cmd + Enter`: Generate ideas (submit form)
+- `Ctrl/Cmd + G`: Focus on idea generation form
+- `Escape`: Close dialogs
 - `Tab`: Navigate between fields
 
 ### 2. URL Parameters

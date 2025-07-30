@@ -368,71 +368,12 @@ function App() {
       }
     },
     {
-      key: 'b',
-      ctrlKey: true,
-      description: 'Open bookmark manager',
-      handler: () => setShowBookmarkManager(true),
-      enabled: savedBookmarks.length > 0
-    },
-    {
       key: 'Escape',
       description: 'Close dialogs',
       handler: () => {
         if (showKeyboardShortcuts) setShowKeyboardShortcuts(false);
         else if (showBookmarkManager) setShowBookmarkManager(false);
         else if (showDuplicateWarning) handleCancelDuplicateWarning();
-      }
-    },
-    {
-      key: 'r',
-      ctrlKey: true,
-      description: 'Retry last generation',
-      handler: handleRetry,
-      enabled: !!lastFormData && !isLoading
-    },
-    {
-      key: '1',
-      ctrlKey: true,
-      description: 'Bookmark first result',
-      handler: () => {
-        const firstBookmarkButton = document.querySelector('[data-testid="bookmark-0"]') as HTMLButtonElement;
-        firstBookmarkButton?.click();
-      },
-      enabled: results.length > 0
-    },
-    {
-      key: '2',
-      ctrlKey: true,
-      description: 'Bookmark second result',
-      handler: () => {
-        const secondBookmarkButton = document.querySelector('[data-testid="bookmark-1"]') as HTMLButtonElement;
-        secondBookmarkButton?.click();
-      },
-      enabled: results.length > 1
-    },
-    {
-      key: '3',
-      ctrlKey: true,
-      description: 'Bookmark third result',
-      handler: () => {
-        const thirdBookmarkButton = document.querySelector('[data-testid="bookmark-2"]') as HTMLButtonElement;
-        thirdBookmarkButton?.click();
-      },
-      enabled: results.length > 2
-    },
-    {
-      key: 'ArrowDown',
-      description: 'Navigate to results',
-      handler: () => {
-        resultsRef.current?.scrollIntoView({ behavior: 'smooth' });
-      },
-      enabled: results.length > 0
-    },
-    {
-      key: 'ArrowUp',
-      description: 'Navigate to form',
-      handler: () => {
-        formRef.current?.scrollIntoView({ behavior: 'smooth' });
       }
     }
   ];

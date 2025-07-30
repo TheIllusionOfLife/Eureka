@@ -42,10 +42,9 @@ The MadSpark Multi-Agent System has been successfully enhanced with multiple new
 
 ### 4. Keyboard Shortcuts ✅
 - **Implemented Shortcuts**:
+  - `?`: Show keyboard shortcuts help
   - `Ctrl/Cmd + Enter`: Submit form
-  - `Ctrl/Cmd + S`: Save current idea
-  - `Ctrl/Cmd + K`: Focus search
-  - `Ctrl/Cmd + /`: Show shortcuts help
+  - `Ctrl/Cmd + G`: Focus on idea generation form
   - `Escape`: Close dialogs
 - **Help Dialog**: Interactive keyboard shortcuts guide
 - **Accessibility**: ARIA labels and keyboard navigation support

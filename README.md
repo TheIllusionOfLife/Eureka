@@ -11,7 +11,7 @@ Features specialized agents for idea generation, criticism, advocacy, and skepti
 - **🔗 Feedback Loop**: Ideas are improved based on agent insights with score comparison
 - **📚 OpenAPI Documentation**: Interactive API docs at `/docs` and `/redoc`
 - **🌐 Web Interface**: React frontend with WebSocket progress updates
-- **⌨️ Keyboard Shortcuts**: Ctrl+Enter to submit, Ctrl+S to save, Ctrl+/ for help
+- **⌨️ Keyboard Shortcuts**: ? for help, Ctrl+Enter to submit, Ctrl+G to focus form
 - **🔍 Duplicate Detection**: Intelligent similarity-based bookmark filtering
 - **📤 Export Formats**: JSON, CSV, Markdown, and PDF export support
 

@@ -98,8 +98,11 @@ ms test
 # Web interface
 cd web && docker compose up
 
-# Docker cleanup (when needed)
-cd web && docker compose down --volumes --remove-orphans
+# Docker cleanup (when in web directory)
+docker compose down --volumes --remove-orphans
+
+# Get back to run ms commands
+cd ..
 ```
 
 ### Bookmark Management

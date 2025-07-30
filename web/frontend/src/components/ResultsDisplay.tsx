@@ -31,16 +31,10 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
   const [sharingIds, setSharingIds] = useState<Set<number>>(new Set());
   const [exportingIds, setExportingIds] = useState<Set<number>>(new Set());
 
-  // Auto-expand improved ideas and multi-dimensional evaluation when results change
+  // Reset expanded sections when results change
   React.useEffect(() => {
-    if (results.length > 0) {
-      const newExpandedSections: {[key: string]: boolean} = {};
-      results.forEach((_, index) => {
-        newExpandedSections[`${index}-improved`] = true;
-        newExpandedSections[`${index}-multidim-simple`] = true;
-      });
-      setExpandedSections(prev => ({ ...prev, ...newExpandedSections }));
-    }
+    // Clear previous expanded sections to start fresh with all collapsed
+    setExpandedSections({});
   }, [results]);
 
   const toggleSection = (ideaIndex: number, section: string) => {
@@ -296,7 +290,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
                 type="button"
                 onClick={() => toggleSection(index, 'improved')}
                 className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-green-100 transition-colors rounded-t-lg"
-                aria-expanded={expandedSections[`${index}-improved`]}
+                aria-expanded={expandedSections[`${index}-improved`] || false}
                 aria-controls={`improved-content-${index}`}
               >
                 <div className="flex items-center justify-between flex-1">
@@ -347,7 +341,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
                   type="button"
                   onClick={() => toggleSection(index, 'multidim-simple')}
                   className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-gray-50 transition-colors rounded-t-lg"
-                  aria-expanded={expandedSections[`${index}-multidim-simple`] ?? true}
+                  aria-expanded={expandedSections[`${index}-multidim-simple`] || false}
                   aria-controls={`multidim-simple-content-${index}`}
                 >
                   <span className="font-medium text-gray-900">
@@ -355,7 +349,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
                   </span>
                   <svg
                     className={`h-5 w-5 text-gray-500 transition-transform ${
-                      (expandedSections[`${index}-multidim-simple`] ?? true) ? 'rotate-180' : ''
+                      expandedSections[`${index}-multidim-simple`] ? 'rotate-180' : ''
                     }`}
                     fill="none"
                     viewBox="0 0 24 24"
@@ -366,7 +360,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
-                {(expandedSections[`${index}-multidim-simple`] ?? true) && (
+                {expandedSections[`${index}-multidim-simple`] && (
                   <div id={`multidim-simple-content-${index}`} className="p-4">
                 {/* Use comparison chart if both original and improved evaluations exist */}
                 {result.improved_multi_dimensional_evaluation ? (
@@ -461,7 +455,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
                   type="button"
                   onClick={() => toggleSection(index, 'critique')}
                   className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
-                  aria-expanded={expandedSections[`${index}-critique`]}
+                  aria-expanded={expandedSections[`${index}-critique`] || false}
                   aria-controls={`critique-content-${index}`}
                 >
                   <span className="font-medium text-gray-900">
@@ -495,7 +489,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
                   type="button"
                   onClick={() => toggleSection(index, 'advocacy')}
                   className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
-                  aria-expanded={expandedSections[`${index}-advocacy`]}
+                  aria-expanded={expandedSections[`${index}-advocacy`] || false}
                   aria-controls={`advocacy-content-${index}`}
                 >
                   <span className="font-medium text-gray-900">
@@ -529,7 +523,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
                   type="button"
                   onClick={() => toggleSection(index, 'skepticism')}
                   className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
-                  aria-expanded={expandedSections[`${index}-skepticism`]}
+                  aria-expanded={expandedSections[`${index}-skepticism`] || false}
                   aria-controls={`skepticism-content-${index}`}
                 >
                   <span className="font-medium text-gray-900">
@@ -563,7 +557,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
                   type="button"
                   onClick={() => toggleSection(index, 'improved-critique')}
                   className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
-                  aria-expanded={expandedSections[`${index}-improved-critique`]}
+                  aria-expanded={expandedSections[`${index}-improved-critique`] || false}
                   aria-controls={`improved-critique-content-${index}`}
                 >
                   <span className="font-medium text-gray-900">

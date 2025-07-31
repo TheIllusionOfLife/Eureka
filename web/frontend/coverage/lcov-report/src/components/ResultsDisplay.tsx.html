@@ -25,28 +25,28 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/133</span>
+                <span class='fraction'>0/127</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/245</span>
+                <span class='fraction'>0/240</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/31</span>
+                <span class='fraction'>0/29</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/122</span>
+                <span class='fraction'>0/117</span>
             </div>
         
             
@@ -846,12 +846,7 @@
 <a name='L781'></a><a href='#L781'>781</a>
 <a name='L782'></a><a href='#L782'>782</a>
 <a name='L783'></a><a href='#L783'>783</a>
-<a name='L784'></a><a href='#L784'>784</a>
-<a name='L785'></a><a href='#L785'>785</a>
-<a name='L786'></a><a href='#L786'>786</a>
-<a name='L787'></a><a href='#L787'>787</a>
-<a name='L788'></a><a href='#L788'>788</a>
-<a name='L789'></a><a href='#L789'>789</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L784'></a><a href='#L784'>784</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -883,13 +878,8 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1639,7 +1629,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import React, { useState, useMemo } from 'react';
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import React, { useState } from 'react';
 import { IdeaResult, SavedBookmark } from '../types';
 import RadarChartComponent from './RadarChart';
 import ComparisonRadarChart from './ComparisonRadarChart';
@@ -1667,21 +1657,16 @@ const ResultsDisplay: React.FC&lt;ResultsDisplayProps&gt; = <span class="cstat-n
   onBookmarkToggle,
   savedBookmarks = <span class="branch-0 cbranch-no" title="branch not covered" >[]</span>
 }) =&gt; {
-  const [selectedTab, setSelectedTab] = <span class="cstat-no" title="statement not covered" >useState&lt;number&gt;(0);</span>
   const [expandedSections, setExpandedSections] = <span class="cstat-no" title="statement not covered" >useState&lt;{[key: string]: boolean}&gt;({});</span>
   const [bookmarkingIds, setBookmarkingIds] = <span class="cstat-no" title="statement not covered" >useState&lt;Set&lt;number&gt;&gt;(new Set());</span>
   const [sharingIds, setSharingIds] = <span class="cstat-no" title="statement not covered" >useState&lt;Set&lt;number&gt;&gt;(new Set());</span>
   const [exportingIds, setExportingIds] = <span class="cstat-no" title="statement not covered" >useState&lt;Set&lt;number&gt;&gt;(new Set());</span>
 &nbsp;
-  // Auto-expand improved ideas and multi-dimensional evaluation when results change
+  // Reset expanded sections when results change
 <span class="cstat-no" title="statement not covered" >  React.useEffect(<span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >    if (results.length &gt; 0) {</span>
-      const newExpandedSections: {[key: string]: boolean} = <span class="cstat-no" title="statement not covered" >{};</span>
-<span class="cstat-no" title="statement not covered" >      results.forEach(<span class="fstat-no" title="function not covered" >(_</span>, index) =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >        newExpandedSections[`${index}-improved`] = true;</span>
-<span class="cstat-no" title="statement not covered" >        newExpandedSections[`${index}-multidim-simple`] = true;</span>
-      });
-<span class="cstat-no" title="statement not covered" >      setExpandedSections(<span class="fstat-no" title="function not covered" >pr</span>ev =&gt; (<span class="cstat-no" title="statement not covered" >{ ...prev, ...newExpandedSections })</span>);</span>
+      // Clear previous expanded sections to start fresh with all collapsed
+<span class="cstat-no" title="statement not covered" >      setExpandedSections({});</span>
     }
   }, [results]);
 &nbsp;
@@ -1989,7 +1974,7 @@ const ResultsDisplay: React.FC&lt;ResultsDisplayProps&gt; = <span class="cstat-n
                   type="button"
                   onClick={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >toggleSection(index, 'multidim-simple')}</span>
                   className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-gray-50 transition-colors rounded-t-lg"
-                  aria-expanded={expandedSections[`${index}-multidim-simple`] ?? true}
+                  aria-expanded={expandedSections[`${index}-multidim-simple`]}
                   aria-controls={`multidim-simple-content-${index}`}
                 &gt;
                   &lt;span className="font-medium text-gray-900"&gt;
@@ -1997,7 +1982,7 @@ const ResultsDisplay: React.FC&lt;ResultsDisplayProps&gt; = <span class="cstat-n
                   &lt;/span&gt;
                   &lt;svg
                     className={`h-5 w-5 text-gray-500 transition-transform ${
-                      (expandedSections[`${index}-multidim-simple`] ?? true) ? 'rotate-180' : ''
+                      expandedSections[`${index}-multidim-simple`] ? 'rotate-180' : ''
                     }`}
                     fill="none"
                     viewBox="0 0 24 24"
@@ -2008,7 +1993,7 @@ const ResultsDisplay: React.FC&lt;ResultsDisplayProps&gt; = <span class="cstat-n
                     &lt;path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /&gt;
                   &lt;/svg&gt;
                 &lt;/button&gt;
-                {(expandedSections[`${index}-multidim-simple`] ?? true) &amp;&amp; (
+                {expandedSections[`${index}-multidim-simple`] &amp;&amp; (
                   &lt;div id={`multidim-simple-content-${index}`} className="p-4"&gt;
                 {/* Use comparison chart if both original and improved evaluations exist */}
                 {result.improved_multi_dimensional_evaluation ? (
@@ -2434,7 +2419,7 @@ export default ResultsDisplay;</pre></td></tr></table></pre>
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-07-22T22:38:43.897Z
+                at 2025-07-30T07:07:49.770Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

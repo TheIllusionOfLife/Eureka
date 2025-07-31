@@ -111,16 +111,17 @@ if command not in reserved_commands:
     # This is a topic, not a command - convert to CLI format
     topic = command
     
+    # Extract context (if present before flags)
+    context = sys.argv[2] if len(sys.argv) > 2 and not sys.argv[2].startswith('--') else ""
+    
     # Find where the topic arguments end and flags begin
     # Look for the first argument that starts with '--'
-    flag_start_idx = 2  # Default: no flags
-    for i in range(2, len(sys.argv)):
+    start_idx = 3 if context else 2  # Start after context if it exists
+    flag_start_idx = start_idx  # Default: no flags
+    for i in range(start_idx, len(sys.argv)):
         if sys.argv[i].startswith('--'):
             flag_start_idx = i
             break
-    
-    # Extract context (if present before flags)
-    context = sys.argv[2] if len(sys.argv) > 2 and not sys.argv[2].startswith('--') else ""
     
     # Collect any remaining flags
     flags = sys.argv[flag_start_idx:] if flag_start_idx < len(sys.argv) else []

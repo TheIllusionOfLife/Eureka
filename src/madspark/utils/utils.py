@@ -107,55 +107,65 @@ def parse_json_with_fallback(
     except json.JSONDecodeError:
         logging.debug("Failed to parse as complete JSON, trying other strategies")
     
-    # Strategy 2: Look for JSON arrays - but don't stop after finding one
-    # Find potential JSON array start positions
-    array_start = text.find('[')
-    found_array = False
-    while array_start != -1:
-        # Try to find the matching closing bracket
-        bracket_count = 0
-        in_string = False
-        escape_next = False
-        pos = array_start
+    # Strategy 2: Extract JSON arrays from text
+    # Helper function to extract JSON arrays with proper bracket matching
+    def _extract_json_arrays(text):
+        """Extract JSON arrays from text with proper bracket matching."""
+        arrays_found = []
+        array_start = text.find('[')
         
-        while pos < len(text):
-            char = text[pos]
+        while array_start != -1:
+            # Try to find the matching closing bracket
+            bracket_count = 0
+            in_string = False
+            escape_next = False
+            pos = array_start
             
-            if escape_next:
-                escape_next = False
-            elif char == '\\' and in_string:
-                escape_next = True
-            elif char == '"' and not in_string:
-                in_string = True
-            elif char == '"' and in_string:
-                in_string = False
-            elif not in_string:
-                if char == '[':
-                    bracket_count += 1
-                elif char == ']':
-                    bracket_count -= 1
-                    if bracket_count == 0:
-                        # Found matching closing bracket
-                        array_str = text[array_start:pos+1]
-                        try:
-                            array_data = json.loads(array_str)
-                            if isinstance(array_data, list):
-                                for item in array_data:
-                                    if isinstance(item, dict):
-                                        results.append(item)
-                                found_array = True
-                                logging.debug(f"Found JSON array with {len(array_data)} items")
-                        except json.JSONDecodeError:
-                            pass
-                        break
+            while pos < len(text):
+                char = text[pos]
+                
+                if escape_next:
+                    escape_next = False
+                elif char == '\\' and in_string:
+                    escape_next = True
+                elif char == '"' and not in_string:
+                    in_string = True
+                elif char == '"' and in_string:
+                    in_string = False
+                elif not in_string:
+                    if char == '[':
+                        bracket_count += 1
+                    elif char == ']':
+                        bracket_count -= 1
+                        if bracket_count == 0:
+                            # Found matching closing bracket
+                            array_str = text[array_start:pos+1]
+                            try:
+                                array_data = json.loads(array_str)
+                                if isinstance(array_data, list):
+                                    arrays_found.append((array_start, pos+1, array_data))
+                            except json.JSONDecodeError:
+                                pass
+                            break
+                
+                pos += 1
             
-            pos += 1
+            # Look for next array after the current one's closing bracket
+            if bracket_count == 0:
+                array_start = text.find('[', pos + 1)
+            else:
+                array_start = text.find('[', array_start + 1)
         
-        # Look for next array
-        array_start = text.find('[', array_start + 1)
+        return arrays_found
     
-    # If we found arrays and that's all we need, return
-    if found_array and results and expected_count and len(results) >= expected_count:
+    # Extract all JSON arrays
+    arrays = _extract_json_arrays(text)
+    for start_pos, end_pos, array_data in arrays:
+        for item in array_data:
+            if isinstance(item, dict):
+                results.append(item)
+    
+    if results:
         logging.debug(f"Successfully extracted {len(results)} items from JSON arrays")
         return results
     
@@ -218,13 +228,13 @@ def parse_json_with_fallback(
         except ValueError:
             continue
     
-    # Pattern 2: Narrative format "scores an 8 out of 10" or "I give it a score of 7"
+    # Pattern 2: Narrative format with improved regex patterns
+    # Limited repetition to prevent ReDoS, capture until newline for robust comments
     narrative_patterns = [
-        re.compile(r'scores?\s+an?\s+(\d+)(?:\s+out\s+of\s+\d+)?[.,]?\s*(?:Comment|comment)?:?\s*([^.]+\.)', re.IGNORECASE),
-        re.compile(r'give\s+it\s+a\s+score\s+of\s+(\d+)[.,]?\s*(?:Comment|comment)?:?\s*([^.]+\.)', re.IGNORECASE),
-        re.compile(r'deserves?\s+an?\s+(\d+)[.,]?\s*(?:Comment|comment)?:?\s*([^.]+\.)', re.IGNORECASE),
-        re.compile(r'gets?\s+an?\s+(\d+)[.,]?\s*(?:Comment|comment)?:?\s*([^.]+\.)', re.IGNORECASE),
-        re.compile(r'scores?\s+(\d+)[.,]?\s*(?:Comment|comment)?:?\s*([^.]+\.)', re.IGNORECASE),
+        re.compile(r'scores?\s+an?\s+(\d+)(?:\s+out\s+of\s+\d+)?[.,]?\s*(?:Comment|comment)?:?\s*([^\n]{1,500})', re.IGNORECASE),
+        re.compile(r'give\s+it\s+a\s+score\s+of\s+(\d+)[.,]?\s*(?:Comment|comment)?:?\s*([^\n]{1,500})', re.IGNORECASE),
+        re.compile(r'(?:deserves?|gets?)\s+an?\s+(\d+)[.,]?\s*(?:Comment|comment)?:?\s*([^\n]{1,500})', re.IGNORECASE),
+        re.compile(r'scores?\s+(\d+)[.,]?\s*(?:Comment|comment)?:?\s*([^\n]{1,500})', re.IGNORECASE),
     ]
     
     for pattern in narrative_patterns:
@@ -233,7 +243,7 @@ def parse_json_with_fallback(
             try:
                 results.append({
                     "score": int(score_str),
-                    "comment": comment.strip().strip('"\'')
+                    "comment": comment.strip().strip('"\'.')  # Also strip trailing period
                 })
             except ValueError:
                 continue

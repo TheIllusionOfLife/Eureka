@@ -18,10 +18,17 @@ if not hasattr(sys, 'prefix') or sys.prefix == sys.base_prefix:
         # Re-run this script with venv Python
         os.execv(str(venv_python), [str(venv_python)] + sys.argv)
     else:
-        print("⚠️  Virtual environment not found. Please run:")
-        print("   python -m venv venv")
-        print("   ./venv/bin/pip install -r config/requirements.txt")
-        sys.exit(1)
+        # Check if dependencies are available even without venv (e.g., in CI or global install)
+        try:
+            # Try to import a key dependency to see if packages are available
+            import dotenv
+            # If we can import dependencies, continue without venv (CI/global install case)
+            pass
+        except ImportError:
+            print("⚠️  Virtual environment not found. Please run:")
+            print("   python -m venv venv")
+            print("   ./venv/bin/pip install -r config/requirements.txt")
+            sys.exit(1)
 
 # Handle early help/version commands BEFORE mode detection
 if len(sys.argv) >= 2 and sys.argv[1] in ['--help', '-h', '--version']:

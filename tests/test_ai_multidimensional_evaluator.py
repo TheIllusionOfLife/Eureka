@@ -270,3 +270,10 @@ class TestCoordinatorIntegration:
         
         # Verify AI was called for each dimension
         assert mock_client.models.generate_content.call_count >= 7
+        
+        # Verify context was formatted properly (not raw dict)
+        call_args = mock_client.models.generate_content.call_args_list[0]
+        prompt = call_args[1]['contents']
+        assert "Theme: test topic" in prompt
+        assert "Constraints: test constraints" in prompt
+        assert "{" not in prompt  # No raw dict formatting

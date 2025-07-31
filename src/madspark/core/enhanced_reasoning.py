@@ -739,8 +739,20 @@ Respond with only the numeric score (e.g., "6")."""
     
     def _build_dimension_prompt(self, idea: str, context: Dict[str, Any], dimension: str) -> str:
         """Build evaluation prompt for a specific dimension."""
+        # Format context as human-readable string
+        context_parts = []
+        if 'theme' in context:
+            context_parts.append(f"Theme: {context['theme']}")
+        if 'constraints' in context:
+            context_parts.append(f"Constraints: {context['constraints']}")
+        for key, value in context.items():
+            if key not in ['theme', 'constraints']:
+                context_parts.append(f"{key.replace('_', ' ').title()}: {value}")
+        
+        context_str = ". ".join(context_parts) if context_parts else "General context"
+        
         prompt_template = self.DIMENSION_PROMPTS.get(dimension, self.DIMENSION_PROMPTS['feasibility'])
-        return prompt_template.format(idea=idea, context=context)
+        return prompt_template.format(idea=idea, context=context_str)
     
         
     def _generate_evaluation_summary(self, dimension_scores: Dict[str, float], idea: str) -> str:

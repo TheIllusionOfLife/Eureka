@@ -47,9 +47,22 @@ echo 'GOOGLE_GENAI_MODEL="gemini-2.5-flash"' >> .env
 # Verify configuration
 mad_spark config --status
 
-# Run ideas generation
+# Run ideas generation (all commands below are equivalent)
 mad_spark "your topic here" "your context here"
+madspark "your topic here" "your context here"  
+ms "your topic here" "your context here"         # Short alias
 ```
+
+### Command Aliases
+
+MadSpark provides three equivalent commands for your convenience:
+- `mad_spark` - Full command name
+- `madspark` - Alternative without underscore  
+- `ms` - Short alias for quick access
+
+All commands have identical functionality. Choose based on your preference.
+
+See [Command Aliases Documentation](docs/COMMAND_ALIASES.md) for detailed information about installation, troubleshooting, and advanced usage.
 
 ### Usage
 
@@ -57,11 +70,10 @@ mad_spark "your topic here" "your context here"
 # Get help and see all available options
 ms --help
 
-# Basic usage
+# Basic usage with any alias
 # command "question/topic/theme" "constraints/context"
 mad_spark "how to reduce carbon footprint?" "small business"          
-
-# ms works the same way.
+madspark "innovative teaching methods" "high school science"
 ms "Come up with innovative ways to teach math" "elementary school"
 
 # Second argument is optional.   

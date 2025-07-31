@@ -14,6 +14,7 @@ from madspark.utils.temperature_control import TemperatureManager
 class TestEndToEndWorkflow:
     """End-to-end workflow integration tests."""
     
+    @pytest.mark.integration
     @patch('madspark.core.coordinator.call_idea_generator_with_retry')
     @patch('madspark.core.coordinator.call_critic_with_retry')
     @patch('madspark.core.coordinator.call_advocate_with_retry')
@@ -74,6 +75,8 @@ Smart Workflow Optimizer: ML-driven workflow optimization platform"""
         mock_skeptic.assert_called()
         mock_improve.assert_called()
     
+    @pytest.mark.integration
+    @pytest.mark.slow
     @pytest.mark.asyncio
     @patch('madspark.agents.idea_generator.genai')
     @patch('madspark.agents.critic.genai')
@@ -136,6 +139,7 @@ Smart Workflow Optimizer: ML-driven workflow optimization platform"""
 class TestWorkflowWithComponents:
     """Test workflow integration with various components."""
     
+    @pytest.mark.integration
     def test_workflow_with_bookmark_integration(self):
         """Test workflow integration with bookmark system."""
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -175,6 +179,7 @@ class TestWorkflowWithComponents:
             bookmarks = bookmark_manager.list_bookmarks()
             assert len(bookmarks) == 2
     
+    @pytest.mark.integration
     def test_workflow_with_temperature_management(self):
         """Test workflow integration with temperature management."""
         temp_manager = TemperatureManager()
@@ -195,6 +200,7 @@ class TestWorkflowWithComponents:
                 assert result is not None
                 assert isinstance(result, list)
     
+    @pytest.mark.integration
     def test_workflow_with_novelty_filtering(self):
         """Test workflow integration with novelty filtering."""
         with patch('madspark.core.coordinator.NoveltyFilter') as mock_novelty_class:
@@ -222,6 +228,7 @@ class TestWorkflowErrorHandling:
     
     @pytest.mark.skipif(os.getenv("MADSPARK_MODE") == "mock", reason="Mock mode doesn't simulate failures")
     @patch('madspark.agents.idea_generator.genai')
+    @pytest.mark.integration
     def test_workflow_with_agent_failures(self, mock_gen_genai):
         """Test workflow resilience to agent failures."""
         
@@ -262,6 +269,7 @@ class TestWorkflowErrorHandling:
             assert len(result) == 0
     
     @patch('madspark.core.coordinator.call_idea_generator_with_retry')
+    @pytest.mark.integration
     def test_workflow_with_invalid_parameters(self, mock_generate):
         """Test workflow with invalid parameters."""
         # Mock to return empty ideas
@@ -288,6 +296,8 @@ class TestWorkflowErrorHandling:
         assert isinstance(result, list)
     
     @pytest.mark.skipif(os.getenv("MADSPARK_MODE") == "mock", reason="Mock mode doesn't simulate network issues")
+    @pytest.mark.integration
+    @pytest.mark.slow
     def test_workflow_network_resilience(self):
         """Test workflow resilience to network issues."""
         
@@ -309,6 +319,7 @@ class TestWorkflowErrorHandling:
 class TestWorkflowPerformance:
     """Test workflow performance characteristics."""
     
+    @pytest.mark.slow
     def test_workflow_execution_time(self):
         """Test workflow execution time is reasonable."""
         import time
@@ -367,6 +378,7 @@ class TestWorkflowPerformance:
             # Async version should be efficient
             assert execution_time < 10.0  # Should complete within 10 seconds
     
+    @pytest.mark.slow
     def test_workflow_memory_usage(self):
         """Test workflow memory usage is reasonable."""
         import sys
@@ -401,6 +413,7 @@ class TestWorkflowDataIntegrity:
     
     @patch('madspark.agents.idea_generator.genai')
     @patch('madspark.agents.critic.genai')
+    @pytest.mark.integration
     def test_workflow_data_consistency(self, mock_critic_genai, mock_gen_genai):
         """Test data consistency throughout workflow."""
         
@@ -456,6 +469,7 @@ class TestWorkflowDataIntegrity:
                 assert "initial_score" in candidate
                 assert isinstance(candidate["initial_score"], (int, float))
     
+    @pytest.mark.integration
     def test_workflow_output_structure(self):
         """Test workflow output structure is consistent."""
         with patch('madspark.agents.idea_generator.genai') as mock_genai:

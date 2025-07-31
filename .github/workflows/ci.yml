@@ -77,15 +77,15 @@ jobs:
       
       - name: Run tests with coverage
         run: |
-          # Run tests in parallel, skipping slow/performance tests for PRs and feature branches
+          # Run tests in parallel, using pytest markers for test selection
           if [ "${{ github.event_name }}" = "pull_request" ] || [ "${{ github.ref }}" != "refs/heads/main" ]; then
-            # PR/Feature branch: Fast tests only with parallel execution
-            # Use keyword exclusion to avoid performance and integration tests that may not be properly marked
-            echo "Using keyword-based test exclusion for PR/feature branch"
+            # PR/Feature branch: Fast tests only (exclude slow tests)
+            echo "Running fast tests only for PR/feature branch (excluding @pytest.mark.slow)"
             PYTHONPATH=src pytest tests/ -n auto -v --cov=src --cov-report=xml --cov-report=html \
-              -k "not (workflow_execution_time or async_workflow_performance or async_workflow_integration)"
+              -m "not slow"
           else
             # Main branch: All tests with parallel execution
+            echo "Running all tests on main branch"
             PYTHONPATH=src pytest tests/ -n auto -v --cov=src --cov-report=xml --cov-report=html
           fi
       

@@ -25,6 +25,7 @@ API_BASE_URL = "http://localhost:8000"
 class TestSystemIntegration:
     """Test full system integration across all components."""
     
+    @pytest.mark.integration
     def test_cli_to_core_integration(self):
         """Test CLI integration with core workflow."""
         # Run CLI command
@@ -39,6 +40,8 @@ class TestSystemIntegration:
         assert "blockchain" in result.stdout.lower()
         assert "mock" in result.stdout.lower()
     
+    @pytest.mark.integration
+    @pytest.mark.slow
     def test_end_to_end_workflow(self):
         """Test complete workflow from idea generation to final output."""
         from madspark.core.coordinator import run_multistep_workflow
@@ -292,6 +295,7 @@ class TestWorkflowErrorHandling:
     
     @pytest.mark.skipif(os.getenv("MADSPARK_MODE") == "mock", reason="Mock mode doesn't simulate failures")
     @patch('madspark.agents.idea_generator.genai')
+    @pytest.mark.integration
     def test_workflow_with_agent_failures(self, mock_gen_genai):
         """Test workflow resilience to agent failures."""
         
@@ -356,6 +360,8 @@ class TestWorkflowErrorHandling:
         assert isinstance(result, list)
     
     @pytest.mark.skipif(os.getenv("MADSPARK_MODE") == "mock", reason="Mock mode doesn't simulate network issues")
+    @pytest.mark.integration
+    @pytest.mark.slow
     def test_workflow_network_resilience(self):
         """Test workflow resilience to network issues."""
         
@@ -379,6 +385,7 @@ class TestWorkflowErrorHandling:
 class TestWorkflowPerformance:
     """Test workflow performance characteristics."""
     
+    @pytest.mark.slow
     def test_workflow_execution_time(self):
         """Test workflow completes within reasonable time."""
         from madspark.core.coordinator import run_multistep_workflow
@@ -400,6 +407,7 @@ class TestWorkflowPerformance:
             
         assert isinstance(result, list)
     
+    @pytest.mark.slow
     def test_workflow_memory_usage(self):
         """Test workflow doesn't have memory leaks."""
         import psutil
@@ -431,6 +439,7 @@ class TestWorkflowPerformance:
 class TestWorkflowDataIntegrity:
     """Test data integrity throughout the workflow."""
     
+    @pytest.mark.integration
     def test_workflow_data_consistency(self):
         """Test data remains consistent through workflow steps."""
         from madspark.core.coordinator import run_multistep_workflow

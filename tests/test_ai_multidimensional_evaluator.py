@@ -239,3 +239,47 @@ class TestCoordinatorIntegration:
         
         # This verifies the coordinator can handle None evaluator
         # without needing to run the full coordinator
+    
+    @patch('madspark.agents.genai_client.get_genai_client')
+    @patch('madspark.agents.idea_generator.IdeaGenerator.generate_ideas')
+    def test_coordinator_with_ai_evaluation_integration(self, mock_generate, mock_get_client):
+        """Test end-to-end integration with coordinator using AI evaluation."""
+        # Mock GenAI client
+        mock_client = Mock()
+        mock_response = Mock()
+        mock_response.text = "7.5"
+        mock_client.models.generate_content.return_value = mock_response
+        mock_get_client.return_value = mock_client
+        
+        # Mock idea generation
+        mock_generate.return_value = ["Test idea 1", "Test idea 2"]
+        
+        # Test coordinator integration
+        from madspark.core.coordinator import Coordinator
+        
+        coordinator = Coordinator(
+            topic="test topic",
+            constraints="test constraints",
+            num_candidates=2
+        )
+        
+        # Run a simplified version of the coordinator flow
+        context = {"theme": "test topic", "constraints": "test constraints"}
+        
+        # Initialize engine with mock client
+        from madspark.core.enhanced_reasoning import ReasoningEngine
+        engine = ReasoningEngine(context, genai_client=mock_client)
+        
+        # Verify evaluator was created
+        assert engine.multi_evaluator is not None
+        
+        # Test evaluation
+        result = engine.multi_evaluator.evaluate_idea("Test idea", context)
+        
+        # Verify structure
+        assert 'dimension_scores' in result
+        assert 'weighted_score' in result
+        assert result['weighted_score'] == 7.5
+        
+        # Verify AI was called for each dimension
+        assert mock_client.models.generate_content.call_count >= 7

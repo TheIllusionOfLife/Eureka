@@ -487,6 +487,100 @@ class LogicalInference:
 class MultiDimensionalEvaluator:
     """System for multi-dimensional evaluation of ideas using AI."""
     
+    # Dimension-specific prompts defined at class level for efficiency
+    DIMENSION_PROMPTS = {
+        'feasibility': """Evaluate the feasibility of this idea on a scale of 1-10:
+"{idea}"
+
+Context: {context}
+
+Scoring guide:
+- 1-3: Extremely difficult, requires breakthrough technology
+- 4-6: Challenging but achievable with significant effort
+- 7-9: Highly feasible with current resources
+- 10: Can be implemented immediately
+
+Respond with only the numeric score (e.g., "7").""",
+        
+        'innovation': """Evaluate the innovation level of this idea on a scale of 1-10:
+"{idea}"
+
+Context: {context}
+
+Scoring guide:
+- 1-3: Common, conventional approach
+- 4-6: Some novel elements but mostly standard
+- 7-9: Highly innovative with unique features
+- 10: Groundbreaking, never seen before
+
+Respond with only the numeric score (e.g., "8").""",
+        
+        'impact': """Evaluate the potential impact of this idea on a scale of 1-10:
+"{idea}"
+
+Context: {context}
+
+Scoring guide:
+- 1-3: Minimal impact, affects few people
+- 4-6: Moderate impact, local or specific benefits
+- 7-9: High impact, significant positive change
+- 10: Transformative impact on society
+
+Respond with only the numeric score (e.g., "7").""",
+        
+        'cost_effectiveness': """Evaluate the cost-effectiveness of this idea on a scale of 1-10:
+"{idea}"
+
+Context: {context}
+
+Scoring guide:
+- 1-3: Very expensive relative to benefits
+- 4-6: Moderate costs with reasonable returns
+- 7-9: Low cost with high value
+- 10: Minimal cost with exceptional returns
+
+Respond with only the numeric score (e.g., "6").""",
+        
+        'scalability': """Evaluate the scalability of this idea on a scale of 1-10:
+"{idea}"
+
+Context: {context}
+
+Scoring guide:
+- 1-3: Difficult to scale beyond initial scope
+- 4-6: Can scale with significant effort
+- 7-9: Easily scalable with minimal changes
+- 10: Infinitely scalable by design
+
+Respond with only the numeric score (e.g., "8").""",
+        
+        'risk_assessment': """Evaluate the risk level of this idea on a scale of 1-10 (higher score = lower risk):
+"{idea}"
+
+Context: {context}
+
+Scoring guide:
+- 1-3: Very high risk, many unknowns
+- 4-6: Moderate risk, some challenges
+- 7-9: Low risk, well-understood approach
+- 10: Minimal risk, proven methods
+
+Respond with only the numeric score (e.g., "7").""",
+        
+        'timeline': """Evaluate the timeline feasibility of this idea on a scale of 1-10:
+"{idea}"
+
+Context: {context}
+
+Scoring guide:
+- 1-3: Years to implement
+- 4-6: Several months to a year
+- 7-9: Weeks to a few months
+- 10: Days to weeks
+
+Respond with only the numeric score (e.g., "6")."""
+    }
+    
     def __init__(self, genai_client=None, dimensions: Optional[Dict[str, Dict[str, Any]]] = None):
         """Initialize multi-dimensional evaluator with required GenAI client.
         
@@ -503,12 +597,17 @@ class MultiDimensionalEvaluator:
         self.genai_client = genai_client
         self.evaluation_dimensions = dimensions or self._get_default_dimensions()
         
-        # Import types for configuration
+        # Import types for configuration if available
         try:
             from google.genai import types
             self.types = types
         except ImportError:
-            raise ImportError("google-genai package required for AI evaluation")
+            # In mock mode or when package not available, create a simple namespace
+            # This maintains compatibility while still requiring API key for actual use
+            import types as builtin_types
+            self.types = builtin_types.SimpleNamespace(
+                GenerateContentConfig=lambda **kwargs: kwargs
+            )
         
     def _get_default_dimensions(self) -> Dict[str, Dict[str, Any]]:
         """Get default evaluation dimensions."""
@@ -606,7 +705,7 @@ class MultiDimensionalEvaluator:
             )
         
     def _ai_evaluate_dimension(self, idea: str, context: Dict[str, Any], 
-                             dimension: str, config: Dict[str, Any]) -> float:
+                             dimension: str, dimension_config: Dict[str, Any]) -> float:
         """Evaluate dimension using AI with clear prompts."""
         prompt = self._build_dimension_prompt(idea, context, dimension)
         
@@ -616,7 +715,7 @@ class MultiDimensionalEvaluator:
         except ImportError:
             from ..agents.genai_client import get_model_name
         
-        config = self.types.GenerateContentConfig(
+        generate_config = self.types.GenerateContentConfig(
             temperature=0.3,  # Low for consistency
             system_instruction="You are an expert evaluator. Return only a numeric score."
         )
@@ -624,114 +723,23 @@ class MultiDimensionalEvaluator:
         response = self.genai_client.models.generate_content(
             model=get_model_name(),
             contents=prompt,
-            config=config
+            config=generate_config
         )
         
         # Parse score from response
         score_text = response.text.strip()
         try:
             score = float(score_text)
-            return max(1.0, min(10.0, score))  # Clamp to valid range
+            # Use dimension config ranges if available
+            min_val = dimension_config.get('range', (1, 10))[0]
+            max_val = dimension_config.get('range', (1, 10))[1]
+            return max(min_val, min(max_val, score))  # Clamp to valid range
         except ValueError:
             raise ValueError(f"AI returned non-numeric score: '{score_text}'")
     
     def _build_dimension_prompt(self, idea: str, context: Dict[str, Any], dimension: str) -> str:
         """Build evaluation prompt for a specific dimension."""
-        # Dimension-specific prompts
-        DIMENSION_PROMPTS = {
-            'feasibility': """Evaluate the feasibility of this idea on a scale of 1-10:
-"{idea}"
-
-Context: {context}
-
-Scoring guide:
-- 1-3: Extremely difficult, requires breakthrough technology
-- 4-6: Challenging but achievable with significant effort
-- 7-9: Highly feasible with current resources
-- 10: Can be implemented immediately
-
-Respond with only the numeric score (e.g., "7").""",
-            
-            'innovation': """Evaluate the innovation level of this idea on a scale of 1-10:
-"{idea}"
-
-Context: {context}
-
-Scoring guide:
-- 1-3: Common, conventional approach
-- 4-6: Some novel elements but mostly standard
-- 7-9: Highly innovative with unique features
-- 10: Groundbreaking, never seen before
-
-Respond with only the numeric score (e.g., "8").""",
-            
-            'impact': """Evaluate the potential impact of this idea on a scale of 1-10:
-"{idea}"
-
-Context: {context}
-
-Scoring guide:
-- 1-3: Minimal impact, affects few people
-- 4-6: Moderate impact, local or specific benefits
-- 7-9: High impact, significant positive change
-- 10: Transformative impact on society
-
-Respond with only the numeric score (e.g., "7").""",
-            
-            'cost_effectiveness': """Evaluate the cost-effectiveness of this idea on a scale of 1-10:
-"{idea}"
-
-Context: {context}
-
-Scoring guide:
-- 1-3: Very expensive relative to benefits
-- 4-6: Moderate costs with reasonable returns
-- 7-9: Low cost with high value
-- 10: Minimal cost with exceptional returns
-
-Respond with only the numeric score (e.g., "6").""",
-            
-            'scalability': """Evaluate the scalability of this idea on a scale of 1-10:
-"{idea}"
-
-Context: {context}
-
-Scoring guide:
-- 1-3: Difficult to scale beyond initial scope
-- 4-6: Can scale with significant effort
-- 7-9: Easily scalable with minimal changes
-- 10: Infinitely scalable by design
-
-Respond with only the numeric score (e.g., "8").""",
-            
-            'risk_assessment': """Evaluate the risk level of this idea on a scale of 1-10 (higher score = lower risk):
-"{idea}"
-
-Context: {context}
-
-Scoring guide:
-- 1-3: Very high risk, many unknowns
-- 4-6: Moderate risk, some challenges
-- 7-9: Low risk, well-understood approach
-- 10: Minimal risk, proven methods
-
-Respond with only the numeric score (e.g., "7").""",
-            
-            'timeline': """Evaluate the timeline feasibility of this idea on a scale of 1-10:
-"{idea}"
-
-Context: {context}
-
-Scoring guide:
-- 1-3: Years to implement
-- 4-6: Several months to a year
-- 7-9: Weeks to a few months
-- 10: Days to weeks
-
-Respond with only the numeric score (e.g., "6")."""
-        }
-        
-        prompt_template = DIMENSION_PROMPTS.get(dimension, DIMENSION_PROMPTS['feasibility'])
+        prompt_template = self.DIMENSION_PROMPTS.get(dimension, self.DIMENSION_PROMPTS['feasibility'])
         return prompt_template.format(idea=idea, context=context)
     
         
@@ -1009,22 +1017,18 @@ class ReasoningEngine:
                 from ..agents.genai_client import get_genai_client
             
             genai_client = get_genai_client()
-            if genai_client is None:
-                logging.warning(
-                    "Multi-dimensional evaluation disabled: No GenAI client available. "
-                    "Configure GOOGLE_API_KEY to enable AI-powered evaluation."
-                )
-                self.multi_evaluator = None
-            else:
-                self.multi_evaluator = MultiDimensionalEvaluator(
-                    genai_client=genai_client,
-                    dimensions=self.config.get('evaluation_dimensions')
-                )
-        else:
+
+        if genai_client:
             self.multi_evaluator = MultiDimensionalEvaluator(
                 genai_client=genai_client,
                 dimensions=self.config.get('evaluation_dimensions')
             )
+        else:
+            logging.warning(
+                "Multi-dimensional evaluation disabled: No GenAI client available. "
+                "Configure GOOGLE_API_KEY to enable AI-powered evaluation."
+            )
+            self.multi_evaluator = None
         
         self.conversation_tracker = AgentConversationTracker()
         

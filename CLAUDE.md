@@ -280,6 +280,19 @@ When encountering module resolution errors in Docker:
 - **Human-Readable Prompts**: Format context as "Theme: X. Constraints: Y" instead of raw dictionary strings
 - **Systematic PR Review**: Successfully addressed feedback from claude[bot], coderabbitai[bot], cursor[bot], and gemini-code-assist[bot]
 
+### PR #133: Performance Test Markers (August 1, 2025)
+- **Performance Optimization**: Achieved 30-50% CI speedup using pytest markers (@pytest.mark.slow, @pytest.mark.integration)
+- **Systematic PR Review**: Successfully addressed feedback from 6 reviewers using 4-phase protocol (discover → extract → prioritize → fix)
+- **Test Categorization**: Applied 47 markers across 6 test files for smart conditional execution (fast tests for PRs, full coverage on main)
+- **Mock Mode Compatibility**: Skipif decorators necessary for timeout tests - mock operations are instantaneous
+- **Test Path Validation**: Critical to verify test references during marker validation (TestAsyncIntegration vs TestEndToEndWorkflow)
+
+### PR #132: JSON Parsing Enhancement (August 1, 2025)
+- **Enhanced JSON Parsing**: Implemented multiple fallback strategies for partial coordinator evaluations with bracket matching
+- **ReDoS Prevention**: Limited regex repetition to 500 characters to prevent denial of service attacks
+- **Array Extraction**: Added `_extract_json_arrays` helper with proper bracket matching to handle incomplete responses
+- **CI Test Requirements**: Parser logic changes require format validation tests to prevent regressions
+
 ### PR #121: Usability Improvements
 - **Similarity Detection**: Implemented Jaccard similarity (intersection over union) to detect duplicate text
 - **Auto-Async**: Automatically enable async mode when `num_candidates > 1` for better performance

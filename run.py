@@ -18,10 +18,17 @@ if not hasattr(sys, 'prefix') or sys.prefix == sys.base_prefix:
         # Re-run this script with venv Python
         os.execv(str(venv_python), [str(venv_python)] + sys.argv)
     else:
-        print("⚠️  Virtual environment not found. Please run:")
-        print("   python -m venv venv")
-        print("   ./venv/bin/pip install -r config/requirements.txt")
-        sys.exit(1)
+        # Check if dependencies are available even without venv (e.g., in CI or global install)
+        try:
+            # Try to import a key dependency to see if packages are available
+            import dotenv
+            # If we can import dependencies, continue without venv (CI/global install case)
+            pass
+        except ImportError:
+            print("⚠️  Virtual environment not found. Please run:")
+            print("   python -m venv venv")
+            print("   ./venv/bin/pip install -r config/requirements.txt")
+            sys.exit(1)
 
 # Handle early help/version commands BEFORE mode detection
 if len(sys.argv) >= 2 and sys.argv[1] in ['--help', '-h', '--version']:
@@ -38,6 +45,18 @@ if len(sys.argv) >= 2 and sys.argv[1] in ['--help', '-h', '--version']:
         except Exception as e:
             print(f"❌ Failed to show help: {e}")
             sys.exit(1)
+    
+    # For version, delegate to CLI module for consistency
+    if sys.argv[1] == '--version':
+        try:
+            import runpy
+            sys.argv = ['cli', '--version']
+            runpy.run_module('madspark.cli.cli', run_name='__main__')
+            sys.exit(0)
+        except Exception as e:
+            # Fallback if CLI module fails
+            print("MadSpark Multi-Agent System v2.2")
+            sys.exit(0)
 
 # Now in venv, do mode detection
 try:
@@ -92,16 +111,17 @@ if command not in reserved_commands:
     # This is a topic, not a command - convert to CLI format
     topic = command
     
+    # Extract context (if present before flags)
+    context = sys.argv[2] if len(sys.argv) > 2 and not sys.argv[2].startswith('--') else ""
+    
     # Find where the topic arguments end and flags begin
     # Look for the first argument that starts with '--'
-    flag_start_idx = 2  # Default: no flags
-    for i in range(2, len(sys.argv)):
+    start_idx = 3 if context else 2  # Start after context if it exists
+    flag_start_idx = start_idx  # Default: no flags
+    for i in range(start_idx, len(sys.argv)):
         if sys.argv[i].startswith('--'):
             flag_start_idx = i
             break
-    
-    # Extract context (if present before flags)
-    context = sys.argv[2] if len(sys.argv) > 2 and not sys.argv[2].startswith('--') else ""
     
     # Collect any remaining flags
     flags = sys.argv[flag_start_idx:] if flag_start_idx < len(sys.argv) else []

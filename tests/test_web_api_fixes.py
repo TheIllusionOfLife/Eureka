@@ -36,6 +36,7 @@ class TestWebAPIFixes:
         from fastapi.testclient import TestClient
         return TestClient(mock_app)
     
+    @pytest.mark.integration
     def test_health_endpoint_with_uptime(self, client):
         """Test health endpoint includes uptime field."""
         response = client.get("/health")
@@ -51,6 +52,7 @@ class TestWebAPIFixes:
         assert isinstance(data["uptime"], (int, float))
         assert data["uptime"] >= 0
     
+    @pytest.mark.integration
     def test_idea_generation_response_structure(self, client):
         """Test idea generation returns correct structure."""
         # Test with new field names
@@ -76,6 +78,7 @@ class TestWebAPIFixes:
             assert "initial_score" in result
             assert "improved_score" in result
     
+    @pytest.mark.integration
     def test_field_alias_compatibility(self, client):
         """Test both old and new field names work."""
         # Test with old field names (theme/constraints)
@@ -104,6 +107,7 @@ class TestWebAPIFixes:
         data = response.json()
         assert "results" in data
     
+    @pytest.mark.integration
     def test_bookmark_field_validation(self, client):
         """Test bookmark creation with proper field validation."""
         bookmark_data = {
@@ -128,6 +132,7 @@ class TestWebAPIFixes:
         bookmark_id = created.get("bookmark_id") or created.get("id")
         assert bookmark_id is not None
     
+    @pytest.mark.integration
     def test_import_path_fixes(self):
         """Test correct import paths are used."""
         # These imports should work
@@ -139,6 +144,7 @@ class TestWebAPIFixes:
         except ImportError as e:
             pytest.fail(f"Import failed: {e}")
     
+    @pytest.mark.integration
     def test_error_response_format(self, client):
         """Test error responses have consistent format."""
         # Test 404 error
@@ -152,6 +158,7 @@ class TestWebAPIFixes:
         data = response.json()
         assert "detail" in data
     
+    @pytest.mark.integration
     def test_cors_headers(self, client):
         """Test CORS headers are properly set."""
         response = client.options("/api/generate-ideas")
@@ -163,6 +170,7 @@ class TestWebAPIFixes:
     @patch('web.backend.main.temp_manager')
     @patch('web.backend.main.reasoning_engine')
     @patch('web.backend.main.bookmark_system')
+    @pytest.mark.integration
     def test_health_check_degraded_state(self, mock_bookmark, mock_reasoning, mock_temp, client):
         """Test health check shows degraded when components are missing."""
         # Simulate one component being None by patching it to None
@@ -175,6 +183,7 @@ class TestWebAPIFixes:
             assert data["status"] == "degraded"
             assert data["components"]["temperature_manager"] is False
     
+    @pytest.mark.integration
     def test_concurrent_request_handling(self, client):
         """Test API handles concurrent requests properly."""
         import concurrent.futures
@@ -193,6 +202,7 @@ class TestWebAPIFixes:
         # All requests should succeed
         assert all(r.status_code == 200 for r in results)
     
+    @pytest.mark.integration
     def test_request_validation_details(self, client):
         """Test detailed validation error messages."""
         # Missing required fields

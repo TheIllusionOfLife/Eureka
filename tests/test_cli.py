@@ -289,6 +289,7 @@ class TestCLIIntegration:
     """Integration tests for CLI components."""
     
     @patch('madspark.cli.cli.run_multistep_workflow')
+    @pytest.mark.integration
     def test_cli_full_workflow_integration(self, mock_workflow):
         """Test full CLI workflow integration."""
         mock_workflow.return_value = [
@@ -323,6 +324,7 @@ class TestCLIIntegration:
             except SystemExit as e:
                 assert e.code == 0
     
+    @pytest.mark.integration
     def test_cli_error_handling_integration(self):
         """Test CLI error handling integration."""
         # Test with various error scenarios

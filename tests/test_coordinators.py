@@ -46,6 +46,7 @@ class TestSyncCoordinator:
     @patch('madspark.core.coordinator.call_advocate_with_retry')
     @patch('madspark.core.coordinator.call_skeptic_with_retry')
     @patch('madspark.core.coordinator.call_improve_idea_with_retry')
+    @pytest.mark.integration
     def test_run_multistep_workflow_success(self, mock_improve, mock_skeptic, mock_advocate, 
                                           mock_critic, mock_generate, mock_workflow_results):
         """Test successful workflow execution."""
@@ -81,6 +82,7 @@ class TestSyncCoordinator:
         assert mock_skeptic.call_count >= 1  # Called for each candidate
     
     @patch('madspark.core.coordinator.call_idea_generator_with_retry')
+    @pytest.mark.integration
     def test_run_multistep_workflow_idea_generation_failure(self, mock_generate):
         """Test workflow when idea generation fails."""
         mock_generate.return_value = ""  # Empty string means no ideas
@@ -96,6 +98,7 @@ class TestSyncCoordinator:
     
     @patch('madspark.core.coordinator.call_idea_generator_with_retry')
     @patch('madspark.core.coordinator.call_critic_with_retry')
+    @pytest.mark.integration
     def test_run_multistep_workflow_partial_failure(self, mock_critic, mock_idea_gen):
         """Test workflow with partial agent failure."""
         mock_idea_gen.return_value = "Idea 1: Test AI solution\nIdea 2: Another test idea"
@@ -174,6 +177,7 @@ class TestAsyncCoordinator:
     @patch('madspark.core.async_coordinator.async_advocate_idea')
     @patch('madspark.core.async_coordinator.async_criticize_idea')
     @patch('madspark.core.async_coordinator.async_improve_idea')
+    @pytest.mark.integration
     async def test_run_workflow_success(self, mock_improve, mock_criticize, mock_advocate, 
                                        mock_evaluate, mock_generate, coordinator, 
                                        mock_async_workflow_results):
@@ -206,6 +210,7 @@ class TestAsyncCoordinator:
     
     @pytest.mark.skipif(os.getenv("MADSPARK_MODE") == "mock", reason="Mock mode operations are instantaneous")
     @pytest.mark.asyncio
+    @pytest.mark.slow
     async def test_async_workflow_timeout(self, coordinator):
         """Test async workflow with timeout."""
         # Test with very short timeout
@@ -224,6 +229,7 @@ class TestAsyncCoordinator:
     
     @pytest.mark.asyncio
     @patch('madspark.core.async_coordinator.async_generate_ideas')
+    @pytest.mark.integration
     async def test_async_workflow_with_exception(self, mock_generate, coordinator):
         """Test async workflow exception handling."""
         mock_generate.side_effect = Exception("Async error")
@@ -258,6 +264,7 @@ class TestWorkflowIntegration:
         assert async_result is not None
     
     @patch('madspark.core.coordinator.call_idea_generator_with_retry')
+    @pytest.mark.integration
     def test_workflow_with_bookmarks(self, mock_generate):
         """Test workflow integration with bookmark system."""
         mock_generate.return_value = "Test Idea 1: Test idea for bookmarks"
@@ -272,6 +279,7 @@ class TestWorkflowIntegration:
         assert isinstance(result, list)
     
     @patch('madspark.core.coordinator.call_idea_generator_with_retry')
+    @pytest.mark.integration
     def test_workflow_with_temperature_presets(self, mock_generate):
         """Test workflow with temperature presets."""
         mock_generate.return_value = "Test Idea 1\nTest Idea 2"
@@ -289,6 +297,7 @@ class TestWorkflowIntegration:
         assert result is not None or result == []  # Allow empty results in mock mode
     
     @patch('madspark.core.coordinator.call_idea_generator_with_retry')
+    @pytest.mark.integration
     def test_workflow_error_propagation(self, mock_generate):
         """Test that workflow errors are properly propagated."""
         # When idea generation returns empty, workflow returns empty list

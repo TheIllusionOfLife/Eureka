@@ -1,6 +1,5 @@
 """Test to validate pytest markers are properly applied and work as expected."""
 import subprocess
-import pytest
 import os
 import sys
 

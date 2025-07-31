@@ -1,5 +1,4 @@
 """Test the specific mismatch issue reported in Issue #118."""
-import pytest
 import json
 from unittest.mock import patch, MagicMock
 import os

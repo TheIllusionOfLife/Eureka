@@ -1,6 +1,4 @@
 """Test improved JSON parsing for nested and multi-line JSON."""
-import pytest
-import json
 import os
 import sys
 

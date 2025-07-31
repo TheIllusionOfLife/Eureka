@@ -1,5 +1,4 @@
 """Test coordinator evaluation parsing to fix Issue #118."""
-import pytest
 import json
 from unittest.mock import patch, MagicMock
 import os

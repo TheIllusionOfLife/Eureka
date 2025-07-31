@@ -890,5 +890,17 @@
     "skepticism": "CRITICAL FLAWS:\n• Mock flaw 1\n• Mock flaw 2\n\nRISKS & CHALLENGES:\n• Mock risk 1\n• Mock risk 2\n\nQUESTIONABLE ASSUMPTIONS:\n• Mock assumption 1\n• Mock assumption 2\n\nMISSING CONSIDERATIONS:\n• Mock missing factor 1\n• Mock missing factor 2",
     "bookmarked_at": "2025-07-31T23:29:26.373870",
     "tags": []
+  },
+  "bookmark_20250801_005822_e004dce5": {
+    "id": "bookmark_20250801_005822_e004dce5",
+    "text": "Improved version of: Mock idea generated for topic 'test' with context 'test' at temperature 0.9\n\nEnhancements based on feedback:\n- Addressed critique points\n- Incorporated advocacy strengths\n- Resolved skeptical concerns",
+    "theme": "test",
+    "constraints": "test",
+    "score": 8.0,
+    "critique": "Mock evaluation for testing",
+    "advocacy": "STRENGTHS:\n• Mock strength 1\n• Mock strength 2\n\nOPPORTUNITIES:\n• Mock opportunity 1\n• Mock opportunity 2\n\nADDRESSING CONCERNS:\n• Mock mitigation 1\n• Mock mitigation 2",
+    "skepticism": "CRITICAL FLAWS:\n• Mock flaw 1\n• Mock flaw 2\n\nRISKS & CHALLENGES:\n• Mock risk 1\n• Mock risk 2\n\nQUESTIONABLE ASSUMPTIONS:\n• Mock assumption 1\n• Mock assumption 2\n\nMISSING CONSIDERATIONS:\n• Mock missing factor 1\n• Mock missing factor 2",
+    "bookmarked_at": "2025-08-01T00:58:22.108791",
+    "tags": []
   }
 }

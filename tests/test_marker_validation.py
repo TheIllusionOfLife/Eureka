@@ -12,15 +12,15 @@ class TestMarkerValidation:
         """Test that tests marked with @pytest.mark.slow are excluded with -m 'not slow'."""
         # Run pytest with marker filter
         result = subprocess.run(
-            [sys.executable, "-m", "pytest", "tests/test_integration.py::TestEndToEndWorkflow::test_workflow_execution_time", 
+            [sys.executable, "-m", "pytest", "tests/test_integration.py::TestWorkflowPerformance::test_workflow_execution_time", 
              "-m", "not slow", "--collect-only", "-q"],
             capture_output=True,
             text=True,
             env={**os.environ, "PYTHONPATH": "src"}
         )
         
-        # Should show 0 tests collected when slow tests are excluded
-        assert "0 collected" in result.stdout or "deselected" in result.stdout
+        # Should show test was deselected when slow tests are excluded
+        assert "deselected" in result.stdout or "deselected" in result.stderr
     
     def test_integration_marker_selection(self):
         """Test that tests marked with @pytest.mark.integration can be selected."""
@@ -34,7 +34,7 @@ class TestMarkerValidation:
         )
         
         # Should show 1 test collected when selecting integration tests
-        assert "1 collected" in result.stdout or "selected" in result.stdout
+        assert "1 test collected" in result.stdout or "1 item" in result.stdout
     
     def test_combined_markers(self):
         """Test that tests can have multiple markers."""

@@ -85,8 +85,12 @@ ms "quantum computing" --enhanced --logical
 # Cache results with Redis for instant repeated queries                   
 ms "how the universe began" --top-ideas 3 --enable-cache
 
+# Set custom timeout (default: 600 seconds / 10 minutes)
+ms "complex analysis" --timeout 300     # 5 minute timeout
+ms "quick idea" --timeout 60 --async   # 1 minute timeout (async mode enforces timeout)
+
 # Combined options
-ms "main prompt" "context" --top-ideas 5 --temperature-preset creative --enhanced --logical --enable-cache
+ms "main prompt" "context" --top-ideas 5 --temperature-preset creative --enhanced --logical --enable-cache --timeout 120
 
 # Run the coordinator - full multi-agent analysis system
 # Orchestrates IdeaGenerator, Critic, Advocate, and Skeptic agents

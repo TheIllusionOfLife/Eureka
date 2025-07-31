@@ -4,7 +4,7 @@ This module provides enhanced idea generation using Gemini's structured output
 capabilities to ensure clean, meta-commentary-free responses.
 """
 import logging
-from typing import Dict, Any, Optional
+from typing import Any, Optional
 
 # Optional import for Google GenAI - graceful fallback for CI/testing
 try:
@@ -17,7 +17,7 @@ except ImportError:
     GENAI_AVAILABLE = False
 
 from madspark.utils.constants import IDEA_GENERATOR_SYSTEM_INSTRUCTION
-from madspark.utils.errors import ValidationError, ConfigurationError
+from madspark.utils.errors import ValidationError
 
 
 # Response schema for structured output

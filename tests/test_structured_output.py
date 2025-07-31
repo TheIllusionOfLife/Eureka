@@ -4,9 +4,7 @@ This test module verifies that the system uses Gemini's structured output
 instead of regex-based cleaning for improved ideas.
 """
 import json
-import pytest
-from unittest.mock import Mock, patch, MagicMock
-from types import SimpleNamespace
+from unittest.mock import Mock, patch
 
 from madspark.agents.idea_generator import (
     improve_idea,
@@ -47,7 +45,6 @@ class TestStructuredOutputImplementation:
     def test_structured_output_configuration(self, mock_client):
         """Test that structured output is configured when available."""
         # Mock the genai types module
-        mock_types = Mock()
         mock_config = Mock()
         
         # Mock response

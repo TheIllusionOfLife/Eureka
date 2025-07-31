@@ -4,10 +4,8 @@ This test module verifies that the --timeout CLI argument
 is properly passed through and utilized in the coordinator.
 """
 import asyncio
-import os
 import pytest
-from unittest.mock import Mock, patch, AsyncMock
-import argparse
+from unittest.mock import patch
 
 from madspark.cli.cli import create_parser
 from madspark.core.coordinator import run_multistep_workflow
@@ -110,7 +108,7 @@ class TestCoordinatorTimeoutImplementation:
                 mock_gen.return_value = "Idea 1: Test"
                 
                 # This should not raise an error and should log warning
-                results = run_multistep_workflow(
+                run_multistep_workflow(
                     theme="test",
                     constraints="context",
                     timeout=300

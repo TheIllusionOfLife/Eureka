@@ -386,5 +386,17 @@
     "skepticism": "Needs work",
     "bookmarked_at": "2025-08-01T08:22:53.487984",
     "tags": []
+  },
+  "bookmark_20250801_082858_439436a8": {
+    "id": "bookmark_20250801_082858_439436a8",
+    "text": "A revolutionary blockchain solution that addresses all feedback points through innovative implementation.",
+    "theme": "blockchain",
+    "constraints": "supply chain",
+    "score": 8.0,
+    "critique": "Mock evaluation for testing",
+    "advocacy": "STRENGTHS:\n• Mock strength 1\n• Mock strength 2\n\nOPPORTUNITIES:\n• Mock opportunity 1\n• Mock opportunity 2\n\nADDRESSING CONCERNS:\n• Mock mitigation 1\n• Mock mitigation 2",
+    "skepticism": "CRITICAL FLAWS:\n• Mock flaw 1\n• Mock flaw 2\n\nRISKS & CHALLENGES:\n• Mock risk 1\n• Mock risk 2\n\nQUESTIONABLE ASSUMPTIONS:\n• Mock assumption 1\n• Mock assumption 2\n\nMISSING CONSIDERATIONS:\n• Mock missing factor 1\n• Mock missing factor 2",
+    "bookmarked_at": "2025-08-01T08:28:58.021897",
+    "tags": []
   }
 }

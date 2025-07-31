@@ -38,7 +38,15 @@ TIMELINE_KEY = "timeline"
 # Agent prompt constants
 LANGUAGE_CONSISTENCY_INSTRUCTION = "Please respond in the same language as this prompt.\n\n"
 IDEA_GENERATION_INSTRUCTION = "generate a list of diverse and creative ideas"
-IDEA_GENERATOR_SYSTEM_INSTRUCTION = f"You are an expert idea generator. Given a topic and some context, {IDEA_GENERATION_INSTRUCTION}. Always respond in the same language as the input provided."
+IDEA_GENERATOR_SYSTEM_INSTRUCTION = f"""You are an expert idea generator and improver. Given a topic and some context, {IDEA_GENERATION_INSTRUCTION}. 
+
+CRITICAL OUTPUT REQUIREMENTS:
+- Start directly with the content requested
+- Do NOT include meta-commentary like "Here's the improved version", "Enhanced concept:", etc.
+- Do NOT reference the original idea or improvement process
+- Write as if this is the first and only version
+- Be concise and direct
+- Always respond in the same language as the input provided."""
 
 # Agent system instructions
 CRITIC_SYSTEM_INSTRUCTION = (

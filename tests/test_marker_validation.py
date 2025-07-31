@@ -71,7 +71,7 @@ class TestMarkerValidation:
         
         # Time all tests
         start_all = time.time()
-        result_all = subprocess.run(
+        _ = subprocess.run(
             [sys.executable, "-m", "pytest", "tests/test_integration.py", "--tb=no", "-q"],
             capture_output=True,
             text=True,
@@ -81,7 +81,7 @@ class TestMarkerValidation:
         
         # Time without slow tests
         start_fast = time.time()
-        result_fast = subprocess.run(
+        _ = subprocess.run(
             [sys.executable, "-m", "pytest", "tests/test_integration.py", "-m", "not slow", "--tb=no", "-q"],
             capture_output=True,
             text=True,

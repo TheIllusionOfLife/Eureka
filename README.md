@@ -356,36 +356,32 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
 
 **Note**: These issues don't affect regular CLI usage. All user-facing functionality works correctly.
 
-#### Current Evaluation System Limitations
+#### Multi-Dimensional Evaluation System
 
-**Multi-Dimensional Evaluation Language Support:**
-- **Issue**: The multi-dimensional evaluation system currently uses English keyword matching for scoring, resulting in all non-English text receiving default scores of 5.0 across all dimensions.
-- **Impact**: Japanese and other non-English prompts receive inaccurate evaluation scores, though idea generation itself works correctly.
-- **Root Cause**: The `MultiDimensionalEvaluator` in `enhanced_reasoning.py` relies on English keywords (e.g., "AI", "innovative", "proven") to adjust dimension scores from a base of 5.0.
+**AI-Powered Language-Agnostic Evaluation (Implemented July 31, 2025):**
+- **Previous Issue**: The system used English keyword matching, causing non-English text to receive meaningless default scores of 5.0
+- **Solution**: Replaced keyword-based evaluation with AI-powered evaluation using Gemini API
+- **Benefits**: 
+  - All languages now receive accurate, meaningful evaluation scores
+  - Clear error messages when API key is not configured
+  - No misleading fallback to keyword matching
 
-**Evaluation System Architecture:**
-The current evaluation pipeline consists of:
+**Current Evaluation Pipeline:**
 1. **Idea Generation** (AI-powered) - Works correctly in all languages
 2. **Critic Agent** (AI-powered) - Provides initial scores and critiques
-3. **MultiDimensionalEvaluator** (Keyword-based) - Overrides critic scores with keyword matching
-4. **Enhanced Reasoning** - Adds context but uses keyword-based logic
-5. **Novelty Filter** - Simple deduplication using hash and Jaccard similarity
+3. **MultiDimensionalEvaluator** (AI-powered) - Evaluates 7 dimensions with language-agnostic prompts
+4. **Enhanced Reasoning** - Context awareness and logical inference
+5. **Novelty Filter** - Deduplication using hash and Jaccard similarity
 
-**Planned Improvements:**
-1. **Immediate**: Replace keyword-based scoring with AI-powered evaluation
-   - Update `MultiDimensionalEvaluator` to use Gemini API for dimension scoring
-   - Implement language-agnostic evaluation prompts
-   
-2. **Short-term**: Enhance core evaluation components
-   - Replace keyword-based logical inference with AI reasoning
-   - Implement semantic similarity using embeddings
-   
-3. **Long-term**: Build adaptive evaluation system
-   - Learn from user feedback
-   - Provide explainable scoring with reasoning
-   - Support domain-specific evaluation criteria
+**Requirements:**
+- Multi-dimensional evaluation now requires `GOOGLE_API_KEY` to be configured
+- Without API key, the system will display clear error messages instead of providing misleading scores
 
-**Temporary Workaround**: Use English prompts for accurate multi-dimensional scoring until the fix is implemented.
+**Future Enhancements:**
+1. **Logical Inference**: Replace keyword-based logic with AI reasoning
+2. **Semantic Similarity**: Implement embeddings for better novelty detection
+3. **Adaptive Learning**: Build system that learns from user feedback
+4. **Explainable AI**: Provide reasoning for each dimension score
 
 #### Session Learnings
 

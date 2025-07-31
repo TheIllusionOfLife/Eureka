@@ -330,12 +330,12 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
    - **Source**: [Issue #118](https://github.com/TheIllusionOfLife/Eureka/issues/118)
    - **Problem**: Coordinator generates 21-31 ideas but only parses ~5 evaluations
    - **Solution Implemented**: Enhanced `parse_json_with_fallback` in utils.py with:
-     - Support for JSON arrays embedded in text
+     - Support for JSON arrays embedded in text with proper bracket matching
      - Multi-line JSON object parsing with proper newline handling
      - Mixed format parsing (JSON objects, arrays, and narrative text)
-     - Improved regex patterns for narrative evaluation formats
+     - Improved regex patterns for narrative evaluation formats (ReDoS-safe)
      - Graceful fallback with clear warnings when evaluations are missing
-   - **Completed**: July 31, 2025
+   - **Completed**: July 31, 2025 ([PR #132](https://github.com/TheIllusionOfLife/Eureka/pull/132))
 
 2. **[HIGH] Implement Placeholder Tests for mad_spark Command**
    - **Source**: PR #117 - tests currently use `pytest.skip()` 
@@ -417,10 +417,9 @@ Based on code analysis (July 31, 2025):
 #### Known Issues & Follow-up Items
 
 **Technical Debt (Non-User-Facing):**
-- **[Issue #118](https://github.com/TheIllusionOfLife/Eureka/issues/118)**: Coordinator evaluation parsing issues - High priority technical fix needed for coordinator command
 - **[Issue #119](https://github.com/TheIllusionOfLife/Eureka/issues/119)**: Test expectation adjustments - Low priority test maintenance to align with current implementation
 
-**Note**: These issues don't affect regular CLI usage. All user-facing functionality works correctly.
+**Note**: This issue doesn't affect regular CLI usage. All user-facing functionality works correctly.
 
 #### Multi-Dimensional Evaluation System
 

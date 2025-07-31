@@ -38,6 +38,11 @@ if len(sys.argv) >= 2 and sys.argv[1] in ['--help', '-h', '--version']:
         except Exception as e:
             print(f"❌ Failed to show help: {e}")
             sys.exit(1)
+    
+    # For version, show version directly
+    if sys.argv[1] == '--version':
+        print("MadSpark Multi-Agent System v2.2")
+        sys.exit(0)
 
 # Now in venv, do mode detection
 try:

@@ -41,7 +41,7 @@ class TestMarkerValidation:
         """Test that tests can have multiple markers."""
         # This will validate after we apply markers to a test with both @pytest.mark.integration and @pytest.mark.slow
         result = subprocess.run(
-            [sys.executable, "-m", "pytest", "tests/test_integration.py::TestAsyncIntegration::test_async_workflow_integration",
+            [sys.executable, "-m", "pytest", "tests/test_integration.py::TestEndToEndWorkflow::test_async_workflow_integration",
              "-m", "integration and slow", "--collect-only", "-q"],
             capture_output=True,
             text=True,
@@ -65,6 +65,7 @@ class TestMarkerValidation:
         # Should pass without any marker issues
         assert "PASSED" in result.stdout
     
+    @pytest.mark.slow
     def test_ci_performance_improvement(self):
         """Test that excluding slow tests significantly reduces test execution time."""
         import time

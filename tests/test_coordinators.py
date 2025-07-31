@@ -208,7 +208,6 @@ class TestAsyncCoordinator:
         assert all("idea" in item for item in result)
         assert all("initial_score" in item for item in result)
     
-    @pytest.mark.skipif(os.getenv("MADSPARK_MODE") == "mock", reason="Mock mode operations are instantaneous")
     @pytest.mark.asyncio
     @pytest.mark.slow
     async def test_async_workflow_timeout(self, coordinator):

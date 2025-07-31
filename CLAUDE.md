@@ -273,6 +273,13 @@ When encountering module resolution errors in Docker:
 
 ## Session Learnings
 
+### PR #130: AI-Powered MultiDimensional Evaluation (July 31, 2025)
+- **AI-Powered Evaluation**: Replaced keyword-based evaluation with AI-powered system for language-agnostic support
+- **Mock-Mode Compatibility**: Use try/except with SimpleNamespace fallback to maintain mock-first development
+- **Explicit Failures**: System fails with clear error messages when API key not configured (no graceful degradation)
+- **Human-Readable Prompts**: Format context as "Theme: X. Constraints: Y" instead of raw dictionary strings
+- **Systematic PR Review**: Successfully addressed feedback from claude[bot], coderabbitai[bot], cursor[bot], and gemini-code-assist[bot]
+
 ### PR #121: Usability Improvements
 - **Similarity Detection**: Implemented Jaccard similarity (intersection over union) to detect duplicate text
 - **Auto-Async**: Automatically enable async mode when `num_candidates > 1` for better performance

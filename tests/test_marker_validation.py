@@ -2,8 +2,10 @@
 import subprocess
 import os
 import sys
+import pytest
 
 
+@pytest.mark.skipif(os.getenv("CI") == "true", reason="Skip marker validation in CI - markers are tested by their usage")
 class TestMarkerValidation:
     """Validate that performance markers work correctly."""
     

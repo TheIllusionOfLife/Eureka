@@ -165,7 +165,7 @@ class TestMadSparkCommand:
             assert any(indicator in output for indicator in test_indicators), \
                 f"Test command should run pytest. Got: {output[:300]}..."
         
-        except subprocess.TimeoutExpired as e:
+        except subprocess.TimeoutExpired:
             # Timeout is expected and acceptable - means pytest started running
             # This indicates the test command is working correctly
             pass  # Test passes because command started executing pytest

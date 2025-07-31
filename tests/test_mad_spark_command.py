@@ -1,5 +1,7 @@
 """Tests for mad_spark command line interface."""
 import os
+import subprocess
+import sys
 import tempfile
 import pytest
 from unittest.mock import patch
@@ -50,13 +52,11 @@ class TestMadSparkCommand:
     
     def test_mad_spark_shows_help(self):
         """Test that 'mad_spark' without args shows help."""
-        import subprocess
-        import sys
         
         # Test mad_spark --help command
         result = subprocess.run([
             sys.executable, 'run.py', '--help'
-        ], capture_output=True, text=True, cwd=os.getcwd())
+        ], capture_output=True, text=True)
         
         # Should exit successfully
         assert result.returncode == 0, f"Help command failed: {result.stderr}"
@@ -72,8 +72,6 @@ class TestMadSparkCommand:
     
     def test_mad_spark_runs_coordinator(self):
         """Test that 'mad_spark coordinator' runs the coordinator."""
-        import subprocess
-        import sys
         
         # Test mad_spark coordinator command with mock mode to avoid API dependency
         env = os.environ.copy()
@@ -82,7 +80,7 @@ class TestMadSparkCommand:
         
         result = subprocess.run([
             sys.executable, 'run.py', 'coordinator'
-        ], capture_output=True, text=True, cwd=os.getcwd(), env=env, timeout=30)
+        ], capture_output=True, text=True, env=env, timeout=30)
         
         # Should exit successfully or timeout gracefully
         assert result.returncode == 0, f"Coordinator command failed: stderr={result.stderr}, stdout={result.stdout}"
@@ -104,8 +102,6 @@ class TestMadSparkCommand:
     
     def test_mad_spark_cli_simplified_syntax(self):
         """Test simplified CLI syntax: mad_spark "topic" "context"."""
-        import subprocess
-        import sys
         
         # Test mad_spark with topic and context (simplified syntax)
         env = os.environ.copy()
@@ -113,8 +109,8 @@ class TestMadSparkCommand:
         env['SUPPRESS_MODE_MESSAGE'] = '1'
         
         result = subprocess.run([
-            sys.executable, 'run.py', 'AI automation cost effective'
-        ], capture_output=True, text=True, cwd=os.getcwd(), env=env, timeout=30)
+            sys.executable, 'run.py', 'AI automation', 'cost effective'
+        ], capture_output=True, text=True, env=env, timeout=30)
         
         # Should exit successfully
         assert result.returncode == 0, f"Simplified syntax should work: stderr={result.stderr[:200]}, stdout={result.stdout[:200]}"
@@ -127,8 +123,6 @@ class TestMadSparkCommand:
     
     def test_mad_spark_handles_single_argument(self):
         """Test that single argument is treated as topic with empty context."""
-        import subprocess
-        import sys
         
         # Test mad_spark with only topic (no context)
         env = os.environ.copy()
@@ -137,7 +131,7 @@ class TestMadSparkCommand:
         
         result = subprocess.run([
             sys.executable, 'run.py', 'consciousness'
-        ], capture_output=True, text=True, cwd=os.getcwd(), env=env, timeout=30)
+        ], capture_output=True, text=True, env=env, timeout=30)
         
         # Should exit successfully (single argument should work)
         assert result.returncode == 0, f"Single argument should work: stderr={result.stderr[:200]}, stdout={result.stdout[:200]}"
@@ -150,14 +144,12 @@ class TestMadSparkCommand:
     
     def test_mad_spark_runs_tests(self):
         """Test that 'mad_spark test' runs the test suite."""
-        import subprocess
-        import sys
         
         # Test mad_spark test command (with short timeout since we don't want to run full test suite)
         try:
             result = subprocess.run([
                 sys.executable, 'run.py', 'test'
-            ], capture_output=True, text=True, cwd=os.getcwd(), timeout=10)
+            ], capture_output=True, text=True, timeout=10)
             
             # If it completes within timeout, check the results
             output = result.stdout + result.stderr
@@ -172,8 +164,6 @@ class TestMadSparkCommand:
     
     def test_mad_spark_preserves_environment(self):
         """Test that mad_spark preserves environment variables."""
-        import subprocess
-        import sys
         
         # Set test environment variables
         test_env = os.environ.copy()
@@ -184,7 +174,7 @@ class TestMadSparkCommand:
         # Run mad_spark with the custom environment
         result = subprocess.run([
             sys.executable, 'run.py', 'environment_test'
-        ], capture_output=True, text=True, cwd=os.getcwd(), env=test_env, timeout=30)
+        ], capture_output=True, text=True, env=test_env, timeout=30)
         
         # Should exit successfully in mock mode
         assert result.returncode == 0, f"Environment test should work: stderr={result.stderr[:200]}, stdout={result.stdout[:200]}"
@@ -206,13 +196,11 @@ class TestMadSparkCommand:
     
     def test_mad_spark_error_handling(self):
         """Test that mad_spark handles errors gracefully."""
-        import subprocess
-        import sys
         
-        # Test 1: Missing required arguments for CLI (this will timeout if treated as topic)
+        # Test 1: Missing required arguments for the 'cli' command
         result = subprocess.run([
             sys.executable, 'run.py', 'cli'
-        ], capture_output=True, text=True, cwd=os.getcwd(), timeout=10)
+        ], capture_output=True, text=True, timeout=10)
         
         # Should exit with error code
         assert result.returncode != 0, "CLI without arguments should return non-zero exit code"
@@ -231,7 +219,7 @@ class TestMadSparkCommand:
         
         result = subprocess.run([
             sys.executable, 'run.py', 'test_topic'
-        ], capture_output=True, text=True, cwd=os.getcwd(), env=env, timeout=30)
+        ], capture_output=True, text=True, env=env, timeout=30)
         
         # Should exit successfully (topic is valid)
         assert result.returncode == 0, f"Valid topic should succeed: stderr={result.stderr[:200]}, stdout={result.stdout[:200]}"
@@ -244,13 +232,11 @@ class TestMadSparkCommand:
     
     def test_mad_spark_version_command(self):
         """Test that 'mad_spark --version' shows version info."""
-        import subprocess
-        import sys
         
         # Test mad_spark --version command
         result = subprocess.run([
             sys.executable, 'run.py', '--version'
-        ], capture_output=True, text=True, cwd=os.getcwd())
+        ], capture_output=True, text=True)
         
         # Should exit successfully
         assert result.returncode == 0, f"Version command failed: stderr={result.stderr}, stdout={result.stdout}"

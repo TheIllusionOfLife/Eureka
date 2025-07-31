@@ -46,10 +46,17 @@ if len(sys.argv) >= 2 and sys.argv[1] in ['--help', '-h', '--version']:
             print(f"❌ Failed to show help: {e}")
             sys.exit(1)
     
-    # For version, show version directly
+    # For version, delegate to CLI module for consistency
     if sys.argv[1] == '--version':
-        print("MadSpark Multi-Agent System v2.2")
-        sys.exit(0)
+        try:
+            import runpy
+            sys.argv = ['cli', '--version']
+            runpy.run_module('madspark.cli.cli', run_name='__main__')
+            sys.exit(0)
+        except Exception as e:
+            # Fallback if CLI module fails
+            print("MadSpark Multi-Agent System v2.2")
+            sys.exit(0)
 
 # Now in venv, do mode detection
 try:

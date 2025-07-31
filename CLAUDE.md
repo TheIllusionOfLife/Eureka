@@ -293,6 +293,13 @@ When encountering module resolution errors in Docker:
 - **Array Extraction**: Added `_extract_json_arrays` helper with proper bracket matching to handle incomplete responses
 - **CI Test Requirements**: Parser logic changes require format validation tests to prevent regressions
 
+### PR #135: Test Implementation and CI Fixes (August 1, 2025)
+- **Pattern-Based Test Validation**: Replace literal string checks with pattern matching for AI-generated content
+- **CI Environment Detection**: Check for dependencies before requiring venv (allows CI/global installs)
+- **Argument Parsing Logic**: Carefully calculate flag_start_idx to prevent context duplication in CLI
+- **Test Data Management**: Check production files for test data pollution after running tests
+- **DRY Principle**: Delegate common functionality (like version display) to avoid duplication
+
 ### PR #121: Usability Improvements
 - **Similarity Detection**: Implemented Jaccard similarity (intersection over union) to detect duplicate text
 - **Auto-Async**: Automatically enable async mode when `num_candidates > 1` for better performance

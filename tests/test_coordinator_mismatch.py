@@ -50,8 +50,8 @@ class TestCoordinatorMismatchIssue:
             # Set log level to capture warnings
             caplog.set_level(logging.WARNING)
             
-            # Run workflow
-            results = run_multistep_workflow(
+            # Run workflow (results not used, we're testing warnings)
+            _ = run_multistep_workflow(
                 theme="Test Theme",
                 constraints="Test Constraints",
                 num_top_candidates=3,

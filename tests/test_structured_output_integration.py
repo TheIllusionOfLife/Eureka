@@ -118,10 +118,22 @@ class TestStructuredOutputErrorHandling:
     def test_fallback_when_structured_import_fails(self):
         """Test that system falls back gracefully if structured module not available."""
         # Test that improve_idea still works even if structured module import fails
-        with patch('madspark.agents.idea_generator.improve_idea_structured', side_effect=ImportError("No module")):
+        # Mock the ImportError at the module level
+        import sys
+        original_modules = sys.modules.copy()
+        
+        # Remove the module if it exists
+        if 'madspark.agents.structured_idea_generator' in sys.modules:
+            del sys.modules['madspark.agents.structured_idea_generator']
+        
+        # Make the import fail
+        with patch.dict('sys.modules', {'madspark.agents.structured_idea_generator': None}):
+            # This should trigger the ImportError and use fallback
             from madspark.agents.idea_generator import improve_idea
-            # Should still work with fallback implementation
             assert callable(improve_idea)
+            
+        # Restore original modules
+        sys.modules.update(original_modules)
     
     @patch('madspark.agents.structured_idea_generator.GENAI_AVAILABLE', True)
     def test_handles_non_json_response(self):

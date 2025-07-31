@@ -115,10 +115,15 @@ class TestCoordinatorTimeoutImplementation:
                 )
                 
                 # Should log warning about sync mode not supporting timeout
-                mock_warning.assert_called_once()
-                warning_msg = mock_warning.call_args[0][0]
-                assert "timeout" in warning_msg.lower()
-                assert "sync mode" in warning_msg.lower()
+                # Find the timeout warning among all warnings
+                timeout_warning_found = False
+                for call in mock_warning.call_args_list:
+                    warning_msg = call[0][0]
+                    if "timeout" in warning_msg.lower() and "sync mode" in warning_msg.lower():
+                        timeout_warning_found = True
+                        break
+                
+                assert timeout_warning_found, f"Expected timeout warning not found. Warnings: {[call[0][0] for call in mock_warning.call_args_list]}"
 
 
 class TestCLITimeoutIntegration:

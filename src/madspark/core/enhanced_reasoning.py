@@ -485,15 +485,129 @@ class LogicalInference:
 
 
 class MultiDimensionalEvaluator:
-    """System for multi-dimensional evaluation of ideas."""
+    """System for multi-dimensional evaluation of ideas using AI."""
     
-    def __init__(self, dimensions: Optional[Dict[str, Dict[str, Any]]] = None):
-        """Initialize multi-dimensional evaluator.
+    # Dimension-specific prompts defined at class level for efficiency
+    DIMENSION_PROMPTS = {
+        'feasibility': """Evaluate the feasibility of this idea on a scale of 1-10:
+"{idea}"
+
+Context: {context}
+
+Scoring guide:
+- 1-3: Extremely difficult, requires breakthrough technology
+- 4-6: Challenging but achievable with significant effort
+- 7-9: Highly feasible with current resources
+- 10: Can be implemented immediately
+
+Respond with only the numeric score (e.g., "7").""",
+        
+        'innovation': """Evaluate the innovation level of this idea on a scale of 1-10:
+"{idea}"
+
+Context: {context}
+
+Scoring guide:
+- 1-3: Common, conventional approach
+- 4-6: Some novel elements but mostly standard
+- 7-9: Highly innovative with unique features
+- 10: Groundbreaking, never seen before
+
+Respond with only the numeric score (e.g., "8").""",
+        
+        'impact': """Evaluate the potential impact of this idea on a scale of 1-10:
+"{idea}"
+
+Context: {context}
+
+Scoring guide:
+- 1-3: Minimal impact, affects few people
+- 4-6: Moderate impact, local or specific benefits
+- 7-9: High impact, significant positive change
+- 10: Transformative impact on society
+
+Respond with only the numeric score (e.g., "7").""",
+        
+        'cost_effectiveness': """Evaluate the cost-effectiveness of this idea on a scale of 1-10:
+"{idea}"
+
+Context: {context}
+
+Scoring guide:
+- 1-3: Very expensive relative to benefits
+- 4-6: Moderate costs with reasonable returns
+- 7-9: Low cost with high value
+- 10: Minimal cost with exceptional returns
+
+Respond with only the numeric score (e.g., "6").""",
+        
+        'scalability': """Evaluate the scalability of this idea on a scale of 1-10:
+"{idea}"
+
+Context: {context}
+
+Scoring guide:
+- 1-3: Difficult to scale beyond initial scope
+- 4-6: Can scale with significant effort
+- 7-9: Easily scalable with minimal changes
+- 10: Infinitely scalable by design
+
+Respond with only the numeric score (e.g., "8").""",
+        
+        'risk_assessment': """Evaluate the risk level of this idea on a scale of 1-10 (higher score = lower risk):
+"{idea}"
+
+Context: {context}
+
+Scoring guide:
+- 1-3: Very high risk, many unknowns
+- 4-6: Moderate risk, some challenges
+- 7-9: Low risk, well-understood approach
+- 10: Minimal risk, proven methods
+
+Respond with only the numeric score (e.g., "7").""",
+        
+        'timeline': """Evaluate the timeline feasibility of this idea on a scale of 1-10:
+"{idea}"
+
+Context: {context}
+
+Scoring guide:
+- 1-3: Years to implement
+- 4-6: Several months to a year
+- 7-9: Weeks to a few months
+- 10: Days to weeks
+
+Respond with only the numeric score (e.g., "6")."""
+    }
+    
+    def __init__(self, genai_client=None, dimensions: Optional[Dict[str, Dict[str, Any]]] = None):
+        """Initialize multi-dimensional evaluator with required GenAI client.
         
         Args:
+            genai_client: Required GenAI client for AI-powered evaluation
             dimensions: Optional custom evaluation dimensions
         """
+        if genai_client is None:
+            raise ValueError(
+                "MultiDimensionalEvaluator requires a GenAI client. "
+                "Keyword-based evaluation has been deprecated as it provides meaningless results. "
+                "Please ensure GOOGLE_API_KEY is configured."
+            )
+        self.genai_client = genai_client
         self.evaluation_dimensions = dimensions or self._get_default_dimensions()
+        
+        # Import types for configuration if available
+        try:
+            from google.genai import types
+            self.types = types
+        except ImportError:
+            # In mock mode or when package not available, create a simple namespace
+            # This maintains compatibility while still requiring API key for actual use
+            import types as builtin_types
+            self.types = builtin_types.SimpleNamespace(
+                GenerateContentConfig=lambda **kwargs: kwargs
+            )
         
     def _get_default_dimensions(self) -> Dict[str, Dict[str, Any]]:
         """Get default evaluation dimensions."""
@@ -581,166 +695,65 @@ class MultiDimensionalEvaluator:
         
     def _evaluate_dimension(self, idea: str, context: Dict[str, Any], 
                            dimension: str, config: Dict[str, Any]) -> float:
-        """Evaluate a single dimension for an idea."""
-        idea_lower = idea.lower()
+        """Evaluate a single dimension using AI."""
+        try:
+            return self._ai_evaluate_dimension(idea, context, dimension, config)
+        except Exception as e:
+            raise RuntimeError(
+                f"Failed to evaluate {dimension} dimension: {str(e)}. "
+                f"Multi-dimensional evaluation requires working AI connection."
+            )
         
-        # Context-aware scoring based on dimension
-        base_score = 5.0  # Start with middle score
+    def _ai_evaluate_dimension(self, idea: str, context: Dict[str, Any], 
+                             dimension: str, dimension_config: Dict[str, Any]) -> float:
+        """Evaluate dimension using AI with clear prompts."""
+        prompt = self._build_dimension_prompt(idea, context, dimension)
         
-        if dimension == 'feasibility':
-            base_score = self._score_feasibility(idea_lower, context)
-        elif dimension == 'innovation':
-            base_score = self._score_innovation(idea_lower, context)
-        elif dimension == 'impact':
-            base_score = self._score_impact(idea_lower, context)
-        elif dimension == 'cost_effectiveness':
-            base_score = self._score_cost_effectiveness(idea_lower, context)
-        elif dimension == 'scalability':
-            base_score = self._score_scalability(idea_lower, context)
-        elif dimension == 'risk_assessment':
-            base_score = self._score_risk_assessment(idea_lower, context)
-        elif dimension == 'timeline':
-            base_score = self._score_timeline(idea_lower, context)
-            
-        # Clamp to dimension range
-        min_score, max_score = config.get('range', (1, 10))
-        return max(min_score, min(max_score, base_score))
+        # Import model name getter
+        try:
+            from madspark.agents.genai_client import get_model_name
+        except ImportError:
+            from ..agents.genai_client import get_model_name
         
-    def _score_feasibility(self, idea: str, context: Dict[str, Any]) -> float:
-        """Score feasibility dimension."""
-        score = 5.0
+        generate_config = self.types.GenerateContentConfig(
+            temperature=0.3,  # Low for consistency
+            system_instruction="You are an expert evaluator. Return only a numeric score."
+        )
         
-        # Positive indicators
-        if any(word in idea for word in ['existing', 'proven', 'simple', 'available']):
-            score += 1.5
-        if any(word in idea for word in ['technology', 'platform', 'system']):
-            score += 1.0
-            
-        # Negative indicators
-        if any(word in idea for word in ['revolutionary', 'breakthrough', 'unprecedented']):
-            score -= 1.5
-        if 'new invention' in idea:
-            score -= 2.0
-            
-        # Context adjustments
-        budget = context.get('budget', '').lower()
-        if budget in ['limited', 'low'] and 'expensive' in idea:
-            score -= 2.0
-        elif budget in ['high', 'unlimited'] and 'cost-effective' in idea:
-            score += 1.0
-            
-        return score
+        response = self.genai_client.models.generate_content(
+            model=get_model_name(),
+            contents=prompt,
+            config=generate_config
+        )
         
-    def _score_innovation(self, idea: str, context: Dict[str, Any]) -> float:
-        """Score innovation dimension."""
-        score = 5.0
+        # Parse score from response
+        score_text = response.text.strip()
+        try:
+            score = float(score_text)
+            # Use dimension config ranges if available
+            min_val = dimension_config.get('range', (1, 10))[0]
+            max_val = dimension_config.get('range', (1, 10))[1]
+            return max(min_val, min(max_val, score))  # Clamp to valid range
+        except ValueError:
+            raise ValueError(f"AI returned non-numeric score: '{score_text}'")
+    
+    def _build_dimension_prompt(self, idea: str, context: Dict[str, Any], dimension: str) -> str:
+        """Build evaluation prompt for a specific dimension."""
+        # Format context as human-readable string
+        context_parts = []
+        if 'theme' in context:
+            context_parts.append(f"Theme: {context['theme']}")
+        if 'constraints' in context:
+            context_parts.append(f"Constraints: {context['constraints']}")
+        for key, value in context.items():
+            if key not in ['theme', 'constraints']:
+                context_parts.append(f"{key.replace('_', ' ').title()}: {value}")
         
-        # Innovation indicators
-        innovation_words = ['ai', 'machine learning', 'blockchain', 'novel', 'creative', 'innovative']
-        if any(word in idea for word in innovation_words):
-            score += 2.0
-            
-        # Combination indicators
-        if 'combination' in idea or 'hybrid' in idea:
-            score += 1.5
-            
-        # Conservative indicators
-        if any(word in idea for word in ['traditional', 'standard', 'conventional']):
-            score -= 1.5
-            
-        return score
+        context_str = ". ".join(context_parts) if context_parts else "General context"
         
-    def _score_impact(self, idea: str, context: Dict[str, Any]) -> float:
-        """Score impact dimension."""
-        score = 5.0
-        
-        # High impact areas
-        impact_areas = ['healthcare', 'education', 'environment', 'poverty', 'climate']
-        if any(area in idea for area in impact_areas):
-            score += 2.0
-            
-        # Scale indicators
-        if any(word in idea for word in ['global', 'worldwide', 'universal']):
-            score += 1.5
-        elif any(word in idea for word in ['local', 'small', 'limited']):
-            score -= 1.0
-            
-        return score
-        
-    def _score_cost_effectiveness(self, idea: str, context: Dict[str, Any]) -> float:
-        """Score cost effectiveness dimension."""
-        score = 5.0
-        
-        # Cost-positive indicators
-        if any(word in idea for word in ['affordable', 'cheap', 'cost-effective', 'budget']):
-            score += 2.0
-        if 'open source' in idea or 'free' in idea:
-            score += 1.5
-            
-        # Cost-negative indicators
-        if any(word in idea for word in ['expensive', 'costly', 'premium']):
-            score -= 2.0
-            
-        return score
-        
-    def _score_scalability(self, idea: str, context: Dict[str, Any]) -> float:
-        """Score scalability dimension."""
-        score = 5.0
-        
-        # Scalable indicators
-        if any(word in idea for word in ['digital', 'software', 'platform', 'cloud']):
-            score += 2.0
-        if any(word in idea for word in ['automated', 'scalable', 'replicable']):
-            score += 1.5
-            
-        # Non-scalable indicators
-        if any(word in idea for word in ['manual', 'handcrafted', 'custom']):
-            score -= 1.5
-            
-        return score
-        
-    def _score_risk_assessment(self, idea: str, context: Dict[str, Any]) -> float:
-        """Score risk assessment dimension (higher score = lower risk)."""
-        score = 5.0
-        
-        # Low risk indicators
-        if any(word in idea for word in ['proven', 'tested', 'established']):
-            score += 2.0
-        if any(word in idea for word in ['safe', 'secure', 'reliable']):
-            score += 1.5
-            
-        # High risk indicators
-        if any(word in idea for word in ['experimental', 'unproven', 'risky']):
-            score -= 2.0
-        if 'first of its kind' in idea:
-            score -= 1.5
-            
-        return score
-        
-    def _score_timeline(self, idea: str, context: Dict[str, Any]) -> float:
-        """Score timeline feasibility dimension."""
-        score = 5.0
-        
-        # Quick implementation indicators
-        if any(word in idea for word in ['quick', 'fast', 'immediate', 'existing']):
-            score += 2.0
-        if any(word in idea for word in ['prototype', 'pilot', 'trial']):
-            score += 1.0
-            
-        # Long timeline indicators
-        if any(word in idea for word in ['research', 'development', 'years']):
-            score -= 1.5
-        if 'long-term' in idea:
-            score -= 1.0
-            
-        # Context timeline
-        timeline = context.get('timeline', '').lower()
-        if 'months' in timeline and 'years' in idea:
-            score -= 2.0
-        elif 'urgent' in timeline and 'quick' in idea:
-            score += 1.5
-            
-        return score
+        prompt_template = self.DIMENSION_PROMPTS.get(dimension, self.DIMENSION_PROMPTS['feasibility'])
+        return prompt_template.format(idea=idea, context=context_str)
+    
         
     def _generate_evaluation_summary(self, dimension_scores: Dict[str, float], idea: str) -> str:
         """Generate a summary of the evaluation."""
@@ -995,20 +1008,40 @@ class AgentConversationTracker:
 class ReasoningEngine:
     """Main enhanced reasoning engine that coordinates all reasoning components."""
     
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: Optional[Dict[str, Any]] = None, genai_client=None):
         """Initialize reasoning engine with optional configuration.
         
         Args:
             config: Optional configuration dictionary
+            genai_client: Optional GenAI client for multi-dimensional evaluation
         """
         self.config = config or self._get_default_config()
         
         # Initialize components
         self.context_memory = ContextMemory(capacity=self.config.get('memory_capacity', 1000))
         self.logical_inference = LogicalInference()
-        self.multi_evaluator = MultiDimensionalEvaluator(
-            dimensions=self.config.get('evaluation_dimensions')
-        )
+        
+        # Initialize multi-dimensional evaluator with genai_client if available
+        if genai_client is None:
+            try:
+                from madspark.agents.genai_client import get_genai_client
+            except ImportError:
+                from ..agents.genai_client import get_genai_client
+            
+            genai_client = get_genai_client()
+
+        if genai_client:
+            self.multi_evaluator = MultiDimensionalEvaluator(
+                genai_client=genai_client,
+                dimensions=self.config.get('evaluation_dimensions')
+            )
+        else:
+            logging.warning(
+                "Multi-dimensional evaluation disabled: No GenAI client available. "
+                "Configure GOOGLE_API_KEY to enable AI-powered evaluation."
+            )
+            self.multi_evaluator = None
+        
         self.conversation_tracker = AgentConversationTracker()
         
         reasoning_logger.info("Enhanced reasoning engine initialized")

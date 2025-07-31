@@ -490,7 +490,7 @@ def run_multistep_workflow(
             multi_eval_result = None
             
             # Always perform multi-dimensional evaluation (now a core feature)
-            if engine:
+            if engine and engine.multi_evaluator:
                 try:
                     # Create comprehensive evaluation context for enhanced reasoning
                     # MultiDimensionalEvaluator expects budget, timeline, and other context keys
@@ -528,9 +528,14 @@ def run_multistep_workflow(
                         print(f"📊 Multi-Dimensional Score for '{idea_text[:50]}...': {score:.2f}")
                         print(f"   Confidence: {multi_eval_result['confidence_interval']:.3f}")
                         
-                except (AttributeError, KeyError, TypeError, ValueError) as e:
+                except (AttributeError, KeyError, TypeError, ValueError, RuntimeError) as e:
                     logging.warning(f"Multi-dimensional evaluation failed for idea {i} ('{idea_text[:50]}...'): {type(e).__name__}: {e}")
                     # Fall back to standard evaluation
+            elif engine and not engine.multi_evaluator:
+                if i == 0:  # Only log once, not for every idea
+                    logging.warning("Multi-dimensional evaluation skipped: No AI client available")
+                    if verbose:
+                        print("⚠️  Multi-dimensional evaluation unavailable: Configure GOOGLE_API_KEY for AI-powered evaluation")
 
             # Enhanced reasoning: Apply logical inference if enabled (independent of multi-dimensional eval)
             if logical_inference and engine:

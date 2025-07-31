@@ -356,6 +356,20 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
 
 **Note**: These issues don't affect regular CLI usage. All user-facing functionality works correctly.
 
+#### Multi-Dimensional Evaluation System
+
+**AI-Powered Language-Agnostic Evaluation (Implemented July 31, 2025):**
+- **Previous Issue**: The system used English keyword matching, causing non-English text to receive meaningless default scores of 5.0
+- **Solution**: Replaced keyword-based evaluation with AI-powered evaluation using Gemini API
+- **Benefits**: 
+  - All languages now receive accurate, meaningful evaluation scores
+  - Clear error messages when API key is not configured
+  - No misleading fallback to keyword matching
+
+**Requirements:**
+- Multi-dimensional evaluation now requires `GOOGLE_API_KEY` to be configured
+- Without API key, the system will display clear error messages instead of providing misleading scores
+
 #### Session Learnings
 
 - **Multi-Reviewer PR Management**: Address ALL automated bot feedback systematically (cursor[bot], coderabbitai[bot], gemini-code-assist[bot])

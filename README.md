@@ -322,37 +322,83 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
 
 #### Next Priority Tasks
 
-1. **Implement Placeholder Tests**: Complete the TDD cycle for mad_spark command tests
-   - Source: PR #117 - tests currently use `pytest.skip()`
-   - Context: test_mad_spark_command.py has 8+ placeholder tests
-   - Approach: Implement actual test logic for command behavior verification
+**Updated: July 31, 2025** - Based on code analysis
 
-2. **Command Aliases Documentation**: Document canonical command and deprecation strategy
-   - Source: PR #117 added mad_spark/madspark/ms aliases
-   - Context: Need clear guidance on which is primary command
-   - Approach: Add section to docs about command aliases and future strategy
+##### Critical/High Priority (Fix Core Functionality)
 
-3. **Performance Test Markers**: Add @pytest.mark.slow/@pytest.mark.integration markers to restored tests
-   - Source: New integration tests in PR #111
-   - Context: Enables better test filtering in CI
-   - Approach: Review test_system_integration.py and add appropriate markers
+1. **[RESOLVED] ~~Fix Coordinator Evaluation Parsing Issues~~** ✅
+   - **Source**: [Issue #118](https://github.com/TheIllusionOfLife/Eureka/issues/118)
+   - **Problem**: Coordinator generates 21-31 ideas but only parses ~5 evaluations
+   - **Solution Implemented**: Enhanced `parse_json_with_fallback` in utils.py with:
+     - Support for JSON arrays embedded in text
+     - Multi-line JSON object parsing with proper newline handling
+     - Mixed format parsing (JSON objects, arrays, and narrative text)
+     - Improved regex patterns for narrative evaluation formats
+     - Graceful fallback with clear warnings when evaluations are missing
+   - **Completed**: July 31, 2025
 
-4. **CI Performance Monitoring**: Set up regression detection alerts
-   - Source: PR #107 optimization gains
-   - Context: Prevent CI time from creeping back up
-   - Approach: GitHub Actions workflow to track CI duration trends
+2. **[HIGH] Implement Placeholder Tests for mad_spark Command**
+   - **Source**: PR #117 - tests currently use `pytest.skip()` 
+   - **Context**: test_mad_spark_command.py has 8+ placeholder tests
+   - **Impact**: Coverage gap for command-line functionality
+   - **Approach**: Implement actual test logic for help, coordinator, CLI syntax
+   - **Estimated Effort**: 2-3 hours
 
-5. **Enhanced User Experience**: Consider implementation based on PR #123 success
-   - **Context**: CLI improvements showed significant user experience gains
-   - **Potential**: Implement `--batch` processing for multiple topics
-   - **Approach**: Extend existing CLI infrastructure to support batch operations
-   - **Priority**: Medium - would leverage recent CLI architecture improvements
+3. **[HIGH] Add Performance Test Markers**
+   - **Source**: New integration tests in PR #111
+   - **Problem**: No tests marked with `@pytest.mark.slow` or `@pytest.mark.integration`
+   - **Impact**: Cannot filter tests in CI for optimization
+   - **Approach**: Mark slow/integration tests, update CI configuration
+   - **Estimated Effort**: 1-2 hours
 
-6. **MultiDimensional Evaluator Performance**: Optimize AI evaluation performance
-   - **Source**: PR #130 review feedback suggested parallel API calls and caching
-   - **Context**: Currently makes 7 sequential API calls per idea evaluation
-   - **Approach**: Use asyncio for parallel calls, implement caching by idea content hash
-   - **Priority**: Low - current performance acceptable but could be improved
+##### Medium Priority (Improve Quality)
+
+4. **[MEDIUM] Update Test Expectations to Match Implementation**
+   - **Source**: [Issue #119](https://github.com/TheIllusionOfLife/Eureka/issues/119)
+   - **Problem**: Tests expect "Enhanced resilience network", actual output is "resilience network"
+   - **Impact**: False CI failures (no user impact)
+   - **Approach**: Update test assertions to match actual output
+   - **Estimated Effort**: 2-3 hours
+
+5. **[MEDIUM] Document Command Aliases Strategy**
+   - **Source**: PR #117 added mad_spark/madspark/ms aliases
+   - **Context**: Need clear guidance on which is primary command
+   - **Approach**: Add documentation section about command aliases
+   - **Estimated Effort**: 1 hour
+
+##### Low Priority/Future Improvements
+
+6. **[LOW] Improve or Remove Logical Inference Feature**
+   - **Problem**: `--logical` flag enables overly simplistic hardcoded templates
+   - **Current State**: Methods return fixed strings like "Therefore, the consequent follows"
+   - **Recommendation**: Either implement real logical inference or remove to avoid misleading users
+   - **Estimated Effort**: 4-5 hours for proper implementation
+
+7. **[LOW] Optimize MultiDimensional Evaluator Performance**
+   - **Source**: PR #130 review feedback
+   - **Current**: 7 sequential API calls per idea evaluation
+   - **Improvement**: Parallel API calls could provide 7x speedup
+   - **Approach**: Use asyncio for parallel calls, implement caching
+   - **Estimated Effort**: 4-5 hours
+
+8. **[LOW] Batch Processing Enhancement**
+   - **Context**: CLI improvements from PR #123 showed UX gains
+   - **Potential**: Implement `--batch` for processing multiple topics
+   - **Approach**: Extend CLI infrastructure for batch operations
+   - **Estimated Effort**: 4-6 hours
+
+9. **[LOW] CI Performance Monitoring**
+   - **Source**: PR #107 optimization gains
+   - **Context**: Prevent CI time regression
+   - **Approach**: GitHub Actions workflow to track duration trends
+   - **Estimated Effort**: 3-4 hours
+
+##### Feature Quality Assessment
+
+Based on code analysis (July 31, 2025):
+- ✅ **Multi-dimensional evaluation**: Sophisticated AI-powered system providing real value
+- ⚠️ **Enhanced reasoning (--enhanced)**: Moderate value through context awareness
+- ❌ **Logical inference (--logical)**: Too simplistic with hardcoded templates - needs rework
 
 #### Previous Milestones
 

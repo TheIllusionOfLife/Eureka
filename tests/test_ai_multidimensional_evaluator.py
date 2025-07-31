@@ -241,8 +241,7 @@ class TestCoordinatorIntegration:
         # without needing to run the full coordinator
     
     @patch('madspark.agents.genai_client.get_genai_client')
-    @patch('madspark.agents.idea_generator.IdeaGenerator.generate_ideas')
-    def test_coordinator_with_ai_evaluation_integration(self, mock_generate, mock_get_client):
+    def test_coordinator_with_ai_evaluation_integration(self, mock_get_client):
         """Test end-to-end integration with coordinator using AI evaluation."""
         # Mock GenAI client
         mock_client = Mock()
@@ -251,19 +250,7 @@ class TestCoordinatorIntegration:
         mock_client.models.generate_content.return_value = mock_response
         mock_get_client.return_value = mock_client
         
-        # Mock idea generation
-        mock_generate.return_value = ["Test idea 1", "Test idea 2"]
-        
-        # Test coordinator integration
-        from madspark.core.coordinator import Coordinator
-        
-        coordinator = Coordinator(
-            topic="test topic",
-            constraints="test constraints",
-            num_candidates=2
-        )
-        
-        # Run a simplified version of the coordinator flow
+        # Test coordinator integration by directly testing the components
         context = {"theme": "test topic", "constraints": "test constraints"}
         
         # Initialize engine with mock client

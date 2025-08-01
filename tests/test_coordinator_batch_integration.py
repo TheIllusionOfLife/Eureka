@@ -12,11 +12,11 @@ except ImportError:
 class TestCoordinatorBatchIntegration:
     """Integration tests for the batch coordinator."""
     
-    @patch('madspark.core.coordinator_batch.call_idea_generator_with_retry')
-    @patch('madspark.core.coordinator_batch.call_critic_with_retry')
-    @patch('madspark.core.coordinator_batch.advocate_ideas_batch')
-    @patch('madspark.core.coordinator_batch.criticize_ideas_batch')
-    @patch('madspark.core.coordinator_batch.improve_ideas_batch')
+    @patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry')
+    @patch('madspark.utils.agent_retry_wrappers.call_critic_with_retry')
+    @patch('madspark.agents.advocate.advocate_ideas_batch')
+    @patch('madspark.agents.skeptic.criticize_ideas_batch')
+    @patch('madspark.agents.idea_generator.improve_ideas_batch')
     def test_full_workflow_with_batch_processing(
         self,
         mock_improve_batch,
@@ -145,7 +145,7 @@ Idea 3: Community solar gardens with blockchain-based energy sharing"""
         advocate_call = mock_advocate_batch.call_args[0][0]
         assert len(advocate_call) == 3
         
-        # Verify only 7 total API calls (not 13 which would be old way)
+        # Verify only 6 total API calls (not 13 which would be old way)
         # 1 generate + 2 critic (initial + re-eval) + 1 advocate + 1 skeptic + 1 improve = 6
         total_api_calls = (
             mock_idea_gen.call_count +      # 1
@@ -156,11 +156,11 @@ Idea 3: Community solar gardens with blockchain-based energy sharing"""
         )
         assert total_api_calls == 6
     
-    @patch('madspark.core.coordinator_batch.call_idea_generator_with_retry')
-    @patch('madspark.core.coordinator_batch.call_critic_with_retry')
-    @patch('madspark.core.coordinator_batch.advocate_ideas_batch')
-    @patch('madspark.core.coordinator_batch.criticize_ideas_batch')
-    @patch('madspark.core.coordinator_batch.improve_ideas_batch')
+    @patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry')
+    @patch('madspark.utils.agent_retry_wrappers.call_critic_with_retry')
+    @patch('madspark.agents.advocate.advocate_ideas_batch')
+    @patch('madspark.agents.skeptic.criticize_ideas_batch')
+    @patch('madspark.agents.idea_generator.improve_ideas_batch')
     def test_batch_processing_with_failures(
         self,
         mock_improve_batch,

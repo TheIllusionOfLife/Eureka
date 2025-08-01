@@ -15,12 +15,12 @@ class TestEndToEndWorkflow:
     """End-to-end workflow integration tests."""
     
     @pytest.mark.integration
-    @patch('madspark.core.coordinator.call_idea_generator_with_retry')
-    @patch('madspark.core.coordinator.call_critic_with_retry')
-    @patch('madspark.core.coordinator.call_advocate_with_retry')
-    @patch('madspark.core.coordinator.call_skeptic_with_retry')
-    @patch('madspark.core.coordinator.call_improve_idea_with_retry')
-    def test_complete_workflow_integration(self, mock_improve, mock_skeptic, mock_advocate, 
+    @patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry')
+    @patch('madspark.utils.agent_retry_wrappers.call_critic_with_retry')
+    @patch('madspark.agents.advocate.advocate_ideas_batch')
+    @patch('madspark.agents.skeptic.criticize_ideas_batch')
+    @patch('madspark.agents.idea_generator.improve_ideas_batch')
+    def test_complete_workflow_integration(self, mock_improve_batch, mock_skeptic_batch, mock_advocate_batch, 
                                          mock_critic, mock_generate):
         """Test complete workflow from idea generation to final output."""
         
@@ -31,14 +31,23 @@ Smart Workflow Optimizer: ML-driven workflow optimization platform"""
         # Mock critic evaluation - returns JSON string
         mock_critic.return_value = '{"score": 7.5, "comment": "Good idea with market demand"}'
         
-        # Mock advocate - returns string
-        mock_advocate.return_value = "Strong market demand, addresses productivity pain points, proven ROI potential"
+        # Mock batch advocate - returns list of formatted results
+        mock_advocate_batch.return_value = [{
+            "idea_index": 0,
+            "formatted": "Strong market demand, addresses productivity pain points, proven ROI potential"
+        }]
         
-        # Mock skeptic - returns string
-        mock_skeptic.return_value = "High development costs, strong competition, complex integration requirements"
+        # Mock batch skeptic - returns list of formatted results
+        mock_skeptic_batch.return_value = [{
+            "idea_index": 0,
+            "formatted": "High development costs, strong competition, complex integration requirements"
+        }]
         
-        # Mock improve idea - returns string
-        mock_improve.return_value = "Enhanced AI-Powered Task Automation with improved scalability and reduced costs"
+        # Mock batch improve idea - returns list of improved ideas
+        mock_improve_batch.return_value = [{
+            "idea_index": 0,
+            "improved_idea": "Enhanced AI-Powered Task Automation with improved scalability and reduced costs"
+        }]
         
         # Run the complete workflow with temperature manager
         from madspark.utils.temperature_control import TemperatureManager
@@ -268,7 +277,7 @@ class TestWorkflowErrorHandling:
             # When critical step fails, workflow returns empty list
             assert len(result) == 0
     
-    @patch('madspark.core.coordinator.call_idea_generator_with_retry')
+    @patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry')
     @pytest.mark.integration
     def test_workflow_with_invalid_parameters(self, mock_generate):
         """Test workflow with invalid parameters."""

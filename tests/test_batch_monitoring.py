@@ -211,11 +211,11 @@ class TestBatchIntegration:
         """Reset monitor before each test."""
         reset_batch_monitor()
     
-    @patch('madspark.core.coordinator_batch.call_idea_generator_with_retry')
-    @patch('madspark.core.coordinator_batch.call_critic_with_retry')
-    @patch('madspark.core.coordinator_batch.advocate_ideas_batch')
-    @patch('madspark.core.coordinator_batch.criticize_ideas_batch')
-    @patch('madspark.core.coordinator_batch.improve_ideas_batch')
+    @patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry')
+    @patch('madspark.utils.agent_retry_wrappers.call_critic_with_retry')
+    @patch('madspark.agents.advocate.advocate_ideas_batch')
+    @patch('madspark.agents.skeptic.criticize_ideas_batch')
+    @patch('madspark.agents.idea_generator.improve_ideas_batch')
     def test_coordinator_monitoring(
         self, mock_improve, mock_skeptic, mock_advocate, mock_critic, mock_gen
     ):
@@ -257,16 +257,16 @@ class TestBatchIntegration:
         expected_types = {"advocate", "skeptic", "improve"}
         assert expected_types.issubset(set(batch_types.keys()))
     
-    @patch('madspark.core.coordinator_batch.advocate_ideas_batch')
+    @patch('madspark.agents.advocate.advocate_ideas_batch')
     def test_coordinator_handles_batch_failure(self, mock_advocate):
         """Test coordinator handles batch failures gracefully."""
         # Make advocate batch fail
         mock_advocate.side_effect = Exception("API Error")
         
-        with patch('madspark.core.coordinator_batch.call_idea_generator_with_retry') as mock_gen, \
-             patch('madspark.core.coordinator_batch.call_critic_with_retry') as mock_critic, \
-             patch('madspark.core.coordinator_batch.criticize_ideas_batch') as mock_skeptic, \
-             patch('madspark.core.coordinator_batch.improve_ideas_batch') as mock_improve:
+        with patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry') as mock_gen, \
+             patch('madspark.utils.agent_retry_wrappers.call_critic_with_retry') as mock_critic, \
+             patch('madspark.agents.skeptic.criticize_ideas_batch') as mock_skeptic, \
+             patch('madspark.agents.idea_generator.improve_ideas_batch') as mock_improve:
             
             mock_gen.return_value = "Idea 1: Test idea"
             mock_critic.side_effect = ['{"score": 8, "comment": "Good"}', '{"score": 9, "comment": "Better"}']

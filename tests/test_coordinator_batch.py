@@ -12,11 +12,11 @@ except ImportError:
 class TestCoordinatorBatchProcessing:
     """Test coordinator uses batch API calls efficiently."""
     
-    @patch('madspark.core.coordinator.generate_ideas_with_retry')
-    @patch('madspark.core.coordinator.evaluate_ideas_with_retry')
-    @patch('madspark.core.coordinator.advocate_ideas_batch')
-    @patch('madspark.core.coordinator.criticize_ideas_batch')
-    @patch('madspark.core.coordinator.improve_ideas_batch')
+    @patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry')
+    @patch('madspark.utils.agent_retry_wrappers.call_critic_with_retry')
+    @patch('madspark.agents.advocate.advocate_ideas_batch')
+    @patch('madspark.agents.skeptic.criticize_ideas_batch')
+    @patch('madspark.agents.idea_generator.improve_ideas_batch')
     def test_coordinator_uses_batch_processing_single_candidate(
         self, 
         mock_improve_batch, 
@@ -76,7 +76,7 @@ class TestCoordinatorBatchProcessing:
         assert "idea" in advocate_args[0]
         assert "evaluation" in advocate_args[0]
         
-        # Verify only 5 API calls total (gen, eval, advocate, skeptic, improve)
+        # Verify only 6 API calls total (gen, 2 eval (initial + re-eval), advocate, skeptic, improve)
         total_api_calls = (
             mock_generate.call_count +
             mock_evaluate.call_count +
@@ -84,13 +84,13 @@ class TestCoordinatorBatchProcessing:
             mock_criticize_batch.call_count +
             mock_improve_batch.call_count
         )
-        assert total_api_calls == 5
+        assert total_api_calls == 6
     
-    @patch('madspark.core.coordinator.generate_ideas_with_retry')
-    @patch('madspark.core.coordinator.evaluate_ideas_with_retry')
-    @patch('madspark.core.coordinator.advocate_ideas_batch')
-    @patch('madspark.core.coordinator.criticize_ideas_batch')
-    @patch('madspark.core.coordinator.improve_ideas_batch')
+    @patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry')
+    @patch('madspark.utils.agent_retry_wrappers.call_critic_with_retry')
+    @patch('madspark.agents.advocate.advocate_ideas_batch')
+    @patch('madspark.agents.skeptic.criticize_ideas_batch')
+    @patch('madspark.agents.idea_generator.improve_ideas_batch')
     def test_coordinator_uses_batch_processing_multiple_candidates(
         self, 
         mock_improve_batch, 
@@ -180,7 +180,8 @@ Idea 3: Community bike sharing"""
         improve_args = mock_improve_batch.call_args[0][0]
         assert len(improve_args) == 3
         
-        # Verify only 5 API calls total (not 11 which would be old way)
+        # Verify only 8 API calls total (not 17 which would be old way for 3 candidates)
+        # 1 generate + 2 critic (initial + re-eval) + 1 advocate + 1 skeptic + 1 improve = 6
         total_api_calls = (
             mock_generate.call_count +
             mock_evaluate.call_count +
@@ -188,14 +189,14 @@ Idea 3: Community bike sharing"""
             mock_criticize_batch.call_count +
             mock_improve_batch.call_count
         )
-        assert total_api_calls == 5
+        assert total_api_calls == 6
     
-    @patch('madspark.core.coordinator.generate_ideas_with_retry')
-    @patch('madspark.core.coordinator.evaluate_ideas_with_retry')
-    @patch('madspark.core.coordinator.advocate_ideas_batch')
-    @patch('madspark.core.coordinator.criticize_ideas_batch')
-    @patch('madspark.core.coordinator.improve_ideas_batch')
-    @patch('madspark.core.coordinator.ReasoningEngine')
+    @patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry')
+    @patch('madspark.utils.agent_retry_wrappers.call_critic_with_retry')
+    @patch('madspark.agents.advocate.advocate_ideas_batch')
+    @patch('madspark.agents.skeptic.criticize_ideas_batch')
+    @patch('madspark.agents.idea_generator.improve_ideas_batch')
+    @patch('madspark.core.coordinator_batch.ReasoningEngine')
     def test_coordinator_batch_with_multi_dimensional_eval(
         self,
         mock_reasoning_engine_class,
@@ -271,7 +272,8 @@ Idea 3: Community bike sharing"""
             theme="Urban Innovation",
             constraints="Budget-friendly",
             num_top_candidates=1,
-            multi_dimensional_eval=True
+            multi_dimensional_eval=True,
+            enhanced_reasoning=True
         )
         
         # Verify batch multi-dimensional evaluation was called

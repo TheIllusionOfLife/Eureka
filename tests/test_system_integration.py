@@ -336,7 +336,7 @@ class TestWorkflowErrorHandling:
             # When critical step fails, workflow returns empty list
             assert len(result) == 0
     
-    @patch('madspark.core.coordinator.call_idea_generator_with_retry')
+    @patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry')
     def test_workflow_with_invalid_parameters(self, mock_generate):
         """Test workflow with invalid parameters."""
         # Mock to return empty ideas

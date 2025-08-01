@@ -128,6 +128,7 @@ class TestSetupEnhancements:
             # Should fall back to user directory or show helpful message
             pass
     
+    @pytest.mark.skip(reason="Future enhancement: colored output not yet implemented")
     def test_setup_shows_colored_output(self):
         """Test that setup uses colors for better UX."""
         # Verify ANSI color codes in output
@@ -161,6 +162,7 @@ class TestSetupUserFlow:
         # 5. mad_spark command is available
         pass
     
+    @pytest.mark.skip(reason="Future enhancement: user flow testing not yet implemented")
     def test_new_user_without_api_key_flow(self):
         """Test complete flow for new user who wants mock mode."""
         # 1. User runs ./setup.sh
@@ -170,6 +172,7 @@ class TestSetupUserFlow:
         # 5. mad_spark command works in mock mode
         pass
     
+    @pytest.mark.skip(reason="Future enhancement: config preservation testing not yet implemented")
     def test_existing_user_preserves_config(self):
         """Test that existing users' configs are preserved."""
         # User already has .env with API key

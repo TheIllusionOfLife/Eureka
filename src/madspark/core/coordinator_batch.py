@@ -11,7 +11,7 @@ from typing import List, Optional
 from madspark.utils.batch_monitor import batch_call_context, get_batch_monitor
 from madspark.utils.errors import ValidationError
 
-from madspark.core.coordinator import (
+from madspark.core.types_and_logging import (
     CandidateData, log_verbose_step, log_agent_completion
 )
 from madspark.utils.utils import parse_json_with_fallback
@@ -53,7 +53,8 @@ def run_multistep_workflow_batch(
     multi_dimensional_eval: bool = False,
     temperature_manager: Optional[TemperatureManager] = None,
     novelty_filter: Optional[NoveltyFilter] = None,
-    verbose: bool = False
+    verbose: bool = False,
+    reasoning_engine: Optional[ReasoningEngine] = None
 ) -> List[CandidateData]:
     """
     Batch-optimized version of the multi-agent workflow.
@@ -70,6 +71,7 @@ def run_multistep_workflow_batch(
         temperature_manager: Optional temperature control
         novelty_filter: Optional novelty filtering
         verbose: Enable verbose logging
+        reasoning_engine: Optional pre-initialized reasoning engine
         
     Returns:
         List of fully processed candidate data
@@ -84,8 +86,8 @@ def run_multistep_workflow_batch(
     skepticism_temp = temp_manager.get_temperature_for_stage("skepticism")
     
     # Initialize reasoning engine if enabled
-    engine = None
-    if enable_reasoning:
+    engine = reasoning_engine  # Use passed engine if available
+    if enable_reasoning and engine is None:
         try:
             from madspark.agents.genai_client import get_genai_client
             genai_client = get_genai_client()

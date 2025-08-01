@@ -8,7 +8,14 @@ refine ideas based on a given theme and constraints.
 import os
 import json
 import logging
-from typing import List, Dict, Any, Optional, TypedDict # Added TypedDict
+from typing import List, Dict, Any, Optional
+
+# Import shared types and logging functions
+from madspark.core.types_and_logging import (
+    CandidateData, EvaluatedIdea,
+    log_verbose_step, log_verbose_data, log_verbose_completion,
+    log_verbose_sample_list, log_agent_execution, log_agent_completion
+)
 
 # --- Logging Configuration ---
 # Note: Logging configuration is now handled by CLI to avoid conflicts
@@ -78,101 +85,6 @@ except ImportError:
 # from google.adk.agents import Agent # No longer needed directly for hints here
 
 
-def log_verbose_step(step_name: str, details: str = "", verbose: bool = False):
-    """Log verbose step information with visual indicators."""
-    if verbose:
-        msg = f"\n{'='*60}\n🔍 {step_name}\n{'='*60}"
-        if details:
-            msg += f"\n{details}"
-        msg += "\n"
-        print(msg)
-        logging.info(f"VERBOSE_STEP: {step_name}")
-        if details:
-            logging.info(f"VERBOSE_DETAILS: {details}")
-
-def log_verbose_data(label: str, data: str, verbose: bool = False, max_length: int = 500):
-    """Log verbose data with truncation for readability."""
-    if not verbose:
-        return  # Early exit to avoid any string operations
-    
-    # Use list for efficient string building
-    msg_parts = [f"\n📊 {label}:", "-" * 40]
-    
-    if len(data) > max_length:
-        msg_parts.extend([
-            data[:max_length] + "...",
-            "",
-            f"[Truncated - Total length: {len(data)} characters]"
-        ])
-        log_data = data[:max_length] + "..."
-    else:
-        msg_parts.append(data)
-        log_data = data
-    
-    msg_parts.append("-" * 40)
-    print("\n".join(msg_parts))
-    
-    logging.info(f"VERBOSE_DATA: {label} ({len(data)} characters)")
-    # Log truncated version to file
-    logging.debug(f"VERBOSE_CONTENT: {log_data}")
-
-def log_verbose_completion(step_name: str, count: int, duration: float, verbose: bool = False, unit: str = "items"):
-    """Log completion status with timing information."""
-    if verbose:
-        print(f"✅ {step_name} Complete: Generated {count} {unit} in {duration:.2f}s")
-
-def log_verbose_sample_list(items: list, verbose: bool = False, max_display: int = 3, item_formatter=None):
-    """Log a sample of items from a list."""
-    if verbose and items:
-        print("📝 Sample Items:")
-        display_items = items[:max_display]
-        for i, item in enumerate(display_items, 1):
-            if item_formatter:
-                formatted_item = item_formatter(item)
-            else:
-                formatted_item = str(item)[:80] + ("..." if len(str(item)) > 80 else "")
-            print(f"  {i}. {formatted_item}")
-        if len(items) > max_display:
-            print(f"  ... and {len(items) - max_display} more items")
-
-
-def log_agent_execution(step_name: str, agent_name: str, agent_emoji: str, description: str, 
-                       temperature: float, verbose: bool = False):
-    """Log the start of an agent execution with standardized format."""
-    if verbose:
-        details = f"{agent_emoji} Agent: {agent_name}\n🎯 {description}\n🌡️ Temperature: {temperature}"
-        log_verbose_step(step_name, details, verbose)
-
-
-def log_agent_completion(agent_name: str, response_data: str, step_number: str, 
-                        duration: float, verbose: bool = False, max_length: int = 600):
-    """Log the completion of an agent execution with response data."""
-    if verbose:
-        log_verbose_data(f"Raw {agent_name} Response for {step_number}", response_data, verbose, max_length)
-        log_verbose_completion(f"{agent_name} Analysis", len(response_data), duration, verbose, "characters")
-
-
-# --- TypedDict Definitions ---
-class EvaluatedIdea(TypedDict):
-    """Structure for an idea after evaluation by the CriticAgent."""
-    text: str       # The original idea text
-    score: int      # Score assigned by the critic
-    critique: str   # Textual critique from the critic
-    multi_dimensional_evaluation: Optional[Dict[str, Any]]  # Multi-dimensional evaluation data
-
-class CandidateData(TypedDict):
-    """Structure for the final data compiled for each candidate idea."""
-    idea: str
-    initial_score: float
-    initial_critique: str
-    advocacy: str
-    skepticism: str
-    multi_dimensional_evaluation: Optional[Dict[str, Any]]
-    improved_idea: str
-    improved_score: float
-    improved_critique: str
-    score_delta: float
-# --- End TypedDict Definitions ---
 
 
 # Import retry-wrapped versions of agent calls from shared module
@@ -244,7 +156,8 @@ def run_multistep_workflow(
         multi_dimensional_eval=multi_dimensional_eval,
         temperature_manager=temperature_manager,
         novelty_filter=novelty_filter,
-        verbose=verbose
+        verbose=verbose,
+        reasoning_engine=engine
     )
 
 

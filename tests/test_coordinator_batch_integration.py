@@ -43,8 +43,8 @@ Idea 3: Community solar gardens with blockchain-based energy sharing"""
 {"score": 9, "comment": "Maintained strengths while addressing challenges"}"""
         ]
         
-        # Mock batch advocate
-        mock_advocate_batch.return_value = [
+        # Mock batch advocate - returns tuple
+        mock_advocate_batch.return_value = ([
             {
                 "idea_index": 0,
                 "strengths": ["Reduces congestion by 30%", "AI learns traffic patterns"],
@@ -66,10 +66,10 @@ Idea 3: Community solar gardens with blockchain-based energy sharing"""
                 "addressing_concerns": ["Proven blockchain tech", "Regulatory compliance"],
                 "formatted": "STRENGTHS:\n• Community ownership\n• Transparent energy trading"
             }
-        ]
+        ], 2000)
         
-        # Mock batch skeptic
-        mock_criticize_batch.return_value = [
+        # Mock batch skeptic - returns tuple
+        mock_criticize_batch.return_value = ([
             {
                 "idea_index": 0,
                 "critical_flaws": ["High initial cost", "Complex AI systems"],
@@ -94,10 +94,10 @@ Idea 3: Community solar gardens with blockchain-based energy sharing"""
                 "missing_considerations": ["Maintenance costs", "Weather dependencies"],
                 "formatted": "CRITICAL FLAWS:\n• Regulatory hurdles\n• Technical complexity"
             }
-        ]
+        ], 1800)
         
-        # Mock batch improvement
-        mock_improve_batch.return_value = [
+        # Mock batch improvement - returns tuple
+        mock_improve_batch.return_value = ([
             {
                 "idea_index": 0,
                 "improved_idea": "AI-powered smart traffic system with edge computing for reliability, phased deployment starting with high-traffic intersections, and open-source components for transparency",
@@ -113,7 +113,7 @@ Idea 3: Community solar gardens with blockchain-based energy sharing"""
                 "improved_idea": "Hybrid solar garden with battery storage, simplified peer-to-peer energy trading app, and weather-resilient design with backup grid connection",
                 "key_improvements": ["Battery storage added", "Simplified trading", "Weather resilience"]
             }
-        ]
+        ], 2500)
         
         # Run the workflow
         results = run_multistep_workflow_batch(

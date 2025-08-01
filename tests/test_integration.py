@@ -31,23 +31,23 @@ Smart Workflow Optimizer: ML-driven workflow optimization platform"""
         # Mock critic evaluation - returns JSON string
         mock_critic.return_value = '{"score": 7.5, "comment": "Good idea with market demand"}'
         
-        # Mock batch advocate - returns list of formatted results
-        mock_advocate_batch.return_value = [{
+        # Mock batch advocate - returns tuple of (results, token_usage)
+        mock_advocate_batch.return_value = ([{
             "idea_index": 0,
             "formatted": "Strong market demand, addresses productivity pain points, proven ROI potential"
-        }]
+        }], 1000)
         
-        # Mock batch skeptic - returns list of formatted results
-        mock_skeptic_batch.return_value = [{
+        # Mock batch skeptic - returns tuple of (results, token_usage)
+        mock_skeptic_batch.return_value = ([{
             "idea_index": 0,
             "formatted": "High development costs, strong competition, complex integration requirements"
-        }]
+        }], 800)
         
-        # Mock batch improve idea - returns list of improved ideas
-        mock_improve_batch.return_value = [{
+        # Mock batch improve idea - returns tuple of (results, token_usage)
+        mock_improve_batch.return_value = ([{
             "idea_index": 0,
             "improved_idea": "Enhanced AI-Powered Task Automation with improved scalability and reduced costs"
-        }]
+        }], 1200)
         
         # Run the complete workflow with temperature manager
         from madspark.utils.temperature_control import TemperatureManager

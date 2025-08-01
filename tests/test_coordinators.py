@@ -59,19 +59,19 @@ class TestSyncCoordinator:
             {"score": 7, "comment": "Interesting concept"}
         ]'''
         
-        # Mock batch functions to return results in correct format
-        mock_advocate_batch.return_value = [
+        # Mock batch functions to return tuples of (results, token_usage)
+        mock_advocate_batch.return_value = ([
             {"idea_index": 0, "formatted": "Strong market demand and solves real problems"},
             {"idea_index": 1, "formatted": "Another strong advocacy"}
-        ]
-        mock_skeptic_batch.return_value = [
+        ], 1000)
+        mock_skeptic_batch.return_value = ([
             {"idea_index": 0, "formatted": "High costs and medium risk concerns"},
             {"idea_index": 1, "formatted": "Other concerns"}
-        ]
-        mock_improve_batch.return_value = [
+        ], 800)
+        mock_improve_batch.return_value = ([
             {"idea_index": 0, "improved_idea": "Enhanced Test Idea 1 with improvements based on feedback"},
             {"idea_index": 1, "improved_idea": "Enhanced Test Idea 2 with improvements"}
-        ]
+        ], 1200)
         
         from madspark.utils.temperature_control import TemperatureManager
         temp_manager = TemperatureManager.from_base_temperature(0.8)

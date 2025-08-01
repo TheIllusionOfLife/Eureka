@@ -110,8 +110,8 @@ Idea 3: Community bike sharing"""
 {"score": 7, "comment": "Moderate impact"}
 {"score": 9, "comment": "Excellent potential"}"""
         
-        # Mock batch advocate for 3 ideas
-        mock_advocate_batch.return_value = [
+        # Mock batch advocate for 3 ideas - returns tuple
+        mock_advocate_batch.return_value = ([
             {
                 "idea_index": 0,
                 "strengths": ["Innovative"],
@@ -133,10 +133,10 @@ Idea 3: Community bike sharing"""
                 "addressing_concerns": ["Low cost"],
                 "formatted": "STRENGTHS:\n• Community-focused"
             }
-        ]
+        ], 1500)
         
-        # Mock batch skeptic for 3 ideas
-        mock_criticize_batch.return_value = [
+        # Mock batch skeptic for 3 ideas - returns tuple
+        mock_criticize_batch.return_value = ([
             {
                 "idea_index": i,
                 "critical_flaws": [f"Flaw {i+1}"],
@@ -146,17 +146,17 @@ Idea 3: Community bike sharing"""
                 "formatted": f"CRITICAL FLAWS:\n• Flaw {i+1}"
             }
             for i in range(3)
-        ]
+        ], 1200)
         
-        # Mock batch improvement for 3 ideas
-        mock_improve_batch.return_value = [
+        # Mock batch improvement for 3 ideas - returns tuple
+        mock_improve_batch.return_value = ([
             {
                 "idea_index": i,
                 "improved_idea": f"Improved idea {i+1} with enhancements",
                 "key_improvements": [f"Enhancement {i+1}"]
             }
             for i in range(3)
-        ]
+        ], 1800)
         
         # Run workflow with 3 candidates
         run_multistep_workflow(

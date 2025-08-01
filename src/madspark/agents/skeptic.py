@@ -5,7 +5,7 @@ The agent is responsible for critically analyzing ideas, challenging assumptions
 and identifying potential flaws or risks.
 """
 import logging
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Tuple
 
 # Optional import for Google GenAI - graceful fallback for CI/testing
 try:
@@ -128,7 +128,7 @@ def criticize_ideas_batch(
     ideas_with_advocacies: List[Dict[str, str]], 
     context: str, 
     temperature: float = 0.5
-) -> List[Dict[str, Any]]:
+) -> Tuple[List[Dict[str, Any]], int]:
   """Batch critical analysis for multiple ideas in a single API call.
   
   This function significantly reduces API calls by processing all ideas

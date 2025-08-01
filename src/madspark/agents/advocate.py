@@ -5,7 +5,7 @@ The agent is responsible for constructing persuasive arguments in favor of
 an idea, considering its evaluation and context.
 """
 import logging
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Tuple
 
 # Optional import for Google GenAI - graceful fallback for CI/testing
 try:
@@ -121,7 +121,7 @@ def advocate_ideas_batch(
     ideas_with_evaluations: List[Dict[str, str]], 
     context: str, 
     temperature: float = 0.5
-) -> List[Dict[str, Any]]:
+) -> Tuple[List[Dict[str, Any]], int]:
   """Batch advocate for multiple ideas in a single API call.
   
   This function significantly reduces API calls by processing all ideas

@@ -5,7 +5,7 @@ The agent is responsible for generating novel ideas based on a given topic
 and contextual information.
 """
 import logging
-from typing import Any, List, Dict
+from typing import Any, List, Dict, Tuple
 
 # Optional import for Google GenAI - graceful fallback for CI/testing
 try:
@@ -404,7 +404,7 @@ def improve_ideas_batch(
     ideas_with_feedback: List[Dict[str, str]], 
     theme: str, 
     temperature: float = 0.9
-) -> List[Dict[str, Any]]:
+) -> Tuple[List[Dict[str, Any]], int]:
   """Batch improvement for multiple ideas in a single API call.
   
   This function significantly reduces API calls by processing all ideas

@@ -120,6 +120,7 @@ try:
     from madspark.utils.bookmark_system import BookmarkManager
     from madspark.utils.cache_manager import CacheManager, CacheConfig
     from madspark.utils.improved_idea_cleaner import clean_improved_ideas_in_results
+    from madspark.utils.structured_output_check import is_structured_output_available
 except ImportError as e:
     logging.error(f"Failed to import MadSpark modules: {e}")
     # Try alternative paths for different deployment scenarios
@@ -267,10 +268,54 @@ def generate_mock_results(theme: str, num_ideas: int) -> List[Dict[str, Any]]:
     return results
 
 
-def format_results_for_frontend(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Format results to match frontend expectations, especially multi-dimensional evaluation."""
+def detect_structured_output_usage(results: List[Dict[str, Any]]) -> bool:
+    """Detect if structured output was used based on result content.
+    
+    Args:
+        results: List of results from coordinator
+        
+    Returns:
+        True if structured output appears to have been used, False otherwise
+    """
+    try:
+        # Try to get genai client from idea generator
+        from madspark.agents.idea_generator import GENAI_AVAILABLE, idea_generator_client
+        if GENAI_AVAILABLE and idea_generator_client and is_structured_output_available(idea_generator_client):
+            # Check if the improved ideas look like they came from structured output
+            # (no meta-commentary patterns)
+            if results and any(result.get('improved_idea') for result in results):
+                first_improved = next((r.get('improved_idea', '') for r in results if r.get('improved_idea')), '')
+                # Simple heuristic: structured output won't have common meta-commentary patterns
+                meta_patterns = ['Here is', 'Here\'s', 'I\'ve improved', 'The improved version', 'Based on the feedback']
+                structured_output_detected = not any(pattern.lower() in first_improved.lower() for pattern in meta_patterns)
+                
+                # Log the detection result
+                logger.info(f"Structured output detection: {structured_output_detected} (meta-commentary found: {not structured_output_detected})")
+                return structured_output_detected
+    except ImportError:
+        # If imports fail, assume no structured output
+        logger.debug("ImportError while detecting structured output - assuming not available")
+        pass
+    
+    return False
+
+
+def format_results_for_frontend(results: List[Dict[str, Any]], structured_output_used: bool = False) -> List[Dict[str, Any]]:
+    """Format results to match frontend expectations, especially multi-dimensional evaluation.
+    
+    Args:
+        results: Raw results from the coordinator
+        structured_output_used: Whether structured output was used for idea generation
+    
+    Returns:
+        Formatted results with cleaning applied (unless structured output was used)
+    """
     # Apply cleaning to all results before formatting (consistent with CLI)
-    cleaned_results = clean_improved_ideas_in_results(results)
+    # Skip cleaning if structured output was used
+    if structured_output_used:
+        cleaned_results = results
+    else:
+        cleaned_results = clean_improved_ideas_in_results(results)
     
     formatted_results = []
     for result in cleaned_results:
@@ -536,6 +581,7 @@ class IdeaGenerationResponse(BaseModel):
     results: List[Dict[str, Any]]
     processing_time: float
     timestamp: str
+    structured_output: bool = False  # Indicates if ideas are using structured output (no cleaning needed)
 
 
 class BookmarkRequest(BaseModel):
@@ -847,9 +893,10 @@ async def generate_ideas(request: Request, idea_request: IdeaGenerationRequest):
         return IdeaGenerationResponse(
             status="success",
             message=f"Generated {len(mock_results)} mock ideas",
-            results=format_results_for_frontend(mock_results),
+            results=format_results_for_frontend(mock_results, structured_output_used=False),
             processing_time=0.5,
-            timestamp=start_time.isoformat()
+            timestamp=start_time.isoformat(),
+            structured_output=False
         )
     
     try:
@@ -863,7 +910,7 @@ async def generate_ideas(request: Request, idea_request: IdeaGenerationRequest):
         elif idea_request.temperature:
             temp_mgr = TemperatureManager.from_base_temperature(idea_request.temperature)
         else:
-            temp_mgr = temp_manager
+            temp_mgr = temp_manager or TemperatureManager()
         
         # Always setup reasoning engine for multi-dimensional evaluation (now a core feature)
         reasoning_eng = reasoning_engine
@@ -931,12 +978,16 @@ async def generate_ideas(request: Request, idea_request: IdeaGenerationRequest):
         
         processing_time = (datetime.now() - start_time).total_seconds()
         
+        # Check if structured output is available and being used
+        structured_output_used = detect_structured_output_usage(results)
+        
         return IdeaGenerationResponse(
             status="success",
             message=f"Generated {len(results)} ideas successfully",
-            results=format_results_for_frontend(results),
+            results=format_results_for_frontend(results, structured_output_used),
             processing_time=processing_time,
-            timestamp=start_time.isoformat()
+            timestamp=start_time.isoformat(),
+            structured_output=structured_output_used
         )
         
     except HTTPException:
@@ -981,7 +1032,7 @@ async def generate_ideas_async(request: Request, idea_request: IdeaGenerationReq
         elif idea_request.temperature:
             temp_mgr = TemperatureManager.from_base_temperature(idea_request.temperature)
         else:
-            temp_mgr = temp_manager
+            temp_mgr = temp_manager or TemperatureManager()
         
         # Always setup reasoning engine for multi-dimensional evaluation (now a core feature)
         reasoning_eng = reasoning_engine
@@ -1022,12 +1073,16 @@ async def generate_ideas_async(request: Request, idea_request: IdeaGenerationReq
         
         processing_time = (datetime.now() - start_time).total_seconds()
         
+        # Check if structured output is available and being used
+        structured_output_used = detect_structured_output_usage(results)
+        
         return IdeaGenerationResponse(
             status="success",
             message=f"Generated {len(results)} ideas successfully (async)",
-            results=format_results_for_frontend(results),
+            results=format_results_for_frontend(results, structured_output_used),
             processing_time=processing_time,
-            timestamp=start_time.isoformat()
+            timestamp=start_time.isoformat(),
+            structured_output=structured_output_used
         )
         
     except Exception as e:

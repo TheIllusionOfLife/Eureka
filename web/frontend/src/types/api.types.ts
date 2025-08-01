@@ -94,4 +94,5 @@ export interface IdeaGenerationResponse {
   results: IdeaResult[];
   processing_time: number;
   timestamp: string;
+  structured_output?: boolean;  // Indicates if ideas are using structured output (no cleaning needed)
 }

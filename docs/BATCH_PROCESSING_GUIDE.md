@@ -1,5 +1,7 @@
 # Batch Processing Guide
 
+> **Note**: This guide covers batch processing of multiple topics/themes. For information about API call optimization through intelligent batch processing (which reduces API calls by 50%), see the [API Monitoring section](../README.md#-batch-api-monitoring--cost-analysis) in the main README.
+
 ## Overview
 
 The MadSpark Multi-Agent System supports batch processing, allowing you to generate ideas for multiple themes simultaneously. This is perfect for:

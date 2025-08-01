@@ -182,9 +182,10 @@ class TestMadSparkCommand:
         # The mad_spark process should have run with the environment variables preserved
         # This test verifies that the run.py script passes environment correctly to subprocesses
         output = result.stdout + result.stderr
-        # Should generate mock output (confirms environment was preserved for mock mode)
-        env_indicators = ["Mock", "generated", "idea"]
-        assert any(indicator in output for indicator in env_indicators), \
+        # Should generate output (confirms environment was preserved for mock mode)
+        # With structured output, we get clean results without "mock" prefix
+        env_indicators = ["solution", "score", "revolutionary", "innovation"]
+        assert any(indicator.lower() in output.lower() for indicator in env_indicators), \
             f"Environment variables should be preserved for subprocess execution. Got: {output[:300]}..."
     
     def test_mad_spark_works_from_any_directory(self):
@@ -226,8 +227,9 @@ class TestMadSparkCommand:
         
         # Should generate ideas output (not error)
         output = result.stdout + result.stderr
-        idea_indicators = ["idea", "Mock", "generated", "score", "evaluation"]
-        assert any(indicator in output for indicator in idea_indicators), \
+        # With structured output, look for clean results
+        idea_indicators = ["solution", "score", "revolutionary", "innovation", "✅"]
+        assert any(indicator.lower() in output.lower() for indicator in idea_indicators), \
             f"Topic processing should generate ideas. Got: {output[:300]}..."
     
     def test_mad_spark_version_command(self):

@@ -280,6 +280,9 @@ def improve_idea(
 ) -> str:
   """Improves an idea based on feedback from multiple agents.
   
+  This function now uses structured output to ensure clean responses
+  without meta-commentary.
+  
   Args:
     original_idea: The original idea to improve.
     critique: The critic's evaluation.
@@ -297,6 +300,29 @@ def improve_idea(
     ValidationError: If any required input is empty or invalid.
     ConfigurationError: If API key is not configured.
   """
+  # Try to import and use structured version
+  try:
+    from madspark.agents.structured_idea_generator import improve_idea_structured
+    # Use structured output version if available
+    return improve_idea_structured(
+        original_idea=original_idea,
+        critique=critique,
+        advocacy_points=advocacy_points,
+        skeptic_points=skeptic_points,
+        theme=theme,
+        temperature=temperature,
+        genai_client=idea_generator_client,
+        model_name=model_name
+    )
+  except (ImportError, Exception) as e:
+    # Fall back to original implementation on any error
+    # This ensures consistent behavior whether structured output fails to import
+    # or raises an exception during execution
+    if not isinstance(e, ImportError):
+        logging.warning(f"Structured output failed, falling back to original: {e}")
+    pass  # Continue with original implementation below
+  
+  # Original implementation as fallback
   # Validate inputs
   _validate_non_empty_string(original_idea, 'original_idea')
   _validate_non_empty_string(critique, 'critique')

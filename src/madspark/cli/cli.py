@@ -135,8 +135,14 @@ class BetterHelpFormatter(argparse.RawDescriptionHelpFormatter):
         if prefix is None:
             prefix = 'usage: '
         
-        # Get the program name - use 'ms' if running through the wrapper
-        prog = 'ms' if 'run.py' in sys.argv[0] or self._prog == 'cli' else self._prog
+        # Get the program name - use 'ms' as default for better UX
+        # Check various ways the script might be invoked
+        if any(cmd in sys.argv[0] for cmd in ['mad_spark', 'madspark', 'ms', 'run.py']):
+            prog = 'ms'
+        elif self._prog in ['cli', 'cli.py', '__main__.py']:
+            prog = 'ms'
+        else:
+            prog = self._prog
         
         # Build a cleaner usage string
         usage_parts = [prog]

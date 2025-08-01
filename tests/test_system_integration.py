@@ -38,7 +38,8 @@ class TestSystemIntegration:
         
         assert result.returncode == 0
         assert "blockchain" in result.stdout.lower()
-        assert "mock" in result.stdout.lower()
+        # In mock mode, we should get a solution
+        assert "solution" in result.stdout.lower() or "score" in result.stdout.lower()
     
     @pytest.mark.integration
     @pytest.mark.slow

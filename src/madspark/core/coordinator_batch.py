@@ -130,6 +130,33 @@ def run_multistep_workflow_batch(
     
     logging.info(f"Generated {len(parsed_ideas)} ideas")
     
+    # Apply novelty filtering if enabled
+    if novelty_filter:
+        log_verbose_step("STEP 1.5: Novelty Filtering", 
+                        f"🔍 Filtering {len(parsed_ideas)} ideas for novelty", 
+                        verbose)
+        
+        filtered_ideas = novelty_filter.filter_ideas(parsed_ideas)
+        novel_ideas = [fi.text for fi in filtered_ideas if fi.is_novel]
+        
+        if verbose:
+            filtered_count = len(parsed_ideas) - len(novel_ideas)
+            if filtered_count > 0:
+                logging.info(f"Filtered out {filtered_count} non-novel ideas")
+                for fi in filtered_ideas:
+                    if not fi.is_novel:
+                        logging.debug(
+                            f"Filtered: {fi.text[:50]}... "
+                            f"(similarity: {fi.similarity_score:.2f} to: {fi.similar_to[:50]}...)"
+                        )
+        
+        # Use only novel ideas for evaluation
+        parsed_ideas = novel_ideas
+        
+        if not parsed_ideas:
+            logging.warning("All ideas were filtered out as non-novel.")
+            return []
+    
     # Step 2: Evaluate Ideas (already batched)
     log_verbose_step("STEP 2: Idea Evaluation", 
                     f"📊 Evaluating {len(parsed_ideas)} ideas\n🌡️ Temperature: {eval_temp}", 
@@ -163,13 +190,7 @@ def run_multistep_workflow_batch(
                     "critique": critique
                 }
                 
-                # Add multi-dimensional evaluation if enabled
-                if multi_dimensional_eval and engine:
-                    try:
-                        # This will be batched later
-                        evaluated_idea["multi_dimensional_evaluation"] = None
-                    except (AttributeError, KeyError):
-                        pass
+                # Multi-dimensional evaluation will be added in batch later if enabled
                 
                 evaluated_ideas_data.append(evaluated_idea)
         

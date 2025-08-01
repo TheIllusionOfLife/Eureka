@@ -49,11 +49,10 @@ def is_structured_output_available(genai_client: Optional[Any] = None) -> bool:
             from google.genai import types
             
             # Check for response_mime_type support (indicates structured output capability)
-            if not hasattr(types.GenerateContentConfig, '__annotations__'):
+            config_annotations = getattr(types.GenerateContentConfig, '__annotations__', None)
+            if config_annotations is None:
                 _structured_output_available = False
                 return False
-                
-            config_annotations = types.GenerateContentConfig.__annotations__
             if 'response_mime_type' not in config_annotations:
                 _structured_output_available = False
                 return False

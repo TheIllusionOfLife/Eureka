@@ -306,7 +306,15 @@ function App() {
         const resultsCount = response.data.results?.length || 0;
         logger.ideaGeneration('completed', { resultsCount, duration });
         setResults(response.data.results || []);
-        setStructuredOutput(response.data.structured_output || false);
+        const isStructuredOutput = response.data.structured_output || false;
+        setStructuredOutput(isStructuredOutput);
+        
+        // Log structured output detection for debugging
+        if (isStructuredOutput) {
+          logger.debug('Structured output detected - skipping idea cleaning', 'STRUCTURED_OUTPUT');
+        } else {
+          logger.debug('Standard output detected - applying idea cleaning', 'STRUCTURED_OUTPUT');
+        }
         
         // Validate that we actually have results
         if (!response.data.results || response.data.results.length === 0) {

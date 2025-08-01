@@ -123,7 +123,8 @@ class TestAdvocateBatch:
         
         ideas = [{"idea": "Test", "evaluation": "Test eval"}]
         
-        with pytest.raises(RuntimeError, match="Batch advocate failed.*Invalid JSON"):
+        from madspark.utils.batch_exceptions import BatchAPIError
+        with pytest.raises(BatchAPIError, match="Batch advocate failed.*Invalid JSON"):
             advocate_ideas_batch(ideas, "Test", 0.5)
     
     @patch('madspark.agents.advocate.GENAI_AVAILABLE', True)
@@ -136,7 +137,8 @@ class TestAdvocateBatch:
         
         ideas = [{"idea": "Test", "evaluation": "Test eval"}]
         
-        with pytest.raises(RuntimeError, match="Batch advocate failed"):
+        from madspark.utils.batch_exceptions import BatchAPIError
+        with pytest.raises(BatchAPIError, match="Batch advocate failed"):
             advocate_ideas_batch(ideas, "Test", 0.5)
     
     @patch('madspark.agents.advocate.GENAI_AVAILABLE', True)

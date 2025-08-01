@@ -13,8 +13,8 @@ except ImportError:
 class TestCoordinatorBatchProcessing:
     """Test coordinator uses batch API calls efficiently."""
     
-    @patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry')
-    @patch('madspark.utils.agent_retry_wrappers.call_critic_with_retry')
+    @patch('madspark.core.coordinator_batch.call_idea_generator_with_retry')
+    @patch('madspark.core.coordinator_batch.call_critic_with_retry')
     @patch('madspark.core.coordinator_batch.advocate_ideas_batch')
     @patch('madspark.core.coordinator_batch.criticize_ideas_batch')
     @patch('madspark.core.coordinator_batch.improve_ideas_batch')
@@ -89,8 +89,8 @@ class TestCoordinatorBatchProcessing:
             assert mock_generate.call_count == 1
             assert mock_evaluate.call_count == 2  # Initial + re-eval after improvement
     
-    @patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry')
-    @patch('madspark.utils.agent_retry_wrappers.call_critic_with_retry')
+    @patch('madspark.core.coordinator_batch.call_idea_generator_with_retry')
+    @patch('madspark.core.coordinator_batch.call_critic_with_retry')
     @patch('madspark.core.coordinator_batch.advocate_ideas_batch')
     @patch('madspark.core.coordinator_batch.criticize_ideas_batch')
     @patch('madspark.core.coordinator_batch.improve_ideas_batch')

@@ -4,7 +4,7 @@ This module provides shared utilities for detecting language in text and
 generating appropriate mock responses in different languages.
 """
 
-from typing import Dict, Callable
+from typing import Dict
 
 
 def detect_language(text: str) -> str:

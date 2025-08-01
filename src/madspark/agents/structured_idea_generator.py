@@ -18,7 +18,6 @@ except ImportError:
     GENAI_AVAILABLE = False
 
 from madspark.utils.constants import IDEA_GENERATOR_SYSTEM_INSTRUCTION
-from madspark.utils.errors import ValidationError
 
 
 # Response schema for structured output

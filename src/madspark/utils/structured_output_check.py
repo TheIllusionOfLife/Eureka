@@ -45,15 +45,20 @@ def is_structured_output_available(genai_client: Optional[Any] = None) -> bool:
             _structured_output_available = False
             return False
         
-        from google.genai import types
-        
-        # Check for response_mime_type support (indicates structured output capability)
-        if not hasattr(types.GenerateContentConfig, '__annotations__'):
-            _structured_output_available = False
-            return False
+        try:
+            from google.genai import types
             
-        config_annotations = types.GenerateContentConfig.__annotations__
-        if 'response_mime_type' not in config_annotations:
+            # Check for response_mime_type support (indicates structured output capability)
+            if not hasattr(types.GenerateContentConfig, '__annotations__'):
+                _structured_output_available = False
+                return False
+                
+            config_annotations = types.GenerateContentConfig.__annotations__
+            if 'response_mime_type' not in config_annotations:
+                _structured_output_available = False
+                return False
+        except ImportError:
+            # Failed to import types from google.genai
             _structured_output_available = False
             return False
             

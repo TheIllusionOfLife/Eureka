@@ -268,6 +268,38 @@ def generate_mock_results(theme: str, num_ideas: int) -> List[Dict[str, Any]]:
     return results
 
 
+def detect_structured_output_usage(results: List[Dict[str, Any]]) -> bool:
+    """Detect if structured output was used based on result content.
+    
+    Args:
+        results: List of results from coordinator
+        
+    Returns:
+        True if structured output appears to have been used, False otherwise
+    """
+    try:
+        # Try to get genai client from idea generator
+        from madspark.agents.idea_generator import GENAI_AVAILABLE, idea_generator_client
+        if GENAI_AVAILABLE and idea_generator_client and is_structured_output_available(idea_generator_client):
+            # Check if the improved ideas look like they came from structured output
+            # (no meta-commentary patterns)
+            if results and any(result.get('improved_idea') for result in results):
+                first_improved = next((r.get('improved_idea', '') for r in results if r.get('improved_idea')), '')
+                # Simple heuristic: structured output won't have common meta-commentary patterns
+                meta_patterns = ['Here is', 'Here\'s', 'I\'ve improved', 'The improved version', 'Based on the feedback']
+                structured_output_detected = not any(pattern.lower() in first_improved.lower() for pattern in meta_patterns)
+                
+                # Log the detection result
+                logger.info(f"Structured output detection: {structured_output_detected} (meta-commentary found: {not structured_output_detected})")
+                return structured_output_detected
+    except ImportError:
+        # If imports fail, assume no structured output
+        logger.debug("ImportError while detecting structured output - assuming not available")
+        pass
+    
+    return False
+
+
 def format_results_for_frontend(results: List[Dict[str, Any]], structured_output_used: bool = False) -> List[Dict[str, Any]]:
     """Format results to match frontend expectations, especially multi-dimensional evaluation.
     
@@ -947,21 +979,7 @@ async def generate_ideas(request: Request, idea_request: IdeaGenerationRequest):
         processing_time = (datetime.now() - start_time).total_seconds()
         
         # Check if structured output is available and being used
-        structured_output_used = False
-        try:
-            # Try to get genai client from idea generator
-            from madspark.agents.idea_generator import GENAI_AVAILABLE, idea_generator_client
-            if GENAI_AVAILABLE and idea_generator_client and is_structured_output_available(idea_generator_client):
-                # Check if the improved ideas look like they came from structured output
-                # (no meta-commentary patterns)
-                if results and any(result.get('improved_idea') for result in results):
-                    first_improved = next((r.get('improved_idea', '') for r in results if r.get('improved_idea')), '')
-                    # Simple heuristic: structured output won't have common meta-commentary patterns
-                    meta_patterns = ['Here is', 'Here\'s', 'I\'ve improved', 'The improved version', 'Based on the feedback']
-                    structured_output_used = not any(pattern.lower() in first_improved.lower() for pattern in meta_patterns)
-        except ImportError:
-            # If imports fail, assume no structured output
-            pass
+        structured_output_used = detect_structured_output_usage(results)
         
         return IdeaGenerationResponse(
             status="success",
@@ -1056,21 +1074,7 @@ async def generate_ideas_async(request: Request, idea_request: IdeaGenerationReq
         processing_time = (datetime.now() - start_time).total_seconds()
         
         # Check if structured output is available and being used
-        structured_output_used = False
-        try:
-            # Try to get genai client from idea generator
-            from madspark.agents.idea_generator import GENAI_AVAILABLE, idea_generator_client
-            if GENAI_AVAILABLE and idea_generator_client and is_structured_output_available(idea_generator_client):
-                # Check if the improved ideas look like they came from structured output
-                # (no meta-commentary patterns)
-                if results and any(result.get('improved_idea') for result in results):
-                    first_improved = next((r.get('improved_idea', '') for r in results if r.get('improved_idea')), '')
-                    # Simple heuristic: structured output won't have common meta-commentary patterns
-                    meta_patterns = ['Here is', 'Here\'s', 'I\'ve improved', 'The improved version', 'Based on the feedback']
-                    structured_output_used = not any(pattern.lower() in first_improved.lower() for pattern in meta_patterns)
-        except ImportError:
-            # If imports fail, assume no structured output
-            pass
+        structured_output_used = detect_structured_output_usage(results)
         
         return IdeaGenerationResponse(
             status="success",

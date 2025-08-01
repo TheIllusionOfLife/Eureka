@@ -26,7 +26,7 @@ DEFAULT_NOVELTY_THRESHOLD = 0.8
 LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD = 0.5  # Minimum confidence for logical inference conclusions
 
 # Multi-dimensional evaluation constants
-DIMENSION_SCORES_KEY = "dimension_scores"
+DIMENSION_SCORES_KEY = "dimension_scores"  # Key for storing dimension scores in evaluation results
 FEASIBILITY_KEY = "feasibility"
 INNOVATION_KEY = "innovation"
 IMPACT_KEY = "impact"

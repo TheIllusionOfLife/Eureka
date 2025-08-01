@@ -426,7 +426,7 @@ def improve_ideas_batch(
     RuntimeError: If API call fails
   """
   if not ideas_with_feedback:
-    return []
+    return [], 0
   
   # Validate input format
   for i, item in enumerate(ideas_with_feedback):

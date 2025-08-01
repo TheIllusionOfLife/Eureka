@@ -36,13 +36,14 @@ class TestAdvocateBatch:
             "evaluation": "Score: 8/10. Strong concept with good feasibility."
         }]
         
-        results = advocate_ideas_batch(ideas_with_evaluations, "Education technology", 0.5)
+        results, token_usage = advocate_ideas_batch(ideas_with_evaluations, "Education technology", 0.5)
         
         assert len(results) == 1
         assert results[0]["idea_index"] == 0
         assert len(results[0]["strengths"]) == 2
         assert len(results[0]["opportunities"]) == 2
         assert len(results[0]["addressing_concerns"]) == 2
+        assert isinstance(token_usage, int)  # Token usage should be an integer
         
         # Verify single API call
         assert mock_client.models.generate_content.call_count == 1
@@ -85,9 +86,10 @@ class TestAdvocateBatch:
             {"idea": "Auto grading", "evaluation": "Score: 9/10"}
         ]
         
-        results = advocate_ideas_batch(ideas_with_evaluations, "EdTech", 0.5)
+        results, token_usage = advocate_ideas_batch(ideas_with_evaluations, "EdTech", 0.5)
         
         assert len(results) == 3
+        assert isinstance(token_usage, int)
         for i in range(3):
             assert results[i]["idea_index"] == i
             assert "strengths" in results[i]
@@ -101,9 +103,10 @@ class TestAdvocateBatch:
     @patch('madspark.agents.advocate.advocate_client')
     def test_advocate_ideas_batch_empty_list(self, mock_client):
         """Test batch advocate with empty list."""
-        results = advocate_ideas_batch([], "Test context", 0.5)
+        results, token_usage = advocate_ideas_batch([], "Test context", 0.5)
         
         assert results == []
+        assert token_usage == 0
         # Should not make API call
         assert mock_client.models.generate_content.call_count == 0
     
@@ -154,8 +157,9 @@ class TestAdvocateBatch:
         mock_client.models.generate_content.return_value = mock_response
         
         ideas = [{"idea": "Test idea", "evaluation": "Good"}]
-        results = advocate_ideas_batch(ideas, "Test", 0.5)
+        results, token_usage = advocate_ideas_batch(ideas, "Test", 0.5)
         
+        assert isinstance(token_usage, int)
         assert "formatted" in results[0]
         formatted = results[0]["formatted"]
         assert "STRENGTHS:" in formatted
@@ -172,7 +176,7 @@ class TestAdvocateBatch:
             {"idea": "Test idea 2", "evaluation": "Better"}
         ]
         
-        results = advocate_ideas_batch(ideas, "Test context", 0.5)
+        results, token_usage = advocate_ideas_batch(ideas, "Test context", 0.5)
         
         # Should return mock data
         assert len(results) == 2
@@ -189,6 +193,7 @@ class TestAdvocateBatch:
             ideas = [{"idea": "Test", "evaluation": "Test"}]
             
             # Should return mock results when client is None
-            results = advocate_ideas_batch(ideas, "Test", 0.5)
+            results, token_usage = advocate_ideas_batch(ideas, "Test", 0.5)
             assert len(results) == 1
+            assert token_usage == 0  # Mock mode
             assert "strengths" in results[0]

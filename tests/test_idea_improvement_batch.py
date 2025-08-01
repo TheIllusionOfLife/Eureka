@@ -37,7 +37,7 @@ class TestIdeaImprovementBatch:
             "skepticism": "Implementation complexity"
         }]
         
-        results = improve_ideas_batch(ideas_with_feedback, "Education tech", 0.9)
+        results, token_usage = improve_ideas_batch(ideas_with_feedback, "Education tech", 0.9)
         
         assert len(results) == 1
         assert results[0]["idea_index"] == 0
@@ -98,9 +98,10 @@ class TestIdeaImprovementBatch:
             }
         ]
         
-        results = improve_ideas_batch(ideas_with_feedback, "EdTech", 0.9)
+        results, token_usage = improve_ideas_batch(ideas_with_feedback, "EdTech", 0.9)
         
         assert len(results) == 3
+        assert isinstance(token_usage, int)
         for i in range(3):
             assert results[i]["idea_index"] == i
             assert "improved_idea" in results[i]
@@ -113,9 +114,10 @@ class TestIdeaImprovementBatch:
     @patch('madspark.agents.idea_generator.idea_generator_client')
     def test_improve_ideas_batch_empty_list(self, mock_client):
         """Test batch improvement with empty list."""
-        results = improve_ideas_batch([], "Test context", 0.9)
+        results, token_usage = improve_ideas_batch([], "Test context", 0.9)
         
         assert results == []
+        assert token_usage == 0
         # Should not make API call
         assert mock_client.models.generate_content.call_count == 0
     
@@ -176,7 +178,7 @@ class TestIdeaImprovementBatch:
             }
         ]
         
-        results = improve_ideas_batch(ideas, "Test context", 0.9)
+        results, token_usage = improve_ideas_batch(ideas, "Test context", 0.9)
         
         # Should return mock data
         assert len(results) == 2
@@ -197,7 +199,7 @@ class TestIdeaImprovementBatch:
             }]
             
             # Should return mock results when client is None
-            results = improve_ideas_batch(ideas, "Test", 0.9)
+            results, token_usage = improve_ideas_batch(ideas, "Test", 0.9)
             assert len(results) == 1
             assert "improved_idea" in results[0]
     
@@ -255,7 +257,7 @@ class TestIdeaImprovementBatch:
             {"idea": "C", "critique": "C", "advocacy": "A", "skepticism": "S"}
         ]
         
-        results = improve_ideas_batch(ideas, "Test", 0.9)
+        results, token_usage = improve_ideas_batch(ideas, "Test", 0.9)
         
         # Results should be sorted by idea_index
         assert results[0]["idea_index"] == 0

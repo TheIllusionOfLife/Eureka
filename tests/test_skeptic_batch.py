@@ -37,9 +37,10 @@ class TestSkepticBatch:
             "advocacy": "STRENGTHS:\n• Innovative\n• High impact\n\nOPPORTUNITIES:\n• Market leader"
         }]
         
-        results = criticize_ideas_batch(ideas_with_advocacies, "Education technology", 0.5)
+        results, token_usage = criticize_ideas_batch(ideas_with_advocacies, "Education technology", 0.5)
         
         assert len(results) == 1
+        assert isinstance(token_usage, int)
         assert results[0]["idea_index"] == 0
         assert len(results[0]["critical_flaws"]) == 2
         assert len(results[0]["risks_challenges"]) == 2
@@ -91,9 +92,10 @@ class TestSkepticBatch:
             {"idea": "Auto grading", "advocacy": "Efficiency gains"}
         ]
         
-        results = criticize_ideas_batch(ideas_with_advocacies, "EdTech", 0.5)
+        results, token_usage = criticize_ideas_batch(ideas_with_advocacies, "EdTech", 0.5)
         
         assert len(results) == 3
+        assert isinstance(token_usage, int)
         for i in range(3):
             assert results[i]["idea_index"] == i
             assert "critical_flaws" in results[i]
@@ -109,9 +111,10 @@ class TestSkepticBatch:
     @patch('madspark.agents.skeptic.skeptic_client')
     def test_criticize_ideas_batch_empty_list(self, mock_client):
         """Test batch skeptic with empty list."""
-        results = criticize_ideas_batch([], "Test context", 0.5)
+        results, token_usage = criticize_ideas_batch([], "Test context", 0.5)
         
         assert results == []
+        assert token_usage == 0
         # Should not make API call
         assert mock_client.models.generate_content.call_count == 0
     
@@ -163,8 +166,9 @@ class TestSkepticBatch:
         mock_client.models.generate_content.return_value = mock_response
         
         ideas = [{"idea": "Test idea", "advocacy": "Good points"}]
-        results = criticize_ideas_batch(ideas, "Test", 0.5)
+        results, token_usage = criticize_ideas_batch(ideas, "Test", 0.5)
         
+        assert isinstance(token_usage, int)
         assert "formatted" in results[0]
         formatted = results[0]["formatted"]
         assert "CRITICAL FLAWS:" in formatted
@@ -182,10 +186,11 @@ class TestSkepticBatch:
             {"idea": "Test idea 2", "advocacy": "Better"}
         ]
         
-        results = criticize_ideas_batch(ideas, "Test context", 0.5)
+        results, token_usage = criticize_ideas_batch(ideas, "Test context", 0.5)
         
         # Should return mock data
         assert len(results) == 2
+        assert token_usage == 0
         for i, result in enumerate(results):
             assert result["idea_index"] == i
             assert len(result["critical_flaws"]) > 0
@@ -199,8 +204,9 @@ class TestSkepticBatch:
             ideas = [{"idea": "Test", "advocacy": "Test"}]
             
             # Should return mock results when client is None
-            results = criticize_ideas_batch(ideas, "Test", 0.5)
+            results, token_usage = criticize_ideas_batch(ideas, "Test", 0.5)
             assert len(results) == 1
+            assert token_usage == 0
             assert "critical_flaws" in results[0]
     
     def test_criticize_ideas_batch_validates_input(self):

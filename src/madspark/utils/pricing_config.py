@@ -4,7 +4,7 @@ This module contains pricing information for different AI models used in the sys
 Prices are per 1K tokens unless otherwise specified.
 """
 
-from typing import Dict, Any
+from typing import Dict
 
 # Token costs configuration (per 1K tokens)
 # These values should be updated based on actual model pricing

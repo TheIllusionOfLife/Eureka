@@ -153,7 +153,7 @@ def criticize_ideas_batch(
     RuntimeError: If API call fails
   """
   if not ideas_with_advocacies:
-    return []
+    return [], 0
   
   # Validate input format
   for i, item in enumerate(ideas_with_advocacies):

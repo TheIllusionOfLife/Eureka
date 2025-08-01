@@ -4,6 +4,7 @@ This module defines the Critic agent and its associated tools.
 The agent is responsible for evaluating ideas based on specified criteria
 and context, providing scores and textual feedback.
 """
+import logging
 
 # Optional import for Google GenAI - graceful fallback for CI/testing
 try:

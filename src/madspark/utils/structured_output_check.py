@@ -23,7 +23,12 @@ def is_structured_output_available(genai_client: Optional[Any] = None) -> bool:
     """
     global _structured_output_available
     
-    # Return cached result if available
+    # Don't use cache if genai_client is None (mock mode)
+    # This prevents caching False when first called in mock mode
+    if genai_client is None:
+        return False
+    
+    # Return cached result only for non-None clients
     if _structured_output_available is not None:
         return _structured_output_available
     
@@ -31,11 +36,6 @@ def is_structured_output_available(genai_client: Optional[Any] = None) -> bool:
         # Check if structured module can be imported using importlib
         spec = importlib.util.find_spec('madspark.agents.structured_idea_generator')
         if spec is None:
-            _structured_output_available = False
-            return False
-        
-        # Check if we're in mock mode
-        if genai_client is None:
             _structured_output_available = False
             return False
             

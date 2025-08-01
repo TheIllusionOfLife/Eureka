@@ -257,7 +257,7 @@ class TestBatchIntegration:
         expected_types = {"advocate", "skeptic", "improve"}
         assert expected_types.issubset(set(batch_types.keys()))
     
-    @patch('madspark.agents.advocate.advocate_ideas_batch')
+    @patch('madspark.core.coordinator_batch.advocate_ideas_batch')
     def test_coordinator_handles_batch_failure(self, mock_advocate):
         """Test coordinator handles batch failures gracefully."""
         # Make advocate batch fail

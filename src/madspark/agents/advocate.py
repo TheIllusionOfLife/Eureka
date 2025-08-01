@@ -216,14 +216,34 @@ def advocate_ideas_batch(
     try:
       advocacies = json.loads(response.text)
     except json.JSONDecodeError as e:
-      raise ValueError(f"Invalid JSON response from API: {e}")
+      from madspark.utils.batch_exceptions import BatchParsingError
+      raise BatchParsingError(
+        f"Invalid JSON response from API: {e}",
+        batch_type="advocate",
+        items_count=len(ideas_with_evaluations),
+        raw_response=response.text,
+        parse_error=e
+      )
     
     # Validate and format results
     if not isinstance(advocacies, list):
-      raise ValueError("Response must be a JSON array")
+      from madspark.utils.batch_exceptions import BatchValidationError
+      raise BatchValidationError(
+        "Response must be a JSON array",
+        batch_type="advocate",
+        items_count=len(ideas_with_evaluations),
+        actual_count=1 if advocacies else 0
+      )
     
     if len(advocacies) != len(ideas_with_evaluations):
-      raise ValueError(f"Expected {len(ideas_with_evaluations)} advocacies, got {len(advocacies)}")
+      from madspark.utils.batch_exceptions import BatchValidationError
+      raise BatchValidationError(
+        f"Expected {len(ideas_with_evaluations)} advocacies, got {len(advocacies)}",
+        batch_type="advocate",
+        items_count=len(ideas_with_evaluations),
+        expected_count=len(ideas_with_evaluations),
+        actual_count=len(advocacies)
+      )
     
     # Process results and add formatted text
     results = []
@@ -232,7 +252,12 @@ def advocate_ideas_batch(
       required = {'idea_index', 'strengths', 'opportunities', 'addressing_concerns'}
       if not all(field in advocacy for field in required):
         missing = required - set(advocacy.keys())
-        raise ValueError(f"Missing required fields: {missing}")
+        from madspark.utils.batch_exceptions import BatchValidationError
+        raise BatchValidationError(
+          f"Missing required fields in response: {missing}",
+          batch_type="advocate",
+          items_count=len(ideas_with_evaluations)
+        )
       
       # Create formatted text
       formatted = (
@@ -253,8 +278,21 @@ def advocate_ideas_batch(
     # Always return tuple for consistent API
     return results, token_usage if isinstance(token_usage, (int, float)) else 0
     
+  except ValueError as e:
+    from madspark.utils.batch_exceptions import BatchValidationError
+    logging.error(f"Batch advocate validation failed: {e}", exc_info=True)
+    raise BatchValidationError(
+        str(e),
+        batch_type="advocate", 
+        items_count=len(ideas_with_evaluations)
+    )
   except Exception as e:
-    logging.error(f"Batch advocate failed: {e}", exc_info=True)
-    raise RuntimeError(f"Batch advocate failed: {e}")
+    from madspark.utils.batch_exceptions import BatchAPIError
+    logging.error(f"Batch advocate API call failed: {e}", exc_info=True)
+    raise BatchAPIError(
+        f"Batch advocate failed: {e}",
+        batch_type="advocate",
+        items_count=len(ideas_with_evaluations)
+    )
 
 

@@ -300,6 +300,13 @@ When encountering module resolution errors in Docker:
 - **Test Data Management**: Check production files for test data pollution after running tests
 - **DRY Principle**: Delegate common functionality (like version display) to avoid duplication
 
+### PR #138-139: Structured Output Support (August 1, 2025)
+- **Structured JSON Output**: Implemented frontend/backend support for cleaner AI responses without meta-commentary
+- **Cache Bug Prevention**: Never cache results when `genai_client` is None to prevent mock mode poisoning real client checks
+- **DRY Helper Functions**: Extract duplicate response creation logic into reusable helpers (e.g., `_create_success_response()`)
+- **Test Skip Patterns**: Use `@pytest.mark.skip` decorator only - avoid redundant `pytest.skip()` calls inside functions
+- **Attribute Access Safety**: Use `getattr(obj, 'attr', None)` instead of `hasattr()` for safer attribute checking
+
 ### PR #121: Usability Improvements
 - **Similarity Detection**: Implemented Jaccard similarity (intersection over union) to detect duplicate text
 - **Auto-Async**: Automatically enable async mode when `num_candidates > 1` for better performance

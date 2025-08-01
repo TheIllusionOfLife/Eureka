@@ -1,4 +1,6 @@
 """Integration tests for batch coordinator with real mock data."""
+import os
+import pytest
 from unittest.mock import patch
 
 try:
@@ -12,6 +14,7 @@ except ImportError:
 class TestCoordinatorBatchIntegration:
     """Integration tests for the batch coordinator."""
     
+    @pytest.mark.skipif(os.getenv("MADSPARK_MODE") == "mock", reason="Test requires full mock control")
     @patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry')
     @patch('madspark.utils.agent_retry_wrappers.call_critic_with_retry')
     @patch('madspark.agents.advocate.advocate_ideas_batch')
@@ -156,6 +159,7 @@ Idea 3: Community solar gardens with blockchain-based energy sharing"""
         )
         assert total_api_calls == 6
     
+    @pytest.mark.skipif(os.getenv("MADSPARK_MODE") == "mock", reason="Test requires full mock control")
     @patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry')
     @patch('madspark.utils.agent_retry_wrappers.call_critic_with_retry')
     @patch('madspark.agents.advocate.advocate_ideas_batch')
@@ -183,21 +187,21 @@ Idea 3: Community solar gardens with blockchain-based energy sharing"""
         mock_advocate_batch.side_effect = Exception("API Error")
         
         # Mock skeptic success
-        mock_criticize_batch.return_value = [{
+        mock_criticize_batch.return_value = ([{
             "idea_index": 0,
             "critical_flaws": ["Issue"],
             "risks_challenges": ["Risk"],
             "questionable_assumptions": ["Assumption"],
             "missing_considerations": ["Missing"],
             "formatted": "CRITICAL FLAWS:\n• Issue"
-        }]
+        }], 100)
         
         # Mock improvement success
-        mock_improve_batch.return_value = [{
+        mock_improve_batch.return_value = ([{
             "idea_index": 0,
             "improved_idea": "Better idea",
             "key_improvements": ["Improved"]
-        }]
+        }], 100)
         
         # Run workflow - should handle advocate failure gracefully
         results = run_multistep_workflow_batch(

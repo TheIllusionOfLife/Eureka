@@ -47,7 +47,7 @@ def batch_with_fallback(
         return results
         
     except Exception as batch_error:
-        logging.warning(f"Batch {batch_type} failed: {batch_error}. Falling back to individual processing.")
+        logging.warning(f"[DEGRADED MODE] Batch {batch_type} failed: {batch_error}. Falling back to individual processing.")
         
         # Record failed batch call with fallback
         monitor.end_batch_call(
@@ -82,7 +82,7 @@ def batch_with_fallback(
             
             # Record successful fallback
             monitor.end_batch_call(fallback_context, success=True)
-            logging.info(f"Fallback {batch_type}: Processed {len(fallback_results)} items individually")
+            logging.info(f"[DEGRADED MODE] Fallback {batch_type}: Processed {len(fallback_results)} items individually")
             return fallback_results
             
         except Exception as fallback_error:
@@ -93,21 +93,22 @@ def batch_with_fallback(
                 error_message=str(fallback_error)
             )
             
-            logging.error(f"Both batch and fallback {batch_type} failed: {fallback_error}")
+            logging.error(f"[DEGRADED MODE] Both batch and fallback {batch_type} failed: {fallback_error}")
             
             # Return placeholder results to maintain system stability
             return [
                 {
                     "idea_index": i,
-                    "error": "Both batch and fallback failed",
-                    "formatted": f"N/A ({batch_type} failed)"
+                    "error": "[DEGRADED MODE] Both batch and fallback failed",
+                    "formatted": f"[DEGRADED MODE] N/A ({batch_type} failed)"
                 }
                 for i in range(len(items))
             ]
 
 
 def advocate_fallback(item: Dict[str, str], theme: str, temperature: float) -> Dict[str, Any]:
-    """Fallback for individual advocate processing."""
+    """Fallback for individual advocate processing. [DEGRADED MODE]"""
+    logging.warning("[DEGRADED MODE] Using individual advocate calls instead of batch processing")
     try:
         from madspark.agents.advocate import advocate_idea
         result = advocate_idea(
@@ -118,12 +119,14 @@ def advocate_fallback(item: Dict[str, str], theme: str, temperature: float) -> D
         )
         return {"formatted": result}
     except ImportError:
+        logging.error("[DEGRADED MODE] advocate_idea import failed, using placeholder response")
         # If advocate_for_idea doesn't exist, create a basic response
-        return {"formatted": f"STRENGTHS:\n• Addresses the theme: {theme}\n• Has potential for development"}
+        return {"formatted": f"[DEGRADED MODE]\nSTRENGTHS:\n• Addresses the theme: {theme}\n• Has potential for development"}
 
 
 def skeptic_fallback(item: Dict[str, str], theme: str, temperature: float) -> Dict[str, Any]:
-    """Fallback for individual skeptic processing."""
+    """Fallback for individual skeptic processing. [DEGRADED MODE]"""
+    logging.warning("[DEGRADED MODE] Using individual skeptic calls instead of batch processing")
     try:
         from madspark.agents.skeptic import criticize_idea
         result = criticize_idea(
@@ -134,12 +137,14 @@ def skeptic_fallback(item: Dict[str, str], theme: str, temperature: float) -> Di
         )
         return {"formatted": result}
     except ImportError:
+        logging.error("[DEGRADED MODE] criticize_idea import failed, using placeholder response")
         # If criticize_idea doesn't exist, create a basic response
-        return {"formatted": "CRITICAL FLAWS:\n• Implementation challenges\n• Resource requirements need evaluation"}
+        return {"formatted": "[DEGRADED MODE]\nCRITICAL FLAWS:\n• Implementation challenges\n• Resource requirements need evaluation"}
 
 
 def improve_fallback(item: Dict[str, str], theme: str, temperature: float) -> Dict[str, Any]:
-    """Fallback for individual idea improvement."""
+    """Fallback for individual idea improvement. [DEGRADED MODE]"""
+    logging.warning("[DEGRADED MODE] Using individual improve calls instead of batch processing")
     try:
         from madspark.agents.idea_generator import improve_idea
         result = improve_idea(
@@ -152,13 +157,14 @@ def improve_fallback(item: Dict[str, str], theme: str, temperature: float) -> Di
         )
         return {"improved_idea": result}
     except Exception as e:
-        logging.warning(f"Improve fallback failed: {e}")
+        logging.error(f"[DEGRADED MODE] Improve fallback failed: {e}, using placeholder response")
         # Return enhanced version of original idea
-        return {"improved_idea": f"Enhanced version: {item['idea']} (with improvements based on feedback)"}
+        return {"improved_idea": f"[DEGRADED MODE] Enhanced version: {item['idea']} (with improvements based on feedback)"}
 
 
 def multi_dimensional_fallback(idea: str, context: Dict[str, Any]) -> Dict[str, Any]:
-    """Fallback for individual multi-dimensional evaluation."""
+    """Fallback for individual multi-dimensional evaluation. [DEGRADED MODE]"""
+    logging.warning("[DEGRADED MODE] Using placeholder multi-dimensional evaluation instead of AI-powered evaluation")
     # Return basic evaluation scores
     return {
         "idea_index": 0,  # Will be overwritten by batch_with_fallback
@@ -170,5 +176,5 @@ def multi_dimensional_fallback(idea: str, context: Dict[str, Any]) -> Dict[str, 
         "risk_assessment": 6,
         "timeline": 5,
         "overall_score": 6.0,
-        "evaluation_summary": "Fallback evaluation - basic scoring applied"
+        "evaluation_summary": "[DEGRADED MODE] Fallback evaluation - basic scoring applied"
     }

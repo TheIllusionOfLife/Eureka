@@ -11,7 +11,7 @@ import logging
 from typing import List, Optional
 
 # Import shared types and logging functions
-from madspark.core.types_and_logging import CandidateData
+from madspark.core.types_and_logging import CandidateData, EvaluatedIdea  # noqa: F401
 
 # --- Logging Configuration ---
 # Note: Logging configuration is now handled by CLI to avoid conflicts

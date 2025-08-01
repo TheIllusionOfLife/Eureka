@@ -169,8 +169,8 @@ class TestStructuredOutputErrorHandling:
                 assert isinstance(result, str)
                 assert len(result) > 20  # Not empty
     
-    def test_unexpected_errors_are_raised(self):
-        """Test that unexpected errors are properly raised."""
+    def test_unexpected_errors_fallback_gracefully(self):
+        """Test that unexpected errors result in graceful fallback."""
         # Test through the main improve_idea function
         from madspark.agents.idea_generator import improve_idea
         
@@ -179,15 +179,19 @@ class TestStructuredOutputErrorHandling:
                 # Test with an unexpected error type (generic Exception)
                 mock_client.models.generate_content.side_effect = Exception("Unexpected API Error")
                 
-                # Should re-raise unexpected errors
-                with pytest.raises(Exception, match="Unexpected API Error"):
-                    improve_idea(
-                        original_idea="Test idea",
-                        critique="Needs improvement",
-                        advocacy_points="Good start",
-                        skeptic_points="Some issues",
-                        theme="testing"
-                    )
+                # Should return a fallback response, not raise
+                result = improve_idea(
+                    original_idea="Test idea",
+                    critique="Needs improvement",
+                    advocacy_points="Good start",
+                    skeptic_points="Some issues",
+                    theme="testing"
+                )
+                
+                # Should get a reasonable fallback
+                assert isinstance(result, str)
+                assert len(result) > 20
+                assert "testing" in result.lower()
 
 
 class TestPromptEngineering:

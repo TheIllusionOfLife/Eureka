@@ -300,7 +300,7 @@ def improve_idea(
     ValidationError: If any required input is empty or invalid.
     ConfigurationError: If API key is not configured.
   """
-  # Try to import structured version
+  # Try to import and use structured version
   try:
     from madspark.agents.structured_idea_generator import improve_idea_structured
     # Use structured output version if available
@@ -314,8 +314,13 @@ def improve_idea(
         genai_client=idea_generator_client,
         model_name=model_name
     )
-  except ImportError:
-    pass  # Fall back to original implementation
+  except (ImportError, Exception) as e:
+    # Fall back to original implementation on any error
+    # This ensures consistent behavior whether structured output fails to import
+    # or raises an exception during execution
+    if not isinstance(e, ImportError):
+        logging.warning(f"Structured output failed, falling back to original: {e}")
+    pass  # Continue with original implementation below
   
   # Original implementation as fallback
   # Validate inputs

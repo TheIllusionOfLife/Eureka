@@ -5,7 +5,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from unittest.mock import Mock, patch
-from madspark.utils.structured_output_check import is_structured_output_available
+from madspark.utils.structured_output_check import is_structured_output_available, reset_structured_output_cache
 
 
 class TestStructuredOutputDetection:
@@ -18,8 +18,6 @@ class TestStructuredOutputDetection:
     
     def test_structured_output_cache_mechanism(self):
         """Test that structured output availability is cached."""
-        from madspark.utils.structured_output_check import reset_structured_output_cache
-        
         # Reset cache first
         reset_structured_output_cache()
         
@@ -38,8 +36,6 @@ class TestStructuredOutputDetection:
     
     def test_structured_output_with_mock_genai_client(self):
         """Test structured output detection with a mock genai client."""
-        from madspark.utils.structured_output_check import reset_structured_output_cache
-        
         # Reset cache
         reset_structured_output_cache()
         
@@ -61,8 +57,6 @@ class TestStructuredOutputDetection:
     
     def test_structured_output_importlib_checks(self):
         """Test that importlib is used correctly for module detection."""
-        from madspark.utils.structured_output_check import reset_structured_output_cache
-        
         # Reset cache
         reset_structured_output_cache()
         

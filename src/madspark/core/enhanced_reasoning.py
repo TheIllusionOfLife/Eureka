@@ -944,6 +944,9 @@ Respond with only the numeric score (e.g., "6")."""
             description = config.get('description', '')
             dimension_details.append(f"- {dim_name}: {description}")
         
+        # Define newline for use in f-string
+        newline = '\n'
+        
         prompt = f"""Evaluate the following {len(ideas)} ideas across all 7 dimensions.
 
 Context: {context_str}
@@ -952,7 +955,7 @@ Ideas to evaluate:
 {ideas_formatted}
 
 Evaluation dimensions:
-{'\n'.join(dimension_details)}
+{newline.join(dimension_details)}
 
 For EACH idea, provide a complete evaluation with scores for ALL dimensions.
 Return a JSON array where each element contains:

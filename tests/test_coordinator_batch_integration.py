@@ -1,16 +1,12 @@
 """Integration tests for batch coordinator with real mock data."""
-import pytest
-from unittest.mock import Mock, patch
-import json
+from unittest.mock import patch
 
 try:
     from madspark.core.coordinator_batch import run_multistep_workflow_batch
-    from madspark.utils.errors import ConfigurationError
 except ImportError:
     import sys
     sys.path.insert(0, 'src')
     from madspark.core.coordinator_batch import run_multistep_workflow_batch
-    from madspark.utils.errors import ConfigurationError
 
 
 class TestCoordinatorBatchIntegration:

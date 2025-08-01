@@ -3,10 +3,10 @@ import pytest
 import tempfile
 import time
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 from madspark.utils.batch_monitor import (
-    BatchMonitor, BatchMetrics, batch_call_context, 
+    BatchMonitor, batch_call_context, 
     get_batch_monitor, reset_batch_monitor
 )
 from madspark.utils.batch_fallback import batch_with_fallback
@@ -77,7 +77,7 @@ class TestBatchMonitor:
     def test_context_manager_with_exception(self):
         """Test context manager handles exceptions properly."""
         with pytest.raises(ValueError):
-            with batch_call_context("error_test", 2) as ctx:
+            with batch_call_context("error_test", 2):
                 raise ValueError("Test error")
         
         monitor = get_batch_monitor()

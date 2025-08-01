@@ -8,8 +8,6 @@ refine ideas based on a given theme and constraints.
 import os
 import json
 import logging
-import time
-import datetime
 from typing import List, Dict, Any, Optional, TypedDict # Added TypedDict
 
 # --- Logging Configuration ---
@@ -61,62 +59,20 @@ def _ensure_environment_configured():
 # Agent functions are accessed via retry wrappers from agent_retry_wrappers module
 try:
     # Primary imports for package installation
-    from madspark.utils.utils import (
-        parse_json_with_fallback,
-        validate_evaluation_json,
-    )
     from madspark.utils.novelty_filter import NoveltyFilter
     from madspark.utils.temperature_control import TemperatureManager
     from madspark.core.enhanced_reasoning import ReasoningEngine
-    from madspark.utils.constants import (
-        DEFAULT_IDEA_TEMPERATURE,
-        DEFAULT_EVALUATION_TEMPERATURE, 
-        DEFAULT_ADVOCACY_TEMPERATURE,
-        DEFAULT_SKEPTICISM_TEMPERATURE,
-        LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD,
-        MEANINGFUL_IMPROVEMENT_SIMILARITY_THRESHOLD,
-        MEANINGFUL_IMPROVEMENT_SCORE_DELTA
-    )
-    from madspark.utils.text_similarity import is_meaningful_improvement
 except ImportError:
     # Fallback imports for local development/testing
     try:
-        from ..utils.utils import (
-            parse_json_with_fallback,
-            validate_evaluation_json,
-        )
         from ..utils.novelty_filter import NoveltyFilter
         from ..utils.temperature_control import TemperatureManager
         from .enhanced_reasoning import ReasoningEngine
-        from ..utils.constants import (
-            DEFAULT_IDEA_TEMPERATURE,
-            DEFAULT_EVALUATION_TEMPERATURE, 
-            DEFAULT_ADVOCACY_TEMPERATURE,
-            DEFAULT_SKEPTICISM_TEMPERATURE,
-            LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD,
-            MEANINGFUL_IMPROVEMENT_SIMILARITY_THRESHOLD,
-            MEANINGFUL_IMPROVEMENT_SCORE_DELTA
-        )
-        from ..utils.text_similarity import is_meaningful_improvement
     except ImportError:
         # Last resort - direct imports (for old package structure)
-        from utils import (
-            parse_json_with_fallback,
-            validate_evaluation_json,
-        )
         from novelty_filter import NoveltyFilter
         from temperature_control import TemperatureManager
         from enhanced_reasoning import ReasoningEngine
-        from constants import (
-            DEFAULT_IDEA_TEMPERATURE,
-            DEFAULT_EVALUATION_TEMPERATURE, 
-            DEFAULT_ADVOCACY_TEMPERATURE,
-            DEFAULT_SKEPTICISM_TEMPERATURE,
-            LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD,
-            MEANINGFUL_IMPROVEMENT_SIMILARITY_THRESHOLD,
-            MEANINGFUL_IMPROVEMENT_SCORE_DELTA
-        )
-        from text_similarity import is_meaningful_improvement
 # Removed unused imports - ADVOCATE_FAILED_PLACEHOLDER, SKEPTIC_FAILED_PLACEHOLDER
 # as agent tools already handle empty responses
 # from google.adk.agents import Agent # No longer needed directly for hints here
@@ -220,30 +176,7 @@ class CandidateData(TypedDict):
 
 
 # Import retry-wrapped versions of agent calls from shared module
-try:
-    from madspark.utils.agent_retry_wrappers import (
-        call_idea_generator_with_retry,
-        call_critic_with_retry,
-        call_advocate_with_retry,
-        call_skeptic_with_retry,
-        call_improve_idea_with_retry
-    )
-    # Import batch functions
-    from madspark.agents.advocate import advocate_ideas_batch
-    from madspark.agents.skeptic import criticize_ideas_batch
-    from madspark.agents.idea_generator import improve_ideas_batch
-except ImportError:
-    from ..utils.agent_retry_wrappers import (
-        call_idea_generator_with_retry,
-        call_critic_with_retry,
-        call_advocate_with_retry,
-        call_skeptic_with_retry,
-        call_improve_idea_with_retry
-    )
-    # Import batch functions with relative imports
-    from ..agents.advocate import advocate_ideas_batch
-    from ..agents.skeptic import criticize_ideas_batch
-    from ..agents.idea_generator import improve_ideas_batch
+# Only import what's used - batch functions are used by coordinator_batch module
 
 
 def run_multistep_workflow(
@@ -296,7 +229,7 @@ def run_multistep_workflow(
             genai_client = get_genai_client()
             config = {"use_logical_inference": logical_inference} if logical_inference else None
             engine = ReasoningEngine(config=config, genai_client=genai_client)
-        except:
+        except Exception:
             config = {"use_logical_inference": logical_inference} if logical_inference else None
             engine = ReasoningEngine(config=config)
     

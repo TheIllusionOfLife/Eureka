@@ -1,16 +1,13 @@
 """Tests for multi-dimensional batch evaluation functionality."""
 import pytest
-from unittest.mock import Mock, patch
-from typing import List, Dict, Any
+from unittest.mock import Mock
 
 try:
     from madspark.core.enhanced_reasoning import MultiDimensionalEvaluator
-    from madspark.utils.errors import ConfigurationError
 except ImportError:
     import sys
     sys.path.insert(0, 'src')
     from madspark.core.enhanced_reasoning import MultiDimensionalEvaluator
-    from madspark.utils.errors import ConfigurationError
 
 
 class TestMultiDimensionalBatchEvaluation:

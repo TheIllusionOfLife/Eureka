@@ -5,25 +5,19 @@ to significantly reduce the number of API calls from O(N) to O(1) for
 advocate, skeptic, and improvement processing.
 """
 import logging
-import json
 import time
-from typing import List, Dict, Any, Optional, TypedDict
+from typing import List, Optional
 
 from madspark.utils.batch_monitor import batch_call_context, get_batch_monitor
 
 from madspark.core.coordinator import (
-    EvaluatedIdea, CandidateData, log_verbose_step, log_agent_execution,
-    log_agent_completion, _ensure_environment_configured,
-    parse_json_with_fallback, validate_evaluation_json,
-    is_meaningful_improvement
+    CandidateData, log_verbose_step, log_agent_completion
 )
+from madspark.utils.utils import parse_json_with_fallback
+from madspark.utils.text_similarity import is_meaningful_improvement
 from madspark.utils.constants import (
     MEANINGFUL_IMPROVEMENT_SIMILARITY_THRESHOLD,
-    MEANINGFUL_IMPROVEMENT_SCORE_DELTA,
-    DEFAULT_IDEA_TEMPERATURE,
-    DEFAULT_EVALUATION_TEMPERATURE,
-    DEFAULT_ADVOCACY_TEMPERATURE,
-    DEFAULT_SKEPTICISM_TEMPERATURE
+    MEANINGFUL_IMPROVEMENT_SCORE_DELTA
 )
 from madspark.utils.temperature_control import TemperatureManager
 from madspark.utils.novelty_filter import NoveltyFilter
@@ -33,10 +27,7 @@ from madspark.core.enhanced_reasoning import ReasoningEngine
 try:
     from madspark.utils.agent_retry_wrappers import (
         call_idea_generator_with_retry,
-        call_critic_with_retry,
-        call_advocate_with_retry,
-        call_skeptic_with_retry,
-        call_improve_idea_with_retry
+        call_critic_with_retry
     )
     # Import batch functions
     from madspark.agents.advocate import advocate_ideas_batch
@@ -45,10 +36,7 @@ try:
 except ImportError:
     from ..utils.agent_retry_wrappers import (
         call_idea_generator_with_retry,
-        call_critic_with_retry,
-        call_advocate_with_retry,
-        call_skeptic_with_retry,
-        call_improve_idea_with_retry
+        call_critic_with_retry
     )
     # Import batch functions with relative imports
     from ..agents.advocate import advocate_ideas_batch
@@ -101,7 +89,7 @@ def run_multistep_workflow_batch(
             from madspark.agents.genai_client import get_genai_client
             genai_client = get_genai_client()
             engine = ReasoningEngine(genai_client)
-        except:
+        except Exception:
             engine = ReasoningEngine()
     
     # Step 1: Generate Ideas (unchanged)
@@ -166,7 +154,7 @@ def run_multistep_workflow_batch(
                     try:
                         # This will be batched later
                         evaluated_idea["multi_dimensional_evaluation"] = None
-                    except:
+                    except Exception:
                         pass
                 
                 evaluated_ideas_data.append(evaluated_idea)

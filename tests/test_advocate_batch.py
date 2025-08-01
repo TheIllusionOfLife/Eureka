@@ -4,12 +4,10 @@ from unittest.mock import Mock, patch
 
 try:
     from madspark.agents.advocate import advocate_ideas_batch
-    from madspark.utils.errors import ConfigurationError
 except ImportError:
     import sys
     sys.path.insert(0, 'src')
     from madspark.agents.advocate import advocate_ideas_batch
-    from madspark.utils.errors import ConfigurationError
 
 
 class TestAdvocateBatch:

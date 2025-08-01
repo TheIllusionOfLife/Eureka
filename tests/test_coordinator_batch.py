@@ -1,17 +1,12 @@
 """Tests for coordinator with batch processing."""
-import pytest
-from unittest.mock import Mock, patch, MagicMock
-import json
-from typing import List, Dict, Any
+from unittest.mock import Mock, patch
 
 try:
     from madspark.core.coordinator import run_multistep_workflow
-    from madspark.utils.errors import ConfigurationError
 except ImportError:
     import sys
     sys.path.insert(0, 'src')
     from madspark.core.coordinator import run_multistep_workflow
-    from madspark.utils.errors import ConfigurationError
 
 
 class TestCoordinatorBatchProcessing:
@@ -64,7 +59,7 @@ class TestCoordinatorBatchProcessing:
         }]
         
         # Run workflow
-        results = run_multistep_workflow(
+        run_multistep_workflow(
             theme="Urban Innovation",
             constraints="Budget-friendly",
             num_top_candidates=1
@@ -164,7 +159,7 @@ Idea 3: Community bike sharing"""
         ]
         
         # Run workflow with 3 candidates
-        results = run_multistep_workflow(
+        run_multistep_workflow(
             theme="Urban Innovation",
             constraints="Budget-friendly",
             num_top_candidates=3
@@ -272,7 +267,7 @@ Idea 3: Community bike sharing"""
         }]
         
         # Run workflow with multi-dimensional eval
-        results = run_multistep_workflow(
+        run_multistep_workflow(
             theme="Urban Innovation",
             constraints="Budget-friendly",
             num_top_candidates=1,

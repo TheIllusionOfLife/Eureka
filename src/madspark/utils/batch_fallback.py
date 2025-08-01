@@ -4,7 +4,7 @@ This module provides fallback strategies when batch API calls fail,
 ensuring the system continues to work even if batching is not available.
 """
 import logging
-from typing import List, Dict, Any, Callable, Optional
+from typing import List, Dict, Any, Callable
 
 from madspark.utils.batch_monitor import get_batch_monitor
 
@@ -135,7 +135,7 @@ def skeptic_fallback(item: Dict[str, str], theme: str, temperature: float) -> Di
         return {"formatted": result}
     except ImportError:
         # If criticize_idea doesn't exist, create a basic response
-        return {"formatted": f"CRITICAL FLAWS:\n• Implementation challenges\n• Resource requirements need evaluation"}
+        return {"formatted": "CRITICAL FLAWS:\n• Implementation challenges\n• Resource requirements need evaluation"}
 
 
 def improve_fallback(item: Dict[str, str], theme: str, temperature: float) -> Dict[str, Any]:

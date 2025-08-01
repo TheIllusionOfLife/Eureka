@@ -281,8 +281,8 @@ def criticize_ideas_batch(
     # Sort by idea_index to ensure order
     results.sort(key=lambda x: x['idea_index'])
     
-    # Return results with token usage for monitoring
-    if token_usage:
+    # Return results with token usage for monitoring (only if token_usage is a real number)
+    if token_usage and isinstance(token_usage, (int, float)):
         return results, token_usage
     else:
         return results

@@ -1,12 +1,10 @@
 """CLI command for viewing batch API call metrics and cost analysis."""
 import argparse
 import json
-import sys
 from pathlib import Path
-from typing import Dict, Any
 from datetime import datetime, timedelta
 
-from madspark.utils.batch_monitor import BatchMonitor, BatchMetrics
+from madspark.utils.batch_monitor import BatchMetrics
 
 
 def load_metrics_from_file(log_file: str = None) -> list:
@@ -72,12 +70,12 @@ def format_metrics_summary(metrics_data: list) -> str:
     
     # This week's summary
     if week_metrics and len(week_metrics) > len(today_metrics) + len(yesterday_metrics):
-        output.append(f"\n📅 This Week")
+        output.append("\n📅 This Week")
         output.append(_format_period_summary(week_metrics))
     
     # All time summary
     if len(metrics_objects) > len(week_metrics):
-        output.append(f"\n📅 All Time")
+        output.append("\n📅 All Time")
         output.append(_format_period_summary(metrics_objects))
     
     # Cost effectiveness analysis
@@ -148,24 +146,24 @@ def _format_cost_analysis(metrics: list) -> str:
     savings_percentage = (savings / estimated_individual_cost * 100) if estimated_individual_cost > 0 else 0
     
     lines = []
-    lines.append(f"  💡 Estimated vs Individual Calls:")
+    lines.append("  💡 Estimated vs Individual Calls:")
     lines.append(f"    • Batch Cost: ~${total_batch_cost:.4f}")
     lines.append(f"    • Individual Cost (est): ~${estimated_individual_cost:.4f}")
     lines.append(f"    • Savings: ~${savings:.4f} ({savings_percentage:.1f}%)")
     
     if savings_percentage > 20:
-        lines.append(f"    • Status: ✅ Excellent savings!")
+        lines.append("    • Status: ✅ Excellent savings!")
     elif savings_percentage > 0:
-        lines.append(f"    • Status: ✅ Good savings")
+        lines.append("    • Status: ✅ Good savings")
     else:
-        lines.append(f"    • Status: ⚠️  Review needed - may be more expensive")
+        lines.append("    • Status: ⚠️  Review needed - may be more expensive")
     
     # API call reduction
     original_calls = total_items * 7  # Estimate original calls (7 per item in old system)
     batch_calls = len(successful)
     call_reduction = ((original_calls - batch_calls) / original_calls * 100) if original_calls > 0 else 0
     
-    lines.append(f"  📞 API Call Reduction:")
+    lines.append("  📞 API Call Reduction:")
     lines.append(f"    • Original: ~{original_calls} calls")
     lines.append(f"    • Batch: {batch_calls} calls")
     lines.append(f"    • Reduction: {call_reduction:.1f}%")

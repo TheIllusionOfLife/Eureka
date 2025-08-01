@@ -268,10 +268,22 @@ def generate_mock_results(theme: str, num_ideas: int) -> List[Dict[str, Any]]:
     return results
 
 
-def format_results_for_frontend(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Format results to match frontend expectations, especially multi-dimensional evaluation."""
+def format_results_for_frontend(results: List[Dict[str, Any]], structured_output_used: bool = False) -> List[Dict[str, Any]]:
+    """Format results to match frontend expectations, especially multi-dimensional evaluation.
+    
+    Args:
+        results: Raw results from the coordinator
+        structured_output_used: Whether structured output was used for idea generation
+    
+    Returns:
+        Formatted results with cleaning applied (unless structured output was used)
+    """
     # Apply cleaning to all results before formatting (consistent with CLI)
-    cleaned_results = clean_improved_ideas_in_results(results)
+    # Skip cleaning if structured output was used
+    if structured_output_used:
+        cleaned_results = results
+    else:
+        cleaned_results = clean_improved_ideas_in_results(results)
     
     formatted_results = []
     for result in cleaned_results:
@@ -849,9 +861,10 @@ async def generate_ideas(request: Request, idea_request: IdeaGenerationRequest):
         return IdeaGenerationResponse(
             status="success",
             message=f"Generated {len(mock_results)} mock ideas",
-            results=format_results_for_frontend(mock_results),
+            results=format_results_for_frontend(mock_results, structured_output_used=False),
             processing_time=0.5,
-            timestamp=start_time.isoformat()
+            timestamp=start_time.isoformat(),
+            structured_output=False
         )
     
     try:
@@ -933,12 +946,24 @@ async def generate_ideas(request: Request, idea_request: IdeaGenerationRequest):
         
         processing_time = (datetime.now() - start_time).total_seconds()
         
+        # Check if structured output is available and being used
+        structured_output_used = False
+        if genai_client and is_structured_output_available(genai_client):
+            # Check if the improved ideas look like they came from structured output
+            # (no meta-commentary patterns)
+            if results and any(result.get('improved_idea') for result in results):
+                first_improved = next((r.get('improved_idea', '') for r in results if r.get('improved_idea')), '')
+                # Simple heuristic: structured output won't have common meta-commentary patterns
+                meta_patterns = ['Here is', 'Here\'s', 'I\'ve improved', 'The improved version', 'Based on the feedback']
+                structured_output_used = not any(pattern.lower() in first_improved.lower() for pattern in meta_patterns)
+        
         return IdeaGenerationResponse(
             status="success",
             message=f"Generated {len(results)} ideas successfully",
-            results=format_results_for_frontend(results),
+            results=format_results_for_frontend(results, structured_output_used),
             processing_time=processing_time,
-            timestamp=start_time.isoformat()
+            timestamp=start_time.isoformat(),
+            structured_output=structured_output_used
         )
         
     except HTTPException:
@@ -1024,12 +1049,24 @@ async def generate_ideas_async(request: Request, idea_request: IdeaGenerationReq
         
         processing_time = (datetime.now() - start_time).total_seconds()
         
+        # Check if structured output is available and being used
+        structured_output_used = False
+        if genai_client and is_structured_output_available(genai_client):
+            # Check if the improved ideas look like they came from structured output
+            # (no meta-commentary patterns)
+            if results and any(result.get('improved_idea') for result in results):
+                first_improved = next((r.get('improved_idea', '') for r in results if r.get('improved_idea')), '')
+                # Simple heuristic: structured output won't have common meta-commentary patterns
+                meta_patterns = ['Here is', 'Here\'s', 'I\'ve improved', 'The improved version', 'Based on the feedback']
+                structured_output_used = not any(pattern.lower() in first_improved.lower() for pattern in meta_patterns)
+        
         return IdeaGenerationResponse(
             status="success",
             message=f"Generated {len(results)} ideas successfully (async)",
-            results=format_results_for_frontend(results),
+            results=format_results_for_frontend(results, structured_output_used),
             processing_time=processing_time,
-            timestamp=start_time.isoformat()
+            timestamp=start_time.isoformat(),
+            structured_output=structured_output_used
         )
         
     except Exception as e:

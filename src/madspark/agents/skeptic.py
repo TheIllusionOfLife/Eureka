@@ -5,6 +5,7 @@ The agent is responsible for critically analyzing ideas, challenging assumptions
 and identifying potential flaws or risks.
 """
 import logging
+from typing import List, Dict, Any
 
 # Optional import for Google GenAI - graceful fallback for CI/testing
 try:
@@ -121,5 +122,164 @@ def criticize_idea(idea: str, advocacy: str, context: str, temperature: float = 
     # This specific string is recognized by the coordinator's error handling.
     return SKEPTIC_EMPTY_RESPONSE
   return agent_response
+
+
+def criticize_ideas_batch(
+    ideas_with_advocacies: List[Dict[str, str]], 
+    context: str, 
+    temperature: float = 0.5
+) -> List[Dict[str, Any]]:
+  """Batch critical analysis for multiple ideas in a single API call.
+  
+  This function significantly reduces API calls by processing all ideas
+  in one request instead of making N separate calls.
+  
+  Args:
+    ideas_with_advocacies: List of dicts with 'idea' and 'advocacy' keys
+    context: Theme/context for all ideas
+    temperature: Generation temperature (0.0-1.0)
+    
+  Returns:
+    List of skeptic responses with structured format including:
+    - idea_index: Index of the idea
+    - critical_flaws: List of major problems
+    - risks_challenges: List of risks and their impacts
+    - questionable_assumptions: List of assumptions that may be wrong
+    - missing_considerations: List of overlooked factors
+    - formatted: Human-readable formatted string
+    
+  Raises:
+    ValueError: If input format is invalid or JSON parsing fails
+    RuntimeError: If API call fails
+  """
+  if not ideas_with_advocacies:
+    return []
+  
+  # Validate input format
+  for i, item in enumerate(ideas_with_advocacies):
+    if not isinstance(item, dict):
+      raise ValueError(f"Item {i} must be a dictionary")
+    if 'idea' not in item or 'advocacy' not in item:
+      raise ValueError(f"Item {i} must have 'idea' and 'advocacy' keys")
+  
+  # Build batch prompt
+  items_text = []
+  for i, item in enumerate(ideas_with_advocacies):
+    items_text.append(
+      f"IDEA {i+1}:\n{item['idea']}\n\n"
+      f"ADVOCACY:\n{item['advocacy']}"
+    )
+  
+  prompt = (
+      LANGUAGE_CONSISTENCY_INSTRUCTION +
+      f"Context: {context}\n\n"
+      f"{chr(10).join(items_text)}\n\n"
+      "For EACH idea above, play devil's advocate and provide criticism in this exact JSON format:\n"
+      "{\n"
+      '  "idea_index": <0-based index>,\n'
+      '  "critical_flaws": ["flaw1", "flaw2", ...],\n'
+      '  "risks_challenges": ["risk1 and impact", "risk2 and impact", ...],\n'
+      '  "questionable_assumptions": ["assumption1", "assumption2", ...],\n'
+      '  "missing_considerations": ["missing1", "missing2", ...]\n'
+      "}\n\n"
+      "Return ONLY a JSON array containing one object per idea, in order.\n"
+      "Each object must contain all five fields. Be thorough and critical."
+  )
+  
+  if not GENAI_AVAILABLE or skeptic_client is None:
+    # Return mock skepticism for CI/testing
+    mock_results = []
+    for i in range(len(ideas_with_advocacies)):
+      mock_results.append({
+        "idea_index": i,
+        "critical_flaws": ["Mock flaw 1", "Mock flaw 2"],
+        "risks_challenges": ["Mock risk 1", "Mock risk 2"],
+        "questionable_assumptions": ["Mock assumption 1", "Mock assumption 2"],
+        "missing_considerations": ["Mock missing factor 1", "Mock missing factor 2"],
+        "formatted": "CRITICAL FLAWS:\n• Mock flaw 1\n• Mock flaw 2\n\n"
+                    "RISKS & CHALLENGES:\n• Mock risk 1\n• Mock risk 2\n\n"
+                    "QUESTIONABLE ASSUMPTIONS:\n• Mock assumption 1\n• Mock assumption 2\n\n"
+                    "MISSING CONSIDERATIONS:\n• Mock missing factor 1\n• Mock missing factor 2"
+      })
+    return mock_results
+  
+  if skeptic_client is None:
+    # If GENAI is available but client is None, still return mock
+    mock_results = []
+    for i in range(len(ideas_with_advocacies)):
+      mock_results.append({
+        "idea_index": i,
+        "critical_flaws": ["Mock flaw 1", "Mock flaw 2"],
+        "risks_challenges": ["Mock risk 1", "Mock risk 2"],
+        "questionable_assumptions": ["Mock assumption 1", "Mock assumption 2"],
+        "missing_considerations": ["Mock missing factor 1", "Mock missing factor 2"],
+        "formatted": "CRITICAL FLAWS:\n• Mock flaw 1\n• Mock flaw 2\n\n"
+                    "RISKS & CHALLENGES:\n• Mock risk 1\n• Mock risk 2\n\n"
+                    "QUESTIONABLE ASSUMPTIONS:\n• Mock assumption 1\n• Mock assumption 2\n\n"
+                    "MISSING CONSIDERATIONS:\n• Mock missing factor 1\n• Mock missing factor 2"
+      })
+    return mock_results
+  
+  try:
+    import json
+    
+    config = types.GenerateContentConfig(
+        temperature=temperature,
+        response_mime_type="application/json",
+        system_instruction=SKEPTIC_SYSTEM_INSTRUCTION + " Return a JSON array of critical analyses."
+    )
+    
+    response = skeptic_client.models.generate_content(
+        model=model_name,
+        contents=prompt,
+        config=config
+    )
+    
+    # Parse JSON response
+    try:
+      criticisms = json.loads(response.text)
+    except json.JSONDecodeError as e:
+      raise ValueError(f"Invalid JSON response from API: {e}")
+    
+    # Validate and format results
+    if not isinstance(criticisms, list):
+      raise ValueError("Response must be a JSON array")
+    
+    if len(criticisms) != len(ideas_with_advocacies):
+      raise ValueError(f"Expected {len(ideas_with_advocacies)} criticisms, got {len(criticisms)}")
+    
+    # Process results and add formatted text
+    results = []
+    for criticism in criticisms:
+      # Validate structure
+      required = {'idea_index', 'critical_flaws', 'risks_challenges', 
+                 'questionable_assumptions', 'missing_considerations'}
+      if not all(field in criticism for field in required):
+        missing = required - set(criticism.keys())
+        raise ValueError(f"Missing required fields: {missing}")
+      
+      # Create formatted text
+      formatted = (
+        f"CRITICAL FLAWS:\n"
+        f"{chr(10).join(f'• {f}' for f in criticism['critical_flaws'])}\n\n"
+        f"RISKS & CHALLENGES:\n"
+        f"{chr(10).join(f'• {r}' for r in criticism['risks_challenges'])}\n\n"
+        f"QUESTIONABLE ASSUMPTIONS:\n"
+        f"{chr(10).join(f'• {a}' for a in criticism['questionable_assumptions'])}\n\n"
+        f"MISSING CONSIDERATIONS:\n"
+        f"{chr(10).join(f'• {m}' for m in criticism['missing_considerations'])}"
+      )
+      
+      criticism['formatted'] = formatted
+      results.append(criticism)
+    
+    # Sort by idea_index to ensure order
+    results.sort(key=lambda x: x['idea_index'])
+    
+    return results
+    
+  except Exception as e:
+    logging.error(f"Batch skeptic failed: {e}", exc_info=True)
+    raise RuntimeError(f"Batch skeptic failed: {e}")
 
 

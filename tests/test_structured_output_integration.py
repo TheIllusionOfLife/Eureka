@@ -154,7 +154,8 @@ class TestStructuredOutputErrorHandling:
         
         with patch('madspark.agents.idea_generator.GENAI_AVAILABLE', True):
             with patch('madspark.agents.idea_generator.idea_generator_client') as mock_client:
-                mock_client.models.generate_content.side_effect = Exception("API Error")
+                # Test with an expected error type (AttributeError)
+                mock_client.models.generate_content.side_effect = AttributeError("API attribute error")
                 
                 result = improve_idea(
                     original_idea="Test idea",
@@ -164,9 +165,29 @@ class TestStructuredOutputErrorHandling:
                     theme="testing"
                 )
                 
-                # Should return a reasonable fallback
+                # Should return a reasonable fallback for expected errors
                 assert isinstance(result, str)
                 assert len(result) > 20  # Not empty
+    
+    def test_unexpected_errors_are_raised(self):
+        """Test that unexpected errors are properly raised."""
+        # Test through the main improve_idea function
+        from madspark.agents.idea_generator import improve_idea
+        
+        with patch('madspark.agents.idea_generator.GENAI_AVAILABLE', True):
+            with patch('madspark.agents.idea_generator.idea_generator_client') as mock_client:
+                # Test with an unexpected error type (generic Exception)
+                mock_client.models.generate_content.side_effect = Exception("Unexpected API Error")
+                
+                # Should re-raise unexpected errors
+                with pytest.raises(Exception, match="Unexpected API Error"):
+                    improve_idea(
+                        original_idea="Test idea",
+                        critique="Needs improvement",
+                        advocacy_points="Good start",
+                        skeptic_points="Some issues",
+                        theme="testing"
+                    )
 
 
 class TestPromptEngineering:

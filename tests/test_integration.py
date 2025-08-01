@@ -216,6 +216,12 @@ class TestWorkflowWithComponents:
         with patch('madspark.core.coordinator.NoveltyFilter') as mock_novelty_class:
             mock_filter = Mock()
             mock_filter.is_novel.return_value = True
+            
+            # Mock the filter_ideas method to return proper FilteredIdea objects
+            from types import SimpleNamespace
+            filtered_idea = SimpleNamespace(text="Novel Idea: Unique AI solution", is_novel=True, similarity_score=0.1)
+            mock_filter.filter_ideas.return_value = [filtered_idea]
+            
             mock_novelty_class.return_value = mock_filter
             
             with patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry') as mock_generate:

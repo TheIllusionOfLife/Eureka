@@ -175,23 +175,14 @@ Idea 3: Community bike sharing"""
         
         # Verify batch sizes
         advocate_args = mock_advocate_batch.call_args[0][0]
-        # In mock mode, we get 1 idea instead of 3
-        if os.getenv('MADSPARK_MODE') == 'mock':
-            assert len(advocate_args) == 1
-        else:
-            assert len(advocate_args) == 3
+        # Should always be 3 since we mocked generation to return 3 ideas
+        assert len(advocate_args) == 3
         
         criticize_args = mock_criticize_batch.call_args[0][0]
-        if os.getenv('MADSPARK_MODE') == 'mock':
-            assert len(criticize_args) == 1
-        else:
-            assert len(criticize_args) == 3
+        assert len(criticize_args) == 3
         
         improve_args = mock_improve_batch.call_args[0][0]
-        if os.getenv('MADSPARK_MODE') == 'mock':
-            assert len(improve_args) == 1
-        else:
-            assert len(improve_args) == 3
+        assert len(improve_args) == 3
         
         # In mock mode, only batch functions are called through mocks
         if os.getenv('MADSPARK_MODE') != 'mock':

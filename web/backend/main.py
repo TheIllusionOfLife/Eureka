@@ -300,6 +300,30 @@ def detect_structured_output_usage(results: List[Dict[str, Any]]) -> bool:
     return False
 
 
+def _create_success_response(results: List[Dict[str, Any]], start_time: datetime, message: str) -> IdeaGenerationResponse:
+    """Create a successful IdeaGenerationResponse with structured output detection.
+    
+    Args:
+        results: Generated results from the coordinator
+        start_time: Request start time for processing duration calculation
+        message: Success message to include in response
+        
+    Returns:
+        Formatted IdeaGenerationResponse with structured output detection
+    """
+    processing_time = (datetime.now() - start_time).total_seconds()
+    structured_output_used = detect_structured_output_usage(results)
+    
+    return IdeaGenerationResponse(
+        status="success",
+        message=message,
+        results=format_results_for_frontend(results, structured_output_used),
+        processing_time=processing_time,
+        timestamp=start_time.isoformat(),
+        structured_output=structured_output_used
+    )
+
+
 def format_results_for_frontend(results: List[Dict[str, Any]], structured_output_used: bool = False) -> List[Dict[str, Any]]:
     """Format results to match frontend expectations, especially multi-dimensional evaluation.
     
@@ -976,18 +1000,10 @@ async def generate_ideas(request: Request, idea_request: IdeaGenerationRequest):
                 detail=f"Request timed out after {timeout_seconds} seconds. Please try with fewer candidates or simpler constraints."
             )
         
-        processing_time = (datetime.now() - start_time).total_seconds()
-        
-        # Check if structured output is available and being used
-        structured_output_used = detect_structured_output_usage(results)
-        
-        return IdeaGenerationResponse(
-            status="success",
-            message=f"Generated {len(results)} ideas successfully",
-            results=format_results_for_frontend(results, structured_output_used),
-            processing_time=processing_time,
-            timestamp=start_time.isoformat(),
-            structured_output=structured_output_used
+        return _create_success_response(
+            results=results,
+            start_time=start_time,
+            message=f"Generated {len(results)} ideas successfully"
         )
         
     except HTTPException:
@@ -1071,18 +1087,10 @@ async def generate_ideas_async(request: Request, idea_request: IdeaGenerationReq
             reasoning_engine=reasoning_eng
         )
         
-        processing_time = (datetime.now() - start_time).total_seconds()
-        
-        # Check if structured output is available and being used
-        structured_output_used = detect_structured_output_usage(results)
-        
-        return IdeaGenerationResponse(
-            status="success",
-            message=f"Generated {len(results)} ideas successfully (async)",
-            results=format_results_for_frontend(results, structured_output_used),
-            processing_time=processing_time,
-            timestamp=start_time.isoformat(),
-            structured_output=structured_output_used
+        return _create_success_response(
+            results=results,
+            start_time=start_time,
+            message=f"Generated {len(results)} ideas successfully (async)"
         )
         
     except Exception as e:

@@ -9,6 +9,7 @@ import time
 from typing import List, Optional
 
 from madspark.utils.batch_monitor import batch_call_context, get_batch_monitor
+from madspark.utils.errors import ValidationError
 
 from madspark.core.coordinator import (
     CandidateData, log_verbose_step, log_agent_completion
@@ -165,6 +166,9 @@ def run_multistep_workflow_batch(
         
         logging.info(f"Selected {len(top_candidates)} top candidates for further processing.")
         
+    except ValidationError:
+        # Re-raise validation errors immediately
+        raise
     except Exception as e:
         logging.error(f"CriticAgent failed: {e}")
         # Fallback handling

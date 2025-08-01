@@ -4,8 +4,9 @@ This module defines the Idea Generator agent and its associated tools.
 The agent is responsible for generating novel ideas based on a given topic
 and contextual information.
 """
+import json
 import logging
-from typing import Any
+from typing import Any, List, Dict, Tuple
 
 # Optional import for Google GenAI - graceful fallback for CI/testing
 try:
@@ -185,9 +186,13 @@ def generate_ideas(topic: str, context: str, temperature: float = 0.9) -> str:
         config=config
     )
     agent_response = response.text if response.text else ""
+  except (AttributeError, TypeError) as e:
+    # Handle API response structure errors
+    logging.error(f"API response structure error: {e}", exc_info=True)
+    agent_response = ""
   except Exception as e:
-    # Log the full error for better debugging
-    logging.error(f"Error calling Gemini API: {e}", exc_info=True)
+    # Log other unexpected errors
+    logging.error(f"Unexpected error calling Gemini API: {e}", exc_info=True)
     agent_response = ""
 
   # If agent_response is empty or only whitespace, it will be returned as such.
@@ -384,11 +389,163 @@ def improve_idea(
     else:
       logging.error(f"Gemini API ValueError: {e}", exc_info=True)
       agent_response = _generate_fallback_improvement(original_idea, "value_error")
+  except (AttributeError, TypeError) as e:
+    # Handle API response structure errors
+    logging.error(f"API response structure error in improve_idea: {e}", exc_info=True)
+    agent_response = _generate_fallback_improvement(original_idea, "general_error")
   except Exception as e:
-    # Log the full error for better debugging
-    logging.error(f"Error calling Gemini API: {e}", exc_info=True)
+    # Log other unexpected errors
+    logging.error(f"Unexpected error calling Gemini API: {e}", exc_info=True)
     agent_response = _generate_fallback_improvement(original_idea, "general_error")
   
   return agent_response
+
+
+def improve_ideas_batch(
+    ideas_with_feedback: List[Dict[str, str]], 
+    theme: str, 
+    temperature: float = 0.9
+) -> Tuple[List[Dict[str, Any]], int]:
+  """Batch improvement for multiple ideas in a single API call.
+  
+  This function significantly reduces API calls by processing all ideas
+  in one request instead of making N separate calls.
+  
+  Args:
+    ideas_with_feedback: List of dicts with 'idea', 'critique', 'advocacy', and 'skepticism' keys
+    theme: Overall theme/context for improvement
+    temperature: Generation temperature (0.0-1.0)
+    
+  Returns:
+    List of improvement responses with structured format including:
+    - idea_index: Index of the idea
+    - improved_idea: The enhanced version of the idea
+    - key_improvements: List of key improvements made (optional)
+    
+  Raises:
+    ValueError: If input format is invalid or JSON parsing fails
+    RuntimeError: If API call fails
+  """
+  if not ideas_with_feedback:
+    return [], 0
+  
+  # Validate input format
+  for i, item in enumerate(ideas_with_feedback):
+    if not isinstance(item, dict):
+      raise ValueError(f"Item {i} must be a dictionary")
+    required_keys = {'idea', 'critique', 'advocacy', 'skepticism'}
+    if not all(key in item for key in required_keys):
+      raise ValueError(f"Item {i} must have 'idea', 'critique', 'advocacy', and 'skepticism' keys")
+  
+  # Build batch prompt
+  items_text = []
+  for i, item in enumerate(ideas_with_feedback):
+    items_text.append(
+      f"IDEA {i+1}:\n{item['idea']}\n\n"
+      f"CRITIQUE:\n{item['critique']}\n\n"
+      f"ADVOCACY:\n{item['advocacy']}\n\n"
+      f"SKEPTICISM:\n{item['skepticism']}"
+    )
+  
+  # Define newline for use in f-string
+  newline = '\n'
+  prompt = (
+      LANGUAGE_CONSISTENCY_INSTRUCTION +
+      f"Theme: {theme}\n\n"
+      f"{newline.join(items_text)}\n\n"
+      "For EACH idea above, create an improved version that:\n"
+      "1. Addresses ALL critique points\n"
+      "2. Maintains the advocated strengths\n"
+      "3. Provides solutions for skeptic concerns\n"
+      "4. Remains bold and creative\n\n"
+      "Return improvements in this exact JSON format:\n"
+      "{\n"
+      '  "idea_index": <0-based index>,\n'
+      '  "improved_idea": "The complete improved idea text",\n'
+      '  "key_improvements": ["improvement1", "improvement2", ...] (optional)\n'
+      "}\n\n"
+      "Return ONLY a JSON array containing one object per idea, in order.\n"
+      "Write only the improved ideas, no meta-commentary."
+  )
+  
+  if not GENAI_AVAILABLE or idea_generator_client is None:
+    # Return mock improvements for CI/testing
+    mock_results = []
+    for i, item in enumerate(ideas_with_feedback):
+      mock_results.append({
+        "idea_index": i,
+        "improved_idea": f"Mock improved version of: {item['idea'][:50]}... "
+                        f"This addresses the critique and maintains strengths.",
+        "key_improvements": ["Mock improvement 1", "Mock improvement 2"]
+      })
+    return mock_results, 0  # Return tuple for consistency
+  
+  try:
+    
+    config = types.GenerateContentConfig(
+        temperature=temperature,
+        response_mime_type="application/json",
+        system_instruction=SYSTEM_INSTRUCTION + " Return a JSON array of improved ideas."
+    )
+    
+    response = idea_generator_client.models.generate_content(
+        model=model_name,
+        contents=prompt,
+        config=config
+    )
+    
+    # Extract token usage if available
+    token_usage = None
+    if hasattr(response, 'usage_metadata') and response.usage_metadata:
+        token_usage = response.usage_metadata.total_token_count
+    
+    # Parse JSON response
+    try:
+      if response.text is None:
+        raise ValueError("API returned None response text")
+      improvements = json.loads(response.text)
+    except json.JSONDecodeError as e:
+      raise ValueError(f"Invalid JSON response from API: {e}")
+    
+    # Validate and process results
+    if not isinstance(improvements, list):
+      raise ValueError("Response must be a JSON array")
+    
+    if len(improvements) != len(ideas_with_feedback):
+      raise ValueError(f"Expected {len(ideas_with_feedback)} improvements, got {len(improvements)}")
+    
+    # Process results
+    results = []
+    for improvement in improvements:
+      # Validate structure
+      if 'idea_index' not in improvement or 'improved_idea' not in improvement:
+        raise ValueError(f"Missing required fields in improvement: {improvement}")
+      
+      # key_improvements is optional
+      result = {
+        "idea_index": improvement["idea_index"],
+        "improved_idea": improvement["improved_idea"]
+      }
+      
+      if "key_improvements" in improvement:
+        result["key_improvements"] = improvement["key_improvements"]
+      
+      results.append(result)
+    
+    # Sort by idea_index to ensure order
+    results.sort(key=lambda x: x['idea_index'])
+    
+    # Always return tuple for consistent API
+    return results, token_usage if isinstance(token_usage, (int, float)) else 0
+    
+  except json.JSONDecodeError as e:
+    logging.error(f"JSON parsing error in batch improvement: {e}", exc_info=True)
+    raise ValueError(f"Invalid JSON response: {e}")
+  except (AttributeError, TypeError, KeyError) as e:
+    logging.error(f"Data structure error in batch improvement: {e}", exc_info=True)
+    raise RuntimeError(f"Batch improvement data error: {e}")
+  except Exception as e:
+    logging.error(f"Unexpected batch improvement failure: {e}", exc_info=True)
+    raise RuntimeError(f"Batch improvement failed: {e}")
 
 

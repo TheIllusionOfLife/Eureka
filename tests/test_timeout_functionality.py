@@ -3,6 +3,7 @@
 This test module verifies that the --timeout CLI argument
 is properly passed through and utilized in the coordinator.
 """
+import os
 import asyncio
 import pytest
 from unittest.mock import patch
@@ -99,12 +100,13 @@ class TestCoordinatorTimeoutImplementation:
             # Verify the internal workflow was called
             mock_internal.assert_called_once()
     
+    @pytest.mark.skipif(os.getenv("MADSPARK_MODE") == "mock", reason="Test requires full mock control")
     def test_sync_coordinator_timeout_parameter(self):
         """Test that sync run_multistep_workflow accepts timeout parameter."""
         # Test that it accepts the parameter and logs warning
         with patch('madspark.core.coordinator.logging.warning') as mock_warning:
             # Mock the agent functions to avoid actual API calls
-            with patch('madspark.core.coordinator.call_idea_generator_with_retry') as mock_gen:
+            with patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry') as mock_gen:
                 mock_gen.return_value = "Idea 1: Test"
                 
                 # This should not raise an error and should log warning

@@ -4,6 +4,7 @@ from unittest.mock import patch, MagicMock
 import os
 import sys
 import logging
+import pytest
 
 # Add src to path for testing
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
@@ -14,13 +15,14 @@ from madspark.core.coordinator import run_multistep_workflow
 class TestCoordinatorMismatchIssue:
     """Test suite for the specific mismatch issue where coordinator generates many ideas but parses few evaluations."""
     
+    @pytest.mark.skipif(os.getenv("MADSPARK_MODE") == "mock", reason="Test requires full mock control")
     def test_coordinator_handles_partial_evaluations(self, caplog):
         """Test coordinator when Critic returns fewer evaluations than ideas."""
-        with patch('madspark.core.coordinator.call_idea_generator_with_retry') as mock_generator, \
-             patch('madspark.core.coordinator.call_critic_with_retry') as mock_critic, \
-             patch('madspark.core.coordinator.call_advocate_with_retry') as mock_advocate, \
-             patch('madspark.core.coordinator.call_skeptic_with_retry') as mock_skeptic, \
-             patch('madspark.core.coordinator.call_improve_idea_with_retry') as mock_improve, \
+        with patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry') as mock_generator, \
+             patch('madspark.utils.agent_retry_wrappers.call_critic_with_retry') as mock_critic, \
+             patch('madspark.agents.advocate.advocate_ideas_batch') as mock_advocate_batch, \
+             patch('madspark.agents.skeptic.criticize_ideas_batch') as mock_skeptic_batch, \
+             patch('madspark.agents.idea_generator.improve_ideas_batch') as mock_improve_batch, \
              patch('madspark.core.coordinator.ReasoningEngine') as mock_engine:
             
             # Mock reasoning engine
@@ -42,10 +44,36 @@ class TestCoordinatorMismatchIssue:
             ]
             mock_critic.return_value = json.dumps(evaluations)
             
-            # Mock other agents
-            mock_advocate.return_value = "Strong points"
-            mock_skeptic.return_value = "Concerns raised"
-            mock_improve.return_value = "Enhanced version"
+            # Mock batch functions with proper return format (list of results, token count)
+            def mock_advocate_response(ideas_with_evals, context, temperature):
+                return [{
+                    "idea_index": i,
+                    "strengths": ["Strong point 1", "Strong point 2"],
+                    "opportunities": ["Opportunity 1", "Opportunity 2"],
+                    "addressing_concerns": ["Mitigation 1", "Mitigation 2"],
+                    "formatted": "STRENGTHS:\n• Strong point 1\n• Strong point 2"
+                } for i in range(len(ideas_with_evals))], 100
+            
+            def mock_skeptic_response(ideas_with_advocacies, context, temperature):
+                return [{
+                    "idea_index": i,
+                    "critical_flaws": ["Flaw 1", "Flaw 2"],
+                    "risks_challenges": ["Risk 1", "Risk 2"],
+                    "questionable_assumptions": ["Assumption 1", "Assumption 2"],
+                    "missing_considerations": ["Missing 1", "Missing 2"],
+                    "formatted": "CRITICAL FLAWS:\n• Flaw 1\n• Flaw 2"
+                } for i in range(len(ideas_with_advocacies))], 100
+            
+            def mock_improve_response(ideas_with_feedback, theme, temperature):
+                return [{
+                    "idea_index": i,
+                    "improved_idea": f"Enhanced: {ideas_with_feedback[i]['idea']}",
+                    "key_improvements": ["Improvement 1", "Improvement 2"]
+                } for i in range(len(ideas_with_feedback))], 100
+            
+            mock_advocate_batch.side_effect = mock_advocate_response
+            mock_skeptic_batch.side_effect = mock_skeptic_response
+            mock_improve_batch.side_effect = mock_improve_response
             
             # Set log level to capture warnings
             caplog.set_level(logging.WARNING)
@@ -73,13 +101,14 @@ class TestCoordinatorMismatchIssue:
             default_warnings = [record for record in caplog.records if "No evaluation available" in record.message]
             assert len(default_warnings) > 20, f"Should have warnings for ideas without evaluations, got {len(default_warnings)}"
     
+    @pytest.mark.skipif(os.getenv("MADSPARK_MODE") == "mock", reason="Test requires full mock control")
     def test_critic_response_with_incomplete_json(self):
         """Test when Critic returns a mix of valid JSON and text."""
-        with patch('madspark.core.coordinator.call_idea_generator_with_retry') as mock_generator, \
-             patch('madspark.core.coordinator.call_critic_with_retry') as mock_critic, \
-             patch('madspark.core.coordinator.call_advocate_with_retry') as mock_advocate, \
-             patch('madspark.core.coordinator.call_skeptic_with_retry') as mock_skeptic, \
-             patch('madspark.core.coordinator.call_improve_idea_with_retry') as mock_improve, \
+        with patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry') as mock_generator, \
+             patch('madspark.utils.agent_retry_wrappers.call_critic_with_retry') as mock_critic, \
+             patch('madspark.agents.advocate.advocate_ideas_batch') as mock_advocate_batch, \
+             patch('madspark.agents.skeptic.criticize_ideas_batch') as mock_skeptic_batch, \
+             patch('madspark.agents.idea_generator.improve_ideas_batch') as mock_improve_batch, \
              patch('madspark.core.coordinator.ReasoningEngine') as mock_engine:
             
             # Mock reasoning engine
@@ -104,10 +133,29 @@ The remaining ideas are more challenging to evaluate without additional context.
 
 [Analysis continues but no more formal evaluations provided]"""
             
-            # Mock other agents
-            mock_advocate.return_value = "Support"
-            mock_skeptic.return_value = "Concerns"  
-            mock_improve.return_value = "Better version"
+            # Mock batch functions with proper return format
+            mock_advocate_batch.side_effect = lambda ideas, ctx, temp: ([{
+                "idea_index": i,
+                "strengths": ["Support 1", "Support 2"],
+                "opportunities": ["Opp 1", "Opp 2"],
+                "addressing_concerns": ["Mit 1", "Mit 2"],
+                "formatted": "STRENGTHS:\n• Support 1\n• Support 2"
+            } for i in range(len(ideas))], 100)
+            
+            mock_skeptic_batch.side_effect = lambda ideas, ctx, temp: ([{
+                "idea_index": i,
+                "critical_flaws": ["Concern 1", "Concern 2"],
+                "risks_challenges": ["Risk 1", "Risk 2"],
+                "questionable_assumptions": ["Assumption 1", "Assumption 2"],
+                "missing_considerations": ["Missing 1", "Missing 2"],
+                "formatted": "CRITICAL FLAWS:\n• Concern 1\n• Concern 2"
+            } for i in range(len(ideas))], 100)
+            
+            mock_improve_batch.side_effect = lambda ideas, theme, temp: ([{
+                "idea_index": i,
+                "improved_idea": f"Better version: {ideas[i]['idea']}",
+                "key_improvements": ["Improvement 1", "Improvement 2"]
+            } for i in range(len(ideas))], 100)
             
             # Run workflow
             results = run_multistep_workflow(

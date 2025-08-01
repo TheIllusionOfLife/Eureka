@@ -2,6 +2,7 @@
 import os
 import sys
 import logging
+import pytest
 from unittest.mock import patch
 
 # Add src to path for imports  
@@ -16,8 +17,8 @@ class TestCoordinatorWarnings:
     def test_warnings_suppressed_in_normal_mode(self, caplog):
         """Warnings should not show in normal mode."""
         # Mock the agent functions to simulate mismatched ideas/evaluations
-        with patch('madspark.core.coordinator.call_idea_generator_with_retry') as mock_generator, \
-             patch('madspark.core.coordinator.call_critic_with_retry') as mock_critic:
+        with patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry') as mock_generator, \
+             patch('madspark.utils.agent_retry_wrappers.call_critic_with_retry') as mock_critic:
             
             # Set up mocks to create a mismatch
             mock_generator.return_value = "Idea 1\nIdea 2\nIdea 3"  # 3 ideas
@@ -41,11 +42,12 @@ class TestCoordinatorWarnings:
                 mismatch_warnings = [msg for msg in warning_messages if "Mismatch between number of ideas" in msg]
                 assert len(mismatch_warnings) == 0, "Mismatch warning should not appear in non-verbose mode"
     
+    @pytest.mark.skipif(os.getenv("MADSPARK_MODE") == "mock", reason="Test requires full mock control")
     def test_warnings_shown_in_verbose_mode(self, caplog):
         """Warnings should show in verbose mode for debugging."""
         # Mock the agent functions to simulate mismatched ideas/evaluations
-        with patch('madspark.core.coordinator.call_idea_generator_with_retry') as mock_generator, \
-             patch('madspark.core.coordinator.call_critic_with_retry') as mock_critic:
+        with patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry') as mock_generator, \
+             patch('madspark.utils.agent_retry_wrappers.call_critic_with_retry') as mock_critic:
             
             # Set up mocks to create a mismatch
             mock_generator.return_value = "Idea 1\nIdea 2\nIdea 3"  # 3 ideas

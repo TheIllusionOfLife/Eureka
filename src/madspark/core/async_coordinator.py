@@ -9,10 +9,9 @@ from typing import List, Optional, Callable, Awaitable
 
 from .coordinator import (
     EvaluatedIdea,
-    CandidateData,
-    parse_json_with_fallback,
-    validate_evaluation_json
+    CandidateData
 )
+from ..utils.utils import parse_json_with_fallback, validate_evaluation_json
 from ..utils.novelty_filter import NoveltyFilter
 from ..utils.temperature_control import TemperatureManager
 from .enhanced_reasoning import ReasoningEngine

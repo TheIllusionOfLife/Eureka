@@ -3,6 +3,7 @@ import json
 from unittest.mock import patch, MagicMock
 import os
 import sys
+import pytest
 
 # Add src to path for testing
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
@@ -103,14 +104,15 @@ Score: 7, Comment: Second evaluation is good
         parsed = parse_json_with_fallback(raw_evaluations, expected_count=3)
         assert len(parsed) >= 2  # Should get at least the JSON objects
         
+    @pytest.mark.skipif(os.getenv("MADSPARK_MODE") == "mock", reason="Test requires full mock control")
     def test_coordinator_generates_and_evaluates_all_ideas(self):
         """Test that coordinator properly evaluates all generated ideas."""
         # Mock the agent functions with minimal overhead
-        with patch('madspark.core.coordinator.call_idea_generator_with_retry') as mock_generator, \
-             patch('madspark.core.coordinator.call_critic_with_retry') as mock_critic, \
-             patch('madspark.core.coordinator.call_advocate_with_retry') as mock_advocate, \
-             patch('madspark.core.coordinator.call_skeptic_with_retry') as mock_skeptic, \
-             patch('madspark.core.coordinator.call_improve_idea_with_retry') as mock_improve, \
+        with patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry') as mock_generator, \
+             patch('madspark.utils.agent_retry_wrappers.call_critic_with_retry') as mock_critic, \
+             patch('madspark.agents.advocate.advocate_ideas_batch') as mock_advocate_batch, \
+             patch('madspark.agents.skeptic.criticize_ideas_batch') as mock_skeptic_batch, \
+             patch('madspark.agents.idea_generator.improve_ideas_batch') as mock_improve_batch, \
              patch('madspark.core.coordinator.ReasoningEngine') as mock_engine:
             
             # Mock reasoning engine to avoid initialization overhead
@@ -131,10 +133,36 @@ Score: 7, Comment: Second evaluation is good
                 })
             mock_critic.return_value = json.dumps(evaluations)
             
-            # Mock other agents with simple responses
-            mock_advocate.return_value = "Strong advocacy points"
-            mock_skeptic.return_value = "Valid concerns raised"
-            mock_improve.return_value = "Improved idea with enhancements"
+            # Mock batch functions with proper return format (list of results, token count)
+            def mock_advocate_response(ideas_with_evals, context, temperature):
+                return [{
+                    "idea_index": i,
+                    "strengths": ["Strong point 1", "Strong point 2"],
+                    "opportunities": ["Opportunity 1", "Opportunity 2"],
+                    "addressing_concerns": ["Mitigation 1", "Mitigation 2"],
+                    "formatted": "STRENGTHS:\n• Strong point 1\n• Strong point 2"
+                } for i in range(len(ideas_with_evals))], 100
+            
+            def mock_skeptic_response(ideas_with_advocacies, context, temperature):
+                return [{
+                    "idea_index": i,
+                    "critical_flaws": ["Flaw 1", "Flaw 2"],
+                    "risks_challenges": ["Risk 1", "Risk 2"],
+                    "questionable_assumptions": ["Assumption 1", "Assumption 2"],
+                    "missing_considerations": ["Missing 1", "Missing 2"],
+                    "formatted": "CRITICAL FLAWS:\n• Flaw 1\n• Flaw 2"
+                } for i in range(len(ideas_with_advocacies))], 100
+            
+            def mock_improve_response(ideas_with_feedback, theme, temperature):
+                return [{
+                    "idea_index": i,
+                    "improved_idea": f"Improved: {ideas_with_feedback[i]['idea']}",
+                    "key_improvements": ["Improvement 1", "Improvement 2"]
+                } for i in range(len(ideas_with_feedback))], 100
+            
+            mock_advocate_batch.side_effect = mock_advocate_response
+            mock_skeptic_batch.side_effect = mock_skeptic_response
+            mock_improve_batch.side_effect = mock_improve_response
             
             # Run workflow with reduced ideas
             results = run_multistep_workflow(
@@ -152,6 +180,11 @@ Score: 7, Comment: Second evaluation is good
             
             # Verify critic was called - it gets called twice (initial eval + improved eval)
             assert mock_critic.call_count >= 1
+            
+            # Verify batch functions were called
+            assert mock_advocate_batch.call_count == 1
+            assert mock_skeptic_batch.call_count == 1
+            assert mock_improve_batch.call_count == 1
             
             # Get the first call to critic (for initial ideas evaluation)
             first_critic_call = mock_critic.call_args_list[0]

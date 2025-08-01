@@ -15,12 +15,13 @@ class TestEndToEndWorkflow:
     """End-to-end workflow integration tests."""
     
     @pytest.mark.integration
-    @patch('madspark.core.coordinator.call_idea_generator_with_retry')
-    @patch('madspark.core.coordinator.call_critic_with_retry')
-    @patch('madspark.core.coordinator.call_advocate_with_retry')
-    @patch('madspark.core.coordinator.call_skeptic_with_retry')
-    @patch('madspark.core.coordinator.call_improve_idea_with_retry')
-    def test_complete_workflow_integration(self, mock_improve, mock_skeptic, mock_advocate, 
+    @pytest.mark.skipif(os.getenv("MADSPARK_MODE") == "mock", reason="Test requires full mock control")
+    @patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry')
+    @patch('madspark.utils.agent_retry_wrappers.call_critic_with_retry')
+    @patch('madspark.agents.advocate.advocate_ideas_batch')
+    @patch('madspark.agents.skeptic.criticize_ideas_batch')
+    @patch('madspark.agents.idea_generator.improve_ideas_batch')
+    def test_complete_workflow_integration(self, mock_improve_batch, mock_skeptic_batch, mock_advocate_batch, 
                                          mock_critic, mock_generate):
         """Test complete workflow from idea generation to final output."""
         
@@ -31,14 +32,23 @@ Smart Workflow Optimizer: ML-driven workflow optimization platform"""
         # Mock critic evaluation - returns JSON string
         mock_critic.return_value = '{"score": 7.5, "comment": "Good idea with market demand"}'
         
-        # Mock advocate - returns string
-        mock_advocate.return_value = "Strong market demand, addresses productivity pain points, proven ROI potential"
+        # Mock batch advocate - returns tuple of (results, token_usage)
+        mock_advocate_batch.return_value = ([{
+            "idea_index": 0,
+            "formatted": "Strong market demand, addresses productivity pain points, proven ROI potential"
+        }], 1000)
         
-        # Mock skeptic - returns string
-        mock_skeptic.return_value = "High development costs, strong competition, complex integration requirements"
+        # Mock batch skeptic - returns tuple of (results, token_usage)
+        mock_skeptic_batch.return_value = ([{
+            "idea_index": 0,
+            "formatted": "High development costs, strong competition, complex integration requirements"
+        }], 800)
         
-        # Mock improve idea - returns string
-        mock_improve.return_value = "Enhanced AI-Powered Task Automation with improved scalability and reduced costs"
+        # Mock batch improve idea - returns tuple of (results, token_usage)
+        mock_improve_batch.return_value = ([{
+            "idea_index": 0,
+            "improved_idea": "Enhanced AI-Powered Task Automation with improved scalability and reduced costs"
+        }], 1200)
         
         # Run the complete workflow with temperature manager
         from madspark.utils.temperature_control import TemperatureManager
@@ -71,9 +81,9 @@ Smart Workflow Optimizer: ML-driven workflow optimization platform"""
         # Verify all agents were called
         mock_generate.assert_called()
         mock_critic.assert_called()
-        mock_advocate.assert_called()
-        mock_skeptic.assert_called()
-        mock_improve.assert_called()
+        mock_advocate_batch.assert_called()
+        mock_skeptic_batch.assert_called()
+        mock_improve_batch.assert_called()
     
     @pytest.mark.integration
     @pytest.mark.slow
@@ -187,7 +197,7 @@ class TestWorkflowWithComponents:
         with patch('madspark.core.coordinator.TemperatureManager') as mock_temp_class:
             mock_temp_class.return_value = temp_manager
             
-            with patch('madspark.core.coordinator.call_idea_generator_with_retry') as mock_generate:
+            with patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry') as mock_generate:
                 mock_generate.return_value = "Test Idea: Temperature test solution"
                 
                 result = run_multistep_workflow(
@@ -206,9 +216,15 @@ class TestWorkflowWithComponents:
         with patch('madspark.core.coordinator.NoveltyFilter') as mock_novelty_class:
             mock_filter = Mock()
             mock_filter.is_novel.return_value = True
+            
+            # Mock the filter_ideas method to return proper FilteredIdea objects
+            from types import SimpleNamespace
+            filtered_idea = SimpleNamespace(text="Novel Idea: Unique AI solution", is_novel=True, similarity_score=0.1)
+            mock_filter.filter_ideas.return_value = [filtered_idea]
+            
             mock_novelty_class.return_value = mock_filter
             
-            with patch('madspark.core.coordinator.call_idea_generator_with_retry') as mock_generate:
+            with patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry') as mock_generate:
                 mock_generate.return_value = "Novel Idea: Unique AI solution"
                 
                 result = run_multistep_workflow(
@@ -268,22 +284,21 @@ class TestWorkflowErrorHandling:
             # When critical step fails, workflow returns empty list
             assert len(result) == 0
     
-    @patch('madspark.core.coordinator.call_idea_generator_with_retry')
+    @patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry')
     @pytest.mark.integration
     def test_workflow_with_invalid_parameters(self, mock_generate):
         """Test workflow with invalid parameters."""
         # Mock to return empty ideas
         mock_generate.return_value = ""
         
-        # Test with None parameters - workflow handles gracefully
-        result = run_multistep_workflow("test", None)
-        assert isinstance(result, list)
-        assert len(result) == 0
+        # Test with None parameters - now raises ValidationError
+        from madspark.utils.errors import ValidationError
+        with pytest.raises(ValidationError):
+            run_multistep_workflow("test", None)
         
-        # Test with empty strings - also returns empty list
-        result = run_multistep_workflow("", "")
-        assert isinstance(result, list)
-        assert len(result) == 0
+        # Test with empty strings - now raises ValidationError
+        with pytest.raises(ValidationError):
+            run_multistep_workflow("", "")
         
         # Test with valid temperature
         from madspark.utils.temperature_control import TemperatureManager

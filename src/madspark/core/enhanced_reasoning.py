@@ -9,6 +9,7 @@ This module implements advanced reasoning capabilities including:
 import logging
 import hashlib
 import datetime
+import json
 from typing import Dict, List, Any, Optional, TypedDict
 from dataclasses import dataclass, field
 from collections import defaultdict
@@ -811,6 +812,189 @@ Respond with only the numeric score (e.g., "6")."""
             return f"Recommended: '{top_idea['idea'][:50]}...' with moderate advantage over alternatives"
         else:
             return f"Close competition: Consider both '{top_idea['idea'][:30]}...' and '{second_idea['idea'][:30]}...'"
+    
+    def evaluate_ideas_batch(self, ideas: List[str], context: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Evaluate multiple ideas across all dimensions in a single API call.
+        
+        This method significantly reduces API calls by evaluating all ideas
+        and all dimensions in one request instead of making 7 × N separate calls.
+        
+        Args:
+            ideas: List of ideas to evaluate
+            context: Context information for evaluation
+            
+        Returns:
+            List of evaluation results, one per idea, with all dimension scores
+            
+        Raises:
+            ValueError: If response is invalid or missing required dimensions
+            RuntimeError: If API call fails
+        """
+        if not ideas:
+            return []
+        
+        # Build batch evaluation prompt
+        prompt = self._build_batch_evaluation_prompt(ideas, context)
+        
+        try:
+            # Import model name getter
+            try:
+                from madspark.agents.genai_client import get_model_name
+            except ImportError:
+                from ..agents.genai_client import get_model_name
+            
+            # Configure for structured JSON response
+            generate_config = self.types.GenerateContentConfig(
+                temperature=0.3,  # Low for consistency
+                response_mime_type="application/json",
+                system_instruction="You are an expert evaluator. Return a JSON array with evaluation scores for each idea."
+            )
+            
+            response = self.genai_client.models.generate_content(
+                model=get_model_name(),
+                contents=prompt,
+                config=generate_config
+            )
+            
+            # Parse response
+            if response.text is None:
+                raise ValueError("API returned None response text")
+            evaluations = json.loads(response.text)
+            
+            # Validate response structure
+            if not isinstance(evaluations, list):
+                raise ValueError("Response must be a JSON array")
+            
+            if len(evaluations) != len(ideas):
+                raise ValueError(f"Expected {len(ideas)} evaluations, got {len(evaluations)}")
+            
+            # Process and validate each evaluation
+            results = []
+            for i, eval_data in enumerate(evaluations):
+                # Validate all dimensions are present
+                required_dims = set(self.evaluation_dimensions.keys())
+                provided_dims = set(k for k in eval_data.keys() if k != 'idea_index')
+                
+                missing = required_dims - provided_dims
+                if missing:
+                    raise ValueError(f"Missing required dimension{'s' if len(missing) > 1 else ''}: {', '.join(sorted(missing))}")
+                
+                # Calculate aggregate scores
+                dimension_scores = {
+                    dim: eval_data[dim] for dim in required_dims
+                }
+                
+                # Calculate weighted overall score
+                weighted_score = sum(
+                    dimension_scores[dim] * config['weight'] 
+                    for dim, config in self.evaluation_dimensions.items()
+                )
+                
+                # Calculate simple average
+                overall_score = sum(dimension_scores.values()) / len(dimension_scores)
+                
+                # Calculate confidence interval
+                scores = list(dimension_scores.values())
+                variance = sum((score - overall_score) ** 2 for score in scores) / len(scores)
+                confidence_interval = max(0.0, 1.0 - (variance / 25.0))
+                
+                result = {
+                    'idea_index': eval_data.get('idea_index', i),
+                    'overall_score': round(overall_score, 2),
+                    'weighted_score': round(weighted_score, 2),
+                    'dimension_scores': dimension_scores,
+                    'confidence_interval': round(confidence_interval, 3),
+                    'evaluation_summary': self._generate_evaluation_summary(dimension_scores, ideas[i])
+                }
+                
+                # Include individual dimension scores at top level for convenience
+                result.update(dimension_scores)
+                
+                results.append(result)
+            
+            # Sort by idea_index to preserve order
+            results.sort(key=lambda x: x['idea_index'])
+            
+            return results
+            
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Invalid JSON response from API: {e}")
+        except Exception as e:
+            raise RuntimeError(f"Failed to evaluate ideas: {e}")
+    
+    def _build_batch_evaluation_prompt(self, ideas: List[str], context: Dict[str, Any]) -> str:
+        """Build prompt for batch evaluation of multiple ideas."""
+        # Format context
+        context_parts = []
+        if 'theme' in context:
+            context_parts.append(f"Theme: {context['theme']}")
+        if 'constraints' in context:
+            context_parts.append(f"Constraints: {context['constraints']}")
+        for key, value in context.items():
+            if key not in ['theme', 'constraints']:
+                context_parts.append(f"{key.replace('_', ' ').title()}: {value}")
+        
+        context_str = ". ".join(context_parts) if context_parts else "General context"
+        
+        # Format ideas with numbers
+        ideas_formatted = "\n".join([f"{i+1}. {idea}" for i, idea in enumerate(ideas)])
+        
+        # Build dimension descriptions
+        dimension_details = []
+        for dim, config in self.evaluation_dimensions.items():
+            dim_name = dim.replace('_', ' ').title()
+            description = config.get('description', '')
+            dimension_details.append(f"- {dim_name}: {description}")
+        
+        # Define newline for use in f-string
+        newline = '\n'
+        
+        prompt = f"""Evaluate the following {len(ideas)} ideas across all 7 dimensions.
+
+Context: {context_str}
+
+Ideas to evaluate:
+{ideas_formatted}
+
+Evaluation dimensions:
+{newline.join(dimension_details)}
+
+For EACH idea, provide a complete evaluation with scores for ALL dimensions.
+Return a JSON array where each element contains:
+- idea_index: The 0-based index of the idea
+- feasibility: Score 1-10
+- innovation: Score 1-10  
+- impact: Score 1-10
+- cost_effectiveness: Score 1-10
+- scalability: Score 1-10
+- risk_assessment: Score 1-10 (higher = lower risk)
+- timeline: Score 1-10
+
+Use these scoring guidelines:
+- 1-3: Poor/Very challenging
+- 4-6: Moderate/Average
+- 7-9: Good/Strong
+- 10: Excellent/Outstanding
+
+Example response format:
+[
+  {{
+    "idea_index": 0,
+    "feasibility": 8,
+    "innovation": 7,
+    "impact": 9,
+    "cost_effectiveness": 6,
+    "scalability": 8,
+    "risk_assessment": 7,
+    "timeline": 6
+  }},
+  {{
+    "idea_index": 1,
+    ...
+  }}
+]"""
+        
+        return prompt
 
 
 class AgentConversationTracker:

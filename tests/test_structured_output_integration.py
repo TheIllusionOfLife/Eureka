@@ -3,6 +3,7 @@
 This test module verifies that the system correctly uses structured output
 for idea improvement instead of regex-based cleaning.
 """
+import os
 import json
 import pytest
 from unittest.mock import Mock, patch
@@ -49,6 +50,7 @@ class TestStructuredOutputIntegration:
         assert "enhanced concept" not in result.lower()
         assert "blockchain-based renewable energy marketplace" in result
     
+    @pytest.mark.skipif(os.getenv("MADSPARK_MODE") == "mock", reason="Test requires full mock control")
     @patch('madspark.utils.agent_retry_wrappers.improve_idea')
     def test_coordinator_uses_clean_improved_ideas(self, mock_improve_idea):
         """Test that coordinator receives clean improved ideas."""

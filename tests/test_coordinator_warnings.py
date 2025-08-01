@@ -16,8 +16,8 @@ class TestCoordinatorWarnings:
     def test_warnings_suppressed_in_normal_mode(self, caplog):
         """Warnings should not show in normal mode."""
         # Mock the agent functions to simulate mismatched ideas/evaluations
-        with patch('madspark.core.coordinator.call_idea_generator_with_retry') as mock_generator, \
-             patch('madspark.core.coordinator.call_critic_with_retry') as mock_critic:
+        with patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry') as mock_generator, \
+             patch('madspark.utils.agent_retry_wrappers.call_critic_with_retry') as mock_critic:
             
             # Set up mocks to create a mismatch
             mock_generator.return_value = "Idea 1\nIdea 2\nIdea 3"  # 3 ideas
@@ -44,8 +44,8 @@ class TestCoordinatorWarnings:
     def test_warnings_shown_in_verbose_mode(self, caplog):
         """Warnings should show in verbose mode for debugging."""
         # Mock the agent functions to simulate mismatched ideas/evaluations
-        with patch('madspark.core.coordinator.call_idea_generator_with_retry') as mock_generator, \
-             patch('madspark.core.coordinator.call_critic_with_retry') as mock_critic:
+        with patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry') as mock_generator, \
+             patch('madspark.utils.agent_retry_wrappers.call_critic_with_retry') as mock_critic:
             
             # Set up mocks to create a mismatch
             mock_generator.return_value = "Idea 1\nIdea 2\nIdea 3"  # 3 ideas

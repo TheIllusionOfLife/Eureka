@@ -201,7 +201,7 @@ def criticize_ideas_batch(
                     "QUESTIONABLE ASSUMPTIONS:\n• Mock assumption 1\n• Mock assumption 2\n\n"
                     "MISSING CONSIDERATIONS:\n• Mock missing factor 1\n• Mock missing factor 2"
       })
-    return mock_results
+    return mock_results, 0  # Return tuple for consistency
   
   try:
     import json
@@ -264,11 +264,8 @@ def criticize_ideas_batch(
     # Sort by idea_index to ensure order
     results.sort(key=lambda x: x['idea_index'])
     
-    # Return results with token usage for monitoring (only if token_usage is a real number)
-    if token_usage and isinstance(token_usage, (int, float)):
-        return results, token_usage
-    else:
-        return results
+    # Always return tuple for consistent API
+    return results, token_usage if isinstance(token_usage, (int, float)) else 0
     
   except Exception as e:
     logging.error(f"Batch skeptic failed: {e}", exc_info=True)

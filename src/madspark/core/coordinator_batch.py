@@ -219,17 +219,15 @@ def run_multistep_workflow_batch(
     with batch_call_context("advocate", len(top_candidates)) as monitor_ctx:
         try:
             # Single API call for all advocacies
-            advocacy_results = advocate_ideas_batch(
+            advocacy_results, token_usage = advocate_ideas_batch(
                 advocate_input, 
                 theme, 
                 advocacy_temp
             )
             
-            # Extract token usage if available (advocate_ideas_batch should return tuple with usage)
-            if isinstance(advocacy_results, tuple) and len(advocacy_results) == 2:
-                advocacy_data, token_usage = advocacy_results
+            # Set token usage for monitoring
+            if token_usage > 0:
                 monitor_ctx.set_tokens_used(token_usage)
-                advocacy_results = advocacy_data
             
             # Map results back to candidates
             for i, advocacy in enumerate(advocacy_results):
@@ -259,17 +257,15 @@ def run_multistep_workflow_batch(
     with batch_call_context("skeptic", len(top_candidates)) as monitor_ctx:
         try:
             # Single API call for all skepticisms
-            skepticism_results = criticize_ideas_batch(
+            skepticism_results, token_usage = criticize_ideas_batch(
                 skeptic_input,
                 theme,
                 skepticism_temp
             )
             
-            # Extract token usage if available
-            if isinstance(skepticism_results, tuple) and len(skepticism_results) == 2:
-                skepticism_data, token_usage = skepticism_results
+            # Set token usage for monitoring
+            if token_usage > 0:
                 monitor_ctx.set_tokens_used(token_usage)
-                skepticism_results = skepticism_data
             
             # Map results back to candidates
             for i, skepticism in enumerate(skepticism_results):
@@ -301,17 +297,15 @@ def run_multistep_workflow_batch(
     with batch_call_context("improve", len(top_candidates)) as monitor_ctx:
         try:
             # Single API call for all improvements
-            improvement_results = improve_ideas_batch(
+            improvement_results, token_usage = improve_ideas_batch(
                 improve_input,
                 theme,
                 idea_temp
             )
             
-            # Extract token usage if available
-            if isinstance(improvement_results, tuple) and len(improvement_results) == 2:
-                improvement_data, token_usage = improvement_results
+            # Set token usage for monitoring
+            if token_usage > 0:
                 monitor_ctx.set_tokens_used(token_usage)
-                improvement_results = improvement_data
             
             # Map results back to candidates
             for i, improvement in enumerate(improvement_results):

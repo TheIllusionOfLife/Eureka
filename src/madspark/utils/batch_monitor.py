@@ -11,6 +11,8 @@ from typing import Dict, Any, List, Optional
 from dataclasses import dataclass, asdict
 from pathlib import Path
 
+from .pricing_config import get_token_cost, estimate_cost, DEFAULT_OUTPUT_RATIO
+
 
 @dataclass
 class BatchMetrics:
@@ -42,12 +44,6 @@ class BatchMetrics:
 
 class BatchMonitor:
     """Monitor batch API performance and cost-effectiveness."""
-    
-    # Estimated token costs (per 1K tokens) - these should be updated based on actual model pricing
-    TOKEN_COSTS = {
-        "gemini-1.5-pro": {"input": 0.00125, "output": 0.005},  # $1.25 input, $5.00 output per 1M tokens
-        "gemini-1.5-flash": {"input": 0.000075, "output": 0.0003},  # $0.075 input, $0.30 output per 1M tokens
-    }
     
     def __init__(self, log_file: Optional[str] = None):
         """Initialize the batch monitor.
@@ -110,11 +106,9 @@ class BatchMonitor:
         # Estimate cost if tokens are available
         estimated_cost = None
         if tokens_used:
-            # Use Gemini 1.5 Pro pricing as default estimate
-            # In practice, this should be dynamically determined based on actual model used
-            input_cost = self.TOKEN_COSTS["gemini-1.5-pro"]["input"] * (tokens_used / 1000)
-            output_cost = self.TOKEN_COSTS["gemini-1.5-pro"]["output"] * (tokens_used / 1000) * 0.3  # Assume 30% output
-            estimated_cost = input_cost + output_cost
+            # Use pricing configuration to estimate cost
+            # In practice, the model name should be passed from the actual API call
+            estimated_cost = estimate_cost("gemini-1.5-pro", tokens_used)
         
         metrics = BatchMetrics(
             timestamp=context["timestamp"],

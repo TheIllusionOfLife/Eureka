@@ -104,7 +104,7 @@ class TestCoordinatorTimeoutImplementation:
         # Test that it accepts the parameter and logs warning
         with patch('madspark.core.coordinator.logging.warning') as mock_warning:
             # Mock the agent functions to avoid actual API calls
-            with patch('madspark.core.coordinator.call_idea_generator_with_retry') as mock_gen:
+            with patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry') as mock_gen:
                 mock_gen.return_value = "Idea 1: Test"
                 
                 # This should not raise an error and should log warning

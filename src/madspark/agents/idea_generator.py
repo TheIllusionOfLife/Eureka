@@ -185,9 +185,13 @@ def generate_ideas(topic: str, context: str, temperature: float = 0.9) -> str:
         config=config
     )
     agent_response = response.text if response.text else ""
+  except (AttributeError, TypeError) as e:
+    # Handle API response structure errors
+    logging.error(f"API response structure error: {e}", exc_info=True)
+    agent_response = ""
   except Exception as e:
-    # Log the full error for better debugging
-    logging.error(f"Error calling Gemini API: {e}", exc_info=True)
+    # Log other unexpected errors
+    logging.error(f"Unexpected error calling Gemini API: {e}", exc_info=True)
     agent_response = ""
 
   # If agent_response is empty or only whitespace, it will be returned as such.
@@ -384,9 +388,13 @@ def improve_idea(
     else:
       logging.error(f"Gemini API ValueError: {e}", exc_info=True)
       agent_response = _generate_fallback_improvement(original_idea, "value_error")
+  except (AttributeError, TypeError) as e:
+    # Handle API response structure errors
+    logging.error(f"API response structure error in improve_idea: {e}", exc_info=True)
+    agent_response = _generate_fallback_improvement(original_idea, "general_error")
   except Exception as e:
-    # Log the full error for better debugging
-    logging.error(f"Error calling Gemini API: {e}", exc_info=True)
+    # Log other unexpected errors
+    logging.error(f"Unexpected error calling Gemini API: {e}", exc_info=True)
     agent_response = _generate_fallback_improvement(original_idea, "general_error")
   
   return agent_response
@@ -467,7 +475,7 @@ def improve_ideas_batch(
                         f"This addresses the critique and maintains strengths.",
         "key_improvements": ["Mock improvement 1", "Mock improvement 2"]
       })
-    return mock_results
+    return mock_results, 0  # Return tuple for consistency
   
   try:
     import json
@@ -523,14 +531,17 @@ def improve_ideas_batch(
     # Sort by idea_index to ensure order
     results.sort(key=lambda x: x['idea_index'])
     
-    # Return results with token usage for monitoring (only if token_usage is a real number)
-    if token_usage and isinstance(token_usage, (int, float)):
-        return results, token_usage
-    else:
-        return results
+    # Always return tuple for consistent API
+    return results, token_usage if isinstance(token_usage, (int, float)) else 0
     
+  except json.JSONDecodeError as e:
+    logging.error(f"JSON parsing error in batch improvement: {e}", exc_info=True)
+    raise ValueError(f"Invalid JSON response: {e}")
+  except (AttributeError, TypeError, KeyError) as e:
+    logging.error(f"Data structure error in batch improvement: {e}", exc_info=True)
+    raise RuntimeError(f"Batch improvement data error: {e}")
   except Exception as e:
-    logging.error(f"Batch improvement failed: {e}", exc_info=True)
+    logging.error(f"Unexpected batch improvement failure: {e}", exc_info=True)
     raise RuntimeError(f"Batch improvement failed: {e}")
 
 

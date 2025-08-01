@@ -190,7 +190,7 @@ def advocate_ideas_batch(
                     "OPPORTUNITIES:\n• Mock opportunity 1\n• Mock opportunity 2\n\n"
                     "ADDRESSING CONCERNS:\n• Mock mitigation 1\n• Mock mitigation 2"
       })
-    return mock_results
+    return mock_results, 0  # Return tuple for consistency
   
   try:
     import json
@@ -250,11 +250,8 @@ def advocate_ideas_batch(
     # Sort by idea_index to ensure order
     results.sort(key=lambda x: x['idea_index'])
     
-    # Return results with token usage for monitoring (only if token_usage is a real number)
-    if token_usage and isinstance(token_usage, (int, float)):
-        return results, token_usage
-    else:
-        return results
+    # Always return tuple for consistent API
+    return results, token_usage if isinstance(token_usage, (int, float)) else 0
     
   except Exception as e:
     logging.error(f"Batch advocate failed: {e}", exc_info=True)

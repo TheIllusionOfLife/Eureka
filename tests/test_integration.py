@@ -80,9 +80,9 @@ Smart Workflow Optimizer: ML-driven workflow optimization platform"""
         # Verify all agents were called
         mock_generate.assert_called()
         mock_critic.assert_called()
-        mock_advocate.assert_called()
-        mock_skeptic.assert_called()
-        mock_improve.assert_called()
+        mock_advocate_batch.assert_called()
+        mock_skeptic_batch.assert_called()
+        mock_improve_batch.assert_called()
     
     @pytest.mark.integration
     @pytest.mark.slow
@@ -196,7 +196,7 @@ class TestWorkflowWithComponents:
         with patch('madspark.core.coordinator.TemperatureManager') as mock_temp_class:
             mock_temp_class.return_value = temp_manager
             
-            with patch('madspark.core.coordinator.call_idea_generator_with_retry') as mock_generate:
+            with patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry') as mock_generate:
                 mock_generate.return_value = "Test Idea: Temperature test solution"
                 
                 result = run_multistep_workflow(
@@ -217,7 +217,7 @@ class TestWorkflowWithComponents:
             mock_filter.is_novel.return_value = True
             mock_novelty_class.return_value = mock_filter
             
-            with patch('madspark.core.coordinator.call_idea_generator_with_retry') as mock_generate:
+            with patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry') as mock_generate:
                 mock_generate.return_value = "Novel Idea: Unique AI solution"
                 
                 result = run_multistep_workflow(

@@ -16,8 +16,8 @@ class TestCoordinatorMismatchIssue:
     
     def test_coordinator_handles_partial_evaluations(self, caplog):
         """Test coordinator when Critic returns fewer evaluations than ideas."""
-        with patch('madspark.core.coordinator.call_idea_generator_with_retry') as mock_generator, \
-             patch('madspark.core.coordinator.call_critic_with_retry') as mock_critic, \
+        with patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry') as mock_generator, \
+             patch('madspark.utils.agent_retry_wrappers.call_critic_with_retry') as mock_critic, \
              patch('madspark.core.coordinator.call_advocate_with_retry') as mock_advocate, \
              patch('madspark.core.coordinator.call_skeptic_with_retry') as mock_skeptic, \
              patch('madspark.core.coordinator.call_improve_idea_with_retry') as mock_improve, \
@@ -75,8 +75,8 @@ class TestCoordinatorMismatchIssue:
     
     def test_critic_response_with_incomplete_json(self):
         """Test when Critic returns a mix of valid JSON and text."""
-        with patch('madspark.core.coordinator.call_idea_generator_with_retry') as mock_generator, \
-             patch('madspark.core.coordinator.call_critic_with_retry') as mock_critic, \
+        with patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry') as mock_generator, \
+             patch('madspark.utils.agent_retry_wrappers.call_critic_with_retry') as mock_critic, \
              patch('madspark.core.coordinator.call_advocate_with_retry') as mock_advocate, \
              patch('madspark.core.coordinator.call_skeptic_with_retry') as mock_skeptic, \
              patch('madspark.core.coordinator.call_improve_idea_with_retry') as mock_improve, \

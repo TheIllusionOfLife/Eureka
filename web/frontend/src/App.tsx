@@ -30,6 +30,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<ProgressUpdate | null>(null);
+  const [structuredOutput, setStructuredOutput] = useState(false);
   const [lastFormData, setLastFormData] = useState<any>(null);
   const [showDetailedResults, setShowDetailedResults] = useState(false);
   const [bookmarkedIdeas, setBookmarkedIdeas] = useState<Set<string>>(new Set());
@@ -305,6 +306,7 @@ function App() {
         const resultsCount = response.data.results?.length || 0;
         logger.ideaGeneration('completed', { resultsCount, duration });
         setResults(response.data.results || []);
+        setStructuredOutput(response.data.structured_output || false);
         
         // Validate that we actually have results
         if (!response.data.results || response.data.results.length === 0) {
@@ -532,6 +534,7 @@ function App() {
               theme={lastFormData?.theme || ''}
               constraints={lastFormData?.constraints || ''}
               bookmarkedIdeas={bookmarkedIdeas}
+              structuredOutput={structuredOutput}
               onBookmarkToggle={async (result: IdeaResult, index: number) => {
                 try {
                   // Check if this result is already bookmarked

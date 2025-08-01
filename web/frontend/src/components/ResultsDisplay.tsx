@@ -15,6 +15,7 @@ interface ResultsDisplayProps {
   bookmarkedIdeas?: Set<string>;
   onBookmarkToggle?: (result: IdeaResult, index: number) => void;
   savedBookmarks?: SavedBookmark[];
+  structuredOutput?: boolean;
 }
 
 const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ 
@@ -24,7 +25,8 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
   constraints = '',
   bookmarkedIdeas,
   onBookmarkToggle,
-  savedBookmarks = []
+  savedBookmarks = [],
+  structuredOutput = false
 }) => {
   const [expandedSections, setExpandedSections] = useState<{[key: string]: boolean}>({});
   const [bookmarkingIds, setBookmarkingIds] = useState<Set<number>>(new Set());
@@ -327,7 +329,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
               {expandedSections[`${index}-improved`] && (
                 <div id={`improved-content-${index}`} className="p-4 pt-0">
                   <MarkdownRenderer 
-                    content={cleanImprovedIdea(result.improved_idea || '')} 
+                    content={structuredOutput ? (result.improved_idea || '') : cleanImprovedIdea(result.improved_idea || '')} 
                     className="text-gray-700 leading-relaxed"
                   />
                 </div>

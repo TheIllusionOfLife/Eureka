@@ -162,10 +162,12 @@ def criticize_ideas_batch(
       f"ADVOCACY:\n{item['advocacy']}"
     )
   
+  # Define newline for use in f-string
+  newline = '\n'
   prompt = (
       LANGUAGE_CONSISTENCY_INSTRUCTION +
       f"Context: {context}\n\n"
-      f"{'\n'.join(items_text)}\n\n"
+      f"{newline.join(items_text)}\n\n"
       "For EACH idea above, play devil's advocate and provide criticism in this exact JSON format:\n"
       "{\n"
       '  "idea_index": <0-based index>,\n'
@@ -229,6 +231,7 @@ def criticize_ideas_batch(
     
     # Process results and add formatted text
     results = []
+    newline = '\n'  # Define for use in f-strings
     for criticism in criticisms:
       # Validate structure
       required = {'idea_index', 'critical_flaws', 'risks_challenges', 
@@ -240,13 +243,13 @@ def criticize_ideas_batch(
       # Create formatted text
       formatted = (
         f"CRITICAL FLAWS:\n"
-        f"{'\n'.join(f'• {f}' for f in criticism['critical_flaws'])}\n\n"
+        f"{newline.join(f'• {f}' for f in criticism['critical_flaws'])}\n\n"
         f"RISKS & CHALLENGES:\n"
-        f"{'\n'.join(f'• {r}' for r in criticism['risks_challenges'])}\n\n"
+        f"{newline.join(f'• {r}' for r in criticism['risks_challenges'])}\n\n"
         f"QUESTIONABLE ASSUMPTIONS:\n"
-        f"{'\n'.join(f'• {a}' for a in criticism['questionable_assumptions'])}\n\n"
+        f"{newline.join(f'• {a}' for a in criticism['questionable_assumptions'])}\n\n"
         f"MISSING CONSIDERATIONS:\n"
-        f"{'\n'.join(f'• {m}' for m in criticism['missing_considerations'])}"
+        f"{newline.join(f'• {m}' for m in criticism['missing_considerations'])}"
       )
       
       criticism['formatted'] = formatted

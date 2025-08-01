@@ -154,10 +154,12 @@ def advocate_ideas_batch(
       f"EVALUATION:\n{item['evaluation']}"
     )
   
+  # Define newline for use in f-string
+  newline = '\n'
   prompt = (
       LANGUAGE_CONSISTENCY_INSTRUCTION +
       f"Context: {context}\n\n"
-      f"{'\n'.join(items_text)}\n\n"
+      f"{newline.join(items_text)}\n\n"
       "For EACH idea above, provide advocacy in this exact JSON format:\n"
       "{\n"
       '  "idea_index": <0-based index>,\n'
@@ -238,6 +240,7 @@ def advocate_ideas_batch(
     
     # Process results and add formatted text
     results = []
+    newline = '\n'  # Define for use in f-strings
     for advocacy in advocacies:
       # Validate structure
       required = {'idea_index', 'strengths', 'opportunities', 'addressing_concerns'}
@@ -253,11 +256,11 @@ def advocate_ideas_batch(
       # Create formatted text
       formatted = (
         f"STRENGTHS:\n"
-        f"{'\n'.join(f'• {s}' for s in advocacy['strengths'])}\n\n"
+        f"{newline.join(f'• {s}' for s in advocacy['strengths'])}\n\n"
         f"OPPORTUNITIES:\n"
-        f"{'\n'.join(f'• {o}' for o in advocacy['opportunities'])}\n\n"
+        f"{newline.join(f'• {o}' for o in advocacy['opportunities'])}\n\n"
         f"ADDRESSING CONCERNS:\n"
-        f"{'\n'.join(f'• {c}' for c in advocacy['addressing_concerns'])}"
+        f"{newline.join(f'• {c}' for c in advocacy['addressing_concerns'])}"
       )
       
       advocacy['formatted'] = formatted

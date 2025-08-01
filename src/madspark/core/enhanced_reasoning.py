@@ -952,7 +952,7 @@ Ideas to evaluate:
 {ideas_formatted}
 
 Evaluation dimensions:
-{chr(10).join(dimension_details)}
+{'\n'.join(dimension_details)}
 
 For EACH idea, provide a complete evaluation with scores for ALL dimensions.
 Return a JSON array where each element contains:

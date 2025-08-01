@@ -165,7 +165,7 @@ def criticize_ideas_batch(
   prompt = (
       LANGUAGE_CONSISTENCY_INSTRUCTION +
       f"Context: {context}\n\n"
-      f"{chr(10).join(items_text)}\n\n"
+      f"{'\n'.join(items_text)}\n\n"
       "For EACH idea above, play devil's advocate and provide criticism in this exact JSON format:\n"
       "{\n"
       '  "idea_index": <0-based index>,\n'
@@ -240,13 +240,13 @@ def criticize_ideas_batch(
       # Create formatted text
       formatted = (
         f"CRITICAL FLAWS:\n"
-        f"{chr(10).join(f'• {f}' for f in criticism['critical_flaws'])}\n\n"
+        f"{'\n'.join(f'• {f}' for f in criticism['critical_flaws'])}\n\n"
         f"RISKS & CHALLENGES:\n"
-        f"{chr(10).join(f'• {r}' for r in criticism['risks_challenges'])}\n\n"
+        f"{'\n'.join(f'• {r}' for r in criticism['risks_challenges'])}\n\n"
         f"QUESTIONABLE ASSUMPTIONS:\n"
-        f"{chr(10).join(f'• {a}' for a in criticism['questionable_assumptions'])}\n\n"
+        f"{'\n'.join(f'• {a}' for a in criticism['questionable_assumptions'])}\n\n"
         f"MISSING CONSIDERATIONS:\n"
-        f"{chr(10).join(f'• {m}' for m in criticism['missing_considerations'])}"
+        f"{'\n'.join(f'• {m}' for m in criticism['missing_considerations'])}"
       )
       
       criticism['formatted'] = formatted

@@ -450,7 +450,7 @@ def improve_ideas_batch(
   prompt = (
       LANGUAGE_CONSISTENCY_INSTRUCTION +
       f"Theme: {theme}\n\n"
-      f"{chr(10).join(items_text)}\n\n"
+      f"{'\n'.join(items_text)}\n\n"
       "For EACH idea above, create an improved version that:\n"
       "1. Addresses ALL critique points\n"
       "2. Maintains the advocated strengths\n"

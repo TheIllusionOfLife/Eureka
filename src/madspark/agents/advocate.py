@@ -5,6 +5,7 @@ The agent is responsible for constructing persuasive arguments in favor of
 an idea, considering its evaluation and context.
 """
 import logging
+from typing import List, Dict, Any
 
 # Optional import for Google GenAI - graceful fallback for CI/testing
 try:
@@ -114,5 +115,155 @@ def advocate_idea(idea: str, evaluation: str, context: str, temperature: float =
     # This specific string is recognized by the coordinator's error handling.
     return ADVOCATE_EMPTY_RESPONSE
   return agent_response
+
+
+def advocate_ideas_batch(
+    ideas_with_evaluations: List[Dict[str, str]], 
+    context: str, 
+    temperature: float = 0.5
+) -> List[Dict[str, Any]]:
+  """Batch advocate for multiple ideas in a single API call.
+  
+  This function significantly reduces API calls by processing all ideas
+  in one request instead of making N separate calls.
+  
+  Args:
+    ideas_with_evaluations: List of dicts with 'idea' and 'evaluation' keys
+    context: Theme/context for all ideas
+    temperature: Generation temperature (0.0-1.0)
+    
+  Returns:
+    List of advocacy responses with structured format including:
+    - idea_index: Index of the idea
+    - strengths: List of key strengths
+    - opportunities: List of opportunities
+    - addressing_concerns: List of ways to address concerns
+    - formatted: Human-readable formatted string
+    
+  Raises:
+    ValueError: If input format is invalid or JSON parsing fails
+    RuntimeError: If API call fails
+  """
+  if not ideas_with_evaluations:
+    return []
+  
+  # Validate input format
+  for i, item in enumerate(ideas_with_evaluations):
+    if not isinstance(item, dict):
+      raise ValueError(f"Item {i} must be a dictionary")
+    if 'idea' not in item or 'evaluation' not in item:
+      raise ValueError(f"Item {i} must have 'idea' and 'evaluation' keys")
+  
+  # Build batch prompt
+  items_text = []
+  for i, item in enumerate(ideas_with_evaluations):
+    items_text.append(
+      f"IDEA {i+1}:\n{item['idea']}\n\n"
+      f"EVALUATION:\n{item['evaluation']}"
+    )
+  
+  prompt = (
+      LANGUAGE_CONSISTENCY_INSTRUCTION +
+      f"Context: {context}\n\n"
+      f"{chr(10).join(items_text)}\n\n"
+      "For EACH idea above, provide advocacy in this exact JSON format:\n"
+      "{\n"
+      '  "idea_index": <0-based index>,\n'
+      '  "strengths": ["strength1", "strength2", ...],\n'
+      '  "opportunities": ["opportunity1", "opportunity2", ...],\n'
+      '  "addressing_concerns": ["mitigation1", "mitigation2", ...]\n'
+      "}\n\n"
+      "Return ONLY a JSON array containing one object per idea, in order.\n"
+      "Each object must contain all four fields."
+  )
+  
+  if not GENAI_AVAILABLE or advocate_client is None:
+    # Return mock advocacy for CI/testing
+    mock_results = []
+    for i in range(len(ideas_with_evaluations)):
+      mock_results.append({
+        "idea_index": i,
+        "strengths": ["Mock strength 1", "Mock strength 2"],
+        "opportunities": ["Mock opportunity 1", "Mock opportunity 2"],
+        "addressing_concerns": ["Mock mitigation 1", "Mock mitigation 2"],
+        "formatted": "STRENGTHS:\n• Mock strength 1\n• Mock strength 2\n\n"
+                    "OPPORTUNITIES:\n• Mock opportunity 1\n• Mock opportunity 2\n\n"
+                    "ADDRESSING CONCERNS:\n• Mock mitigation 1\n• Mock mitigation 2"
+      })
+    return mock_results
+  
+  if advocate_client is None:
+    # If GENAI is available but client is None, still return mock
+    mock_results = []
+    for i in range(len(ideas_with_evaluations)):
+      mock_results.append({
+        "idea_index": i,
+        "strengths": ["Mock strength 1", "Mock strength 2"],
+        "opportunities": ["Mock opportunity 1", "Mock opportunity 2"],
+        "addressing_concerns": ["Mock mitigation 1", "Mock mitigation 2"],
+        "formatted": "STRENGTHS:\n• Mock strength 1\n• Mock strength 2\n\n"
+                    "OPPORTUNITIES:\n• Mock opportunity 1\n• Mock opportunity 2\n\n"
+                    "ADDRESSING CONCERNS:\n• Mock mitigation 1\n• Mock mitigation 2"
+      })
+    return mock_results
+  
+  try:
+    import json
+    
+    config = types.GenerateContentConfig(
+        temperature=temperature,
+        response_mime_type="application/json",
+        system_instruction=ADVOCATE_SYSTEM_INSTRUCTION + " Return a JSON array of advocacy responses."
+    )
+    
+    response = advocate_client.models.generate_content(
+        model=model_name,
+        contents=prompt,
+        config=config
+    )
+    
+    # Parse JSON response
+    try:
+      advocacies = json.loads(response.text)
+    except json.JSONDecodeError as e:
+      raise ValueError(f"Invalid JSON response from API: {e}")
+    
+    # Validate and format results
+    if not isinstance(advocacies, list):
+      raise ValueError("Response must be a JSON array")
+    
+    if len(advocacies) != len(ideas_with_evaluations):
+      raise ValueError(f"Expected {len(ideas_with_evaluations)} advocacies, got {len(advocacies)}")
+    
+    # Process results and add formatted text
+    results = []
+    for advocacy in advocacies:
+      # Validate structure
+      required = {'idea_index', 'strengths', 'opportunities', 'addressing_concerns'}
+      if not all(field in advocacy for field in required):
+        missing = required - set(advocacy.keys())
+        raise ValueError(f"Missing required fields: {missing}")
+      
+      # Create formatted text
+      formatted = (
+        f"STRENGTHS:\n"
+        f"{chr(10).join(f'• {s}' for s in advocacy['strengths'])}\n\n"
+        f"OPPORTUNITIES:\n"
+        f"{chr(10).join(f'• {o}' for o in advocacy['opportunities'])}\n\n"
+        f"ADDRESSING CONCERNS:\n"
+        f"{chr(10).join(f'• {c}' for c in advocacy['addressing_concerns'])}"
+      )
+      
+      advocacy['formatted'] = formatted
+      results.append(advocacy)
+    
+    # Sort by idea_index to ensure order
+    results.sort(key=lambda x: x['idea_index'])
+    
+    return results
+    
+  except Exception as e:
+    logging.error(f"Batch advocate failed: {e}", exc_info=True)
+    raise RuntimeError(f"Batch advocate failed: {e}")
 
 

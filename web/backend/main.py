@@ -120,6 +120,7 @@ try:
     from madspark.utils.bookmark_system import BookmarkManager
     from madspark.utils.cache_manager import CacheManager, CacheConfig
     from madspark.utils.improved_idea_cleaner import clean_improved_ideas_in_results
+    from madspark.utils.structured_output_check import is_structured_output_available
 except ImportError as e:
     logging.error(f"Failed to import MadSpark modules: {e}")
     # Try alternative paths for different deployment scenarios
@@ -536,6 +537,7 @@ class IdeaGenerationResponse(BaseModel):
     results: List[Dict[str, Any]]
     processing_time: float
     timestamp: str
+    structured_output: bool = False  # Indicates if ideas are using structured output (no cleaning needed)
 
 
 class BookmarkRequest(BaseModel):

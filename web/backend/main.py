@@ -696,12 +696,21 @@ def _create_success_response(results: List[Dict[str, Any]], start_time: datetime
     """Create a successful IdeaGenerationResponse with structured output detection.
     
     Args:
-        results: Generated results from the coordinator
-        start_time: Request start time for processing duration calculation
-        message: Success message to include in response
+        results: Generated results from the coordinator containing idea data.
+                Expected format: List of dicts with keys like 'idea', 'improved_idea', 
+                'initial_score', 'improved_score', etc.
+        start_time: Request start time (datetime object) used to calculate the total
+                   processing duration in seconds
+        message: Success message to include in response (e.g., "Generated 5 ideas successfully")
         
     Returns:
-        Formatted IdeaGenerationResponse with structured output detection
+        Formatted IdeaGenerationResponse with:
+        - status: "success"
+        - message: The provided success message
+        - results: Frontend-formatted results with optional cleaning
+        - processing_time: Duration in seconds
+        - timestamp: ISO format timestamp
+        - structured_output: Boolean flag indicating if structured output was used
     """
     processing_time = (datetime.now() - start_time).total_seconds()
     structured_output_used = detect_structured_output_usage(results)

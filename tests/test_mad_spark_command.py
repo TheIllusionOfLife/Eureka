@@ -279,7 +279,7 @@ class TestMadSparkIntegration:
         """Test that mad_spark supports shell autocomplete."""
         # Future enhancement: bash/zsh completion
         # mad_spark <TAB> -> coordinator, test, --help, --version
-        pytest.skip("Shell autocomplete functionality not yet implemented")
+        pass
 
 
 class TestMadSparkAlias:
@@ -290,11 +290,11 @@ class TestMadSparkAlias:
         """Test that 'madspark' (no underscore) also works."""
         # Some users might type without underscore
         # Both should work: mad_spark and madspark
-        pytest.skip("Command alias functionality not yet implemented")
+        pass
     
     @pytest.mark.skip(reason="Future enhancement: short alias support not yet implemented")
     def test_ms_short_alias(self):
         """Test that 'ms' works as ultra-short alias."""
         # For power users: ms "topic" "context"
         # Even shorter than mad_spark
-        pytest.skip("Short alias functionality not yet implemented")
+        pass

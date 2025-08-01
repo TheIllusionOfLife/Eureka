@@ -82,7 +82,7 @@ ms "quantum computing applications" --timeout 300
 
 All aliases follow the same pattern:
 
-```
+```bash
 [alias] [topic] [context] [options]
 ```
 

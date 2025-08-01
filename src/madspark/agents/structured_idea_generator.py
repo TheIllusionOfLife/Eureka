@@ -3,6 +3,7 @@
 This module provides enhanced idea generation using Gemini's structured output
 capabilities to ensure clean, meta-commentary-free responses.
 """
+import json
 import logging
 from typing import Any, Optional
 
@@ -70,9 +71,15 @@ def improve_idea_structured(
         ValidationError: If inputs are invalid
         ConfigurationError: If API is not configured
     """
-    # Validate inputs
-    if not all([original_idea, critique, advocacy_points, skeptic_points, theme]):
-        raise ValidationError("All input parameters must be non-empty strings")
+    # Import validation helper from idea_generator to maintain DRY principle
+    from madspark.agents.idea_generator import _validate_non_empty_string
+    
+    # Validate inputs using the same logic as the main module
+    _validate_non_empty_string(original_idea, 'original_idea')
+    _validate_non_empty_string(critique, 'critique')
+    _validate_non_empty_string(advocacy_points, 'advocacy_points')
+    _validate_non_empty_string(skeptic_points, 'skeptic_points')
+    _validate_non_empty_string(theme, 'theme')
     
     # Build focused prompt
     prompt = f"""Theme: {theme}
@@ -114,7 +121,6 @@ Write ONLY the improved idea. No introductions, no meta-commentary."""
         
         # Parse JSON response
         if response.text:
-            import json
             try:
                 data = json.loads(response.text)
                 return data.get("improved_idea", response.text)
@@ -125,10 +131,15 @@ Write ONLY the improved idea. No introductions, no meta-commentary."""
         else:
             return f"An enhanced {theme} approach incorporating all feedback."
             
-    except Exception as e:
+    except (AttributeError, ValueError, KeyError, json.JSONDecodeError) as e:
+        # Handle specific expected errors from API or JSON parsing
         logging.error(f"Error in structured idea improvement: {e}")
         # Return a reasonable fallback
         return f"An innovative {theme} solution that balances all stakeholder concerns."
+    except Exception as e:
+        # Log unexpected errors and re-raise for proper error handling
+        logging.error(f"Unexpected error in structured improvement: {e}")
+        raise
 
 
 def generate_ideas_structured(

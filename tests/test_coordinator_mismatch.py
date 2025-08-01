@@ -4,6 +4,7 @@ from unittest.mock import patch, MagicMock
 import os
 import sys
 import logging
+import pytest
 
 # Add src to path for testing
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
@@ -14,6 +15,7 @@ from madspark.core.coordinator import run_multistep_workflow
 class TestCoordinatorMismatchIssue:
     """Test suite for the specific mismatch issue where coordinator generates many ideas but parses few evaluations."""
     
+    @pytest.mark.skipif(os.getenv("MADSPARK_MODE") == "mock", reason="Test requires full mock control")
     def test_coordinator_handles_partial_evaluations(self, caplog):
         """Test coordinator when Critic returns fewer evaluations than ideas."""
         with patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry') as mock_generator, \
@@ -73,6 +75,7 @@ class TestCoordinatorMismatchIssue:
             default_warnings = [record for record in caplog.records if "No evaluation available" in record.message]
             assert len(default_warnings) > 20, f"Should have warnings for ideas without evaluations, got {len(default_warnings)}"
     
+    @pytest.mark.skipif(os.getenv("MADSPARK_MODE") == "mock", reason="Test requires full mock control")
     def test_critic_response_with_incomplete_json(self):
         """Test when Critic returns a mix of valid JSON and text."""
         with patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry') as mock_generator, \

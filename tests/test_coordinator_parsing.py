@@ -3,6 +3,7 @@ import json
 from unittest.mock import patch, MagicMock
 import os
 import sys
+import pytest
 
 # Add src to path for testing
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
@@ -103,6 +104,7 @@ Score: 7, Comment: Second evaluation is good
         parsed = parse_json_with_fallback(raw_evaluations, expected_count=3)
         assert len(parsed) >= 2  # Should get at least the JSON objects
         
+    @pytest.mark.skipif(os.getenv("MADSPARK_MODE") == "mock", reason="Test requires full mock control")
     def test_coordinator_generates_and_evaluates_all_ideas(self):
         """Test that coordinator properly evaluates all generated ideas."""
         # Mock the agent functions with minimal overhead

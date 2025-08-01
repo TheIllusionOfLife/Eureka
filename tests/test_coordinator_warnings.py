@@ -2,6 +2,7 @@
 import os
 import sys
 import logging
+import pytest
 from unittest.mock import patch
 
 # Add src to path for imports  
@@ -41,6 +42,7 @@ class TestCoordinatorWarnings:
                 mismatch_warnings = [msg for msg in warning_messages if "Mismatch between number of ideas" in msg]
                 assert len(mismatch_warnings) == 0, "Mismatch warning should not appear in non-verbose mode"
     
+    @pytest.mark.skipif(os.getenv("MADSPARK_MODE") == "mock", reason="Test requires full mock control")
     def test_warnings_shown_in_verbose_mode(self, caplog):
         """Warnings should show in verbose mode for debugging."""
         # Mock the agent functions to simulate mismatched ideas/evaluations

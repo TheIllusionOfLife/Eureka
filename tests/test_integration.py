@@ -285,10 +285,10 @@ class TestWorkflowErrorHandling:
         # Mock to return empty ideas
         mock_generate.return_value = ""
         
-        # Test with None parameters - workflow handles gracefully
-        result = run_multistep_workflow("test", None)
-        assert isinstance(result, list)
-        assert len(result) == 0
+        # Test with None parameters - now raises ValidationError
+        from madspark.utils.errors import ValidationError
+        with pytest.raises(ValidationError):
+            run_multistep_workflow("test", None)
         
         # Test with empty strings - also returns empty list
         result = run_multistep_workflow("", "")

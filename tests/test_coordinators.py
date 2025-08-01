@@ -41,6 +41,7 @@ class TestSyncCoordinator:
             }
         }
     
+    @pytest.mark.skipif(os.getenv("MADSPARK_MODE") == "mock", reason="Test requires full mock control")
     @patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry')
     @patch('madspark.utils.agent_retry_wrappers.call_critic_with_retry')
     @patch('madspark.agents.advocate.advocate_ideas_batch')

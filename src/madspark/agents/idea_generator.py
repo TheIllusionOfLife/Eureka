@@ -5,7 +5,7 @@ The agent is responsible for generating novel ideas based on a given topic
 and contextual information.
 """
 import logging
-from typing import Any
+from typing import Any, List, Dict
 
 # Optional import for Google GenAI - graceful fallback for CI/testing
 try:
@@ -390,5 +390,150 @@ def improve_idea(
     agent_response = _generate_fallback_improvement(original_idea, "general_error")
   
   return agent_response
+
+
+def improve_ideas_batch(
+    ideas_with_feedback: List[Dict[str, str]], 
+    theme: str, 
+    temperature: float = 0.9
+) -> List[Dict[str, Any]]:
+  """Batch improvement for multiple ideas in a single API call.
+  
+  This function significantly reduces API calls by processing all ideas
+  in one request instead of making N separate calls.
+  
+  Args:
+    ideas_with_feedback: List of dicts with 'idea', 'critique', 'advocacy', and 'skepticism' keys
+    theme: Overall theme/context for improvement
+    temperature: Generation temperature (0.0-1.0)
+    
+  Returns:
+    List of improvement responses with structured format including:
+    - idea_index: Index of the idea
+    - improved_idea: The enhanced version of the idea
+    - key_improvements: List of key improvements made (optional)
+    
+  Raises:
+    ValueError: If input format is invalid or JSON parsing fails
+    RuntimeError: If API call fails
+  """
+  if not ideas_with_feedback:
+    return []
+  
+  # Validate input format
+  for i, item in enumerate(ideas_with_feedback):
+    if not isinstance(item, dict):
+      raise ValueError(f"Item {i} must be a dictionary")
+    required_keys = {'idea', 'critique', 'advocacy', 'skepticism'}
+    if not all(key in item for key in required_keys):
+      raise ValueError(f"Item {i} must have 'idea', 'critique', 'advocacy', and 'skepticism' keys")
+  
+  # Build batch prompt
+  items_text = []
+  for i, item in enumerate(ideas_with_feedback):
+    items_text.append(
+      f"IDEA {i+1}:\n{item['idea']}\n\n"
+      f"CRITIQUE:\n{item['critique']}\n\n"
+      f"ADVOCACY:\n{item['advocacy']}\n\n"
+      f"SKEPTICISM:\n{item['skepticism']}"
+    )
+  
+  prompt = (
+      LANGUAGE_CONSISTENCY_INSTRUCTION +
+      f"Theme: {theme}\n\n"
+      f"{chr(10).join(items_text)}\n\n"
+      "For EACH idea above, create an improved version that:\n"
+      "1. Addresses ALL critique points\n"
+      "2. Maintains the advocated strengths\n"
+      "3. Provides solutions for skeptic concerns\n"
+      "4. Remains bold and creative\n\n"
+      "Return improvements in this exact JSON format:\n"
+      "{\n"
+      '  "idea_index": <0-based index>,\n'
+      '  "improved_idea": "The complete improved idea text",\n'
+      '  "key_improvements": ["improvement1", "improvement2", ...] (optional)\n'
+      "}\n\n"
+      "Return ONLY a JSON array containing one object per idea, in order.\n"
+      "Write only the improved ideas, no meta-commentary."
+  )
+  
+  if not GENAI_AVAILABLE or idea_generator_client is None:
+    # Return mock improvements for CI/testing
+    mock_results = []
+    for i, item in enumerate(ideas_with_feedback):
+      mock_results.append({
+        "idea_index": i,
+        "improved_idea": f"Mock improved version of: {item['idea'][:50]}... "
+                        f"This addresses the critique and maintains strengths.",
+        "key_improvements": ["Mock improvement 1", "Mock improvement 2"]
+      })
+    return mock_results
+  
+  if idea_generator_client is None:
+    # If GENAI is available but client is None, still return mock
+    mock_results = []
+    for i, item in enumerate(ideas_with_feedback):
+      mock_results.append({
+        "idea_index": i,
+        "improved_idea": f"Mock improved version of: {item['idea'][:50]}... "
+                        f"This addresses the critique and maintains strengths.",
+        "key_improvements": ["Mock improvement 1", "Mock improvement 2"]
+      })
+    return mock_results
+  
+  try:
+    import json
+    
+    config = types.GenerateContentConfig(
+        temperature=temperature,
+        response_mime_type="application/json",
+        system_instruction=SYSTEM_INSTRUCTION + " Return a JSON array of improved ideas."
+    )
+    
+    response = idea_generator_client.models.generate_content(
+        model=model_name,
+        contents=prompt,
+        config=config
+    )
+    
+    # Parse JSON response
+    try:
+      improvements = json.loads(response.text)
+    except json.JSONDecodeError as e:
+      raise ValueError(f"Invalid JSON response from API: {e}")
+    
+    # Validate and process results
+    if not isinstance(improvements, list):
+      raise ValueError("Response must be a JSON array")
+    
+    if len(improvements) != len(ideas_with_feedback):
+      raise ValueError(f"Expected {len(ideas_with_feedback)} improvements, got {len(improvements)}")
+    
+    # Process results
+    results = []
+    for improvement in improvements:
+      # Validate structure
+      if 'idea_index' not in improvement or 'improved_idea' not in improvement:
+        raise ValueError(f"Missing required fields in improvement: {improvement}")
+      
+      # key_improvements is optional
+      result = {
+        "idea_index": improvement["idea_index"],
+        "improved_idea": improvement["improved_idea"]
+      }
+      
+      if "key_improvements" in improvement:
+        result["key_improvements"] = improvement["key_improvements"]
+      
+      results.append(result)
+    
+    # Sort by idea_index to ensure order
+    results.sort(key=lambda x: x['idea_index'])
+    
+    return results
+    
+  except Exception as e:
+    logging.error(f"Batch improvement failed: {e}", exc_info=True)
+    raise RuntimeError(f"Batch improvement failed: {e}")
 
 

@@ -9,6 +9,8 @@ import json
 import time
 from typing import List, Dict, Any, Optional, TypedDict
 
+from madspark.utils.batch_monitor import batch_call_context, get_batch_monitor
+
 from madspark.core.coordinator import (
     EvaluatedIdea, CandidateData, log_verbose_step, log_agent_execution,
     log_agent_completion, _ensure_environment_configured,
@@ -193,23 +195,25 @@ def run_multistep_workflow_batch(
                         f"🎯 Evaluating {len(top_candidates)} candidates across 7 dimensions", 
                         verbose)
         
-        try:
-            # Extract ideas for batch evaluation
-            ideas_for_eval = [candidate["text"] for candidate in top_candidates]
-            context = {"theme": theme, "constraints": constraints}
-            
-            # Batch evaluate all dimensions for all ideas
-            multi_eval_results = engine.multi_evaluator.evaluate_ideas_batch(
-                ideas_for_eval, context
-            )
-            
-            # Add results to candidates
-            for i, result in enumerate(multi_eval_results):
-                if i < len(top_candidates):
-                    top_candidates[i]["multi_dimensional_evaluation"] = result
-                    
-        except Exception as e:
-            logging.warning(f"Multi-dimensional batch evaluation failed: {e}")
+        with batch_call_context("multi_dimensional", len(top_candidates)) as monitor_ctx:
+            try:
+                # Extract ideas for batch evaluation
+                ideas_for_eval = [candidate["text"] for candidate in top_candidates]
+                context = {"theme": theme, "constraints": constraints}
+                
+                # Batch evaluate all dimensions for all ideas
+                multi_eval_results = engine.multi_evaluator.evaluate_ideas_batch(
+                    ideas_for_eval, context
+                )
+                
+                # Add results to candidates
+                for i, result in enumerate(multi_eval_results):
+                    if i < len(top_candidates):
+                        top_candidates[i]["multi_dimensional_evaluation"] = result
+                        
+            except Exception as e:
+                logging.warning(f"Multi-dimensional batch evaluation failed: {e}")
+                monitor_ctx.set_fallback_used(str(e))
     
     # Step 4: Batch Advocate Processing
     log_verbose_step("STEP 3: Batch Advocate Processing", 
@@ -224,24 +228,26 @@ def run_multistep_workflow_batch(
             "evaluation": candidate["critique"]
         })
     
-    try:
-        # Single API call for all advocacies
-        advocacy_results = advocate_ideas_batch(
-            advocate_input, 
-            theme, 
-            advocacy_temp
-        )
-        
-        # Map results back to candidates
-        for i, advocacy in enumerate(advocacy_results):
-            if i < len(top_candidates):
-                top_candidates[i]["advocacy"] = advocacy.get("formatted", "N/A")
-                
-    except Exception as e:
-        logging.error(f"Batch advocate failed: {e}")
-        # Fallback: mark all as N/A
-        for candidate in top_candidates:
-            candidate["advocacy"] = "N/A (Batch advocate failed)"
+    with batch_call_context("advocate", len(top_candidates)) as monitor_ctx:
+        try:
+            # Single API call for all advocacies
+            advocacy_results = advocate_ideas_batch(
+                advocate_input, 
+                theme, 
+                advocacy_temp
+            )
+            
+            # Map results back to candidates
+            for i, advocacy in enumerate(advocacy_results):
+                if i < len(top_candidates):
+                    top_candidates[i]["advocacy"] = advocacy.get("formatted", "N/A")
+                    
+        except Exception as e:
+            logging.error(f"Batch advocate failed: {e}")
+            monitor_ctx.set_fallback_used(str(e))
+            # Fallback: mark all as N/A
+            for candidate in top_candidates:
+                candidate["advocacy"] = "N/A (Batch advocate failed)"
     
     # Step 5: Batch Skeptic Processing
     log_verbose_step("STEP 4: Batch Skeptic Processing", 
@@ -256,24 +262,26 @@ def run_multistep_workflow_batch(
             "advocacy": candidate.get("advocacy", "N/A")
         })
     
-    try:
-        # Single API call for all skepticisms
-        skepticism_results = criticize_ideas_batch(
-            skeptic_input,
-            theme,
-            skepticism_temp
-        )
-        
-        # Map results back to candidates
-        for i, skepticism in enumerate(skepticism_results):
-            if i < len(top_candidates):
-                top_candidates[i]["skepticism"] = skepticism.get("formatted", "N/A")
-                
-    except Exception as e:
-        logging.error(f"Batch skeptic failed: {e}")
-        # Fallback: mark all as N/A
-        for candidate in top_candidates:
-            candidate["skepticism"] = "N/A (Batch skeptic failed)"
+    with batch_call_context("skeptic", len(top_candidates)) as monitor_ctx:
+        try:
+            # Single API call for all skepticisms
+            skepticism_results = criticize_ideas_batch(
+                skeptic_input,
+                theme,
+                skepticism_temp
+            )
+            
+            # Map results back to candidates
+            for i, skepticism in enumerate(skepticism_results):
+                if i < len(top_candidates):
+                    top_candidates[i]["skepticism"] = skepticism.get("formatted", "N/A")
+                    
+        except Exception as e:
+            logging.error(f"Batch skeptic failed: {e}")
+            monitor_ctx.set_fallback_used(str(e))
+            # Fallback: mark all as N/A
+            for candidate in top_candidates:
+                candidate["skepticism"] = "N/A (Batch skeptic failed)"
     
     # Step 6: Batch Improvement Processing
     log_verbose_step("STEP 5: Batch Idea Improvement", 
@@ -290,27 +298,29 @@ def run_multistep_workflow_batch(
             "skepticism": candidate.get("skepticism", "N/A")
         })
     
-    try:
-        # Single API call for all improvements
-        improvement_results = improve_ideas_batch(
-            improve_input,
-            theme,
-            idea_temp
-        )
-        
-        # Map results back to candidates
-        for i, improvement in enumerate(improvement_results):
-            if i < len(top_candidates):
-                top_candidates[i]["improved_idea"] = improvement.get(
-                    "improved_idea", 
-                    top_candidates[i]["text"]  # Fallback to original
-                )
-                
-    except Exception as e:
-        logging.error(f"Batch improvement failed: {e}")
-        # Fallback: use original ideas
-        for candidate in top_candidates:
-            candidate["improved_idea"] = candidate["text"]
+    with batch_call_context("improve", len(top_candidates)) as monitor_ctx:
+        try:
+            # Single API call for all improvements
+            improvement_results = improve_ideas_batch(
+                improve_input,
+                theme,
+                idea_temp
+            )
+            
+            # Map results back to candidates
+            for i, improvement in enumerate(improvement_results):
+                if i < len(top_candidates):
+                    top_candidates[i]["improved_idea"] = improvement.get(
+                        "improved_idea", 
+                        top_candidates[i]["text"]  # Fallback to original
+                    )
+                    
+        except Exception as e:
+            logging.error(f"Batch improvement failed: {e}")
+            monitor_ctx.set_fallback_used(str(e))
+            # Fallback: use original ideas
+            for candidate in top_candidates:
+                candidate["improved_idea"] = candidate["text"]
     
     # Step 7: Batch Re-evaluation
     log_verbose_step("STEP 6: Batch Re-evaluation", 
@@ -359,25 +369,27 @@ def run_multistep_workflow_batch(
                         f"🎯 Re-evaluating {len(top_candidates)} improved ideas", 
                         verbose)
         
-        try:
-            # Extract improved ideas for batch evaluation
-            improved_ideas = [
-                candidate.get("improved_idea", candidate["text"]) 
-                for candidate in top_candidates
-            ]
-            
-            # Batch evaluate all dimensions for all improved ideas
-            improved_multi_eval_results = engine.multi_evaluator.evaluate_ideas_batch(
-                improved_ideas, context
-            )
-            
-            # Add results to candidates
-            for i, result in enumerate(improved_multi_eval_results):
-                if i < len(top_candidates):
-                    top_candidates[i]["improved_multi_dimensional_evaluation"] = result
-                    
-        except Exception as e:
-            logging.warning(f"Multi-dimensional re-evaluation failed: {e}")
+        with batch_call_context("multi_dimensional_improved", len(top_candidates)) as monitor_ctx:
+            try:
+                # Extract improved ideas for batch evaluation
+                improved_ideas = [
+                    candidate.get("improved_idea", candidate["text"]) 
+                    for candidate in top_candidates
+                ]
+                
+                # Batch evaluate all dimensions for all improved ideas
+                improved_multi_eval_results = engine.multi_evaluator.evaluate_ideas_batch(
+                    improved_ideas, context
+                )
+                
+                # Add results to candidates
+                for i, result in enumerate(improved_multi_eval_results):
+                    if i < len(top_candidates):
+                        top_candidates[i]["improved_multi_dimensional_evaluation"] = result
+                        
+            except Exception as e:
+                logging.warning(f"Multi-dimensional re-evaluation failed: {e}")
+                monitor_ctx.set_fallback_used(str(e))
     
     # Step 9: Build final results
     log_verbose_step("STEP 7: Building Final Results", 
@@ -423,9 +435,30 @@ def run_multistep_workflow_batch(
         
         final_candidates_data.append(candidate_data)
     
+    # Generate monitoring summary
+    monitor = get_batch_monitor()
+    session_summary = monitor.get_session_summary()
+    cost_analysis = monitor.analyze_cost_effectiveness()
+    
     log_verbose_step("WORKFLOW COMPLETE", 
                     f"🎉 Batch processing finished\n📊 {len(final_candidates_data)} candidates processed\n🚀 API calls significantly reduced!", 
                     verbose)
+    
+    # Log performance summary
+    if session_summary.get("total_calls", 0) > 0:
+        logging.info(
+            f"Batch Performance: {session_summary['successful_calls']}/{session_summary['total_calls']} calls successful, "
+            f"{session_summary['total_items_processed']} items in {session_summary['total_processing_time_seconds']:.2f}s"
+        )
+        
+        if session_summary.get("total_estimated_cost_usd"):
+            logging.info(f"Estimated cost: ${session_summary['total_estimated_cost_usd']:.4f}")
+    
+    # Log cost-effectiveness analysis if verbose
+    if verbose and cost_analysis.get("recommendations"):
+        logging.info("Batch Cost Analysis:")
+        for recommendation in cost_analysis["recommendations"]:
+            logging.info(f"  • {recommendation}")
     
     return final_candidates_data
 

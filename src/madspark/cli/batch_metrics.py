@@ -5,6 +5,11 @@ from pathlib import Path
 from datetime import datetime, timedelta
 
 from madspark.utils.batch_monitor import BatchMetrics
+from madspark.utils.constants import (
+    INDIVIDUAL_CALL_OVERHEAD_MULTIPLIER, 
+    ORIGINAL_CALLS_PER_ITEM,
+    PERCENTAGE_CONVERSION_FACTOR
+)
 
 
 def load_metrics_from_file(log_file: str = None) -> list:
@@ -39,7 +44,7 @@ def format_metrics_summary(metrics_data: list) -> str:
     for data in metrics_data:
         try:
             metrics_objects.append(BatchMetrics(**data))
-        except Exception:
+        except (TypeError, ValueError, KeyError):
             continue  # Skip malformed entries
     
     if not metrics_objects:
@@ -140,10 +145,10 @@ def _format_cost_analysis(metrics: list) -> str:
     total_items = sum(m.items_count for m in successful)
     total_batch_cost = sum(m.estimated_cost_usd or 0 for m in successful)
     
-    # Rough estimate: individual calls would cost ~30% more due to overhead
-    estimated_individual_cost = total_batch_cost * 1.3
+    # Rough estimate: individual calls would cost more due to overhead
+    estimated_individual_cost = total_batch_cost * INDIVIDUAL_CALL_OVERHEAD_MULTIPLIER
     savings = estimated_individual_cost - total_batch_cost
-    savings_percentage = (savings / estimated_individual_cost * 100) if estimated_individual_cost > 0 else 0
+    savings_percentage = (savings / estimated_individual_cost * PERCENTAGE_CONVERSION_FACTOR) if estimated_individual_cost > 0 else 0
     
     lines = []
     lines.append("  💡 Estimated vs Individual Calls:")
@@ -159,9 +164,9 @@ def _format_cost_analysis(metrics: list) -> str:
         lines.append("    • Status: ⚠️  Review needed - may be more expensive")
     
     # API call reduction
-    original_calls = total_items * 7  # Estimate original calls (7 per item in old system)
+    original_calls = total_items * ORIGINAL_CALLS_PER_ITEM  # Estimate original calls per item in old system
     batch_calls = len(successful)
-    call_reduction = ((original_calls - batch_calls) / original_calls * 100) if original_calls > 0 else 0
+    call_reduction = ((original_calls - batch_calls) / original_calls * PERCENTAGE_CONVERSION_FACTOR) if original_calls > 0 else 0
     
     lines.append("  📞 API Call Reduction:")
     lines.append(f"    • Original: ~{original_calls} calls")

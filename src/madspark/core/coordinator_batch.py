@@ -23,6 +23,7 @@ from madspark.utils.constants import (
 from madspark.utils.temperature_control import TemperatureManager
 from madspark.utils.novelty_filter import NoveltyFilter
 from madspark.core.enhanced_reasoning import ReasoningEngine
+from madspark.utils.constants import DEFAULT_TIMEOUT_SECONDS
 
 # Import retry-wrapped versions of agent calls from shared module
 try:
@@ -54,7 +55,8 @@ def run_multistep_workflow_batch(
     temperature_manager: Optional[TemperatureManager] = None,
     novelty_filter: Optional[NoveltyFilter] = None,
     verbose: bool = False,
-    reasoning_engine: Optional[ReasoningEngine] = None
+    reasoning_engine: Optional[ReasoningEngine] = None,
+    timeout: int = DEFAULT_TIMEOUT_SECONDS
 ) -> List[CandidateData]:
     """
     Batch-optimized version of the multi-agent workflow.
@@ -72,11 +74,16 @@ def run_multistep_workflow_batch(
         novelty_filter: Optional novelty filtering
         verbose: Enable verbose logging
         reasoning_engine: Optional pre-initialized reasoning engine
+        timeout: Maximum time allowed for the entire workflow in seconds (not implemented in sync mode)
         
     Returns:
         List of fully processed candidate data
     """
     final_candidates_data: List[CandidateData] = []
+    
+    # Warn about timeout not being implemented in sync mode
+    if timeout != DEFAULT_TIMEOUT_SECONDS:  # Only warn if non-default timeout specified
+        logging.warning("Timeout parameter is not implemented in sync mode and will be ignored")
     
     # Get temperature settings
     temp_manager = temperature_manager or TemperatureManager()
@@ -92,7 +99,7 @@ def run_multistep_workflow_batch(
             from madspark.agents.genai_client import get_genai_client
             genai_client = get_genai_client()
             engine = ReasoningEngine(genai_client)
-        except Exception:
+        except (ImportError, AttributeError, RuntimeError):
             engine = ReasoningEngine()
     
     # Step 1: Generate Ideas (unchanged)
@@ -157,7 +164,7 @@ def run_multistep_workflow_batch(
                     try:
                         # This will be batched later
                         evaluated_idea["multi_dimensional_evaluation"] = None
-                    except Exception:
+                    except (AttributeError, KeyError):
                         pass
                 
                 evaluated_ideas_data.append(evaluated_idea)

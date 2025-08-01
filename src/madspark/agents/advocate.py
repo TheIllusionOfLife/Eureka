@@ -4,6 +4,7 @@ This module defines the Advocate agent and its associated tools.
 The agent is responsible for constructing persuasive arguments in favor of
 an idea, considering its evaluation and context.
 """
+import json
 import logging
 from typing import List, Dict, Any, Tuple
 
@@ -193,7 +194,6 @@ def advocate_ideas_batch(
     return mock_results, 0  # Return tuple for consistency
   
   try:
-    import json
     
     config = types.GenerateContentConfig(
         temperature=temperature,

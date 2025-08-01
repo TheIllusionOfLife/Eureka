@@ -4,6 +4,7 @@ This module defines the Skeptic agent (Devil's Advocate) and its tools.
 The agent is responsible for critically analyzing ideas, challenging assumptions,
 and identifying potential flaws or risks.
 """
+import json
 import logging
 from typing import List, Dict, Any, Tuple
 
@@ -204,7 +205,6 @@ def criticize_ideas_batch(
     return mock_results, 0  # Return tuple for consistency
   
   try:
-    import json
     
     config = types.GenerateContentConfig(
         temperature=temperature,

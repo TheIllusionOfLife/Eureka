@@ -104,8 +104,9 @@ def evaluate_ideas(ideas: str, criteria: str, context: str, temperature: float =
         config=config
     )
     agent_response = response.text if response.text else ""
-  except Exception:
-    # Return empty string on any API error - coordinator will handle this
+  except (AttributeError, ValueError, RuntimeError) as e:
+    # Return empty string on API/connection errors - coordinator will handle this
+    logging.error(f"Error calling Gemini API in criticize_ideas: {e}", exc_info=True)
     agent_response = ""
 
   # If agent_response is empty or only whitespace, it will be returned as such.

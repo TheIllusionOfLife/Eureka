@@ -170,3 +170,16 @@ CLEANER_TITLE_KEYWORDS = ['Framework', 'System', 'Engine']
 MEANINGFUL_IMPROVEMENT_SCORE_DELTA = 0.3  # Minimum score improvement to consider meaningful
 MEANINGFUL_IMPROVEMENT_SIMILARITY_THRESHOLD = 0.9  # Jaccard similarity threshold for duplicate detection
 MIN_TIMEOUT_FOR_MULTIPLE_IDEAS_SECONDS = 300  # Minimum timeout when processing multiple ideas
+
+# Batch Metrics Cost Analysis Constants
+INDIVIDUAL_CALL_OVERHEAD_MULTIPLIER = 1.3  # Individual calls cost ~30% more due to overhead
+ORIGINAL_CALLS_PER_ITEM = 7  # Estimated original API calls per item in non-batch system
+
+# Timeout Constants
+DEFAULT_TIMEOUT_SECONDS = 600  # Default timeout (10 minutes)
+MAX_TIMEOUT_SECONDS = 3600  # Maximum timeout (1 hour)
+MIN_TIMEOUT_SECONDS = 60  # Minimum timeout (1 minute)
+
+# API and Scoring Constants
+DEFAULT_NOVELTY_THRESHOLD = 0.8  # Default similarity threshold for novelty filtering
+PERCENTAGE_CONVERSION_FACTOR = 100  # For converting to percentage

@@ -4,6 +4,7 @@ This module defines the Idea Generator agent and its associated tools.
 The agent is responsible for generating novel ideas based on a given topic
 and contextual information.
 """
+import json
 import logging
 from typing import Any, List, Dict, Tuple
 
@@ -478,7 +479,6 @@ def improve_ideas_batch(
     return mock_results, 0  # Return tuple for consistency
   
   try:
-    import json
     
     config = types.GenerateContentConfig(
         temperature=temperature,

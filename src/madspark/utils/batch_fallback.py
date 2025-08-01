@@ -109,8 +109,8 @@ def batch_with_fallback(
 def advocate_fallback(item: Dict[str, str], theme: str, temperature: float) -> Dict[str, Any]:
     """Fallback for individual advocate processing."""
     try:
-        from madspark.agents.advocate import advocate_for_idea
-        result = advocate_for_idea(
+        from madspark.agents.advocate import advocate_idea
+        result = advocate_idea(
             idea=item["idea"],
             evaluation=item["evaluation"],
             context=theme,

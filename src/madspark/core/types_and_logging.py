@@ -28,6 +28,8 @@ class CandidateData(TypedDict):
     improved_score: float
     improved_critique: str
     score_delta: float
+    is_meaningful_improvement: bool
+    similarity_score: float
 # --- End TypedDict Definitions ---
 
 

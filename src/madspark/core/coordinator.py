@@ -75,9 +75,9 @@ except ImportError:
         from ..utils.constants import DEFAULT_TIMEOUT_SECONDS, DEFAULT_NOVELTY_THRESHOLD
     except ImportError:
         # Last resort - direct imports (for old package structure)
-        from novelty_filter import NoveltyFilter
-        from temperature_control import TemperatureManager
-        from enhanced_reasoning import ReasoningEngine
+        from madspark.utils.novelty_filter import NoveltyFilter
+        from madspark.utils.temperature_control import TemperatureManager
+        from madspark.core.enhanced_reasoning import ReasoningEngine
         # Constants will use defaults if import fails
         DEFAULT_TIMEOUT_SECONDS = 600
         DEFAULT_NOVELTY_THRESHOLD = 0.8

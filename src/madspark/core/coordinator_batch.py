@@ -10,6 +10,7 @@ from typing import List, Optional
 
 from madspark.utils.batch_monitor import batch_call_context, get_batch_monitor
 from madspark.utils.errors import ValidationError
+from madspark.agents.genai_client import get_model_name
 
 from madspark.core.types_and_logging import (
     CandidateData, log_verbose_step, log_agent_completion
@@ -91,6 +92,9 @@ def run_multistep_workflow_batch(
     eval_temp = temp_manager.get_temperature_for_stage("evaluation")
     advocacy_temp = temp_manager.get_temperature_for_stage("advocacy")
     skepticism_temp = temp_manager.get_temperature_for_stage("skepticism")
+    
+    # Get model name for cost estimation
+    model_name = get_model_name()
     
     # Initialize reasoning engine if enabled
     engine = reasoning_engine  # Use passed engine if available
@@ -211,6 +215,9 @@ def run_multistep_workflow_batch(
                 for i, result in enumerate(multi_eval_results):
                     if i < len(top_candidates):
                         top_candidates[i]["multi_dimensional_evaluation"] = result
+                
+                # Set model name for monitoring
+                monitor_ctx.set_model_name(model_name)
                         
             except Exception as e:
                 logging.warning(f"Multi-dimensional batch evaluation failed: {e}")
@@ -238,9 +245,10 @@ def run_multistep_workflow_batch(
                 advocacy_temp
             )
             
-            # Set token usage for monitoring
+            # Set token usage and model name for monitoring
             if token_usage > 0:
                 monitor_ctx.set_tokens_used(token_usage)
+            monitor_ctx.set_model_name(model_name)
             
             # Map results back to candidates
             for i, advocacy in enumerate(advocacy_results):
@@ -276,9 +284,10 @@ def run_multistep_workflow_batch(
                 skepticism_temp
             )
             
-            # Set token usage for monitoring
+            # Set token usage and model name for monitoring
             if token_usage > 0:
                 monitor_ctx.set_tokens_used(token_usage)
+            monitor_ctx.set_model_name(model_name)
             
             # Map results back to candidates
             for i, skepticism in enumerate(skepticism_results):
@@ -316,9 +325,10 @@ def run_multistep_workflow_batch(
                 idea_temp
             )
             
-            # Set token usage for monitoring
+            # Set token usage and model name for monitoring
             if token_usage > 0:
                 monitor_ctx.set_tokens_used(token_usage)
+            monitor_ctx.set_model_name(model_name)
             
             # Map results back to candidates
             for i, improvement in enumerate(improvement_results):
@@ -390,6 +400,9 @@ def run_multistep_workflow_batch(
                     for candidate in top_candidates
                 ]
                 
+                # Define context for multi-dimensional evaluation
+                context = {"theme": theme, "constraints": constraints}
+                
                 # Batch evaluate all dimensions for all improved ideas
                 improved_multi_eval_results = engine.multi_evaluator.evaluate_ideas_batch(
                     improved_ideas, context
@@ -399,6 +412,9 @@ def run_multistep_workflow_batch(
                 for i, result in enumerate(improved_multi_eval_results):
                     if i < len(top_candidates):
                         top_candidates[i]["improved_multi_dimensional_evaluation"] = result
+                
+                # Set model name for monitoring
+                monitor_ctx.set_model_name(model_name)
                         
             except Exception as e:
                 logging.warning(f"Multi-dimensional re-evaluation failed: {e}")

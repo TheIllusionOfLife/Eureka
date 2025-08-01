@@ -86,7 +86,8 @@ class BatchMonitor:
         success: bool = True,
         tokens_used: Optional[int] = None,
         error_message: Optional[str] = None,
-        fallback_used: bool = False
+        fallback_used: bool = False,
+        model_name: Optional[str] = None
     ) -> BatchMetrics:
         """End tracking a batch call and record metrics.
         
@@ -96,6 +97,7 @@ class BatchMonitor:
             tokens_used: Actual tokens used (if available from API response)
             error_message: Error message if call failed
             fallback_used: Whether fallback to individual calls was used
+            model_name: The model name used for the API call (e.g., 'gemini-1.5-pro')
             
         Returns:
             BatchMetrics object with recorded data
@@ -105,9 +107,11 @@ class BatchMonitor:
         
         # Estimate cost if tokens are available
         estimated_cost = None
-        if tokens_used:
+        if tokens_used and model_name:
             # Use pricing configuration to estimate cost
-            # In practice, the model name should be passed from the actual API call
+            estimated_cost = estimate_cost(model_name, tokens_used)
+        elif tokens_used:
+            # Fallback to default model if not specified
             estimated_cost = estimate_cost("gemini-1.5-pro", tokens_used)
         
         metrics = BatchMetrics(
@@ -286,6 +290,7 @@ class batch_call_context:
         self.tokens_used = None
         self.error_message = None
         self.fallback_used = False
+        self.model_name = None
     
     def __enter__(self):
         self.context = self.monitor.start_batch_call(self.batch_type, self.items_count)
@@ -300,7 +305,8 @@ class batch_call_context:
             success=success,
             tokens_used=self.tokens_used,
             error_message=error_message,
-            fallback_used=self.fallback_used
+            fallback_used=self.fallback_used,
+            model_name=self.model_name
         )
         
         # Don't suppress exceptions
@@ -315,3 +321,7 @@ class batch_call_context:
         self.fallback_used = True
         if error_message:
             self.error_message = error_message
+    
+    def set_model_name(self, model_name: str):
+        """Set the model name used for the API call."""
+        self.model_name = model_name

@@ -857,6 +857,8 @@ Respond with only the numeric score (e.g., "6")."""
             )
             
             # Parse response
+            if response.text is None:
+                raise ValueError("API returned None response text")
             evaluations = json.loads(response.text)
             
             # Validate response structure

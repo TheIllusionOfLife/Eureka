@@ -501,6 +501,8 @@ def improve_ideas_batch(
     
     # Parse JSON response
     try:
+      if response.text is None:
+        raise ValueError("API returned None response text")
       improvements = json.loads(response.text)
     except json.JSONDecodeError as e:
       raise ValueError(f"Invalid JSON response from API: {e}")

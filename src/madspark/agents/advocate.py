@@ -207,6 +207,14 @@ def advocate_ideas_batch(
     
     # Parse JSON response
     try:
+      if response.text is None:
+        from madspark.utils.batch_exceptions import BatchParsingError
+        raise BatchParsingError(
+          "API returned None response text",
+          batch_type="advocate",
+          items_count=len(ideas_with_evaluations),
+          raw_response=None
+        )
       advocacies = json.loads(response.text)
     except json.JSONDecodeError as e:
       from madspark.utils.batch_exceptions import BatchParsingError

@@ -237,6 +237,12 @@ def run_multistep_workflow_batch(
                 advocacy_temp
             )
             
+            # Extract token usage if available (advocate_ideas_batch should return tuple with usage)
+            if isinstance(advocacy_results, tuple) and len(advocacy_results) == 2:
+                advocacy_data, token_usage = advocacy_results
+                monitor_ctx.set_tokens_used(token_usage)
+                advocacy_results = advocacy_data
+            
             # Map results back to candidates
             for i, advocacy in enumerate(advocacy_results):
                 if i < len(top_candidates):
@@ -270,6 +276,12 @@ def run_multistep_workflow_batch(
                 theme,
                 skepticism_temp
             )
+            
+            # Extract token usage if available
+            if isinstance(skepticism_results, tuple) and len(skepticism_results) == 2:
+                skepticism_data, token_usage = skepticism_results
+                monitor_ctx.set_tokens_used(token_usage)
+                skepticism_results = skepticism_data
             
             # Map results back to candidates
             for i, skepticism in enumerate(skepticism_results):
@@ -306,6 +318,12 @@ def run_multistep_workflow_batch(
                 theme,
                 idea_temp
             )
+            
+            # Extract token usage if available
+            if isinstance(improvement_results, tuple) and len(improvement_results) == 2:
+                improvement_data, token_usage = improvement_results
+                monitor_ctx.set_tokens_used(token_usage)
+                improvement_results = improvement_data
             
             # Map results back to candidates
             for i, improvement in enumerate(improvement_results):

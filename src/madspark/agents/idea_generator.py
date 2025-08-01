@@ -496,6 +496,11 @@ def improve_ideas_batch(
         config=config
     )
     
+    # Extract token usage if available
+    token_usage = None
+    if hasattr(response, 'usage_metadata') and response.usage_metadata:
+        token_usage = response.usage_metadata.total_token_count
+    
     # Parse JSON response
     try:
       improvements = json.loads(response.text)
@@ -530,7 +535,11 @@ def improve_ideas_batch(
     # Sort by idea_index to ensure order
     results.sort(key=lambda x: x['idea_index'])
     
-    return results
+    # Return results with token usage for monitoring
+    if token_usage:
+        return results, token_usage
+    else:
+        return results
     
   except Exception as e:
     logging.error(f"Batch improvement failed: {e}", exc_info=True)

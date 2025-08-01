@@ -469,18 +469,6 @@ def improve_ideas_batch(
       })
     return mock_results
   
-  if idea_generator_client is None:
-    # If GENAI is available but client is None, still return mock
-    mock_results = []
-    for i, item in enumerate(ideas_with_feedback):
-      mock_results.append({
-        "idea_index": i,
-        "improved_idea": f"Mock improved version of: {item['idea'][:50]}... "
-                        f"This addresses the critique and maintains strengths.",
-        "key_improvements": ["Mock improvement 1", "Mock improvement 2"]
-      })
-    return mock_results
-  
   try:
     import json
     

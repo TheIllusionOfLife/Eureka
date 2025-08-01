@@ -203,23 +203,6 @@ def criticize_ideas_batch(
       })
     return mock_results
   
-  if skeptic_client is None:
-    # If GENAI is available but client is None, still return mock
-    mock_results = []
-    for i in range(len(ideas_with_advocacies)):
-      mock_results.append({
-        "idea_index": i,
-        "critical_flaws": ["Mock flaw 1", "Mock flaw 2"],
-        "risks_challenges": ["Mock risk 1", "Mock risk 2"],
-        "questionable_assumptions": ["Mock assumption 1", "Mock assumption 2"],
-        "missing_considerations": ["Mock missing factor 1", "Mock missing factor 2"],
-        "formatted": "CRITICAL FLAWS:\n• Mock flaw 1\n• Mock flaw 2\n\n"
-                    "RISKS & CHALLENGES:\n• Mock risk 1\n• Mock risk 2\n\n"
-                    "QUESTIONABLE ASSUMPTIONS:\n• Mock assumption 1\n• Mock assumption 2\n\n"
-                    "MISSING CONSIDERATIONS:\n• Mock missing factor 1\n• Mock missing factor 2"
-      })
-    return mock_results
-  
   try:
     import json
     

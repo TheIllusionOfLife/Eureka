@@ -192,21 +192,6 @@ def advocate_ideas_batch(
       })
     return mock_results
   
-  if advocate_client is None:
-    # If GENAI is available but client is None, still return mock
-    mock_results = []
-    for i in range(len(ideas_with_evaluations)):
-      mock_results.append({
-        "idea_index": i,
-        "strengths": ["Mock strength 1", "Mock strength 2"],
-        "opportunities": ["Mock opportunity 1", "Mock opportunity 2"],
-        "addressing_concerns": ["Mock mitigation 1", "Mock mitigation 2"],
-        "formatted": "STRENGTHS:\n• Mock strength 1\n• Mock strength 2\n\n"
-                    "OPPORTUNITIES:\n• Mock opportunity 1\n• Mock opportunity 2\n\n"
-                    "ADDRESSING CONCERNS:\n• Mock mitigation 1\n• Mock mitigation 2"
-      })
-    return mock_results
-  
   try:
     import json
     

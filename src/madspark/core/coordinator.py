@@ -8,14 +8,10 @@ refine ideas based on a given theme and constraints.
 import os
 import json
 import logging
-from typing import List, Dict, Any, Optional
+from typing import List, Optional
 
 # Import shared types and logging functions
-from madspark.core.types_and_logging import (
-    CandidateData, EvaluatedIdea,
-    log_verbose_step, log_verbose_data, log_verbose_completion,
-    log_verbose_sample_list, log_agent_execution, log_agent_completion
-)
+from madspark.core.types_and_logging import CandidateData
 
 # --- Logging Configuration ---
 # Note: Logging configuration is now handled by CLI to avoid conflicts
@@ -69,17 +65,22 @@ try:
     from madspark.utils.novelty_filter import NoveltyFilter
     from madspark.utils.temperature_control import TemperatureManager
     from madspark.core.enhanced_reasoning import ReasoningEngine
+    from madspark.utils.constants import DEFAULT_TIMEOUT_SECONDS, DEFAULT_NOVELTY_THRESHOLD
 except ImportError:
     # Fallback imports for local development/testing
     try:
         from ..utils.novelty_filter import NoveltyFilter
         from ..utils.temperature_control import TemperatureManager
         from .enhanced_reasoning import ReasoningEngine
+        from ..utils.constants import DEFAULT_TIMEOUT_SECONDS, DEFAULT_NOVELTY_THRESHOLD
     except ImportError:
         # Last resort - direct imports (for old package structure)
         from novelty_filter import NoveltyFilter
         from temperature_control import TemperatureManager
         from enhanced_reasoning import ReasoningEngine
+        # Constants will use defaults if import fails
+        DEFAULT_TIMEOUT_SECONDS = 600
+        DEFAULT_NOVELTY_THRESHOLD = 0.8
 # Removed unused imports - ADVOCATE_FAILED_PLACEHOLDER, SKEPTIC_FAILED_PLACEHOLDER
 # as agent tools already handle empty responses
 # from google.adk.agents import Agent # No longer needed directly for hints here
@@ -93,14 +94,14 @@ except ImportError:
 
 def run_multistep_workflow(
     theme: str, constraints: str, num_top_candidates: int = 2, 
-    enable_novelty_filter: bool = True, novelty_threshold: float = 0.8,
+    enable_novelty_filter: bool = True, novelty_threshold: float = DEFAULT_NOVELTY_THRESHOLD,
     temperature_manager: Optional[TemperatureManager] = None,
     verbose: bool = False,
     enhanced_reasoning: bool = False,
     multi_dimensional_eval: bool = False,
     logical_inference: bool = False,
     reasoning_engine: Optional[ReasoningEngine] = None,
-    timeout: int = 600
+    timeout: int = DEFAULT_TIMEOUT_SECONDS
 ) -> List[CandidateData]:
     """
     Runs the multi-step idea generation and refinement workflow.
@@ -141,7 +142,7 @@ def run_multistep_workflow(
             genai_client = get_genai_client()
             config = {"use_logical_inference": logical_inference} if logical_inference else None
             engine = ReasoningEngine(config=config, genai_client=genai_client)
-        except Exception:
+        except (ImportError, AttributeError, RuntimeError):
             config = {"use_logical_inference": logical_inference} if logical_inference else None
             engine = ReasoningEngine(config=config)
     
@@ -157,7 +158,8 @@ def run_multistep_workflow(
         temperature_manager=temperature_manager,
         novelty_filter=novelty_filter,
         verbose=verbose,
-        reasoning_engine=engine
+        reasoning_engine=engine,
+        timeout=timeout
     )
 
 

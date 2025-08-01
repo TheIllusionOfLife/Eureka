@@ -1,7 +1,5 @@
 """Test backend structured output flag propagation."""
 
-import pytest
-from unittest.mock import Mock, patch, MagicMock
 import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))

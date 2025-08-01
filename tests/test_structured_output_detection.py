@@ -1,13 +1,10 @@
 """Tests for structured output detection in the backend."""
 
-import pytest
-from unittest.mock import Mock, patch, MagicMock
 import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from madspark.utils.structured_output_check import is_structured_output_available
-from madspark.agents.idea_generator import improve_idea
 
 
 class TestStructuredOutputDetection:

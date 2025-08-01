@@ -1,6 +1,7 @@
 """Utility to check if structured output is available and functional."""
 
 import logging
+import importlib.util
 from typing import Optional, Any
 
 _structured_output_available: Optional[bool] = None
@@ -27,16 +28,23 @@ def is_structured_output_available(genai_client: Optional[Any] = None) -> bool:
         return _structured_output_available
     
     try:
-        # Check if structured module can be imported
-        from madspark.agents.structured_idea_generator import improve_idea_structured
+        # Check if structured module can be imported using importlib
+        spec = importlib.util.find_spec('madspark.agents.structured_idea_generator')
+        if spec is None:
+            _structured_output_available = False
+            return False
         
         # Check if we're in mock mode
         if genai_client is None:
             _structured_output_available = False
             return False
             
-        # Check if genai has required features
-        from google import genai
+        # Check if genai has required features using importlib
+        genai_spec = importlib.util.find_spec('google.genai')
+        if genai_spec is None:
+            _structured_output_available = False
+            return False
+        
         from google.genai import types
         
         # Check for response_mime_type support (indicates structured output capability)

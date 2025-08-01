@@ -82,9 +82,10 @@ class TestSystemIntegration:
         """Test system resilience to various error conditions."""
         from madspark.core.coordinator import run_multistep_workflow
         
-        # Test with empty inputs
-        result = run_multistep_workflow("", "")
-        assert isinstance(result, list)
+        # Test with empty inputs - now raises ValidationError
+        from madspark.utils.errors import ValidationError
+        with pytest.raises(ValidationError):
+            run_multistep_workflow("", "")
         
         # Test with very long inputs
         long_text = "test " * 1000
@@ -342,19 +343,19 @@ class TestWorkflowErrorHandling:
         # Mock to return empty ideas
         mock_generate.return_value = ""
         
-        # Test with None parameters - workflow handles gracefully
-        result = run_multistep_workflow(None, None)
-        assert isinstance(result, list)
-        assert len(result) == 0
+        # Test with None parameters - now raises ValidationError
+        from madspark.utils.errors import ValidationError
+        with pytest.raises(ValidationError):
+            run_multistep_workflow(None, None)
         
-        # Test with very short parameters
+        # Test with very short parameters - valid but returns empty
         result = run_multistep_workflow("a", "b")
         assert isinstance(result, list)
         assert len(result) == 0
         
-        # Test with empty strings
-        result = run_multistep_workflow("", "")
-        assert isinstance(result, list)
+        # Test with empty strings - now raises ValidationError
+        with pytest.raises(ValidationError):
+            run_multistep_workflow("", "")
         
         # Test with invalid timeout - negative timeout should still work (no timeout enforcement in sync mode)
         result = run_multistep_workflow("test", "test", timeout=-1)

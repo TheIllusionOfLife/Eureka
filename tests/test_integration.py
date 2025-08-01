@@ -290,10 +290,9 @@ class TestWorkflowErrorHandling:
         with pytest.raises(ValidationError):
             run_multistep_workflow("test", None)
         
-        # Test with empty strings - also returns empty list
-        result = run_multistep_workflow("", "")
-        assert isinstance(result, list)
-        assert len(result) == 0
+        # Test with empty strings - now raises ValidationError
+        with pytest.raises(ValidationError):
+            run_multistep_workflow("", "")
         
         # Test with valid temperature
         from madspark.utils.temperature_control import TemperatureManager

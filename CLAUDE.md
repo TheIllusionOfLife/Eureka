@@ -11,6 +11,7 @@ Eureka features the MadSpark Multi-Agent System, a sophisticated AI-powered expe
 - **Import Strategy**: Try/except blocks with relative fallbacks for multi-environment compatibility
 - **Mock-First Development**: All functionality must work in mock mode without API keys
 - **Operational Modes**: Mock (development), Direct API (production), ADK Framework (experimental)
+- **Logical Inference**: LLM-powered LogicalInferenceEngine replaces hardcoded templates for genuine reasoning
 
 ## Common Tasks
 - **Run Coordinator**: `PYTHONPATH=src python -m madspark.core.coordinator`
@@ -312,3 +313,11 @@ When encountering module resolution errors in Docker:
 - **Auto-Async**: Automatically enable async mode when `num_candidates > 1` for better performance
 - **Timeout Handling**: Added proper timeout support in async coordinator with graceful degradation
 - **AI Artifact Removal**: Added 9 new regex patterns to clean AI response artifacts
+
+### PR #145: Logical Inference Feature (August 2, 2025)
+- **LLM-Based Logical Inference**: Replaced hardcoded templates with genuine LogicalInferenceEngine using Gemini API
+- **Multiple Analysis Types**: Supports full reasoning, causal chains, constraint satisfaction, contradiction detection, and implications
+- **Structured Response Parsing**: Robust parsing of LLM responses into structured InferenceResult objects
+- **Display Formatting**: Three verbosity levels (brief, standard, detailed) for different use cases
+- **Integration Points**: Enhanced reasoning system, async coordinator, and CLI all use the new engine
+- **Backward Compatibility**: Falls back to rule-based system when no GenAI client available

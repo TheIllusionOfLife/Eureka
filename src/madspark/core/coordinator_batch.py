@@ -8,7 +8,6 @@ import logging
 import time
 from typing import List, Optional
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
-import threading
 
 from madspark.utils.batch_monitor import batch_call_context, get_batch_monitor
 from madspark.utils.errors import ValidationError

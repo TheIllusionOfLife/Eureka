@@ -410,14 +410,12 @@ class TestTimeoutFunctionality:
     def test_cli_timeout_warning_removed_after_fix(self):
         """Test that timeout warning is removed after implementation."""
         from madspark.core.coordinator_batch import run_multistep_workflow_batch
-        import logging
         
         # Capture log output
-        import logging
         with patch('logging.Logger.warning') as mock_warning:
             # Run with non-default timeout
             try:
-                results = run_multistep_workflow_batch(
+                run_multistep_workflow_batch(
                     theme="test theme",
                     constraints="test constraints",
                     timeout=300  # Non-default timeout
@@ -429,7 +427,7 @@ class TestTimeoutFunctionality:
                     if call[0][0] and "timeout" in str(call[0][0]).lower() and "not implemented" in str(call[0][0]).lower()
                 ]
                 assert len(timeout_warning_calls) == 0, "Timeout warning should not appear after implementation"
-            except:
+            except Exception:
                 # If function raises error, check no warning was issued
                 pass
     
@@ -437,7 +435,6 @@ class TestTimeoutFunctionality:
     async def test_async_workflow_respects_timeout(self):
         """Test that async workflow respects timeout setting."""
         from madspark.core.async_coordinator import AsyncCoordinator
-        import time
         
         coordinator = AsyncCoordinator()
         
@@ -493,7 +490,6 @@ class TestTimeoutFunctionality:
     
     def test_timeout_propagates_to_cli(self):
         """Test that timeout from CLI is properly propagated to workflow."""
-        from madspark.cli.cli import determine_num_candidates
         from unittest.mock import Mock
         
         # Mock args with timeout

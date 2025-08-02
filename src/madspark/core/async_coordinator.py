@@ -466,6 +466,7 @@ class AsyncCoordinator:
                             # Fall back to standard evaluation
                     
                     # Enhanced reasoning: Apply logical inference if enabled
+                    logical_inference_data = None
                     if logical_inference and engine and engine.logical_inference_engine:
                         try:
                             # Use the new LogicalInferenceEngine directly for better analysis
@@ -486,8 +487,13 @@ class AsyncCoordinator:
                             )
                             
                             if inference_result.confidence > LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD:
-                                # Enhance the critique with logical reasoning insights
-                                critique = f"{critique}\n\n{formatted_inference}"
+                                # Store logical inference data separately
+                                logical_inference_data = {
+                                    'causal_chains': getattr(inference_result, 'causal_chains', []),
+                                    'constraints': getattr(inference_result, 'constraints', {}),
+                                    'contradictions': getattr(inference_result, 'contradictions', []),
+                                    'implications': getattr(inference_result, 'implications', [])
+                                }
                                 
                         except (AttributeError, KeyError, TypeError, ValueError) as e:
                             logger.warning(f"Logical inference failed for idea {i}: {e}")
@@ -503,6 +509,10 @@ class AsyncCoordinator:
                     # Add multi-dimensional evaluation data if available
                     if multi_eval_data:
                         evaluated_idea["multi_dimensional_evaluation"] = multi_eval_data
+                    
+                    # Add logical inference data if available
+                    if logical_inference_data:
+                        evaluated_idea["logical_inference"] = logical_inference_data
                     
                     evaluated_ideas_data.append(evaluated_idea)
                     
@@ -940,6 +950,10 @@ class AsyncCoordinator:
         # Add improved multi-dimensional evaluation if available
         if 'improved_multi_eval_data' in locals() and improved_multi_eval_data:
             result["improved_multi_dimensional_evaluation"] = improved_multi_eval_data
+        
+        # Add logical inference data if present
+        if "logical_inference" in candidate:
+            result["logical_inference"] = candidate["logical_inference"]
         
         # Only include partial_failures if there were any
         if partial_failures:

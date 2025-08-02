@@ -791,6 +791,23 @@ def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
                             for dim, score in scores.items():
                                 lines.append(f"  • {dim.replace('_', ' ').title()}: {score}")
             
+            # Logical inference analysis (when --logical flag is used)
+            if 'logical_inference' in result and result['logical_inference']:
+                try:
+                    from madspark.utils.output_processor import format_logical_inference_results
+                    inference_data = result['logical_inference']
+                    formatted_inference = format_logical_inference_results(inference_data)
+                    if formatted_inference:
+                        lines.append(f"\n{formatted_inference}")
+                except ImportError:
+                    # Fallback formatting
+                    lines.append("\n🔍 Logical Inference Analysis:")
+                    inference_data = result['logical_inference']
+                    if 'causal_chains' in inference_data:
+                        lines.append("  Causal Chains:")
+                        for chain in inference_data['causal_chains']:
+                            lines.append(f"    • {chain}")
+            
             lines.append("-" * 80)
         
         return "\n".join(lines)
@@ -1229,7 +1246,33 @@ def main():
         # Format and output results
         formatted_output = format_results(results, output_format)
         
-        if args.output_file:
+        # Check if automatic output file is needed for long outputs
+        if not args.output_file and output_format == 'detailed' and (
+            (args.top_ideas >= 3 and (args.enhanced_reasoning or args.logical_inference)) or
+            len(formatted_output) > 5000  # More than ~100 lines
+        ):
+            # Auto-generate output filename
+            import os
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            theme_slug = args.theme[:30].replace(' ', '_').replace('/', '_')
+            auto_filename = f"output/markdown/madspark_{theme_slug}_{timestamp}.md"
+            
+            # Ensure output directory exists
+            os.makedirs("output/markdown", exist_ok=True)
+            
+            # Save to file
+            with open(auto_filename, 'w', encoding='utf-8') as f:
+                f.write(formatted_output)
+            
+            # Show truncated version on screen
+            from madspark.utils.output_processor import smart_truncate_text
+            truncated_output = smart_truncate_text(formatted_output)
+            print(truncated_output)
+            print(f"\n📄 Full output saved to: {auto_filename}")
+            logger.info(f"Auto-saved long output to {auto_filename}")
+        
+        elif args.output_file:
             with open(args.output_file, 'w', encoding='utf-8') as f:
                 f.write(formatted_output)
             logger.info(f"Results saved to {args.output_file}")

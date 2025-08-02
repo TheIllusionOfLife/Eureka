@@ -3,6 +3,13 @@ import re
 import shutil
 from typing import Dict, Any, Optional
 
+# Terminal output constants
+TERMINAL_UI_RESERVE_LINES = 10
+CONTINUATION_MESSAGE_LINES = 3
+DEFAULT_TERMINAL_LINES = 24
+DEFAULT_TERMINAL_COLS = 80
+SECTION_BOUNDARY_SEARCH_LINES = 10
+
 
 def convert_markdown_to_cli(text: str) -> str:
     """Convert markdown formatting to CLI-friendly format.
@@ -328,14 +335,15 @@ def smart_truncate_text(text: str, max_lines: Optional[int] = None) -> str:
         terminal_size = shutil.get_terminal_size()
         terminal_lines = terminal_size.lines
         terminal_cols = terminal_size.columns
-    except Exception:
-        terminal_lines = 24
-        terminal_cols = 80
+    except (AttributeError, OSError, ValueError):
+        # Handle specific terminal size detection failures
+        terminal_lines = DEFAULT_TERMINAL_LINES
+        terminal_cols = DEFAULT_TERMINAL_COLS
     
     # Use provided max_lines or calculate from terminal
     if max_lines is None:
         # Reserve lines for prompt and UI
-        max_lines = terminal_lines - 10
+        max_lines = terminal_lines - TERMINAL_UI_RESERVE_LINES
     
     # Split into lines and wrap long lines
     lines = []
@@ -361,10 +369,10 @@ def smart_truncate_text(text: str, max_lines: Optional[int] = None) -> str:
         return text
     
     # Find a good truncation point (prefer section boundaries)
-    truncate_at = max_lines - 3  # Reserve lines for continuation message
+    truncate_at = max_lines - CONTINUATION_MESSAGE_LINES  # Reserve lines for continuation message
     
     # Look for section boundary near truncation point
-    for i in range(truncate_at, max(0, truncate_at - 10), -1):
+    for i in range(truncate_at, max(0, truncate_at - SECTION_BOUNDARY_SEARCH_LINES), -1):
         if lines[i].startswith(('---', '###', '##', '#', '═', '─')):
             truncate_at = i
             break

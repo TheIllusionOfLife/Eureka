@@ -38,6 +38,23 @@ IDEA_GENERATOR_SCHEMA = {
     }
 }
 
+# Example valid response for Idea Generator:
+# [
+#   {
+#     "idea_number": 1,
+#     "title": "AI Health Assistant",
+#     "description": "A personalized health monitoring system that uses AI to track vital signs and provide health recommendations",
+#     "key_features": ["Real-time monitoring", "AI predictions", "Doctor integration"],
+#     "category": "Healthcare"
+#   },
+#   {
+#     "idea_number": 2,
+#     "title": "Smart Urban Garden",
+#     "description": "An IoT-enabled urban gardening system that optimizes plant growth in small spaces",
+#     "key_features": ["Automated watering", "Light optimization", "Mobile app control"]
+#   }
+# ]
+
 
 # Schema for Evaluator Agent
 EVALUATOR_SCHEMA = {
@@ -64,6 +81,14 @@ EVALUATOR_SCHEMA = {
     },
     "required": ["score", "critique"]
 }
+
+# Example valid response for Evaluator:
+# {
+#   "score": 8.5,
+#   "critique": "This AI Health Assistant addresses a significant market need with innovative features. The real-time monitoring and AI predictions show strong technical merit.",
+#   "strengths": ["Addresses real healthcare needs", "Strong technical foundation", "Clear monetization path"],
+#   "weaknesses": ["Regulatory compliance challenges", "High initial development costs"]
+# }
 
 # Critic evaluates multiple ideas, so returns an array
 CRITIC_SCHEMA = {
@@ -155,6 +180,22 @@ ADVOCACY_SCHEMA = {
     },
     "required": ["strengths", "opportunities", "addressing_concerns"]
 }
+
+# Example valid response for Advocacy:
+# {
+#   "strengths": [
+#     {"title": "Market Demand", "description": "Healthcare monitoring addresses a $200B market with growing demand"},
+#     {"title": "Technical Innovation", "description": "AI-powered predictions provide unique value proposition"}
+#   ],
+#   "opportunities": [
+#     {"title": "Partnership Potential", "description": "Major healthcare providers seeking digital health solutions"},
+#     {"title": "Expansion Markets", "description": "Easily adaptable to elder care and fitness markets"}
+#   ],
+#   "addressing_concerns": [
+#     {"concern": "Regulatory hurdles", "response": "Partner with FDA consultants early in development"},
+#     {"concern": "High costs", "response": "Phase rollout starting with basic features"}
+#   ]
+# }
 
 
 # Schema for Skepticism Agent

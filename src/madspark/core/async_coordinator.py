@@ -356,7 +356,16 @@ class AsyncCoordinator:
                     parsed_ideas = []
                     for idea_obj in ideas_json:
                         # Build a formatted idea string from the structured data
-                        idea_text = f"{idea_obj.get('idea_number', '')}. {idea_obj.get('title', '')}: {idea_obj.get('description', '')}"
+                        idea_number = idea_obj.get('idea_number')
+                        title = idea_obj.get('title', 'Untitled')
+                        description = idea_obj.get('description', 'No description provided')
+                        
+                        # Format based on whether we have an idea number
+                        if idea_number:
+                            idea_text = f"{idea_number}. {title}: {description}"
+                        else:
+                            idea_text = f"{title}: {description}"
+                            
                         if 'key_features' in idea_obj and idea_obj['key_features']:
                             # Add key features as a formatted list
                             features = " Key features: " + ", ".join(idea_obj['key_features'])

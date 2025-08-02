@@ -45,7 +45,7 @@ class AgentRetryWrapper:
     
     @staticmethod
     @exponential_backoff_retry(max_retries=3, initial_delay=2.0)
-    def improve_idea_agent(original_idea: str, critique: str, advocacy_points: str, skeptic_points: str, theme: str, temperature: float = 0.9, use_structured_output: bool = True) -> str:
+    def improve_idea_agent(original_idea: str, critique: str, advocacy_points: str, skeptic_points: str, theme: str, temperature: float = 0.9) -> str:
         """Improve an idea based on feedback with retry logic."""
         # Note: improve_idea automatically handles structured output internally
         return improve_idea(

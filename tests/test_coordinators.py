@@ -344,19 +344,21 @@ class TestTimeoutFunctionality:
         
         # Mock slow operations to simulate timeout
         with patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry') as mock_generate:
-            def slow_generate(*args, **kwargs):
-                time.sleep(2)  # Sleep for 2 seconds
-                return "Test Idea 1\nTest Idea 2"
-            
-            mock_generate.side_effect = slow_generate
-            
-            # Should raise timeout error
-            with pytest.raises(TimeoutError):
-                run_multistep_workflow(
-                    theme="test theme",
-                    constraints="test constraints",
-                    timeout=1  # 1 second timeout
-                )
+            with patch('madspark.utils.agent_retry_wrappers.call_critic_with_retry') as mock_evaluate:
+                def slow_generate(*args, **kwargs):
+                    time.sleep(2)  # Sleep for 2 seconds
+                    return "Test Idea 1\nTest Idea 2"
+                
+                mock_generate.side_effect = slow_generate
+                mock_evaluate.return_value = '[{"score": 8, "comment": "Good"}]'
+                
+                # Should raise timeout error
+                with pytest.raises(TimeoutError):
+                    run_multistep_workflow(
+                        theme="test theme",
+                        constraints="test constraints",
+                        timeout=1  # 1 second timeout
+                    )
     
     def test_sync_workflow_partial_results_on_timeout(self):
         """Test that sync workflow returns partial results on timeout."""
@@ -450,20 +452,23 @@ class TestTimeoutFunctionality:
         # Mock fast operations
         with patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry') as mock_generate:
             with patch('madspark.utils.agent_retry_wrappers.call_critic_with_retry') as mock_evaluate:
-                mock_generate.return_value = "Test Idea 1"
-                mock_evaluate.return_value = '[{"score": 8, "comment": "Good"}]'
-                
-                # Should complete successfully
-                results = run_multistep_workflow(
-                    theme="test theme",
-                    constraints="test constraints",
-                    num_top_candidates=1,
-                    timeout=10  # 10 second timeout (plenty of time)
-                )
-                
-                assert len(results) > 0
-                # Should return the mocked idea
-                assert results[0]["idea"] == "Test Idea 1"
+                with patch('madspark.agents.idea_generator.improve_ideas_batch') as mock_improve:
+                    mock_generate.return_value = "Test Idea 1"
+                    mock_evaluate.return_value = '[{"score": 8, "comment": "Good"}]'
+                    # Mock the batch improvement to return expected result format
+                    mock_improve.return_value = ({"results": [{"idea": "Test Idea 1", "score": 8}]}, 1)
+                    
+                    # Should complete successfully
+                    results = run_multistep_workflow(
+                        theme="test theme",
+                        constraints="test constraints",
+                        num_top_candidates=1,
+                        timeout=10  # 10 second timeout (plenty of time)
+                    )
+                    
+                    assert len(results) > 0
+                    # Should return the mocked idea
+                    assert results[0]["idea"] == "Test Idea 1"
     
     def test_timeout_propagates_to_cli(self):
         """Test that timeout from CLI is properly propagated to workflow."""

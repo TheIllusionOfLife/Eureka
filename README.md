@@ -380,55 +380,6 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
   - **Frontend Integration**: Added structured output flag to API responses
   - **Cleaning Logic**: Skip idea cleaning when structured output is detected
 
-- ✅ **[PR #135](https://github.com/TheIllusionOfLife/Eureka/pull/135)**: Test expectations fix and mad_spark command tests (August 1, 2025)
-  - **Test Expectations Fix**: Updated mock response validation to use pattern-based checks (Issue #119)
-  - **Command Tests Implementation**: Replaced all 8 placeholder tests with real subprocess execution tests
-  - **CI Compatibility**: Enhanced run.py to work in CI environments without virtual environment
-  - **Code Quality**: Fixed linting issues, DRY violations, and test data pollution in bookmarks.json
-  - **Argument Parsing Fix**: Corrected CLI simplified syntax handling to prevent context duplication
-  - **Systematic PR Review**: Applied 4-phase protocol to address feedback from 5 automated reviewers
-- ✅ **[PR #133](https://github.com/TheIllusionOfLife/Eureka/pull/133)**: Performance test markers for faster CI (August 1, 2025)
-  - **Performance Optimization**: Achieved 30-50% CI speedup using pytest markers (@pytest.mark.slow, @pytest.mark.integration)
-  - **Test Categorization**: Applied 47 markers across 6 test files for smart conditional execution (fast tests for PRs, full coverage on main)  
-  - **Comprehensive Documentation**: Added TESTING_GUIDE.md with marker usage guidelines and best practices
-  - **Systematic PR Review**: Successfully addressed feedback from 6 reviewers using 4-phase protocol (discover → extract → prioritize → fix)
-  - **Mock Mode Compatibility**: Preserved skipif decorators for timeout tests - mock operations are instantaneous
-
-- ✅ **[PR #132](https://github.com/TheIllusionOfLife/Eureka/pull/132)**: Enhanced JSON parsing for partial evaluations (August 1, 2025)  
-  - **Enhanced Parsing**: Implemented multiple fallback strategies with bracket matching for incomplete responses
-  - **ReDoS Prevention**: Limited regex repetition to 500 characters to prevent denial of service attacks
-  - **Array Extraction**: Added `_extract_json_arrays` helper with proper bracket matching algorithm
-  - **Issue Resolution**: Fixed coordinator evaluation parsing mismatch (Issue #118)
-
-- ✅ **[PR #130](https://github.com/TheIllusionOfLife/Eureka/pull/130)**: AI-powered MultiDimensionalEvaluator implementation (July 31, 2025)
-  - **Language-Agnostic**: Replaced keyword-based evaluation with AI-powered system supporting all languages
-  - **Mock-Mode Compatible**: Maintained mock-first development with try/except SimpleNamespace pattern
-  - **Explicit Failures**: No graceful degradation - clear error messages when API key not configured
-  - **Human-Readable Prompts**: Context formatted as natural language instead of raw dictionaries
-  - **Multi-Bot Review**: Successfully addressed feedback from claude[bot], coderabbitai[bot], cursor[bot], and gemini-code-assist[bot]
-
-- ✅ **[PR #128](https://github.com/TheIllusionOfLife/Eureka/pull/128)**: UI improvements - collapsed sections by default (July 31, 2025)
-  - Made improved idea and multi-dimensional evaluation sections collapsed for cleaner UI
-
-- ✅ **[PR #127](https://github.com/TheIllusionOfLife/Eureka/pull/127)**: Web interface aliases and keyboard shortcuts (July 31, 2025)
-  - Added convenient aliases for web interface management
-  - Removed conflicting keyboard shortcuts for better UX
-
-- ✅ **[PR #125](https://github.com/TheIllusionOfLife/Eureka/pull/125)**: Temperature range fix and CLI option consolidation (July 29, 2025)
-  - **Temperature Range**: Expanded validation from 0.0-1.0 to 0.0-2.0 to support "wild" preset
-  - **Option Cleanup**: Removed duplicate `--creativity` option in favor of `--temperature-preset`
-  - **Test Coverage**: Added comprehensive test suite following TDD principles
-  - **Documentation**: Updated all help text and README examples
-
-- ✅ **[PR #123](https://github.com/TheIllusionOfLife/Eureka/pull/123)**: CLI improvements - automatic bookmarking, optional context, and flag passing (July 29, 2025)
-  - **Automatic Bookmarking**: Changed from opt-in (`--bookmark-results`) to opt-out (`--no-bookmark`) approach
-  - **Optional Context**: Made second parameter optional - users can now run `ms "topic"` without context
-  - **Fixed Flag Passing**: The `ms` command alias now properly passes flags like `--enable-cache`
-  - **Enhanced CLI Features**: Added `--remove-bookmark` command, improved help formatting, intelligent text truncation
-  - **Redis Documentation**: Added comprehensive Redis caching setup guide (10-100x speedup benefits)
-  - **Code Quality**: Removed duplicated code, added file locking, fixed cross-platform compatibility
-  - **Bug Fixes**: Fixed overly aggressive lowercase idea filtering, undefined variable in exception handling
-
 #### Next Priority Tasks
 
 **Updated: August 02, 2025 11:42 AM JST** - PR #143 completed successfully with timeout functionality and command aliases fully implemented
@@ -503,20 +454,6 @@ Based on code analysis (July 31, 2025):
 - ⚠️ **Enhanced reasoning (--enhanced)**: Moderate value through context awareness
 - ❌ **Logical inference (--logical)**: Too simplistic with hardcoded templates - needs rework
 
-#### Previous Milestones
-
-- ✅ **PR #115**: User-friendly setup and bookmark fixes (July 24, 2025)
-  - Created `run.py` and `setup.sh` for 2-step installation (was 8+ steps)
-  - Consolidated API key management to single `.env` file
-  - Fixed bookmark API field mismatch (theme→topic, constraints→context)
-
-- ✅ **PR #111**: Restored comprehensive integration tests
-  - System, Docker, Web API, error handling, and performance tests
-  - 759 lines of test coverage improvements
-
-- ✅ **PR #107**: CI/CD performance optimization (20min → 2-4min, 85-90% improvement)
-  - Conditional Python matrix, parallel execution, workflow separation
-
 #### Technical Learnings from PR #143 (August 2, 2025)
 
 Key technical insights from PR #143 implementation:
@@ -535,24 +472,6 @@ Key technical insights from PR #143 implementation:
 4. **Environment Management in Tests**: Use autouse fixtures for clean setup/teardown
    - Eliminates manual env variable management in individual tests
    - Prevents test pollution and ensures consistent isolation
-
-#### Known Issues & Follow-up Items
-
-**Note**: All user-facing functionality works correctly.
-
-#### Multi-Dimensional Evaluation System
-
-**AI-Powered Language-Agnostic Evaluation (Implemented July 31, 2025):**
-- **Previous Issue**: The system used English keyword matching, causing non-English text to receive meaningless default scores of 5.0
-- **Solution**: Replaced keyword-based evaluation with AI-powered evaluation using Gemini API
-- **Benefits**: 
-  - All languages now receive accurate, meaningful evaluation scores
-  - Clear error messages when API key is not configured
-  - No misleading fallback to keyword matching
-
-**Requirements:**
-- Multi-dimensional evaluation now requires `GOOGLE_API_KEY` to be configured
-- Without API key, the system will display clear error messages instead of providing misleading scores
 
 #### Session Learnings
 

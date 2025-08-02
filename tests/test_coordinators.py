@@ -370,42 +370,45 @@ class TestTimeoutFunctionality:
             if original_mode:
                 os.environ['MADSPARK_MODE'] = original_mode
     
-    def test_sync_workflow_partial_results_on_timeout(self):
-        """Test that sync workflow returns partial results on timeout."""
+    def test_sync_workflow_timeout_during_improvement(self):
+        """Test that sync workflow properly times out during improvement phase."""
         from madspark.core.coordinator_batch import run_multistep_workflow_batch
         import time
+        import os
         
-        # Mock operations where first succeeds quickly, second times out
-        with patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry') as mock_generate:
-            with patch('madspark.utils.agent_retry_wrappers.call_critic_with_retry') as mock_evaluate:
-                with patch('madspark.agents.idea_generator.improve_ideas_batch') as mock_improve:
-                    # First calls succeed
-                    mock_generate.return_value = "Test Idea 1\nTest Idea 2"
-                    mock_evaluate.return_value = '[{"score": 8, "comment": "Good"}]'
-                    
-                    # Make improvement phase slow
-                    def slow_improve(*args, **kwargs):
-                        time.sleep(3)
-                        return ({"results": []}, 0)
-                    
-                    mock_improve.side_effect = slow_improve
-                    
-                    # Should either complete with partial results or timeout
-                    try:
-                        results = run_multistep_workflow_batch(
-                            theme="test theme",
-                            constraints="test constraints",
-                            num_top_candidates=1,
-                            timeout=2  # 2 second timeout
-                        )
-                        # If it completes, should have partial results
-                        assert len(results) > 0
-                        # Check if improvement phase was skipped
-                        if results[0].get("improved_idea"):
-                            assert results[0]["improved_idea"] != ""
-                    except TimeoutError:
-                        # Acceptable if it fully times out
-                        pass
+        # Temporarily disable mock mode to ensure timeout logic works
+        original_mode = os.environ.get('MADSPARK_MODE')
+        try:
+            if 'MADSPARK_MODE' in os.environ:
+                del os.environ['MADSPARK_MODE']
+            
+            # Mock operations where early phases succeed quickly, improvement times out
+            with patch('madspark.core.coordinator_batch.call_idea_generator_with_retry') as mock_generate:
+                with patch('madspark.core.coordinator_batch.call_critic_with_retry') as mock_evaluate:
+                    with patch('madspark.agents.idea_generator.improve_ideas_batch') as mock_improve:
+                        # Early phases succeed fast
+                        mock_generate.return_value = "Test Idea 1\nTest Idea 2"
+                        mock_evaluate.return_value = '[{"score": 8, "comment": "Good"}]'
+                        
+                        # Make improvement phase slow to trigger timeout
+                        def slow_improve(*args, **kwargs):
+                            time.sleep(3)  # Longer than timeout
+                            return ({"results": []}, 0)
+                        
+                        mock_improve.side_effect = slow_improve
+                        
+                        # Should timeout during improvement phase
+                        with pytest.raises(TimeoutError):
+                            run_multistep_workflow_batch(
+                                theme="test theme",
+                                constraints="test constraints",
+                                num_top_candidates=1,
+                                timeout=1  # 1 second timeout, shorter than improvement sleep
+                            )
+        finally:
+            # Restore original mode
+            if original_mode:
+                os.environ['MADSPARK_MODE'] = original_mode
     
     def test_cli_timeout_warning_removed_after_fix(self):
         """Test that timeout warning is removed after implementation."""
@@ -488,17 +491,23 @@ class TestTimeoutFunctionality:
             if original_mode:
                 os.environ['MADSPARK_MODE'] = original_mode
     
-    def test_timeout_propagates_to_cli(self):
-        """Test that timeout from CLI is properly propagated to workflow."""
-        from unittest.mock import Mock
+    def test_timeout_parameter_validation(self):
+        """Test that timeout parameter validation works correctly."""
+        from madspark.core.coordinator_batch import run_multistep_workflow_batch
         
-        # Mock args with timeout
-        args = Mock()
-        args.timeout = 300
-        args.top_ideas = 2
-        args.num_candidates = None
+        # Test that valid timeout values work
+        # Using default timeout should not trigger ThreadPoolExecutor path
+        result = run_multistep_workflow_batch(
+            theme="test theme",
+            constraints="test constraints", 
+            timeout=600  # DEFAULT_TIMEOUT_SECONDS
+        )
+        assert isinstance(result, list)
         
-        # Verify timeout is passed through workflow_kwargs
-        # This would be tested in integration, here we just verify structure
-        assert hasattr(args, 'timeout')
-        assert args.timeout == 300
+        # Test that negative timeout is handled (ignored, no timeout enforcement)
+        result = run_multistep_workflow_batch(
+            theme="test theme",
+            constraints="test constraints",
+            timeout=-1
+        )
+        assert isinstance(result, list)

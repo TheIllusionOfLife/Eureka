@@ -337,38 +337,47 @@ class TestWorkflowIntegration:
 class TestTimeoutFunctionality:
     """Comprehensive tests for timeout functionality in both sync and async modes."""
     
+    @pytest.fixture(autouse=True)
+    def setup_test_environment(self):
+        """Setup and teardown test environment for timeout tests."""
+        original_mode = os.environ.get('MADSPARK_MODE')
+        # Temporarily disable mock mode to ensure timeout logic works
+        if 'MADSPARK_MODE' in os.environ:
+            del os.environ['MADSPARK_MODE']
+        
+        yield  # This is where the test runs
+        
+        # Restore original mode
+        if original_mode:
+            os.environ['MADSPARK_MODE'] = original_mode
+    
     def test_sync_workflow_timeout_enforcement(self):
         """Test that sync workflow enforces timeout properly."""
         from madspark.core.coordinator_batch import run_multistep_workflow_batch
         import time
-        import os
         
-        # Temporarily disable mock mode to ensure timeout logic works
-        original_mode = os.environ.get('MADSPARK_MODE')
-        try:
-            if 'MADSPARK_MODE' in os.environ:
-                del os.environ['MADSPARK_MODE']
-                
-            # Mock slow operations to simulate timeout - need to mock in the main thread before ThreadPoolExecutor
-            with patch('madspark.core.coordinator_batch.call_idea_generator_with_retry') as mock_generate:
-                def slow_generate(*args, **kwargs):
-                    time.sleep(2)  # Sleep for 2 seconds
-                    return "Test Idea 1\nTest Idea 2"
-                
-                mock_generate.side_effect = slow_generate
-                
-                # Should raise timeout error
-                with pytest.raises(TimeoutError):
-                    run_multistep_workflow_batch(
-                        theme="test theme",
-                        constraints="test constraints",
-                        timeout=1,  # 1 second timeout
-                        verbose=True  # Enable logging to debug
-                    )
-        finally:
-            # Restore original mode
-            if original_mode:
-                os.environ['MADSPARK_MODE'] = original_mode
+        # Mock slow operations to simulate timeout - patch functions as imported in coordinator_batch
+        with patch('madspark.core.coordinator_batch.call_idea_generator_with_retry') as mock_generate:
+            with patch('madspark.core.coordinator_batch.advocate_ideas_batch') as mock_advocate:
+                with patch('madspark.core.coordinator_batch.criticize_ideas_batch') as mock_skeptic:
+                    with patch('madspark.core.coordinator_batch.improve_ideas_batch') as mock_improve:
+                        def slow_generate(*args, **kwargs):
+                            time.sleep(2)  # Sleep for 2 seconds
+                            return "Test Idea 1\nTest Idea 2"
+                        
+                        mock_generate.side_effect = slow_generate
+                        mock_advocate.return_value = ([], 0)  # Empty results, no tokens
+                        mock_skeptic.return_value = ([], 0)
+                        mock_improve.return_value = ([], 0)
+                        
+                        # Should raise timeout error
+                        with pytest.raises(TimeoutError):
+                            run_multistep_workflow_batch(
+                                theme="test theme",
+                                constraints="test constraints",
+                                timeout=1,  # 1 second timeout
+                                verbose=True  # Enable logging to debug
+                            )
     
     def test_sync_workflow_timeout_condition_logic(self):
         """Test that timeout condition logic works correctly."""
@@ -446,6 +455,7 @@ class TestTimeoutFunctionality:
             await asyncio.sleep(2)  # Sleep for 2 seconds
             return "Test Idea"
         
+        # Patch the function as it's used in async_coordinator
         with patch('madspark.core.async_coordinator.async_generate_ideas', side_effect=slow_async_generate):
             # Should timeout
             with pytest.raises(asyncio.TimeoutError):
@@ -458,38 +468,33 @@ class TestTimeoutFunctionality:
     def test_sync_workflow_completes_within_timeout(self):
         """Test that sync workflow completes successfully when within timeout."""
         from madspark.core.coordinator_batch import run_multistep_workflow_batch
-        import os
         
-        # Temporarily disable mock mode to ensure timeout logic works
-        original_mode = os.environ.get('MADSPARK_MODE')
-        try:
-            if 'MADSPARK_MODE' in os.environ:
-                del os.environ['MADSPARK_MODE']
-                
-            # Mock fast operations
-            with patch('madspark.core.coordinator_batch.call_idea_generator_with_retry') as mock_generate:
-                with patch('madspark.core.coordinator_batch.call_critic_with_retry') as mock_evaluate:
-                    with patch('madspark.agents.idea_generator.improve_ideas_batch') as mock_improve:
-                        mock_generate.return_value = "Test Idea 1"
-                        mock_evaluate.return_value = '[{"score": 8, "comment": "Good"}]'
-                        # Mock the batch improvement to return expected result format
-                        mock_improve.return_value = ({"results": [{"idea": "Test Idea 1", "score": 8}]}, 1)
-                        
-                        # Should complete successfully (use default timeout to avoid ThreadPoolExecutor)
-                        results = run_multistep_workflow_batch(
-                            theme="test theme",
-                            constraints="test constraints",
-                            num_top_candidates=1
-                            # Use default timeout to avoid ThreadPoolExecutor complexity
-                        )
-                        
-                        assert len(results) > 0
-                        # Should return the mocked idea
-                        assert results[0]["idea"] == "Test Idea 1"
-        finally:
-            # Restore original mode
-            if original_mode:
-                os.environ['MADSPARK_MODE'] = original_mode
+        # Mock fast operations - patch functions as imported in coordinator_batch
+        with patch('madspark.core.coordinator_batch.call_idea_generator_with_retry') as mock_generate:
+            with patch('madspark.core.coordinator_batch.call_critic_with_retry') as mock_evaluate:
+                with patch('madspark.core.coordinator_batch.advocate_ideas_batch') as mock_advocate:
+                    with patch('madspark.core.coordinator_batch.criticize_ideas_batch') as mock_skeptic:
+                        with patch('madspark.core.coordinator_batch.improve_ideas_batch') as mock_improve:
+                            mock_generate.return_value = "Test Idea 1"
+                            mock_evaluate.return_value = '[{"score": 8, "comment": "Good"}]'
+                            
+                            # Mock batch functions to return expected format
+                            mock_advocate.return_value = ([{"formatted": "Strong advocacy"}], 100)
+                            mock_skeptic.return_value = ([{"formatted": "Valid concerns"}], 100)
+                            mock_improve.return_value = ([{"improved_idea": "Enhanced Test Idea 1"}], 100)
+                            
+                            # Should complete successfully within a realistic timeout
+                            # Use non-default timeout to trigger ThreadPoolExecutor path
+                            results = run_multistep_workflow_batch(
+                                theme="test theme",
+                                constraints="test constraints",
+                                num_top_candidates=1,
+                                timeout=30  # 30 second timeout - realistic and triggers timeout logic
+                            )
+                            
+                            assert len(results) > 0
+                            # Should return the mocked idea
+                            assert results[0]["idea"] == "Test Idea 1"
     
     def test_timeout_parameter_validation(self):
         """Test that timeout parameter validation works correctly."""

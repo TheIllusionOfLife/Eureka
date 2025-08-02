@@ -7,6 +7,8 @@ advocate, skeptic, and improvement processing.
 import logging
 import time
 from typing import List, Optional
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
+import threading
 
 from madspark.utils.batch_monitor import batch_call_context, get_batch_monitor
 from madspark.utils.errors import ValidationError
@@ -75,41 +77,78 @@ def run_multistep_workflow_batch(
         novelty_filter: Optional novelty filtering
         verbose: Enable verbose logging
         reasoning_engine: Optional pre-initialized reasoning engine
-        timeout: Maximum time allowed for the entire workflow in seconds (not implemented in sync mode)
+        timeout: Maximum time allowed for the entire workflow in seconds
         
     Returns:
         List of fully processed candidate data
+        
+    Raises:
+        TimeoutError: If the workflow exceeds the specified timeout
     """
+    # If timeout is specified, use ThreadPoolExecutor to enforce it
+    if timeout != DEFAULT_TIMEOUT_SECONDS:
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(
+                _run_workflow_internal,
+                theme, constraints, num_top_candidates, enable_reasoning,
+                multi_dimensional_eval, temperature_manager, novelty_filter,
+                verbose, reasoning_engine
+            )
+            try:
+                return future.result(timeout=timeout)
+            except FutureTimeoutError:
+                logging.error(f"Workflow timed out after {timeout} seconds")
+                # Cancel the future if possible
+                future.cancel()
+                raise TimeoutError(f"Workflow exceeded {timeout} second timeout")
+    else:
+        # Run without timeout
+        return _run_workflow_internal(
+            theme, constraints, num_top_candidates, enable_reasoning,
+            multi_dimensional_eval, temperature_manager, novelty_filter,
+            verbose, reasoning_engine
+        )
+
+
+def _run_workflow_internal(
+    theme: str, 
+    constraints: str, 
+    num_top_candidates: int = 2,
+    enable_reasoning: bool = True,
+    multi_dimensional_eval: bool = False,
+    temperature_manager: Optional[TemperatureManager] = None,
+    novelty_filter: Optional[NoveltyFilter] = None,
+    verbose: bool = False,
+    reasoning_engine: Optional[ReasoningEngine] = None
+) -> List[CandidateData]:
+    """Internal workflow implementation without timeout wrapper."""
     final_candidates_data: List[CandidateData] = []
     
-    # Warn about timeout not being implemented in sync mode
-    if timeout != DEFAULT_TIMEOUT_SECONDS:  # Only warn if non-default timeout specified
-        logging.warning("Timeout parameter is not implemented in sync mode and will be ignored")
+    # Extract temperatures from temperature manager
+    if temperature_manager:
+        idea_temp = temperature_manager.get_temperature_for_stage('idea_generation')
+        eval_temp = temperature_manager.get_temperature_for_stage('evaluation')
+        advocacy_temp = temperature_manager.get_temperature_for_stage('advocacy')
+        skepticism_temp = temperature_manager.get_temperature_for_stage('skepticism')
+    else:
+        from madspark.utils.constants import (
+            DEFAULT_IDEA_TEMPERATURE,
+            DEFAULT_EVALUATION_TEMPERATURE,
+            DEFAULT_ADVOCACY_TEMPERATURE,
+            DEFAULT_SKEPTICISM_TEMPERATURE
+        )
+        idea_temp = DEFAULT_IDEA_TEMPERATURE
+        eval_temp = DEFAULT_EVALUATION_TEMPERATURE
+        advocacy_temp = DEFAULT_ADVOCACY_TEMPERATURE
+        skepticism_temp = DEFAULT_SKEPTICISM_TEMPERATURE
     
-    # Get temperature settings
-    temp_manager = temperature_manager or TemperatureManager()
-    idea_temp = temp_manager.get_temperature_for_stage("idea_generation")
-    eval_temp = temp_manager.get_temperature_for_stage("evaluation")
-    advocacy_temp = temp_manager.get_temperature_for_stage("advocacy")
-    skepticism_temp = temp_manager.get_temperature_for_stage("skepticism")
+    # Initialize enhanced reasoning if needed
+    engine = None
+    if enable_reasoning or multi_dimensional_eval:
+        engine = reasoning_engine or ReasoningEngine()
     
-    # Get model name for cost estimation
+    # Get model name for monitoring
     model_name = get_model_name()
-    
-    # Initialize reasoning engine if enabled
-    engine = reasoning_engine  # Use passed engine if available
-    if enable_reasoning and engine is None:
-        try:
-            from madspark.agents.genai_client import get_genai_client
-            genai_client = get_genai_client()
-            engine = ReasoningEngine(genai_client)
-        except (ImportError, AttributeError, RuntimeError):
-            engine = ReasoningEngine()
-    
-    # Step 1: Generate Ideas (unchanged)
-    log_verbose_step("STEP 1: Idea Generation", 
-                    f"🎯 Theme: {theme}\n📋 Constraints: {constraints}\n🌡️ Temperature: {idea_temp}", 
-                    verbose)
     
     start_time = time.time()
     ideas_text = call_idea_generator_with_retry(

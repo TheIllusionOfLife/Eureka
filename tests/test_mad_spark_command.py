@@ -285,16 +285,60 @@ class TestMadSparkIntegration:
 class TestMadSparkAlias:
     """Test command alias variations."""
     
-    @pytest.mark.skip(reason="Future enhancement: alias support not yet implemented")
     def test_madspark_alias_works(self):
         """Test that 'madspark' (no underscore) also works."""
-        # Some users might type without underscore
-        # Both should work: mad_spark and madspark
-        pass
+        # Test the madspark alias (symbolic link to mad_spark)
+        import subprocess
+        
+        # Set environment for mock mode
+        env = os.environ.copy()
+        env['MADSPARK_MODE'] = 'mock'
+        env['SUPPRESS_MODE_MESSAGE'] = '1'
+        
+        # Test using the symbolic link directly
+        madspark_path = os.path.join(os.path.dirname(__file__), "..", "src", "madspark", "bin", "madspark")
+        
+        if os.path.exists(madspark_path):
+            result = subprocess.run([
+                sys.executable, madspark_path, "AI automation", "cost effective"
+            ], capture_output=True, text=True, env=env, timeout=30)
+            
+            # Should exit successfully
+            assert result.returncode == 0, f"madspark alias should work: stderr={result.stderr[:200]}, stdout={result.stdout[:200]}"
+            
+            # Should generate ideas output
+            output = result.stdout + result.stderr
+            alias_indicators = ["AI automation", "idea", "Mock", "generated", "Score"]
+            assert any(indicator in output for indicator in alias_indicators), \
+                f"madspark alias should process topic and generate ideas. Got: {output[:300]}..."
+        else:
+            pytest.skip("madspark alias not found - run setup.sh to create aliases")
     
-    @pytest.mark.skip(reason="Future enhancement: short alias support not yet implemented")
     def test_ms_short_alias(self):
         """Test that 'ms' works as ultra-short alias."""
-        # For power users: ms "topic" "context"
-        # Even shorter than mad_spark
-        pass
+        # Test the ms alias (symbolic link to mad_spark)
+        import subprocess
+        
+        # Set environment for mock mode  
+        env = os.environ.copy()
+        env['MADSPARK_MODE'] = 'mock'
+        env['SUPPRESS_MODE_MESSAGE'] = '1'
+        
+        # Test using the ms symbolic link directly
+        ms_path = os.path.join(os.path.dirname(__file__), "..", "src", "madspark", "bin", "ms")
+        
+        if os.path.exists(ms_path):
+            result = subprocess.run([
+                sys.executable, ms_path, "renewable energy", "urban constraints"
+            ], capture_output=True, text=True, env=env, timeout=30)
+            
+            # Should exit successfully
+            assert result.returncode == 0, f"ms alias should work: stderr={result.stderr[:200]}, stdout={result.stdout[:200]}"
+            
+            # Should generate ideas output
+            output = result.stdout + result.stderr
+            ms_indicators = ["renewable energy", "idea", "Mock", "generated", "Score"]
+            assert any(indicator in output for indicator in ms_indicators), \
+                f"ms alias should process topic and generate ideas. Got: {output[:300]}..."
+        else:
+            pytest.skip("ms alias not found - run setup.sh to create aliases")

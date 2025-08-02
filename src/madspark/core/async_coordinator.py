@@ -447,6 +447,7 @@ class AsyncCoordinator:
                 
                 # Build evaluated ideas list
                 evaluated_ideas_data: List[EvaluatedIdea] = []
+                print(f"DEBUG: Building evaluated ideas, logical_inference={logical_inference}")
                 for i, idea_text in enumerate(parsed_ideas):
                     if i < len(parsed_evaluations):
                         eval_data = validate_evaluation_json(parsed_evaluations[i])
@@ -480,6 +481,7 @@ class AsyncCoordinator:
                     
                     # Enhanced reasoning: Apply logical inference if enabled
                     logical_inference_data = None
+                    print(f"DEBUG: Logical inference check: enabled={logical_inference}, engine={engine is not None}, has_engine={engine.logical_inference_engine if engine else None}")
                     logger.info(f"Logical inference check: enabled={logical_inference}, engine={engine is not None}, has_engine={engine.logical_inference_engine if engine else None}")
                     if logical_inference and engine and engine.logical_inference_engine:
                         try:

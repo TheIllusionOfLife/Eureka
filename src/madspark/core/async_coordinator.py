@@ -504,12 +504,8 @@ class AsyncCoordinator:
                             logger.info(f"Logical inference confidence: {inference_result.confidence}")
                             if inference_result.confidence > LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD:
                                 # Store logical inference data separately
-                                logical_inference_data = {
-                                    'causal_chains': getattr(inference_result, 'causal_chains', []),
-                                    'constraints': getattr(inference_result, 'constraints', {}),
-                                    'contradictions': getattr(inference_result, 'contradictions', []),
-                                    'implications': getattr(inference_result, 'implications', [])
-                                }
+                                # Use the to_dict method to get all available data
+                                logical_inference_data = inference_result.to_dict()
                                 logger.info(f"Stored logical inference data for idea {i}")
                                 
                         except (AttributeError, KeyError, TypeError, ValueError) as e:

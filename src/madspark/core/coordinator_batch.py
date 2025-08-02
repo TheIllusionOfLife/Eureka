@@ -137,22 +137,24 @@ def _run_workflow_internal(
         advocacy_temp = temperature_manager.get_temperature_for_stage('advocacy')
         skepticism_temp = temperature_manager.get_temperature_for_stage('skepticism')
     else:
-        from madspark.utils.constants import (
-            DEFAULT_IDEA_TEMPERATURE,
-            DEFAULT_EVALUATION_TEMPERATURE,
-            DEFAULT_ADVOCACY_TEMPERATURE,
-            DEFAULT_SKEPTICISM_TEMPERATURE
-        )
-        idea_temp = DEFAULT_IDEA_TEMPERATURE
-        eval_temp = DEFAULT_EVALUATION_TEMPERATURE
-        advocacy_temp = DEFAULT_ADVOCACY_TEMPERATURE
-        skepticism_temp = DEFAULT_SKEPTICISM_TEMPERATURE
+        # Create default TemperatureManager to ensure consistent behavior
+        default_temp_manager = TemperatureManager.from_base_temperature(0.7)
+        idea_temp = default_temp_manager.get_temperature_for_stage('idea_generation')
+        eval_temp = default_temp_manager.get_temperature_for_stage('evaluation')
+        advocacy_temp = default_temp_manager.get_temperature_for_stage('advocacy')
+        skepticism_temp = default_temp_manager.get_temperature_for_stage('skepticism')
     
     # Initialize enhanced reasoning if needed
     # Always use provided reasoning_engine for backward compatibility
     engine = reasoning_engine
     if (enable_reasoning or multi_dimensional_eval) and engine is None:
-        engine = ReasoningEngine()
+        try:
+            from madspark.agents.genai_client import get_genai_client
+            genai_client = get_genai_client()
+            engine = ReasoningEngine(genai_client=genai_client)
+        except (ImportError, AttributeError, RuntimeError):
+            # Fallback to basic initialization if genai_client unavailable
+            engine = ReasoningEngine()
     
     # Get model name for monitoring
     model_name = get_model_name()

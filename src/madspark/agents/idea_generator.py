@@ -137,16 +137,18 @@ else:
     model_name = "mock-model"
 
 
-def generate_ideas(topic: str, context: str, temperature: float = 0.9) -> str:
+def generate_ideas(topic: str, context: str, temperature: float = 0.9, use_structured_output: bool = True) -> str:
   """Generates ideas based on a topic and context using the idea generator model.
 
   Args:
     topic: The main topic for which ideas should be generated.
     context: Supporting context, constraints, or inspiration for the ideas.
     temperature: Controls randomness in generation (0.0-1.0). Higher values increase creativity.
+    use_structured_output: Whether to use structured JSON output (default: True)
 
   Returns:
-    A string containing the generated ideas, typically newline-separated.
+    A string containing the generated ideas. If use_structured_output is True,
+    returns JSON string. Otherwise, returns newline-separated text.
     Returns an empty string if the model provides no content.
   Raises:
     ValueError: If topic or context are empty or invalid.
@@ -158,28 +160,63 @@ def generate_ideas(topic: str, context: str, temperature: float = 0.9) -> str:
   
   if not GENAI_AVAILABLE or idea_generator_client is None:
     # Return mock response for CI/testing environments or when API key is not configured
-    # Simple language detection for mock responses
-    if any(char >= '\u3040' and char <= '\u309F' or char >= '\u30A0' and char <= '\u30FF' or char >= '\u4E00' and char <= '\u9FAF' for char in topic + context):
-        return f"モック生成されたアイデア '{topic}' のトピックで '{context}' のコンテキスト (温度 {temperature})"
-    elif any(char in 'àâäæéèêëïîôöùûüÿ' for char in (topic + context).lower()):
-        return f"Idée factice générée pour le sujet '{topic}' avec le contexte '{context}' à la température {temperature}"
-    elif any(char in 'ñáíóúüç' for char in (topic + context).lower()):
-        return f"Idea simulada generada para el tema '{topic}' con contexto '{context}' a temperatura {temperature}"
-    elif any(char in 'äöüß' for char in (topic + context).lower()):
-        return f"Mock-Idee generiert für Thema '{topic}' mit Kontext '{context}' bei Temperatur {temperature}"
+    if use_structured_output:
+        # Return structured mock data
+        import json
+        mock_ideas = [
+            {
+                "idea_number": 1,
+                "title": f"Mock Idea for {topic}",
+                "description": f"A mock idea generated for testing with context: {context}",
+                "key_features": ["Feature 1", "Feature 2", "Feature 3"],
+                "category": "Mock Category"
+            },
+            {
+                "idea_number": 2,
+                "title": f"Alternative Mock for {topic}",
+                "description": f"Another mock idea with temperature {temperature}",
+                "key_features": ["Feature A", "Feature B"],
+                "category": "Mock Category"
+            }
+        ]
+        return json.dumps(mock_ideas)
     else:
-        return f"Mock idea generated for topic '{topic}' with context '{context}' at temperature {temperature}"
+        # Legacy text format for backward compatibility
+        # Simple language detection for mock responses
+        if any(char >= '\u3040' and char <= '\u309F' or char >= '\u30A0' and char <= '\u30FF' or char >= '\u4E00' and char <= '\u9FAF' for char in topic + context):
+            return f"モック生成されたアイデア '{topic}' のトピックで '{context}' のコンテキスト (温度 {temperature})"
+        elif any(char in 'àâäæéèêëïîôöùûüÿ' for char in (topic + context).lower()):
+            return f"Idée factice générée pour le sujet '{topic}' avec le contexte '{context}' à la température {temperature}"
+        elif any(char in 'ñáíóúüç' for char in (topic + context).lower()):
+            return f"Idea simulada generada para el tema '{topic}' con contexto '{context}' a temperatura {temperature}"
+        elif any(char in 'äöüß' for char in (topic + context).lower()):
+            return f"Mock-Idee generiert für Thema '{topic}' mit Kontext '{context}' bei Temperatur {temperature}"
+        else:
+            return f"Mock idea generated for topic '{topic}' with context '{context}' at temperature {temperature}"
   
   if idea_generator_client is None:
     from madspark.utils.errors import ConfigurationError
     raise ConfigurationError("Idea generator client is not configured but GENAI is enabled")
   
   try:
-    # Create the generation config with system instruction
-    config = types.GenerateContentConfig(
-        temperature=temperature,
-        system_instruction=SYSTEM_INSTRUCTION
-    )
+    if use_structured_output:
+        # Import the schema
+        from madspark.agents.response_schemas import IDEA_GENERATOR_SCHEMA
+        
+        # Create the generation config with structured output
+        config = types.GenerateContentConfig(
+            temperature=temperature,
+            response_mime_type="application/json",
+            response_schema=IDEA_GENERATOR_SCHEMA,
+            system_instruction=SYSTEM_INSTRUCTION
+        )
+    else:
+        # Legacy config without structured output
+        config = types.GenerateContentConfig(
+            temperature=temperature,
+            system_instruction=SYSTEM_INSTRUCTION
+        )
+    
     response = idea_generator_client.models.generate_content(
         model=model_name,
         contents=prompt,

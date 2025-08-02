@@ -170,7 +170,7 @@ class BetterHelpFormatter(argparse.RawDescriptionHelpFormatter):
 def create_parser() -> argparse.ArgumentParser:
     """Create the main argument parser."""
     parser = argparse.ArgumentParser(
-        description='MadSpark Multi-Agent Idea Generation System - Optimized with 50% fewer API calls through intelligent batch processing',
+        description='MadSpark Multi-Agent Idea Generation System - Now with Google Gemini structured output for cleaner formatting and 50% fewer API calls through intelligent batch processing',
         formatter_class=BetterHelpFormatter,
         epilog="""
 Examples:
@@ -589,6 +589,44 @@ def remove_bookmark_command(args: argparse.Namespace):
         print(f"💾 Bookmarks file updated: {args.bookmark_file}")
 
 
+def _parse_structured_agent_data(agent_data: str, agent_type: str) -> Dict[str, Any]:
+    """Parse structured JSON agent data or fallback to text parsing.
+    
+    Args:
+        agent_data: Raw agent response (JSON or text)
+        agent_type: Type of agent ('advocacy', 'skepticism', 'evaluation')
+        
+    Returns:
+        Dictionary with parsed and formatted data
+    """
+    if not agent_data or not agent_data.strip():
+        return {"formatted": f"No {agent_type} available", "structured": {}}
+    
+    try:
+        # Try to parse as JSON first
+        structured_data = json.loads(agent_data)
+        
+        if agent_type == 'advocacy':
+            from madspark.utils.output_processor import format_advocacy_section
+            formatted = format_advocacy_section(structured_data)
+            return {"formatted": formatted, "structured": structured_data}
+            
+        elif agent_type == 'skepticism':
+            from madspark.utils.output_processor import format_skepticism_section
+            formatted = format_skepticism_section(structured_data)
+            return {"formatted": formatted, "structured": structured_data}
+            
+        elif agent_type == 'evaluation':
+            # Evaluation is handled differently - already parsed in coordinator
+            return {"formatted": agent_data, "structured": structured_data}
+            
+    except (json.JSONDecodeError, TypeError, ImportError):
+        # Fall back to text format for backward compatibility
+        return {"formatted": agent_data, "structured": {}}
+    
+    return {"formatted": agent_data, "structured": {}}
+
+
 def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
     """Format results according to specified format."""
     # Apply cleaning to all results before formatting (consistent across all formats)
@@ -683,15 +721,18 @@ def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
         
         for i, result in enumerate(cleaned_results, 1):
             lines.append(f"\n--- IDEA {i} ---")
-            lines.append(f"Text: {result.get('idea', 'No idea available')}")
+            lines.append(result.get('idea', 'No idea available'))
             lines.append(f"Initial Score: {result.get('initial_score', 'N/A')}")
             lines.append(f"Initial Critique: {result.get('initial_critique', 'No critique available')}")
             
-            # Agent feedback
+            # Agent feedback with structured parsing
             if 'advocacy' in result:
-                lines.append(f"\n🔷 Advocacy: {result['advocacy']}")
+                advocacy_data = _parse_structured_agent_data(result['advocacy'], 'advocacy')
+                lines.append(f"\n{advocacy_data['formatted']}")
+                
             if 'skepticism' in result:
-                lines.append(f"\n🔶 Skepticism: {result['skepticism']}")
+                skepticism_data = _parse_structured_agent_data(result['skepticism'], 'skepticism')
+                lines.append(f"\n{skepticism_data['formatted']}")
             
             # Improved idea
             if 'improved_idea' in result:
@@ -699,27 +740,42 @@ def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
                 lines.append(f"📈 Improved Score: {result.get('improved_score', 'N/A')}")
                 
                 if 'score_delta' in result:
-                    lines.append(f"⬆️  Improvement: +{result['score_delta']:.1f}")
+                    score_delta = result['score_delta']
+                    if score_delta > 0:
+                        lines.append(f"⬆️  Improvement: +{score_delta:.1f}")
+                    elif score_delta < 0:
+                        lines.append(f"⬇️  Change: {score_delta:.1f}")
+                    else:
+                        lines.append("➡️  No significant change")
             
-            # Multi-dimensional evaluation
+            # Multi-dimensional evaluation with enhanced formatting
             if 'multi_dimensional_evaluation' in result:
                 eval_data = result['multi_dimensional_evaluation']
                 if eval_data:
-                    lines.append("\n📊 Multi-Dimensional Evaluation:")
-                    lines.append(f"  Overall Score: {eval_data.get('overall_score', 'N/A')}")
-                    
-                    if 'dimension_scores' in eval_data:
-                        scores = eval_data['dimension_scores']
-                        lines.append(f"  • Feasibility: {scores.get('feasibility', 'N/A')}")
-                        lines.append(f"  • Innovation: {scores.get('innovation', 'N/A')}")
-                        lines.append(f"  • Impact: {scores.get('impact', 'N/A')}")
-                        lines.append(f"  • Cost-Effectiveness: {scores.get('cost_effectiveness', 'N/A')}")
-                        lines.append(f"  • Scalability: {scores.get('scalability', 'N/A')}")
-                        lines.append(f"  • Risk Assessment: {scores.get('risk_assessment', 'N/A')} (lower is better)")
-                        lines.append(f"  • Timeline: {scores.get('timeline', 'N/A')}")
-                    
-                    if 'evaluation_summary' in eval_data:
-                        lines.append(f"  Summary: {eval_data['evaluation_summary']}")
+                    try:
+                        from madspark.utils.output_processor import format_multi_dimensional_scores
+                        
+                        overall_score = eval_data.get('overall_score', 0)
+                        dimension_scores = eval_data.get('dimension_scores', {})
+                        
+                        if dimension_scores:
+                            formatted_scores = format_multi_dimensional_scores(dimension_scores, overall_score)
+                            lines.append(f"\n{formatted_scores}")
+                        else:
+                            lines.append(f"\n📊 Overall Score: {overall_score}")
+                            
+                        if 'evaluation_summary' in eval_data:
+                            lines.append(f"\n💡 Summary: {eval_data['evaluation_summary']}")
+                            
+                    except ImportError:
+                        # Fallback to simple formatting
+                        lines.append(f"\n📊 Multi-Dimensional Evaluation:")
+                        lines.append(f"  Overall Score: {eval_data.get('overall_score', 'N/A')}")
+                        
+                        if 'dimension_scores' in eval_data:
+                            scores = eval_data['dimension_scores']
+                            for dim, score in scores.items():
+                                lines.append(f"  • {dim.replace('_', ' ').title()}: {score}")
             
             lines.append("-" * 80)
         
@@ -771,14 +827,18 @@ def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
         
         for i, result in enumerate(cleaned_results, 1):
             lines.append(f"\n--- IDEA {i} ---")
-            lines.append(f"Text: {result.get('idea', 'No idea available')}")
+            lines.append(result.get('idea', 'No idea available'))
             lines.append(f"Initial Score: {result.get('initial_score', 'N/A')}")
             lines.append(f"Initial Critique: {result.get('initial_critique', 'No critique available')}")
             
+            # Agent feedback with structured parsing
             if 'advocacy' in result:
-                lines.append(f"\nAdvocacy: {result['advocacy']}")
+                advocacy_data = _parse_structured_agent_data(result['advocacy'], 'advocacy')
+                lines.append(f"\nAdvocacy: {advocacy_data['formatted']}")
+                
             if 'skepticism' in result:
-                lines.append(f"\nSkepticism: {result['skepticism']}")
+                skepticism_data = _parse_structured_agent_data(result['skepticism'], 'skepticism')
+                lines.append(f"\nSkepticism: {skepticism_data['formatted']}")
             
             # Include cleaned improved idea in text format
             if 'improved_idea' in result:

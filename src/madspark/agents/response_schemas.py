@@ -65,6 +65,34 @@ EVALUATOR_SCHEMA = {
     "required": ["score", "critique"]
 }
 
+# Critic evaluates multiple ideas, so returns an array
+CRITIC_SCHEMA = {
+    "type": "ARRAY",
+    "items": {
+        "type": "OBJECT",
+        "properties": {
+            "score": {
+                "type": "NUMBER",
+                "description": "Numerical score from 0 to 10"
+            },
+            "comment": {
+                "type": "STRING",
+                "description": "Overall critical assessment of the idea"
+            },
+            "strengths": {
+                "type": "ARRAY",
+                "items": {"type": "STRING"},
+                "description": "List of positive aspects"
+            },
+            "weaknesses": {
+                "type": "ARRAY",
+                "items": {"type": "STRING"},
+                "description": "List of concerns or limitations"
+            }
+        },
+        "required": ["score", "comment"]
+    }
+}
 
 # Schema for Advocacy Agent
 ADVOCACY_SCHEMA = {
@@ -392,3 +420,8 @@ def convert_risk_to_safety_score(dimension_scores: Dict[str, float]) -> Dict[str
         dimension_scores["safety_score"] = 10.0 - risk_score
     
     return dimension_scores
+
+
+# Aliases for consistency with agent imports
+ADVOCATE_SCHEMA = ADVOCACY_SCHEMA
+SKEPTIC_SCHEMA = SKEPTICISM_SCHEMA

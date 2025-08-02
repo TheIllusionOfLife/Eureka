@@ -361,7 +361,7 @@ class TestLanguageMatching:
         """Test that mock mode provides language-aware responses."""
         # Test Japanese
         with patch('madspark.agents.idea_generator.GENAI_AVAILABLE', False):
-            result = generate_ideas("テストテーマ", "テストコンテキスト")
+            result = generate_ideas("テストテーマ", "テストコンテキスト", use_structured_output=False)
             assert "モック生成されたアイデア" in result
             assert "テストテーマ" in result
         

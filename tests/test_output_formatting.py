@@ -1,12 +1,10 @@
 """Tests for CLI output formatting with structured data."""
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 from madspark.cli.cli import format_results
 from madspark.utils.output_processor import (
     convert_markdown_to_cli,
-    format_multi_dimensional_scores,
-    format_logical_inference_results,
     smart_truncate_text
 )
 

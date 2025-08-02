@@ -745,7 +745,7 @@ def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
             
             # Improved idea
             if 'improved_idea' in result:
-                lines.append(f"\n✨ Improved Idea:")
+                lines.append("\n✨ Improved Idea:")
                 lines.append(result['improved_idea'])
                 improved_score = result.get('improved_score', 'N/A')
                 if improved_score != 'N/A':
@@ -783,7 +783,7 @@ def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
                             
                     except ImportError:
                         # Fallback to simple formatting
-                        lines.append(f"\n📊 Multi-Dimensional Evaluation:")
+                        lines.append("\n📊 Multi-Dimensional Evaluation:")
                         lines.append(f"  Overall Score: {eval_data.get('overall_score', 'N/A')}")
                         
                         if 'dimension_scores' in eval_data:
@@ -1253,7 +1253,6 @@ def main():
             len(formatted_output) > 5000  # More than ~100 lines
         ):
             # Auto-generate output filename
-            from datetime import datetime
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             theme_slug = args.theme[:30].replace(' ', '_').replace('/', '_')
             auto_filename = f"output/markdown/madspark_{theme_slug}_{timestamp}.md"

@@ -1,7 +1,6 @@
 """Tests for structured response schemas used by agents."""
 import pytest
 import json
-from typing import Dict, Any
 
 # Import schemas (will be created next)
 from madspark.agents.response_schemas import (

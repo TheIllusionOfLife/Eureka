@@ -3,7 +3,6 @@
 This test verifies that all 10 formatting issues identified in the user request
 have been successfully resolved through structured output implementation.
 """
-import pytest
 from unittest.mock import patch
 import sys
 import os

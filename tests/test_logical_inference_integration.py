@@ -3,7 +3,6 @@ import subprocess
 import os
 import sys
 import tempfile
-import json
 
 
 def test_logical_inference_real_integration():

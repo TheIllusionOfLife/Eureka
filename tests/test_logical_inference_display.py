@@ -135,7 +135,7 @@ class TestLogicalInferenceIntegration:
         """Test that async coordinator properly stores logical inference data."""
         from madspark.core.async_coordinator import AsyncCoordinator
         
-        with patch('madspark.agents.genai_client.get_genai_client') as mock_client:
+        with patch('madspark.agents.genai_client.get_genai_client'):
             # Mock the inference engine
             mock_inference_engine = Mock()
             mock_inference_result = Mock()

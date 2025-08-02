@@ -2,7 +2,7 @@
 
 These schemas ensure consistent, parseable responses from all agents.
 """
-from typing import Dict, Any, List
+from typing import Dict, Any
 
 
 # Schema for Idea Generator Agent

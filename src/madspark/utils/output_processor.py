@@ -1,7 +1,7 @@
 """Output processing utilities for converting structured data to CLI-friendly format."""
 import re
 import shutil
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, Optional
 
 
 def convert_markdown_to_cli(text: str) -> str:
@@ -305,7 +305,7 @@ def smart_truncate_text(text: str, max_lines: Optional[int] = None) -> str:
         terminal_size = shutil.get_terminal_size()
         terminal_lines = terminal_size.lines
         terminal_cols = terminal_size.columns
-    except:
+    except Exception:
         terminal_lines = 24
         terminal_cols = 80
     

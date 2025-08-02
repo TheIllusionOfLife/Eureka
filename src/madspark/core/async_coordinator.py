@@ -494,12 +494,6 @@ class AsyncCoordinator:
                                 analysis_type=InferenceType.FULL  # Use full analysis for comprehensive reasoning
                             )
                             
-                            # Format the result for display (standard verbosity for critique)
-                            formatted_inference = inference_engine.format_for_display(
-                                inference_result, 
-                                verbosity='standard'
-                            )
-                            
                             if inference_result.confidence > LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD:
                                 # Store logical inference data separately
                                 # Use the to_dict method to get all available data

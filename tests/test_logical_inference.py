@@ -46,7 +46,10 @@ CONFIDENCE: 0.85
 
 IMPROVEMENTS: Consider hybrid systems combining solar panels with wind turbines for maximum efficiency."""
         
-        mock_genai_client.generate_content.return_value = mock_response
+        # Mock the nested API structure
+        mock_models = Mock()
+        mock_models.generate_content.return_value = mock_response
+        mock_genai_client.models = mock_models
         
         # Test
         result = engine.analyze(
@@ -62,7 +65,7 @@ IMPROVEMENTS: Consider hybrid systems combining solar panels with wind turbines 
         assert result.conclusion.startswith("Vertical axis wind turbines")
         assert result.confidence == 0.85
         assert "hybrid systems" in result.improvements
-        assert mock_genai_client.generate_content.called
+        assert mock_genai_client.models.generate_content.called
     
     def test_analyze_causal_reasoning(self, engine, mock_genai_client):
         """Test causal reasoning analysis."""
@@ -79,7 +82,10 @@ FEEDBACK_LOOPS:
 
 ROOT_CAUSE: Urban space constraints drive innovation in vertical renewable energy"""
         
-        mock_genai_client.generate_content.return_value = mock_response
+        # Mock the nested API structure
+        mock_models = Mock()
+        mock_models.generate_content.return_value = mock_response
+        mock_genai_client.models = mock_models
         
         result = engine.analyze(
             idea="Vertical wind turbines for cities",
@@ -108,7 +114,10 @@ TRADE_OFFS:
 - Higher upfront cost for better long-term savings
 - Some aesthetic impact for environmental benefits"""
         
-        mock_genai_client.generate_content.return_value = mock_response
+        # Mock the nested API structure
+        mock_models = Mock()
+        mock_models.generate_content.return_value = mock_response
+        mock_genai_client.models = mock_models
         
         result = engine.analyze(
             idea="Rooftop wind turbines",
@@ -137,7 +146,10 @@ Use pseudo-anonymity with verified guardian oversight while maintaining peer ano
 
 NO_CONTRADICTIONS: False"""
         
-        mock_genai_client.generate_content.return_value = mock_response
+        # Mock the nested API structure
+        mock_models = Mock()
+        mock_models.generate_content.return_value = mock_response
+        mock_genai_client.models = mock_models
         
         result = engine.analyze(
             idea="Anonymous social network for teenagers",
@@ -201,7 +213,10 @@ NO_CONTRADICTIONS: False"""
     
     def test_error_handling_api_failure(self, engine, mock_genai_client):
         """Test handling of API failures."""
-        mock_genai_client.generate_content.side_effect = Exception("API Error")
+        # Mock the nested API structure with error
+        mock_models = Mock()
+        mock_models.generate_content.side_effect = Exception("API Error")
+        mock_genai_client.models = mock_models
         
         result = engine.analyze(
             idea="Test idea",
@@ -217,7 +232,10 @@ NO_CONTRADICTIONS: False"""
         """Test handling of malformed API responses."""
         mock_response = Mock()
         mock_response.text = "This is not the expected format"
-        mock_genai_client.generate_content.return_value = mock_response
+        # Mock the nested API structure
+        mock_models = Mock()
+        mock_models.generate_content.return_value = mock_response
+        mock_genai_client.models = mock_models
         
         result = engine.analyze(
             idea="Test idea",
@@ -239,8 +257,9 @@ NO_CONTRADICTIONS: False"""
         )
         
         # Check the prompt that was sent
-        call_args = mock_genai_client.generate_content.call_args
-        prompt = call_args[0][0]
+        call_args = mock_genai_client.models.generate_content.call_args
+        # The prompt is passed as 'contents' parameter
+        prompt = call_args.kwargs['contents']
         
         assert "Test idea" in prompt
         assert "Test theme" in prompt  

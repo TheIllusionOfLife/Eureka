@@ -95,7 +95,7 @@ def evaluate_ideas(ideas: str, criteria: str, context: str, temperature: float =
     raise ConfigurationError("Critic client is not configured but GENAI is enabled")
   
   try:
-    config = types.GenerateContentConfig(
+    config = genai.types.GenerateContentConfig(
         temperature=temperature,
         system_instruction=CRITIC_SYSTEM_INSTRUCTION
     )

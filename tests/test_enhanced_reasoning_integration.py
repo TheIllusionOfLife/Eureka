@@ -39,7 +39,10 @@ CONFIDENCE: 0.85
 
 IMPROVEMENTS: Consider hydroponic systems for higher yields."""
         
-        mock_genai_client.generate_content.return_value = mock_response
+        # Mock the nested API structure
+        mock_models = Mock()
+        mock_models.generate_content.return_value = mock_response
+        mock_genai_client.models = mock_models
         
         # Test using the generate_inference_chain method
         premises = [
@@ -58,7 +61,7 @@ IMPROVEMENTS: Consider hydroponic systems for higher yields."""
         assert len(result['logical_steps']) > 0
         
         # Should include LLM-based analysis
-        assert mock_genai_client.generate_content.called
+        assert mock_genai_client.models.generate_content.called
         
     def test_process_complete_workflow_with_logical_inference(self, reasoning_engine, mock_genai_client):
         """Test complete workflow includes logical inference when flag is set."""
@@ -75,7 +78,10 @@ CONFIDENCE: 0.9
 
 IMPROVEMENTS: Consider hybrid solar-wind systems."""
         
-        mock_genai_client.generate_content.return_value = mock_response
+        # Mock the nested API structure
+        mock_models = Mock()
+        mock_models.generate_content.return_value = mock_response
+        mock_genai_client.models = mock_models
         
         # Create conversation data with logical inference flag
         conversation_data = {
@@ -103,7 +109,9 @@ IMPROVEMENTS: Consider hybrid solar-wind systems."""
     def test_logical_inference_error_handling(self, reasoning_engine, mock_genai_client):
         """Test error handling when logical inference fails."""
         # Make API call fail
-        mock_genai_client.generate_content.side_effect = Exception("API Error")
+        mock_models = Mock()
+        mock_models.generate_content.side_effect = Exception("API Error")
+        mock_genai_client.models = mock_models
         
         premises = ["Test premise"]
         result = reasoning_engine.generate_inference_chain(premises, "Test conclusion")
@@ -142,7 +150,10 @@ FEEDBACK_LOOPS:
 
 ROOT_CAUSE: Urban space constraints drive vertical farming innovation"""
         
-        mock_genai_client.generate_content.return_value = mock_response
+        # Mock the nested API structure
+        mock_models = Mock()
+        mock_models.generate_content.return_value = mock_response
+        mock_genai_client.models = mock_models
         
         # Test causal analysis
         result = reasoning_engine.generate_inference_chain(

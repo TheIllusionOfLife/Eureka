@@ -115,11 +115,17 @@ class LogicalInferenceEngine:
             prompt = self.prompts[analysis_type](idea, theme, context)
             
             # Call LLM using proper API pattern
-            from madspark.agents.genai_client import get_model_name, generate_config
+            from madspark.agents.genai_client import get_model_name
+            from google import genai
+            
+            config = genai.types.GenerateContentConfig(
+                temperature=0.7,  # Moderate temperature for balanced reasoning
+                system_instruction="You are a logical reasoning expert. Analyze ideas systematically and provide structured logical insights."
+            )
             response = self.genai_client.models.generate_content(
                 model=get_model_name(),
                 contents=prompt,
-                config=generate_config()
+                config=config
             )
             
             # Parse response

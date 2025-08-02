@@ -401,7 +401,7 @@ Examples:
     reasoning_group.add_argument(
         '--enhanced-reasoning', '--enhanced',
         action='store_true',
-        help='Enable enhanced reasoning capabilities with context awareness'
+        help='Add advocate & skeptic agents for balanced analysis (strengths/opportunities vs risks/flaws)'
     )
     
     # Multi-dimensional evaluation is now always enabled
@@ -415,7 +415,7 @@ Examples:
     reasoning_group.add_argument(
         '--logical-inference', '--logical',
         action='store_true',
-        help='Enable LLM-powered logical inference for deep analytical reasoning (replaces hardcoded templates)'
+        help='Add logical inference analysis (causal chains, constraints, contradictions, implications)'
     )
     
     # Output options

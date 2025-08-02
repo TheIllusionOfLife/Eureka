@@ -94,8 +94,11 @@ ms "climate solutions" --simple         # Clean
 # Generate 3 ideas with high creativity. Default value is 1.
 ms "space exploration" --top-ideas 3 --temperature-preset creative
 
-# Enhanced reasoning with logical inference    
-ms "quantum computing" --enhanced --logical
+# Enhanced reasoning with advocate & skeptic agents    
+ms "quantum computing" --enhanced
+
+# Add logical inference analysis
+ms "renewable energy" --logical
 
 # Cache results with Redis for instant repeated queries                   
 ms "how the universe began" --top-ideas 3 --enable-cache
@@ -125,26 +128,46 @@ docker compose logs -f          # View logs
 docker compose down            # Stop services
 ```
 
-### Logical Inference (NEW!)
+### Understanding MadSpark Options
 
-MadSpark now features LLM-powered logical inference that provides deep analytical reasoning for generated ideas. This replaces the previous hardcoded templates with genuine logical analysis.
+**Core Features (Always Enabled):**
+- **Multi-Dimensional Evaluation**: Every idea is automatically scored across 7 dimensions:
+  - Feasibility, Innovation, Impact, Cost-Effectiveness, Scalability, Safety Score, Timeline
+  - Provides comprehensive assessment without any flags needed
 
-**Key Features:**
-- **Multiple Analysis Types**: Full reasoning, causal chains, constraint satisfaction, contradiction detection, and implications analysis
-- **Confidence Scoring**: Each inference includes a confidence score (0-1) indicating the strength of the logical reasoning
-- **Structured Output**: Clear inference chains showing step-by-step logical progression
-- **Contextual Integration**: Inference considers theme, constraints, and evaluation scores
+**Optional Enhancement Flags:**
 
-**Usage Examples:**
+1. **`--enhanced` (Enhanced Reasoning)**
+   - Adds two specialized agents to the workflow:
+     - 🔷 **Advocate Agent**: Analyzes strengths, opportunities, and addresses potential concerns
+     - 🔶 **Skeptic Agent**: Identifies critical flaws, risks, questionable assumptions, and missing considerations
+   - Use when: You need balanced perspectives showing both positive potential and realistic challenges
+
+2. **`--logical` (Logical Inference)**
+   - Adds formal logical analysis with:
+     - 🔍 **Causal Chains**: "If A then B" reasoning paths
+     - **Constraint Satisfaction**: Checks if requirements are met
+     - **Contradiction Detection**: Identifies conflicting elements
+     - **Implications**: Reveals hidden consequences
+   - Use when: You need rigorous logical validation and deeper analytical reasoning
+
+**Example Comparison:**
 ```bash
-# Enable logical inference for comprehensive analysis
-ms "renewable energy" "urban environment" --logical
+# Basic (Multi-dimensional evaluation only)
+ms "urban farming"
+# Output: Ideas with 7-dimension scores
 
-# Combine with enhanced reasoning for maximum insight
-ms "sustainable farming" "limited space" --enhanced --logical
+# With Enhanced Reasoning
+ms "urban farming" --enhanced  
+# Output: Ideas + Advocacy/Skepticism sections
 
-# Use with multiple ideas for comparative logical analysis
-ms "education innovation" --top-ideas 3 --logical --detailed
+# With Logical Inference
+ms "urban farming" --logical
+# Output: Ideas + Logical analysis chains
+
+# Combined for maximum insight
+ms "urban farming" --enhanced --logical --detailed
+# Output: Complete analysis with all agents and reasoning
 ```
 
 **Output Example:**

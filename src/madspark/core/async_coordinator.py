@@ -325,6 +325,7 @@ class AsyncCoordinator:
                         genai_client = get_genai_client()
                         config = {"use_logical_inference": logical_inference} if logical_inference else None
                         engine = ReasoningEngine(config=config, genai_client=genai_client)
+                        logger.info(f"Created ReasoningEngine with logical_inference={logical_inference}")
                     except (ImportError, AttributeError, RuntimeError):
                         # Fallback to creating without genai_client
                         config = {"use_logical_inference": logical_inference} if logical_inference else None
@@ -479,10 +480,12 @@ class AsyncCoordinator:
                     
                     # Enhanced reasoning: Apply logical inference if enabled
                     logical_inference_data = None
+                    logger.info(f"Logical inference check: enabled={logical_inference}, engine={engine is not None}, has_engine={engine.logical_inference_engine if engine else None}")
                     if logical_inference and engine and engine.logical_inference_engine:
                         try:
                             # Use the new LogicalInferenceEngine directly for better analysis
                             inference_engine = engine.logical_inference_engine
+                            logger.info(f"Applying logical inference analysis to idea {i}")
                             
                             # Perform logical analysis on the idea
                             inference_result = inference_engine.analyze(
@@ -498,6 +501,7 @@ class AsyncCoordinator:
                                 verbosity='standard'
                             )
                             
+                            logger.info(f"Logical inference confidence: {inference_result.confidence}")
                             if inference_result.confidence > LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD:
                                 # Store logical inference data separately
                                 logical_inference_data = {
@@ -506,6 +510,7 @@ class AsyncCoordinator:
                                     'contradictions': getattr(inference_result, 'contradictions', []),
                                     'implications': getattr(inference_result, 'implications', [])
                                 }
+                                logger.info(f"Stored logical inference data for idea {i}")
                                 
                         except (AttributeError, KeyError, TypeError, ValueError) as e:
                             logger.warning(f"Logical inference failed for idea {i}: {e}")

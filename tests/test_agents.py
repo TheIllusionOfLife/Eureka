@@ -367,24 +367,24 @@ class TestLanguageMatching:
         
         # Test Spanish
         with patch('madspark.agents.critic.GENAI_AVAILABLE', False):
-            result = evaluate_ideas("Prueba de ideas", "Criterios de evaluación", "Contexto")
+            result = evaluate_ideas("Prueba de ideas", "Criterios de evaluación", "Contexto", use_structured_output=False)
             assert "Evaluación simulada para pruebas" in result
         
         # Test French
         with patch('madspark.agents.advocate.GENAI_AVAILABLE', False):
-            result = advocate_idea("Idée test", "Évaluation", "Contexte")
+            result = advocate_idea("Idée test", "Évaluation", "Contexte", use_structured_output=False)
             assert "FORCES:" in result
             assert "Force factice" in result
         
         # Test German - Note: ö overlaps with French chars so this will show French
         with patch('madspark.agents.skeptic.GENAI_AVAILABLE', False):
-            result = criticize_idea("Test Idee", "Befürwortung", "Größe")  # "Größe" has ö
+            result = criticize_idea("Test Idee", "Befürwortung", "Größe", use_structured_output=False)  # "Größe" has ö
             # Due to character overlap, this will be detected as French
             assert "DÉFAUTS CRITIQUES:" in result or "KRITISCHE SCHWÄCHEN:" in result
         
         # Test English fallback
         with patch('madspark.agents.advocate.GENAI_AVAILABLE', False):
-            result = advocate_idea("Test idea", "Evaluation", "Context")
+            result = advocate_idea("Test idea", "Evaluation", "Context", use_structured_output=False)
             assert "STRENGTHS:" in result
             assert "Mock strength" in result
     

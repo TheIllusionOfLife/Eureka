@@ -90,8 +90,8 @@ def run_multistep_workflow_batch(
     if constraints is None or (isinstance(constraints, str) and constraints.strip() == ""):
         raise ValidationError("Constraints cannot be None or empty")
     
-    # If timeout is specified and positive, use ThreadPoolExecutor to enforce it
-    if timeout > 0 and timeout != DEFAULT_TIMEOUT_SECONDS:
+    # If timeout is specified and different from default, use ThreadPoolExecutor to enforce it
+    if timeout is not None and timeout > 0 and timeout != DEFAULT_TIMEOUT_SECONDS:
         with ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(
                 _run_workflow_internal,
@@ -104,6 +104,7 @@ def run_multistep_workflow_batch(
             except FutureTimeoutError:
                 logging.error(f"Workflow timed out after {timeout} seconds")
                 # Cancel the future if possible
+                # Note: Cancellation may not interrupt already running operations
                 future.cancel()
                 raise TimeoutError(f"Workflow exceeded {timeout} second timeout")
     else:
@@ -148,12 +149,18 @@ def _run_workflow_internal(
         skepticism_temp = DEFAULT_SKEPTICISM_TEMPERATURE
     
     # Initialize enhanced reasoning if needed
-    engine = None
-    if enable_reasoning or multi_dimensional_eval:
-        engine = reasoning_engine or ReasoningEngine()
+    # Always use provided reasoning_engine for backward compatibility
+    engine = reasoning_engine
+    if (enable_reasoning or multi_dimensional_eval) and engine is None:
+        engine = ReasoningEngine()
     
     # Get model name for monitoring
     model_name = get_model_name()
+    
+    # Step 1: Idea Generation with verbose logging
+    log_verbose_step("STEP 1: Idea Generation", 
+                    f"🧠 Generating ideas for theme: {theme[:50]}...\n🌡️ Temperature: {idea_temp}", 
+                    verbose)
     
     start_time = time.time()
     ideas_text = call_idea_generator_with_retry(

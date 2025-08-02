@@ -18,7 +18,6 @@ import re
 # Import the new LogicalInferenceEngine
 from ..utils.logical_inference_engine import (
     LogicalInferenceEngine,
-    InferenceResult,
     InferenceType
 )
 

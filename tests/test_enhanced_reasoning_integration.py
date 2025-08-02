@@ -1,16 +1,11 @@
 """Tests for integration of LogicalInferenceEngine with enhanced reasoning."""
 import pytest
-from unittest.mock import Mock, patch, MagicMock
-import logging
-from typing import Dict, Any
+from unittest.mock import Mock, patch
 
 from madspark.core.enhanced_reasoning import (
-    ReasoningEngine,
-    LogicalInference
+    ReasoningEngine
 )
 from madspark.utils.logical_inference_engine import (
-    LogicalInferenceEngine,
-    InferenceResult,
     InferenceType
 )
 

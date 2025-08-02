@@ -39,7 +39,7 @@ class TestCLILogicalIntegration:
     
     def test_logical_inference_formatting_in_output(self):
         """Test that logical inference results appear in formatted output."""
-        from madspark.cli.formatters import OutputFormatter
+        from madspark.cli.output_formatter import OutputFormatter
         from madspark.core.coordinator import CandidateData
         
         # Create mock result with logical inference in critique

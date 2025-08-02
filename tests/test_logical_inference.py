@@ -1,8 +1,6 @@
 """Tests for the LogicalInferenceEngine."""
 import pytest
-from unittest.mock import Mock, MagicMock
-import json
-from typing import Dict, Any
+from unittest.mock import Mock
 
 from madspark.utils.logical_inference_engine import (
     LogicalInferenceEngine,

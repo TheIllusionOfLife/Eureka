@@ -1,7 +1,5 @@
 """Test CLI logical inference functionality."""
-import pytest
-from unittest.mock import Mock, patch, MagicMock
-import asyncio
+from unittest.mock import Mock, patch
 from io import StringIO
 
 from madspark.cli.cli import main
@@ -10,7 +8,7 @@ from madspark.cli.cli import main
 class TestCLILogicalInference:
     """Test logical inference functionality through the CLI."""
     
-    @patch('madspark.cli.cli.get_genai_client')
+    @patch('madspark.agents.genai_client.get_genai_client')
     @patch('sys.stdout', new_callable=StringIO)
     def test_cli_logical_flag_triggers_inference(self, mock_stdout, mock_get_client):
         """Test that --logical flag triggers logical inference analysis."""

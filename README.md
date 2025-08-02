@@ -104,7 +104,7 @@ ms "complex analysis" --timeout 300     # 5 minute timeout
 ms "quick idea" --timeout 60 --async   # 1 minute timeout (async mode enforces timeout)
 
 # Combined options
-ms "create a new game concept as a game director" "implementable within a month, solo" --top-ideas 5 --tp creative --enhanced --logical --enable-cache -d
+ms "create a new game concept as a game director" "implementable within a month, solo" --top-ideas 5 --temperature-preset creative --enhanced --logical --enable-cache --detailed
 
 # Run the coordinator - full multi-agent analysis system
 # Orchestrates IdeaGenerator, Critic, Advocate, and Skeptic agents

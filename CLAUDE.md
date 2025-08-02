@@ -176,6 +176,32 @@ See **[docs/ci-policy.md](docs/ci-policy.md)** for complete guidelines on:
 - **Optional**: ruff for linting, mypy for type checking
 - **Web**: FastAPI, React 18.2, TypeScript, Docker (in `web/` directory)
 
+## Google GenAI API Usage Pattern
+When using Google's GenAI SDK, always use the nested API structure:
+```python
+from google import genai
+
+# Configure the request
+config = genai.types.GenerateContentConfig(
+    temperature=0.7,
+    system_instruction="Your system instruction here"
+)
+
+# Make the API call using nested models structure
+response = genai_client.models.generate_content(
+    model=model_name,
+    contents=prompt,
+    config=config
+)
+```
+
+For testing, mock the complete nested structure:
+```python
+mock_models = Mock()
+mock_models.generate_content.return_value = mock_response
+mock_genai_client.models = mock_models
+```
+
 ## PR Review Management
 
 ### 4-Phase Review Protocol

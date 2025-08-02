@@ -17,9 +17,9 @@ def convert_markdown_to_cli(text: str) -> str:
         return text
     
     # Convert markdown bullets to CLI bullets
-    # First handle nested bullets (must come first to catch indented ones)
-    text = re.sub(r'^(\s+)\* ', lambda m: m.group(1) + '◦ ', text, flags=re.MULTILINE)
-    # Then handle top-level bullets
+    # First handle nested bullets (spaces or tabs, but not newlines)
+    text = re.sub(r'^([ \t]+)\* ', lambda m: m.group(1) + '◦ ', text, flags=re.MULTILINE)
+    # Then handle top-level bullets (no indentation)
     text = re.sub(r'^\* ', '• ', text, flags=re.MULTILINE)
     
     # Convert markdown bold to uppercase (for terminal emphasis)

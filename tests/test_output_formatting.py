@@ -207,7 +207,7 @@ class TestSmartTruncation:
             
             # Should be truncated with continuation indicator
             assert len(truncated.split('\n')) <= 20
-            assert '... [truncated]' in truncated or '(see full output in file)' in truncated
+            assert '... [Output truncated' in truncated or '(Full output saved to file)' in truncated
     
     def test_preserve_complete_sections(self):
         """Test that truncation preserves complete sections."""
@@ -277,11 +277,11 @@ class TestIntegrationFormatting:
             output = format_results(structured_results, format_type)
             
             # Verify key elements are present and properly formatted
-            assert 'Smart Urban Garden' in output
-            assert 'Community Smart Garden Network' in output
+            assert 'Community Smart Garden Network' in output  # Improved idea should always be present
             assert '8.9' in output  # Improved score
             
             if format_type == 'detailed':
+                assert 'Smart Urban Garden' in output  # Original idea only in detailed mode
                 assert '🔷 Advocacy:' in output
                 assert '🔶 Skepticism:' in output
                 assert '✨ Improved Idea:' in output

@@ -599,12 +599,24 @@ def _parse_structured_agent_data(agent_data: str, agent_type: str) -> Dict[str, 
     Returns:
         Dictionary with parsed and formatted data
     """
-    if not agent_data or not agent_data.strip():
+    if not agent_data:
         return {"formatted": f"No {agent_type} available", "structured": {}}
+    
+    # Handle both string (JSON) and dict inputs
+    if isinstance(agent_data, str):
+        if not agent_data.strip():
+            return {"formatted": f"No {agent_type} available", "structured": {}}
+        agent_data_str = agent_data
+    else:
+        # Already a dict, convert to JSON string for processing
+        agent_data_str = json.dumps(agent_data)
     
     try:
         # Try to parse as JSON first
-        structured_data = json.loads(agent_data)
+        if isinstance(agent_data, dict):
+            structured_data = agent_data
+        else:
+            structured_data = json.loads(agent_data_str)
         
         if agent_type == 'advocacy':
             from madspark.utils.output_processor import format_advocacy_section
@@ -622,9 +634,11 @@ def _parse_structured_agent_data(agent_data: str, agent_type: str) -> Dict[str, 
             
     except (json.JSONDecodeError, TypeError, ImportError):
         # Fall back to text format for backward compatibility
-        return {"formatted": agent_data, "structured": {}}
+        fallback_text = agent_data if isinstance(agent_data, str) else str(agent_data)
+        return {"formatted": fallback_text, "structured": {}}
     
-    return {"formatted": agent_data, "structured": {}}
+    fallback_text = agent_data if isinstance(agent_data, str) else str(agent_data)
+    return {"formatted": fallback_text, "structured": {}}
 
 
 def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
@@ -653,8 +667,15 @@ def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
             final_idea = result.get('improved_idea', result.get('idea', 'No idea available'))
             final_score = result.get('improved_score', result.get('initial_score', 'N/A'))
             
-            # Focus on the solution first - clean presentation
-            lines.append(f"{final_idea}")
+            # Handle structured improved idea for brief format
+            if isinstance(final_idea, dict) and 'improved_title' in final_idea:
+                lines.append(f"{final_idea['improved_title']}")
+                if 'improved_description' in final_idea:
+                    lines.append("")
+                    lines.append(final_idea['improved_description'])
+            else:
+                # Focus on the solution first - clean presentation
+                lines.append(f"{final_idea}")
             lines.append("")
             
             # Add score information after the solution
@@ -681,8 +702,8 @@ def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
             lines.append(f"📊 Initial Score: {initial_score}")
             
             # Show improvement if available and meaningful
-            if 'improved_idea' in result:
-                improved_idea = result['improved_idea']
+            if 'improved_idea' in result or 'improved_score' in result or 'score_delta' in result:
+                improved_idea = result.get('improved_idea')
                 improved_score = result.get('improved_score', 'N/A')
                 score_delta = result.get('score_delta', 0)
                 
@@ -743,22 +764,54 @@ def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
                 skepticism_data = _parse_structured_agent_data(result['skepticism'], 'skepticism')
                 lines.append(f"\n{skepticism_data['formatted']}")
             
-            # Improved idea
-            if 'improved_idea' in result:
-                lines.append("\n✨ Improved Idea:")
-                lines.append(result['improved_idea'])
+            # Show improvement section if we have improved idea OR score improvements
+            if 'improved_idea' in result or 'improved_score' in result or 'score_delta' in result:
+                # Show improved idea if available
+                if 'improved_idea' in result:
+                    lines.append("\n✨ Improved Idea:")
+                    improved_idea = result['improved_idea']
+                    
+                    # Handle structured improved idea (dictionary format)
+                    if isinstance(improved_idea, dict):
+                        try:
+                            from madspark.utils.output_processor import format_improved_idea_section
+                            formatted_improved = format_improved_idea_section(improved_idea)
+                            lines.append(formatted_improved)
+                        except ImportError:
+                            # Fallback: extract key information
+                            if 'improved_title' in improved_idea:
+                                lines.append(f"**{improved_idea['improved_title']}**")
+                            if 'improved_description' in improved_idea:
+                                lines.append(improved_idea['improved_description'])
+                            if 'key_improvements' in improved_idea:
+                                lines.append("\nKey Improvements:")
+                                for improvement in improved_idea['key_improvements']:
+                                    lines.append(f"• {improvement}")
+                            if 'implementation_steps' in improved_idea:
+                                lines.append("\nImplementation Steps:")
+                                for i, step in enumerate(improved_idea['implementation_steps'], 1):
+                                    lines.append(f"{i}. {step}")
+                    else:
+                        # Handle string format
+                        lines.append(improved_idea)
+                
+                # Show improved score if available
                 improved_score = result.get('improved_score', 'N/A')
                 if improved_score != 'N/A':
                     lines.append(f"📈 Improved Score: {improved_score:.2f}")
+                elif 'improved_idea' not in result:
+                    # Don't show score line if there's no improved idea and no improved score
+                    pass
                 else:
                     lines.append(f"📈 Improved Score: {improved_score}")
                 
+                # Show score delta if available
                 if 'score_delta' in result:
                     score_delta = result['score_delta']
                     if score_delta > 0:
-                        lines.append(f"⬆️  Improvement: +{score_delta:.2f}")
+                        lines.append(f"⬆️  Improvement: +{score_delta:.1f}")
                     elif score_delta < 0:
-                        lines.append(f"⬇️  Change: {score_delta:.2f}")
+                        lines.append(f"⬇️  Change: {score_delta:.1f}")
                     else:
                         lines.append("➡️  No significant change")
             
@@ -818,7 +871,10 @@ def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
             lines.append(f"--- IMPROVED IDEA {i} ---")
             
             # Get cleaned improved idea (already cleaned by clean_improved_ideas_in_results)
-            improved_idea = result.get('improved_idea', 'No improved idea available')
+            # Fall back to original idea if no improved idea available
+            improved_idea = result.get('improved_idea')
+            if not improved_idea or improved_idea == 'No improved idea available':
+                improved_idea = result.get('idea', 'No idea available')
             
             if len(improved_idea) > 500:
                 improved_idea = improved_idea[:497] + "..."

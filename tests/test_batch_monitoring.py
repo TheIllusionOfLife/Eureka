@@ -229,7 +229,7 @@ class TestBatchIntegration:
         ]
         mock_advocate.return_value = ([{"idea_index": 0, "formatted": "STRENGTHS: Good"}], 100)
         mock_skeptic.return_value = ([{"idea_index": 0, "formatted": "FLAWS: None"}], 100)
-        mock_improve.return_value = ([{"idea_index": 0, "improved_idea": "Better idea"}], 100)
+        mock_improve.return_value = ([{"idea_index": 0, "improved_idea": "Mock improved version of: Test idea"}], 100)
         
         # Run coordinator
         from madspark.core.coordinator_batch import run_multistep_workflow_batch
@@ -247,7 +247,7 @@ class TestBatchIntegration:
         if os.getenv("MADSPARK_MODE") == "mock":
             assert "Mock improved version of:" in results[0]["improved_idea"]
         else:
-            assert results[0]["improved_idea"] == "Better idea"
+            assert results[0]["improved_idea"] == "Mock improved version of: Test idea"
         
         # Verify monitoring
         monitor = get_batch_monitor()

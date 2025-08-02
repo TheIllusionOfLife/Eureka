@@ -111,22 +111,45 @@ def format_logical_inference_results(inference_results: Dict[str, Any]) -> str:
     lines = []
     lines.append("🔍 Logical Inference Analysis:")
     
-    # Inference chain (main logical steps)
-    if "inference_chain" in inference_results and inference_results["inference_chain"]:
+    # Handle both old format (causal_chains) and new format (inference_chain)
+    if "causal_chains" in inference_results and inference_results["causal_chains"]:
+        lines.append("├─ Causal Chains:")
+        for chain in inference_results["causal_chains"]:
+            lines.append(f"│  • {chain}")
+    elif "inference_chain" in inference_results and inference_results["inference_chain"]:
         lines.append("├─ Logical Steps:")
         for i, step in enumerate(inference_results["inference_chain"], 1):
             lines.append(f"│  {i}. {step}")
     
-    # Conclusion
-    if "conclusion" in inference_results and inference_results["conclusion"]:
-        lines.append("├─ Conclusion:")
-        lines.append(f"│  {inference_results['conclusion']}")
+    # Handle constraints (old format)
+    if "constraints" in inference_results and inference_results["constraints"]:
+        lines.append("├─ Constraints:")
+        for constraint, status in inference_results["constraints"].items():
+            if status == "satisfied":
+                lines.append(f"│  ✓ {constraint}: {status}")
+            else:
+                lines.append(f"│  ✗ {constraint}: {status}")
     
-    # Improvements/Recommendations
-    if "improvements" in inference_results and inference_results["improvements"]:
+    # Handle contradictions (old format)
+    if "contradictions" in inference_results and inference_results["contradictions"]:
+        lines.append("├─ Contradictions Detected:")
+        for contradiction in inference_results["contradictions"]:
+            lines.append(f"│  ⚠️ {contradiction}")
+    
+    # Handle implications (old format) or improvements (new format)
+    if "implications" in inference_results and inference_results["implications"]:
+        lines.append("└─ Implications:")
+        for implication in inference_results["implications"]:
+            lines.append(f"   • {implication}")
+    elif "improvements" in inference_results and inference_results["improvements"]:
         lines.append("└─ Recommendations:")
         for improvement in inference_results["improvements"]:
             lines.append(f"   • {improvement}")
+    
+    # Handle conclusion (new format)
+    elif "conclusion" in inference_results and inference_results["conclusion"]:
+        lines.append("└─ Conclusion:")
+        lines.append(f"   {inference_results['conclusion']}")
     
     return '\n'.join(lines)
 

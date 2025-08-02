@@ -44,7 +44,7 @@ class TestOutputFormatting:
                 },
                 'evaluation_summary': 'Excellent feasibility and cost-effectiveness'
             },
-            'logical_inference_results': {
+            'logical_inference': {
                 'causal_chains': ['A leads to B', 'B enables C'],
                 'constraints': {'budget': 'satisfied', 'timeline': 'satisfied'},
                 'contradictions': [],

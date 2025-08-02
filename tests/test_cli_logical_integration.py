@@ -39,13 +39,11 @@ class TestCLILogicalIntegration:
     
     def test_logical_inference_formatting_in_output(self):
         """Test that logical inference results appear in formatted output."""
-        from madspark.core.coordinator import CandidateData
-        
         # Create mock result with logical inference in critique
-        result = CandidateData(
-            idea="Vertical urban farms",
-            initial_score=8.0,
-            initial_critique="""Good idea for urban farming.
+        result = {
+            'idea': "Vertical urban farms",
+            'initial_score': 8.0,
+            'initial_critique': """Good idea for urban farming.
 
 🧠 Logical Inference Analysis:
 
@@ -57,19 +55,23 @@ Inference Chain:
 Conclusion: Vertical farms are optimal for urban agriculture
 
 Confidence: 85%""",
-            advocacy="Strong benefits",
-            skepticism="Some concerns",
-            improved_idea="Enhanced vertical farms with solar",
-            improved_score=9.0,
-            improved_critique="Excellent improvement"
-        )
+            'advocacy': "Strong benefits",
+            'skepticism': "Some concerns",
+            'improved_idea': "Enhanced vertical farms with solar",
+            'improved_score': 9.0,
+            'improved_critique': "Excellent improvement",
+            'multi_dimensional_evaluation': None,
+            'score_delta': 1.0,
+            'is_meaningful_improvement': True,
+            'similarity_score': 0.0
+        }
         
         # Test that the logical inference is preserved in the critique
-        assert "🧠 Logical Inference Analysis" in result.initial_critique
-        assert "Inference Chain:" in result.initial_critique
-        assert "Confidence: 85%" in result.initial_critique
+        assert "🧠 Logical Inference Analysis" in result['initial_critique']
+        assert "Inference Chain:" in result['initial_critique']
+        assert "Confidence: 85%" in result['initial_critique']
         
         # Test that the data structure maintains the formatting
-        critique_lines = result.initial_critique.split('\n')
+        critique_lines = result['initial_critique'].split('\n')
         assert any("Urban areas have limited space" in line for line in critique_lines)
         assert any("Conclusion:" in line for line in critique_lines)

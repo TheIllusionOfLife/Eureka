@@ -721,8 +721,17 @@ def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
         
         for i, result in enumerate(cleaned_results, 1):
             lines.append(f"\n--- IDEA {i} ---")
-            lines.append(result.get('idea', 'No idea available'))
-            lines.append(f"Initial Score: {result.get('initial_score', 'N/A')}")
+            # Strip leading number from idea text if present
+            idea_text = result.get('idea', 'No idea available')
+            # Remove pattern like "3. " or "10. " from the beginning
+            import re
+            idea_text = re.sub(r'^\d+\.\s+', '', idea_text)
+            lines.append(idea_text)
+            initial_score = result.get('initial_score', 'N/A')
+            if initial_score != 'N/A':
+                lines.append(f"Initial Score: {initial_score:.2f}")
+            else:
+                lines.append(f"Initial Score: {initial_score}")
             lines.append(f"Initial Critique: {result.get('initial_critique', 'No critique available')}")
             
             # Agent feedback with structured parsing
@@ -736,15 +745,20 @@ def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
             
             # Improved idea
             if 'improved_idea' in result:
-                lines.append(f"\n✨ Improved Idea: {result['improved_idea']}")
-                lines.append(f"📈 Improved Score: {result.get('improved_score', 'N/A')}")
+                lines.append(f"\n✨ Improved Idea:")
+                lines.append(result['improved_idea'])
+                improved_score = result.get('improved_score', 'N/A')
+                if improved_score != 'N/A':
+                    lines.append(f"📈 Improved Score: {improved_score:.2f}")
+                else:
+                    lines.append(f"📈 Improved Score: {improved_score}")
                 
                 if 'score_delta' in result:
                     score_delta = result['score_delta']
                     if score_delta > 0:
-                        lines.append(f"⬆️  Improvement: +{score_delta:.1f}")
+                        lines.append(f"⬆️  Improvement: +{score_delta:.2f}")
                     elif score_delta < 0:
-                        lines.append(f"⬇️  Change: {score_delta:.1f}")
+                        lines.append(f"⬇️  Change: {score_delta:.2f}")
                     else:
                         lines.append("➡️  No significant change")
             

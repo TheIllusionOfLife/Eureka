@@ -159,22 +159,43 @@ def format_advocacy_section(advocacy_data: Dict[str, Any]) -> str:
     # Strengths
     if "strengths" in advocacy_data and advocacy_data["strengths"]:
         lines.append("STRENGTHS:")
-        for strength in advocacy_data["strengths"]:
-            lines.append(f"• {strength['title']}: {strength['description']}")
+        strengths = advocacy_data["strengths"][:3]  # Limit to top 3
+        for strength in strengths:
+            if isinstance(strength, dict):
+                lines.append(f"• {strength['title']}: {strength['description']}")
+            else:
+                # Handle string format
+                lines.append(f"• {strength}")
+        if len(advocacy_data["strengths"]) > 3:
+            lines.append(f"  ... and {len(advocacy_data["strengths"]) - 3} more strengths")
         lines.append("")
     
     # Opportunities
     if "opportunities" in advocacy_data and advocacy_data["opportunities"]:
         lines.append("OPPORTUNITIES:")
-        for opp in advocacy_data["opportunities"]:
-            lines.append(f"• {opp['title']}: {opp['description']}")
+        opps = advocacy_data["opportunities"][:2]  # Limit to top 2
+        for opp in opps:
+            if isinstance(opp, dict):
+                lines.append(f"• {opp['title']}: {opp['description']}")
+            else:
+                # Handle string format
+                lines.append(f"• {opp}")
+        if len(advocacy_data["opportunities"]) > 2:
+            lines.append(f"  ... and {len(advocacy_data["opportunities" ]) - 2} more opportunities")
         lines.append("")
     
     # Addressing concerns
     if "addressing_concerns" in advocacy_data and advocacy_data["addressing_concerns"]:
         lines.append("ADDRESSING CONCERNS:")
-        for concern_item in advocacy_data["addressing_concerns"]:
-            lines.append(f"• {concern_item['concern']} → {concern_item['response']}")
+        concerns = advocacy_data["addressing_concerns"][:2]  # Limit to top 2
+        for concern_item in concerns:
+            if isinstance(concern_item, dict):
+                lines.append(f"• {concern_item['concern']} → {concern_item['response']}")
+            else:
+                # Handle string format
+                lines.append(f"• {concern_item}")
+        if len(advocacy_data["addressing_concerns"]) > 2:
+            lines.append(f"  ... and {len(advocacy_data["addressing_concerns" ]) - 2} more addressed")
     
     return '\n'.join(lines)
 
@@ -195,29 +216,57 @@ def format_skepticism_section(skepticism_data: Dict[str, Any]) -> str:
     # Critical flaws
     if "critical_flaws" in skepticism_data and skepticism_data["critical_flaws"]:
         lines.append("CRITICAL FLAWS:")
-        for flaw in skepticism_data["critical_flaws"]:
-            lines.append(f"• {flaw['title']}: {flaw['description']}")
+        flaws = skepticism_data["critical_flaws"][:2]  # Limit to top 2
+        for flaw in flaws:
+            if isinstance(flaw, dict):
+                lines.append(f"• {flaw['title']}: {flaw['description']}")
+            else:
+                # Handle string format
+                lines.append(f"• {flaw}")
+        if len(skepticism_data["critical_flaws"]) > 2:
+            lines.append(f"  ... and {len(skepticism_data["critical_flaws" ]) - 2} more flaws")
         lines.append("")
     
     # Risks and challenges
     if "risks_and_challenges" in skepticism_data and skepticism_data["risks_and_challenges"]:
         lines.append("RISKS & CHALLENGES:")
-        for risk in skepticism_data["risks_and_challenges"]:
-            lines.append(f"• {risk['title']}: {risk['description']}")
+        risks = skepticism_data["risks_and_challenges"][:2]  # Limit to top 2
+        for risk in risks:
+            if isinstance(risk, dict):
+                lines.append(f"• {risk['title']}: {risk['description']}")
+            else:
+                # Handle string format
+                lines.append(f"• {risk}")
+        if len(skepticism_data["risks_and_challenges" ]) > 2:
+            lines.append(f"  ... and {len(skepticism_data["risks_and_challenges" ]) - 2} more risks")
         lines.append("")
     
     # Questionable assumptions
     if "questionable_assumptions" in skepticism_data and skepticism_data["questionable_assumptions"]:
         lines.append("QUESTIONABLE ASSUMPTIONS:")
-        for assumption in skepticism_data["questionable_assumptions"]:
-            lines.append(f"• {assumption['assumption']} — {assumption['concern']}")
+        assumptions = skepticism_data["questionable_assumptions"][:2]  # Limit to top 2
+        for assumption in assumptions:
+            if isinstance(assumption, dict):
+                lines.append(f"• {assumption['assumption']} — {assumption['concern']}")
+            else:
+                # Handle string format
+                lines.append(f"• {assumption}")
+        if len(skepticism_data["questionable_assumptions" ]) > 2:
+            lines.append(f"  ... and {len(skepticism_data["questionable_assumptions" ]) - 2} more assumptions")
         lines.append("")
     
     # Missing considerations
     if "missing_considerations" in skepticism_data and skepticism_data["missing_considerations"]:
         lines.append("MISSING CONSIDERATIONS:")
-        for missing in skepticism_data["missing_considerations"]:
-            lines.append(f"• {missing['aspect']}: {missing['importance']}")
+        considerations = skepticism_data["missing_considerations"][:2]  # Limit to top 2
+        for missing in considerations:
+            if isinstance(missing, dict):
+                lines.append(f"• {missing['aspect']}: {missing['importance']}")
+            else:
+                # Handle string format
+                lines.append(f"• {missing}")
+        if len(skepticism_data["missing_considerations" ]) > 2:
+            lines.append(f"  ... and {len(skepticism_data["missing_considerations" ]) - 2} more considerations")
     
     return '\n'.join(lines)
 

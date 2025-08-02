@@ -215,7 +215,7 @@ NO_CONTRADICTIONS: False"""
         """Test handling of API failures."""
         # Mock the nested API structure with error
         mock_models = Mock()
-        mock_models.generate_content.side_effect = Exception("API Error")
+        mock_models.generate_content.side_effect = RuntimeError("API Error")
         mock_genai_client.models = mock_models
         
         result = engine.analyze(

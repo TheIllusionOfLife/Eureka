@@ -110,7 +110,7 @@ IMPROVEMENTS: Consider hybrid solar-wind systems."""
         """Test error handling when logical inference fails."""
         # Make API call fail
         mock_models = Mock()
-        mock_models.generate_content.side_effect = Exception("API Error")
+        mock_models.generate_content.side_effect = RuntimeError("API Error")
         mock_genai_client.models = mock_models
         
         premises = ["Test premise"]

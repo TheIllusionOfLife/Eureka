@@ -131,7 +131,7 @@ class LogicalInferenceEngine:
             # Parse response
             return self._parse_response(response.text, analysis_type)
             
-        except (AttributeError, KeyError, TypeError, ValueError) as e:
+        except (AttributeError, KeyError, TypeError, ValueError, RuntimeError) as e:
             logger.error(f"Logical inference failed: {e}")
             return InferenceResult(
                 conclusion="Unable to perform logical analysis due to an error",

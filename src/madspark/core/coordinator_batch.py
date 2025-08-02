@@ -168,14 +168,32 @@ def _run_workflow_internal(
     ideas_text = call_idea_generator_with_retry(
         topic=theme, 
         context=constraints, 
-        temperature=idea_temp
+        temperature=idea_temp,
+        use_structured_output=True
     )
     
     idea_gen_duration = time.time() - start_time
     log_agent_completion("IdeaGenerator", ideas_text, f"{theme[:20]}...", idea_gen_duration, verbose)
     
-    # Parse ideas
-    parsed_ideas = [idea.strip() for idea in ideas_text.split('\n') if idea.strip()]
+    # Parse ideas based on format
+    try:
+        # Try to parse as JSON first (structured output)
+        import json
+        ideas_json = json.loads(ideas_text)
+        
+        # Extract ideas from structured format
+        parsed_ideas = []
+        for idea_obj in ideas_json:
+            # Build a formatted idea string from the structured data
+            idea_text = f"{idea_obj.get('idea_number', '')}. {idea_obj.get('title', '')}: {idea_obj.get('description', '')}"
+            if 'key_features' in idea_obj and idea_obj['key_features']:
+                # Add key features as a formatted list
+                features = " Key features: " + ", ".join(idea_obj['key_features'])
+                idea_text += features
+            parsed_ideas.append(idea_text.strip())
+    except (json.JSONDecodeError, TypeError):
+        # Fall back to text parsing for backward compatibility
+        parsed_ideas = [idea.strip() for idea in ideas_text.split('\n') if idea.strip()]
     
     if not parsed_ideas:
         logging.warning("No ideas were generated.")
@@ -220,7 +238,8 @@ def _run_workflow_internal(
             ideas=ideas_text,
             criteria=constraints,
             context=theme,
-            temperature=eval_temp
+            temperature=eval_temp,
+            use_structured_output=True
         )
         
         # Parse evaluations
@@ -436,7 +455,8 @@ def _run_workflow_internal(
             ideas=improved_ideas_text,
             criteria=constraints,
             context=theme,
-            temperature=eval_temp
+            temperature=eval_temp,
+            use_structured_output=True
         )
         
         # Parse re-evaluations

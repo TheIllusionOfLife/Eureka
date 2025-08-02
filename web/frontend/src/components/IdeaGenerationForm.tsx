@@ -285,7 +285,7 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({
                 </label>
               </div>
               <p className="ml-6 mt-1 text-xs text-gray-500">
-                Enables context-aware agents that reference conversation history for more informed and coherent decisions
+                Adds advocate & skeptic agents that analyze strengths, opportunities, risks, and critical flaws
               </p>
             </div>
             
@@ -304,7 +304,7 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({
                 </label>
               </div>
               <p className="ml-6 mt-1 text-xs text-gray-500">
-                Applies formal reasoning chains with confidence scoring and consistency analysis for more rigorous idea validation
+                Adds logical analysis showing causal chains, constraint satisfaction, and contradiction detection
               </p>
             </div>
           </div>

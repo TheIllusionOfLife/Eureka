@@ -8,7 +8,8 @@ Features specialized agents for idea generation, criticism, advocacy, and skepti
 ## 🚀 Key Features
 
 - **🧠 Multi-Agent System**: IdeaGenerator, Critic, Advocate, and Skeptic agents
-- **🚀 Batch API Optimization**: 50% fewer API calls with 45% cost savings through intelligent batching (NEW!)
+- **🎯 Structured Output**: Google Gemini's structured JSON output for clean, consistent formatting (NEW!)
+- **🚀 Batch API Optimization**: 50% fewer API calls with 45% cost savings through intelligent batching
 - **📊 Real-time Monitoring**: Comprehensive token usage and cost tracking with detailed analytics
 - **🔗 Feedback Loop**: Ideas are improved based on agent insights with score comparison
 - **📚 OpenAPI Documentation**: Interactive API docs at `/docs` and `/redoc`
@@ -93,8 +94,11 @@ ms "climate solutions" --simple         # Clean
 # Generate 3 ideas with high creativity. Default value is 1.
 ms "space exploration" --top-ideas 3 --temperature-preset creative
 
-# Enhanced reasoning with logical inference    
-ms "quantum computing" --enhanced --logical
+# Enhanced reasoning with advocate & skeptic agents    
+ms "quantum computing" --enhanced
+
+# Add logical inference analysis
+ms "renewable energy" --logical
 
 # Cache results with Redis for instant repeated queries                   
 ms "how the universe began" --top-ideas 3 --enable-cache
@@ -124,26 +128,46 @@ docker compose logs -f          # View logs
 docker compose down            # Stop services
 ```
 
-### Logical Inference (NEW!)
+### Understanding MadSpark Options
 
-MadSpark now features LLM-powered logical inference that provides deep analytical reasoning for generated ideas. This replaces the previous hardcoded templates with genuine logical analysis.
+**Core Features (Always Enabled):**
+- **Multi-Dimensional Evaluation**: Every idea is automatically scored across 7 dimensions:
+  - Feasibility, Innovation, Impact, Cost-Effectiveness, Scalability, Safety Score, Timeline
+  - Provides comprehensive assessment without any flags needed
 
-**Key Features:**
-- **Multiple Analysis Types**: Full reasoning, causal chains, constraint satisfaction, contradiction detection, and implications analysis
-- **Confidence Scoring**: Each inference includes a confidence score (0-1) indicating the strength of the logical reasoning
-- **Structured Output**: Clear inference chains showing step-by-step logical progression
-- **Contextual Integration**: Inference considers theme, constraints, and evaluation scores
+**Optional Enhancement Flags:**
 
-**Usage Examples:**
+1. **`--enhanced` (Enhanced Reasoning)**
+   - Adds two specialized agents to the workflow:
+     - 🔷 **Advocate Agent**: Analyzes strengths, opportunities, and addresses potential concerns
+     - 🔶 **Skeptic Agent**: Identifies critical flaws, risks, questionable assumptions, and missing considerations
+   - Use when: You need balanced perspectives showing both positive potential and realistic challenges
+
+2. **`--logical` (Logical Inference)**
+   - Adds formal logical analysis with:
+     - 🔍 **Causal Chains**: "If A then B" reasoning paths
+     - **Constraint Satisfaction**: Checks if requirements are met
+     - **Contradiction Detection**: Identifies conflicting elements
+     - **Implications**: Reveals hidden consequences
+   - Use when: You need rigorous logical validation and deeper analytical reasoning
+
+**Example Comparison:**
 ```bash
-# Enable logical inference for comprehensive analysis
-ms "renewable energy" "urban environment" --logical
+# Basic (Multi-dimensional evaluation only)
+ms "urban farming"
+# Output: Ideas with 7-dimension scores
 
-# Combine with enhanced reasoning for maximum insight
-ms "sustainable farming" "limited space" --enhanced --logical
+# With Enhanced Reasoning
+ms "urban farming" --enhanced  
+# Output: Ideas + Advocacy/Skepticism sections
 
-# Use with multiple ideas for comparative logical analysis
-ms "education innovation" --top-ideas 3 --logical --detailed
+# With Logical Inference
+ms "urban farming" --logical
+# Output: Ideas + Logical analysis chains
+
+# Combined for maximum insight
+ms "urban farming" --enhanced --logical --detailed
+# Output: Complete analysis with all agents and reasoning
 ```
 
 **Output Example:**
@@ -164,6 +188,30 @@ Confidence: 85%
 
 Suggested Improvements: Consider hydroponic systems for higher yields in limited space
 ```
+
+### Structured Output Enhancement (NEW!)
+
+MadSpark now uses Google Gemini's structured output feature for cleaner, more consistent formatting. This eliminates parsing issues and ensures reliable display across all output formats.
+
+**Key Improvements:**
+- **No Meta-Commentary**: Clean responses without "Here's my analysis..." or similar prefixes
+- **Consistent Formatting**: Structured JSON ensures reliable markdown conversion
+- **Eliminated Parsing Errors**: No more truncated output or format inconsistencies
+- **Enhanced Display Quality**: Professional formatting for scores, sections, and bullet points
+
+**Format Fixes Implemented:**
+- ✅ Removed redundant "Text:" prefix from idea descriptions
+- ✅ Fixed score delta display (no more "+-0" formatting issues)
+- ✅ Consistent bullet points (• instead of mixed formats)
+- ✅ Proper section headers (STRENGTHS, OPPORTUNITIES, etc.)
+- ✅ Clean line breaks between sections
+- ✅ Reliable logical inference result display
+
+**Technical Details:**
+- Uses `response_mime_type="application/json"` with `response_schema`
+- Backward compatible with text-based responses for fallback scenarios
+- All agents (IdeaGenerator, Critic, Advocate, Skeptic) support structured output
+- Applies to both individual and batch processing modes
 
 ### Bookmark Management
 
@@ -397,10 +445,17 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
 
 ## Session Handover
 
-### Last Updated: August 02, 2025 06:39 PM JST
+### Last Updated: August 02, 2025 09:20 PM JST
 
 ### Recently Completed
 
+- ✅ **Structured Output Enhancement**: Google Gemini structured JSON output implementation (August 2, 2025)
+  - **Clean Formatting**: Eliminated all 10 display format issues from user request
+  - **Technical Implementation**: Used `response_mime_type="application/json"` with `response_schema`
+  - **Format Fixes**: Removed "Text:" prefix, fixed score deltas, consistent bullet points, proper section headers
+  - **Comprehensive Coverage**: Updated all agents (IdeaGenerator, Critic, Advocate, Skeptic) and coordinators
+  - **Backward Compatibility**: Maintains fallback to text parsing for legacy support
+  - **Testing Verified**: Full pipeline tested in both mock and API modes with proper JSON parsing
 - ✅ **[PR #146](https://github.com/TheIllusionOfLife/Eureka/pull/146)**: LLM-powered logical inference engine (August 2, 2025)
   - **Feature Implementation**: Replaced hardcoded templates with genuine LLM-based logical reasoning
   - **5 Analysis Types**: FULL, CAUSAL, CONSTRAINTS, CONTRADICTION, IMPLICATIONS

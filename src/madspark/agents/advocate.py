@@ -35,7 +35,7 @@ else:
     model_name = "mock-model"
 
 
-def advocate_idea(idea: str, evaluation: str, context: str, temperature: float = 0.5) -> str:
+def advocate_idea(idea: str, evaluation: str, context: str, temperature: float = 0.5, use_structured_output: bool = True) -> str:
   """Advocates for an idea using its evaluation and context via the advocate model.
 
   Args:
@@ -43,9 +43,11 @@ def advocate_idea(idea: str, evaluation: str, context: str, temperature: float =
     evaluation: The evaluation received for the idea (e.g., from a critic).
     context: Additional context relevant for building the advocacy.
     temperature: Controls randomness in generation (0.0-1.0). Balanced for argumentation.
+    use_structured_output: Whether to use structured JSON output (default: True)
 
   Returns:
-    A string containing the persuasive arguments for the idea.
+    A string containing the persuasive arguments for the idea. If use_structured_output is True,
+    returns JSON string. Otherwise, returns formatted text for backward compatibility.
     Returns a placeholder string if the model provides no content.
   Raises:
     ValueError: If idea, evaluation, or context are empty or invalid.
@@ -79,19 +81,44 @@ def advocate_idea(idea: str, evaluation: str, context: str, temperature: float =
   
   if not GENAI_AVAILABLE or advocate_client is None:
     # Return mock advocacy for CI/testing environments or when API key is not configured
-    from madspark.utils.mock_language_utils import get_mock_response
-    combined_text = idea + evaluation + context
-    return get_mock_response('advocate', combined_text)
+    if use_structured_output:
+        # Return structured mock data
+        import json
+        mock_advocacy = {
+            "strengths": ["Mock strength: Strong foundational concept", "Mock strength: Clear practical applications"],
+            "opportunities": ["Mock opportunity: Market potential", "Mock opportunity: Scalability options"],
+            "addressing_concerns": ["Mock mitigation: Address feasibility through phased approach", "Mock mitigation: Cost optimization strategies"]
+        }
+        return json.dumps(mock_advocacy)
+    else:
+        # Legacy text format for backward compatibility
+        from madspark.utils.mock_language_utils import get_mock_response
+        combined_text = idea + evaluation + context
+        return get_mock_response('advocate', combined_text)
   
   if advocate_client is None:
     from madspark.utils.errors import ConfigurationError
     raise ConfigurationError("Advocate client is not configured but GENAI is enabled")
   
   try:
-    config = types.GenerateContentConfig(
-        temperature=temperature,
-        system_instruction=ADVOCATE_SYSTEM_INSTRUCTION
-    )
+    if use_structured_output:
+        # Import the schema
+        from madspark.agents.response_schemas import ADVOCATE_SCHEMA
+        
+        # Create the generation config with structured output
+        config = types.GenerateContentConfig(
+            temperature=temperature,
+            response_mime_type="application/json",
+            response_schema=ADVOCATE_SCHEMA,
+            system_instruction=ADVOCATE_SYSTEM_INSTRUCTION
+        )
+    else:
+        # Legacy config without structured output
+        config = types.GenerateContentConfig(
+            temperature=temperature,
+            system_instruction=ADVOCATE_SYSTEM_INSTRUCTION
+        )
+    
     response = advocate_client.models.generate_content(
         model=model_name,
         contents=prompt,

@@ -41,12 +41,14 @@ IMPROVEMENTS: Consider incorporating hydroponic systems for higher yields."""
         ]
         
         with patch('sys.argv', test_args):
-            with patch('madspark.cli.cli.async_coordinator') as mock_async:
+            with patch('madspark.core.async_coordinator.AsyncCoordinator') as mock_async_class:
                 # Mock the async coordinator to avoid actual API calls
-                mock_async.AsyncCoordinator.return_value.run_workflow.return_value = []
+                mock_async_instance = Mock()
+                mock_async_instance.run_workflow.return_value = []
+                mock_async_class.return_value = mock_async_instance
                 
                 # For synchronous mode, patch the run_multistep_workflow
-                with patch('madspark.cli.cli.run_multistep_workflow') as mock_run:
+                with patch('madspark.core.coordinator.run_multistep_workflow') as mock_run:
                     # Create mock results
                     mock_result = Mock()
                     mock_result.idea = "Vertical community gardens"

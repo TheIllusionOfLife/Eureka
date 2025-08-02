@@ -442,7 +442,7 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
 
 #### Next Priority Tasks
 
-**Updated: August 02, 2025 06:39 PM JST**
+##### Updated: August 02, 2025 06:39 PM JST
 
 Current priorities based on completion of logical inference feature:
 

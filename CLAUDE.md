@@ -181,6 +181,13 @@ When using Google's GenAI SDK, always use the nested API structure:
 ```python
 from google import genai
 
+# Initialize the client (typically done once per module)
+genai_client = genai.Client()
+
+# Define your model and prompt
+model_name = "gemini-1.5-flash"  # or your preferred model
+prompt = "Your prompt text here"
+
 # Configure the request
 config = genai.types.GenerateContentConfig(
     temperature=0.7,
@@ -197,6 +204,14 @@ response = genai_client.models.generate_content(
 
 For testing, mock the complete nested structure:
 ```python
+from unittest.mock import Mock
+
+# Create mock client and response
+mock_genai_client = Mock()
+mock_response = Mock()
+mock_response.text = "Mocked response text"
+
+# Mock the nested structure
 mock_models = Mock()
 mock_models.generate_content.return_value = mock_response
 mock_genai_client.models = mock_models

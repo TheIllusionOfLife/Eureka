@@ -316,7 +316,19 @@ class AsyncCoordinator:
             # Initialize enhanced reasoning if needed
             engine = None
             if enhanced_reasoning or multi_dimensional_eval or logical_inference:
-                engine = reasoning_engine or ReasoningEngine()
+                if reasoning_engine:
+                    engine = reasoning_engine
+                else:
+                    # Create ReasoningEngine with proper config and GenAI client
+                    try:
+                        from madspark.agents.genai_client import get_genai_client
+                        genai_client = get_genai_client()
+                        config = {"use_logical_inference": logical_inference} if logical_inference else None
+                        engine = ReasoningEngine(config=config, genai_client=genai_client)
+                    except (ImportError, AttributeError, RuntimeError):
+                        # Fallback to creating without genai_client
+                        config = {"use_logical_inference": logical_inference} if logical_inference else None
+                        engine = ReasoningEngine(config=config)
                 
             # Step 1: Generate Ideas (async)
             await self._send_progress("Generating ideas...", 0.1)

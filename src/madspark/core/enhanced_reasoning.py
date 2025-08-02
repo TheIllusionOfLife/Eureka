@@ -10,10 +10,17 @@ import logging
 import hashlib
 import datetime
 import json
-from typing import Dict, List, Any, Optional, TypedDict
+from typing import Dict, List, Any, Optional, TypedDict, Union
 from dataclasses import dataclass, field
 from collections import defaultdict
 import re
+
+# Import the new LogicalInferenceEngine
+from ..utils.logical_inference_engine import (
+    LogicalInferenceEngine,
+    InferenceResult,
+    InferenceType
+)
 
 # Configure logging for enhanced reasoning
 reasoning_logger = logging.getLogger(__name__)
@@ -201,10 +208,20 @@ class ContextMemory:
 
 
 class LogicalInference:
-    """System for performing logical inference and reasoning validation."""
+    """System for performing logical inference and reasoning validation.
     
-    def __init__(self):
-        """Initialize logical inference system."""
+    This class now serves as a compatibility layer that uses the new
+    LogicalInferenceEngine for actual inference processing.
+    """
+    
+    def __init__(self, genai_client=None):
+        """Initialize logical inference system.
+        
+        Args:
+            genai_client: Optional GenAI client for LLM-based inference
+        """
+        self.genai_client = genai_client
+        self.inference_engine = LogicalInferenceEngine(genai_client) if genai_client else None
         self.inference_rules = {
             'modus_ponens': self._modus_ponens,
             'modus_tollens': self._modus_tollens,
@@ -212,18 +229,55 @@ class LogicalInference:
             'disjunctive_syllogism': self._disjunctive_syllogism
         }
         
-    def build_inference_chain(self, premises: List[str]) -> Dict[str, Any]:
+    def build_inference_chain(self, premises: List[str], theme: str = "", 
+                            context: str = "", 
+                            analysis_type: Union[InferenceType, str] = InferenceType.FULL) -> Dict[str, Any]:
         """Build logical inference chain from premises.
         
         Args:
             premises: List of premise statements
+            theme: Optional theme for context
+            context: Optional context/constraints
+            analysis_type: Type of logical analysis to perform
             
         Returns:
             Dictionary containing inference chain and validity metrics
         """
         if not premises:
             return {'steps': [], 'conclusion': '', 'validity_score': 0.0}
+        
+        # Use new LLM-based engine if available
+        if self.inference_engine and self.genai_client:
+            # Combine premises into an idea for analysis
+            idea = " Therefore, ".join(premises)
             
+            # Perform LLM-based inference
+            result = self.inference_engine.analyze(
+                idea=idea,
+                theme=theme or "General reasoning",
+                context=context or "Logical analysis",
+                analysis_type=analysis_type
+            )
+            
+            # Convert InferenceResult to expected format
+            steps = []
+            for i, step_text in enumerate(result.inference_chain):
+                steps.append({
+                    'premise': premises[i] if i < len(premises) else "Derived",
+                    'conclusion': step_text,
+                    'confidence': result.confidence,
+                    'reasoning': step_text
+                })
+            
+            return {
+                'steps': steps,
+                'conclusion': result.conclusion,
+                'confidence_score': result.confidence,
+                'validity_score': result.confidence,  # Use confidence as validity proxy
+                'inference_result': result  # Include full result for detailed analysis
+            }
+        
+        # Fallback to old rule-based system if no LLM available
         steps = []
         current_conclusions = premises.copy()
         
@@ -1203,7 +1257,9 @@ class ReasoningEngine:
         
         # Initialize components
         self.context_memory = ContextMemory(capacity=self.config.get('memory_capacity', 1000))
-        self.logical_inference = LogicalInference()
+        self.logical_inference = LogicalInference(genai_client=genai_client)
+        # Also create direct LogicalInferenceEngine for advanced features
+        self.logical_inference_engine = LogicalInferenceEngine(genai_client) if genai_client else None
         
         # Initialize multi-dimensional evaluator with genai_client if available
         if genai_client is None:
@@ -1276,18 +1332,25 @@ class ReasoningEngine:
             'reasoning_quality_metrics': self._calculate_reasoning_quality(enhanced_reasoning)
         }
         
-    def generate_inference_chain(self, premises: List[str], conclusion: str) -> Dict[str, Any]:
+    def generate_inference_chain(self, premises: List[str], conclusion: str,
+                               theme: str = "", context: str = "",
+                               analysis_type: Union[InferenceType, str] = InferenceType.FULL) -> Dict[str, Any]:
         """Generate logical inference chain from premises to conclusion.
         
         Args:
             premises: List of premise statements
             conclusion: Target conclusion
+            theme: Optional theme for context
+            context: Optional context/constraints
+            analysis_type: Type of logical analysis to perform
             
         Returns:
             Dictionary containing inference chain and validation
         """
-        # Build inference chain
-        inference_result = self.logical_inference.build_inference_chain(premises)
+        # Build inference chain with new parameters
+        inference_result = self.logical_inference.build_inference_chain(
+            premises, theme=theme, context=context, analysis_type=analysis_type
+        )
         
         # Validate conclusion consistency
         all_statements = premises + [conclusion]
@@ -1296,7 +1359,8 @@ class ReasoningEngine:
         # Calculate confidence in reaching the conclusion
         confidence_analysis = self.logical_inference.calculate_confidence(premises)
         
-        return {
+        # Extract additional analysis based on type
+        result = {
             'logical_steps': inference_result['steps'],
             'inference_conclusion': inference_result['conclusion'],
             'target_conclusion': conclusion,
@@ -1304,6 +1368,30 @@ class ReasoningEngine:
             'consistency_analysis': consistency_analysis,
             'premise_confidence': confidence_analysis
         }
+        
+        # Add type-specific results if using LLM engine
+        if 'inference_result' in inference_result and inference_result['inference_result']:
+            inference_obj = inference_result['inference_result']
+            
+            if analysis_type == InferenceType.CAUSAL and inference_obj.causal_chain:
+                result['causal_analysis'] = {
+                    'causal_chain': inference_obj.causal_chain,
+                    'feedback_loops': inference_obj.feedback_loops,
+                    'root_cause': inference_obj.root_cause
+                }
+            elif analysis_type == InferenceType.CONSTRAINTS and inference_obj.constraint_satisfaction:
+                result['constraint_analysis'] = {
+                    'satisfaction_scores': inference_obj.constraint_satisfaction,
+                    'overall_satisfaction': inference_obj.overall_satisfaction,
+                    'trade_offs': inference_obj.trade_offs
+                }
+            elif analysis_type == InferenceType.CONTRADICTION and inference_obj.contradictions:
+                result['contradiction_analysis'] = {
+                    'contradictions': inference_obj.contradictions,
+                    'resolution': inference_obj.resolution
+                }
+        
+        return result
         
     def process_complete_workflow(self, conversation_data: Dict[str, Any]) -> Dict[str, Any]:
         """Process a complete multi-agent workflow with enhanced reasoning.
@@ -1332,12 +1420,20 @@ class ReasoningEngine:
         
         # Generate logical inference if applicable
         logical_inference = {}
-        if 'idea' in current_request:
+        if 'idea' in current_request and (current_request.get('enable_logical_inference') or 
+                                         conversation_data.get('enable_logical_inference')):
             premises = [f"Theme: {theme}", f"Constraints: {constraints}"]
             premises.extend([inter.get('output', '') for inter in previous_interactions[-2:]])
             
+            # Get analysis type if specified
+            analysis_type = current_request.get('analysis_type', InferenceType.FULL)
+            
             logical_inference = self.generate_inference_chain(
-                premises, f"Recommended approach for {current_request['idea']}"
+                premises, 
+                f"Recommended approach for {current_request['idea']}",
+                theme=theme,
+                context=constraints,
+                analysis_type=analysis_type
             )
             
         # Multi-dimensional evaluation if this is an evaluation request

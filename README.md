@@ -399,13 +399,21 @@ Current priorities based on fresh investigation:
 
 ##### High Priority
 
-1. **[HIGH] Implement Shell Autocomplete**
+1. **[HIGH] Improve Logical Inference Feature with LLM**
+   - **Source**: Currently uses hardcoded templates (enhanced_reasoning.py:341)
+   - **Context**: `--logical` flag returns fixed strings like "Therefore, the consequent follows"
+   - **Approach**: Replace with LLM-based inference for real logical analysis
+   - **Benefits**: Causal reasoning, constraint satisfaction, contradiction detection
+   - **Estimated Effort**: 3-4 hours (lightweight LLM approach)
+   - **Details**: See [Logical Inference Feature Design](docs/LOGICAL_INFERENCE_DESIGN.md)
+
+2. **[HIGH] Implement Shell Autocomplete**
    - **Source**: test_mad_spark_command.py line 277 (only skipped test in file)
    - **Context**: Tab completion for commands (coordinator, test, --help, --version) and options
    - **Approach**: Add bash/zsh completion scripts to src/madspark/bin/
    - **Estimated Effort**: 2-3 hours
 
-2. **[HIGH] Add Colored Output to setup.sh**
+3. **[HIGH] Add Colored Output to setup.sh**
    - **Source**: test_setup_enhancements.py line 162 (only skipped test in file)
    - **Context**: Enhance setup.sh with ANSI color codes for better UX
    - **Approach**: Add green for success messages, red for errors
@@ -413,7 +421,7 @@ Current priorities based on fresh investigation:
 
 ##### Medium Priority (Enhancements)
 
-3. **[MEDIUM] Expand Structured Output Logging**
+4. **[MEDIUM] Expand Structured Output Logging**
    - **Source**: Currently only implemented in App.tsx (lines 313-317)
    - **Status**: Basic implementation exists, could be expanded
    - **Approach**: Add similar logging to ResultsDisplay.tsx and other components
@@ -426,12 +434,6 @@ Current priorities based on fresh investigation:
 - ✅ **Structured Output Logging**: Basic implementation exists in App.tsx
 
 ##### Low Priority/Future Improvements
-
-4. **[LOW] Improve or Remove Logical Inference Feature**
-   - **Problem**: `--logical` flag enables overly simplistic hardcoded templates
-   - **Current State**: Methods return fixed strings like "Therefore, the consequent follows" (enhanced_reasoning.py:341)
-   - **Recommendation**: Either implement real logical inference or remove to avoid misleading users
-   - **Estimated Effort**: 4-5 hours for proper implementation
 
 5. **[LOW] Optimize MultiDimensional Evaluator Performance**
    - **Source**: PR #130 review feedback

@@ -359,7 +359,7 @@ class TestWorkflowErrorHandling:
         with pytest.raises(ValidationError):
             run_multistep_workflow("", "")
         
-        # Test with invalid timeout - negative timeout should still work (no timeout enforcement in sync mode)
+        # Test with invalid timeout - negative timeout should be ignored (no timeout enforcement)
         result = run_multistep_workflow("test", "test", timeout=-1)
         assert isinstance(result, list)
     

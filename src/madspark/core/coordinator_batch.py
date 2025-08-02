@@ -85,8 +85,14 @@ def run_multistep_workflow_batch(
     Raises:
         TimeoutError: If the workflow exceeds the specified timeout
     """
-    # If timeout is specified, use ThreadPoolExecutor to enforce it
-    if timeout != DEFAULT_TIMEOUT_SECONDS:
+    # Validate input parameters
+    if not theme or theme.strip() == "":
+        raise ValidationError("Theme cannot be empty")
+    if constraints is None or (isinstance(constraints, str) and constraints.strip() == ""):
+        raise ValidationError("Constraints cannot be None or empty")
+    
+    # If timeout is specified and positive, use ThreadPoolExecutor to enforce it
+    if timeout != DEFAULT_TIMEOUT_SECONDS and timeout > 0:
         with ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(
                 _run_workflow_internal,

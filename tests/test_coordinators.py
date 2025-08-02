@@ -343,7 +343,7 @@ class TestTimeoutFunctionality:
         import time
         
         # Mock slow operations to simulate timeout
-        with patch('madspark.agents.idea_generator.generate_ideas') as mock_generate:
+        with patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry') as mock_generate:
             def slow_generate(*args, **kwargs):
                 time.sleep(2)  # Sleep for 2 seconds
                 return "Test Idea 1\nTest Idea 2"
@@ -462,6 +462,7 @@ class TestTimeoutFunctionality:
                 )
                 
                 assert len(results) > 0
+                # Should return the mocked idea
                 assert results[0]["idea"] == "Test Idea 1"
     
     def test_timeout_propagates_to_cli(self):

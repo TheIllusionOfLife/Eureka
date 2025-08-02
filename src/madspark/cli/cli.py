@@ -415,7 +415,7 @@ Examples:
     reasoning_group.add_argument(
         '--logical-inference', '--logical',
         action='store_true',
-        help='Enable logical inference chains for enhanced reasoning'
+        help='Enable LLM-powered logical inference for deep analytical reasoning (replaces hardcoded templates)'
     )
     
     # Output options

@@ -15,6 +15,7 @@ from ..utils.utils import parse_json_with_fallback, validate_evaluation_json
 from ..utils.novelty_filter import NoveltyFilter
 from ..utils.temperature_control import TemperatureManager
 from .enhanced_reasoning import ReasoningEngine
+from ..utils.logical_inference_engine import InferenceType
 from ..utils.cache_manager import CacheManager
 from ..utils.constants import (
     DEFAULT_IDEA_TEMPERATURE,
@@ -390,24 +391,28 @@ class AsyncCoordinator:
                             # Fall back to standard evaluation
                     
                     # Enhanced reasoning: Apply logical inference if enabled
-                    if logical_inference and engine:
+                    if logical_inference and engine and engine.logical_inference_engine:
                         try:
-                            # Create logical premises from the evaluation
-                            premises = [
-                                f"The idea '{idea_text}' addresses {theme}",
-                                f"The constraints are: {constraints}",
-                                f"The evaluation score is {score}/10"
-                            ]
+                            # Use the new LogicalInferenceEngine directly for better analysis
+                            inference_engine = engine.logical_inference_engine
                             
-                            # Apply logical inference
-                            inference_result = engine.generate_inference_chain(
-                                premises, 
-                                f"Therefore, this idea is suitable for {theme}"
+                            # Perform logical analysis on the idea
+                            inference_result = inference_engine.analyze(
+                                idea=idea_text,
+                                theme=theme,
+                                context=constraints,
+                                analysis_type=InferenceType.FULL  # Use full analysis for comprehensive reasoning
                             )
                             
-                            if inference_result and inference_result.get('confidence_score', 0) > LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD:
+                            # Format the result for display (standard verbosity for critique)
+                            formatted_inference = inference_engine.format_for_display(
+                                inference_result, 
+                                verbosity='standard'
+                            )
+                            
+                            if inference_result.confidence > LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD:
                                 # Enhance the critique with logical reasoning insights
-                                critique = f"{critique}\n\n🔗 Logical Analysis:\nConfidence: {inference_result['confidence_score']:.2f}\nReasoning: {inference_result.get('inference_conclusion', 'Applied formal logical inference')}"
+                                critique = f"{critique}\n\n{formatted_inference}"
                                 
                         except (AttributeError, KeyError, TypeError, ValueError) as e:
                             logger.warning(f"Logical inference failed for idea {i}: {e}")

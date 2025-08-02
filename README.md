@@ -124,6 +124,47 @@ docker compose logs -f          # View logs
 docker compose down            # Stop services
 ```
 
+### Logical Inference (NEW!)
+
+MadSpark now features LLM-powered logical inference that provides deep analytical reasoning for generated ideas. This replaces the previous hardcoded templates with genuine logical analysis.
+
+**Key Features:**
+- **Multiple Analysis Types**: Full reasoning, causal chains, constraint satisfaction, contradiction detection, and implications analysis
+- **Confidence Scoring**: Each inference includes a confidence score (0-1) indicating the strength of the logical reasoning
+- **Structured Output**: Clear inference chains showing step-by-step logical progression
+- **Contextual Integration**: Inference considers theme, constraints, and evaluation scores
+
+**Usage Examples:**
+```bash
+# Enable logical inference for comprehensive analysis
+ms "renewable energy" "urban environment" --logical
+
+# Combine with enhanced reasoning for maximum insight
+ms "sustainable farming" "limited space" --enhanced --logical
+
+# Use with multiple ideas for comparative logical analysis
+ms "education innovation" --top-ideas 3 --logical --detailed
+```
+
+**Output Example:**
+When logical inference is enabled, you'll see analysis like this in the critique:
+
+```
+🧠 Logical Inference Analysis:
+
+Inference Chain:
+  → Urban areas have limited horizontal space
+  → Vertical solutions maximize space efficiency  
+  → Rooftop gardens provide local food production
+  → Community involvement ensures long-term sustainability
+
+Conclusion: Vertical rooftop gardens are an optimal solution for urban food security
+
+Confidence: 85%
+
+Suggested Improvements: Consider hydroponic systems for higher yields in limited space
+```
+
 ### Bookmark Management
 
 MadSpark automatically saves all generated ideas as bookmarks for future reference and remixing. 

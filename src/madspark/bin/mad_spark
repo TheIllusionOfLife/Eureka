@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-mad_spark - Simplified command interface for MadSpark Multi-Agent System
+madspark - Simplified command interface for MadSpark Multi-Agent System
 """
 import os
 import sys

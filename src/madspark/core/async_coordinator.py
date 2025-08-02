@@ -15,6 +15,7 @@ from ..utils.utils import parse_json_with_fallback, validate_evaluation_json
 from ..utils.novelty_filter import NoveltyFilter
 from ..utils.temperature_control import TemperatureManager
 from .enhanced_reasoning import ReasoningEngine
+from ..utils.logical_inference_engine import InferenceType
 from ..utils.cache_manager import CacheManager
 from ..utils.constants import (
     DEFAULT_IDEA_TEMPERATURE,
@@ -400,7 +401,7 @@ class AsyncCoordinator:
                                 idea=idea_text,
                                 theme=theme,
                                 context=constraints,
-                                analysis_type='full'  # Use full analysis for comprehensive reasoning
+                                analysis_type=InferenceType.FULL  # Use full analysis for comprehensive reasoning
                             )
                             
                             # Format the result for display (standard verbosity for critique)
@@ -413,7 +414,7 @@ class AsyncCoordinator:
                                 # Enhance the critique with logical reasoning insights
                                 critique = f"{critique}\n\n{formatted_inference}"
                                 
-                        except Exception as e:
+                        except (AttributeError, KeyError, TypeError, ValueError) as e:
                             logger.warning(f"Logical inference failed for idea {i}: {e}")
                             # Continue without logical inference
                     

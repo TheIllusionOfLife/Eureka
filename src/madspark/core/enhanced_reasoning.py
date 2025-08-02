@@ -1257,8 +1257,8 @@ class ReasoningEngine:
         # Initialize components
         self.context_memory = ContextMemory(capacity=self.config.get('memory_capacity', 1000))
         self.logical_inference = LogicalInference(genai_client=genai_client)
-        # Also create direct LogicalInferenceEngine for advanced features
-        self.logical_inference_engine = LogicalInferenceEngine(genai_client) if genai_client else None
+        # Share the same engine instance to avoid duplication (DRY principle)
+        self.logical_inference_engine = self.logical_inference.inference_engine
         
         # Initialize multi-dimensional evaluator with genai_client if available
         if genai_client is None:

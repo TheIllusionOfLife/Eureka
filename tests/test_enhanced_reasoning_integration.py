@@ -122,9 +122,11 @@ IMPROVEMENTS: Consider hybrid solar-wind systems."""
         # Create ReasoningEngine
         reasoning_engine = ReasoningEngine(genai_client=mock_genai_client)
         
-        # Should have created LogicalInferenceEngine (called twice: once in LogicalInference, once directly)
+        # Should have created LogicalInferenceEngine (once in LogicalInference, shared with ReasoningEngine)
         assert hasattr(reasoning_engine, 'logical_inference_engine')
-        assert MockInferenceEngine.call_count == 2  # Called in both LogicalInference and ReasoningEngine
+        assert MockInferenceEngine.call_count == 1  # Created once and shared (DRY principle)
+        # Verify it's the same instance
+        assert reasoning_engine.logical_inference_engine is reasoning_engine.logical_inference.inference_engine
         
     def test_inference_results_formatting(self, reasoning_engine, mock_genai_client):
         """Test that inference results are properly formatted for display."""

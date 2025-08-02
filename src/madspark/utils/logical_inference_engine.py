@@ -114,13 +114,18 @@ class LogicalInferenceEngine:
             # Get appropriate prompt
             prompt = self.prompts[analysis_type](idea, theme, context)
             
-            # Call LLM
-            response = self.genai_client.generate_content(prompt)
+            # Call LLM using proper API pattern
+            from madspark.agents.genai_client import get_model_name, generate_config
+            response = self.genai_client.models.generate_content(
+                model=get_model_name(),
+                contents=prompt,
+                config=generate_config()
+            )
             
             # Parse response
             return self._parse_response(response.text, analysis_type)
             
-        except Exception as e:
+        except (AttributeError, KeyError, TypeError, ValueError) as e:
             logger.error(f"Logical inference failed: {e}")
             return InferenceResult(
                 conclusion="Unable to perform logical analysis due to an error",
@@ -267,7 +272,7 @@ Consider both positive and negative implications."""
             elif analysis_type == InferenceType.IMPLICATIONS:
                 result = self._parse_implications_response(response_text)
             
-        except Exception as e:
+        except (AttributeError, IndexError, ValueError, TypeError) as e:
             logger.warning(f"Failed to parse response fully: {e}")
             # Provide basic result even if parsing fails
             result.conclusion = self._extract_section(response_text, "CONCLUSION") or \
@@ -402,7 +407,8 @@ Consider both positive and negative implications."""
     # Utility parsing methods
     def _extract_section(self, text: str, section_name: str) -> Optional[str]:
         """Extract content of a named section."""
-        pattern = rf'{section_name}:\s*(.*?)(?=\n[A-Z_]+:|$)'
+        # Limit character matching to prevent ReDoS attacks
+        pattern = rf'{section_name}:\s*([^\n]{{0,5000}}.*?)(?=\n[A-Z_]+:|$)'
         match = re.search(pattern, text, re.DOTALL)
         if match:
             return match.group(1).strip()
@@ -463,6 +469,8 @@ Consider both positive and negative implications."""
             if match:
                 constraint_name = match.group(1).strip('- ')
                 satisfaction = float(match.group(2))
+                # Ensure percentage is within valid range
+                satisfaction = max(0.0, min(100.0, satisfaction))
                 constraints[constraint_name] = satisfaction
         return constraints
     

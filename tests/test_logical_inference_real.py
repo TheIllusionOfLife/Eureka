@@ -3,6 +3,7 @@
 import os
 import sys
 import logging
+import pytest
 
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
@@ -15,6 +16,7 @@ logging.basicConfig(level=logging.INFO, format='%(message)s')
 logger = logging.getLogger(__name__)
 
 
+@pytest.mark.skipif(not os.getenv('GOOGLE_API_KEY'), reason="Requires GOOGLE_API_KEY environment variable")
 def test_real_api():
     """Test logical inference with real Gemini API."""
     # Check for API key

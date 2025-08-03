@@ -153,8 +153,7 @@ async def async_improve_idea(
     advocacy_points: str, 
     skeptic_points: str, 
     theme: str,
-    temperature: float = 0.9,
-    use_structured_output: bool = True
+    temperature: float = 0.9
 ) -> str:
     """Async wrapper for idea improvement with retry logic.
     
@@ -170,8 +169,7 @@ async def async_improve_idea(
         advocacy_points,
         skeptic_points,
         theme,
-        temperature,
-        use_structured_output
+        temperature
     )
 
 
@@ -762,8 +760,7 @@ class AsyncCoordinator:
                         advocacy_points=advocacy_output,
                         skeptic_points=skepticism_output,
                         theme=theme,
-                        temperature=idea_temp,
-                        use_structured_output=True
+                        temperature=idea_temp
                     )
                 ),
                 timeout=45.0  # 45 second timeout for improvement (longer due to complexity)

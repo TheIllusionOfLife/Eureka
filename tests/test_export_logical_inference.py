@@ -2,7 +2,6 @@
 import pytest
 import tempfile
 import os
-from pathlib import Path
 from madspark.utils.export_utils import ExportManager
 from madspark.core.coordinator import CandidateData
 

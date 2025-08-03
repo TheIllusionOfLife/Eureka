@@ -1,6 +1,6 @@
 """Tests for batch logical inference optimization."""
 import pytest
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock
 from madspark.utils.logical_inference_engine import LogicalInferenceEngine, InferenceResult, InferenceType
 
 

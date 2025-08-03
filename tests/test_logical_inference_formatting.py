@@ -1,5 +1,4 @@
 """Tests for logical inference formatting bug fix."""
-import pytest
 from madspark.utils.output_processor import format_logical_inference_results
 
 

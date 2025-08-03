@@ -664,9 +664,10 @@ class AsyncCoordinator:
         evaluation_detail = candidate["critique"]
         partial_failures = []
         
-        # Step 1: Run advocacy first
-        try:
-            advocacy_output = await asyncio.wait_for(
+        # Steps 1 & 2: Run advocacy and skepticism in parallel
+        # Both depend only on the original idea, so they can run concurrently
+        advocacy_task = asyncio.create_task(
+            asyncio.wait_for(
                 self._run_with_semaphore(
                     async_advocate_idea(
                         idea=idea_text,
@@ -676,9 +677,37 @@ class AsyncCoordinator:
                         use_structured_output=True
                     )
                 ),
-                timeout=30.0  # 30 second timeout for advocacy
+                timeout=30.0
             )
-        except asyncio.TimeoutError:
+        )
+        
+        skepticism_task = asyncio.create_task(
+            asyncio.wait_for(
+                self._run_with_semaphore(
+                    async_criticize_idea(
+                        idea=idea_text,
+                        advocacy=evaluation_detail,  # Use evaluation instead of advocacy output
+                        context=theme,
+                        temperature=skepticism_temp,
+                        use_structured_output=True
+                    )
+                ),
+                timeout=30.0
+            )
+        )
+        
+        # Wait for both to complete in parallel
+        try:
+            advocacy_output, skepticism_output = await asyncio.gather(
+                advocacy_task, skepticism_task, return_exceptions=True
+            )
+        except Exception as e:
+            logger.warning(f"Parallel advocacy/skepticism failed: {e}")
+            advocacy_output = Exception("Parallel processing failed")
+            skepticism_output = Exception("Parallel processing failed")
+        
+        # Handle advocacy result
+        if isinstance(advocacy_output, asyncio.TimeoutError):
             logger.warning(f"Advocacy timed out for idea '{idea_text[:50]}...'. Using fallback.")
             advocacy_output = f"This idea shows strong potential in addressing {theme}. Key strengths include practical implementation approach and alignment with constraints."
             partial_failures.append({
@@ -686,30 +715,18 @@ class AsyncCoordinator:
                 "error": "Timeout after 30 seconds",
                 "error_type": "TimeoutError"
             })
-        except Exception as e:
-            logger.warning(f"Advocacy failed for idea '{idea_text[:50]}...': {e}")
-            advocacy_output = "Advocacy not available due to error"
+        elif isinstance(advocacy_output, Exception):
+            logger.warning(f"Advocacy failed for idea '{idea_text[:50]}...': {advocacy_output}")
+            advocacy_fallback = "Advocacy not available due to error"
             partial_failures.append({
                 "stage": "advocacy",
-                "error": str(e),
-                "error_type": type(e).__name__
+                "error": str(advocacy_output),
+                "error_type": type(advocacy_output).__name__
             })
-            
-        # Step 2: Run skepticism with the advocacy output
-        try:
-            skepticism_output = await asyncio.wait_for(
-                self._run_with_semaphore(
-                    async_criticize_idea(
-                        idea=idea_text,
-                        advocacy=advocacy_output,
-                        context=theme,
-                        temperature=skepticism_temp,
-                        use_structured_output=True
-                    )
-                ),
-                timeout=30.0  # 30 second timeout for skepticism
-            )
-        except asyncio.TimeoutError:
+            advocacy_output = advocacy_fallback
+        
+        # Handle skepticism result  
+        if isinstance(skepticism_output, asyncio.TimeoutError):
             logger.warning(f"Skepticism timed out for idea '{idea_text[:50]}...'. Using fallback.")
             skepticism_output = "Key concerns to consider: implementation complexity, resource requirements, and scalability challenges. Further analysis needed for practical deployment."
             partial_failures.append({
@@ -717,14 +734,15 @@ class AsyncCoordinator:
                 "error": "Timeout after 30 seconds",
                 "error_type": "TimeoutError"
             })
-        except Exception as e:
-            logger.warning(f"Skepticism failed for idea '{idea_text[:50]}...': {e}")
-            skepticism_output = "Skepticism not available due to error"
+        elif isinstance(skepticism_output, Exception):
+            logger.warning(f"Skepticism failed for idea '{idea_text[:50]}...': {skepticism_output}")
+            skepticism_fallback = "Skepticism not available due to error"
             partial_failures.append({
                 "stage": "skepticism",
-                "error": str(e),
-                "error_type": type(e).__name__
+                "error": str(skepticism_output),
+                "error_type": type(skepticism_output).__name__
             })
+            skepticism_output = skepticism_fallback
 
         # Step 3: Generate Improved Idea
         improved_idea_text = ""
@@ -777,19 +795,42 @@ class AsyncCoordinator:
                     f"- Applied critic's suggestions"
                 )
                 
-                # Add timeout to prevent hanging
-                improved_raw_eval = await asyncio.wait_for(
-                    self._run_with_semaphore(
-                        async_evaluate_ideas(
-                            ideas=improved_idea_text,
-                            criteria=constraints,
-                            context=improved_context,
-                            temperature=eval_temp,
-                            use_structured_output=True
-                        )
-                    ),
-                    timeout=30.0  # 30 second timeout for re-evaluation
+                # Create parallel tasks for standard and multi-dimensional evaluation
+                standard_eval_task = asyncio.create_task(
+                    asyncio.wait_for(
+                        self._run_with_semaphore(
+                            async_evaluate_ideas(
+                                ideas=improved_idea_text,
+                                criteria=constraints,
+                                context=improved_context,
+                                temperature=eval_temp,
+                                use_structured_output=True
+                            )
+                        ),
+                        timeout=30.0  # 30 second timeout for re-evaluation
+                    )
                 )
+                
+                multi_eval_task = None
+                if multi_dimensional_eval and reasoning_engine:
+                    multi_eval_task = asyncio.create_task(
+                        asyncio.wait_for(
+                            reasoning_engine.multi_evaluator.evaluate_idea(
+                                idea=improved_idea_text,
+                                context={"theme": theme, "constraints": constraints}
+                            ),
+                            timeout=30.0  # 30 second timeout for multi-dimensional evaluation
+                        )
+                    )
+                
+                # Wait for evaluations to complete in parallel
+                if multi_eval_task:
+                    improved_raw_eval, improved_multi_eval_result = await asyncio.gather(
+                        standard_eval_task, multi_eval_task, return_exceptions=True
+                    )
+                else:
+                    improved_raw_eval = await standard_eval_task
+                    improved_multi_eval_result = None
                 
                 # Parse the evaluation based on format
                 try:
@@ -834,32 +875,26 @@ class AsyncCoordinator:
                 
                 improved_multi_eval_data = None
                 
+                # Handle parallel evaluation results
+                if isinstance(improved_raw_eval, Exception):
+                    logger.warning(f"Standard re-evaluation failed: {improved_raw_eval}")
+                    improved_raw_eval = '{"evaluations": [{"score": 5.0, "comment": "Re-evaluation failed - using fallback score"}]}'
+                
+                if multi_eval_task and isinstance(improved_multi_eval_result, Exception):
+                    logger.warning(f"Multi-dimensional re-evaluation failed: {improved_multi_eval_result}")
+                    improved_multi_eval_result = None
+                elif improved_multi_eval_result:
+                    improved_multi_eval_data = improved_multi_eval_result
+                
                 if improved_evaluations:
                     eval_data = validate_evaluation_json(improved_evaluations[0])
                     improved_score = float(eval_data["score"])
                     improved_critique = eval_data["comment"]
                     
-                    # Apply multi-dimensional evaluation to improved idea if enabled
-                    if multi_dimensional_eval and reasoning_engine:
-                        try:
-                            # Re-evaluate with multi-dimensional analysis
-                            improved_multi_eval_result = reasoning_engine.multi_evaluator.evaluate_idea(
-                                idea=improved_idea_text,
-                                context={"theme": theme, "constraints": constraints}
-                            )
-                            
-                            # Store the improved multi-dimensional evaluation data
-                            improved_multi_eval_data = improved_multi_eval_result
-                            
-                            # Use multi-dimensional score for improved idea
-                            improved_score = improved_multi_eval_result['weighted_score']
-                            
-                            # Enhance critique with multi-dimensional insights
-                            improved_critique = f"{improved_critique}\n\n🧠 Enhanced Analysis:\n{improved_multi_eval_result['evaluation_summary']}"
-                            
-                        except (AttributeError, KeyError, TypeError, ValueError) as e:
-                            logger.warning(f"Multi-dimensional evaluation failed for improved idea: {e}")
-                            # Continue with standard evaluation
+                    # Use multi-dimensional score if available (parallel result)
+                    if improved_multi_eval_data:
+                        improved_score = improved_multi_eval_data['weighted_score']
+                        improved_critique = f"{improved_critique}\n\n🧠 Enhanced Analysis:\n{improved_multi_eval_data['evaluation_summary']}"
                     
                     # Safeguard: If score decreased significantly, log warning
                     if improved_score < candidate["score"] - 1.0:

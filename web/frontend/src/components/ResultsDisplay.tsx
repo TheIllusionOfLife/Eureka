@@ -552,6 +552,212 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
                 </div>
               )}
 
+              {/* Logical Inference - Only show if detailed results enabled and logical inference is present */}
+              {showDetailedResults && result.logical_inference && (
+                <div className="border rounded-lg">
+                  <button
+                    type="button"
+                    onClick={() => toggleSection(index, 'logical-inference')}
+                    className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+                    aria-expanded={expandedSections[`${index}-logical-inference`] || false}
+                    aria-controls={`logical-inference-content-${index}`}
+                  >
+                    <span className="font-medium text-gray-900">
+                      🧠 Logical Inference Analysis
+                    </span>
+                    <svg
+                      className={`h-5 w-5 text-gray-500 transition-transform ${
+                        expandedSections[`${index}-logical-inference`] ? 'rotate-180' : ''
+                      }`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      aria-label="Toggle logical inference section"
+                    >
+                      <title>Toggle logical inference section</title>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {expandedSections[`${index}-logical-inference`] && (
+                    <div id={`logical-inference-content-${index}`} className="px-4 pb-3 text-gray-700">
+                      {result.logical_inference.error ? (
+                        <div className="text-red-600 font-medium">
+                          ⚠️ {result.logical_inference.error}
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {/* Inference Chain */}
+                          {result.logical_inference.inference_chain && result.logical_inference.inference_chain.length > 0 && (
+                            <div>
+                              <h4 className="font-semibold text-gray-900 mb-2">Inference Chain:</h4>
+                              <ul className="space-y-1">
+                                {result.logical_inference.inference_chain.map((step, stepIndex) => (
+                                  <li key={stepIndex} className="flex items-start">
+                                    <span className="text-blue-600 mr-2">→</span>
+                                    <span>{step}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {/* Conclusion */}
+                          {result.logical_inference.conclusion && (
+                            <div>
+                              <h4 className="font-semibold text-gray-900 mb-2">Conclusion:</h4>
+                              <p className="text-gray-800 font-medium">{result.logical_inference.conclusion}</p>
+                            </div>
+                          )}
+
+                          {/* Confidence */}
+                          <div>
+                            <h4 className="font-semibold text-gray-900 mb-2">Confidence:</h4>
+                            <div className="flex items-center">
+                              <div className="w-full bg-gray-200 rounded-full h-2 mr-3">
+                                <div 
+                                  className="bg-blue-600 h-2 rounded-full" 
+                                  style={{ width: `${(result.logical_inference.confidence * 100)}%` }}
+                                ></div>
+                              </div>
+                              <span className="text-sm font-medium text-gray-900">
+                                {Math.round(result.logical_inference.confidence * 100)}%
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Improvements */}
+                          {result.logical_inference.improvements && (
+                            <div>
+                              <h4 className="font-semibold text-gray-900 mb-2">Suggested Improvements:</h4>
+                              <p className="text-gray-700">{result.logical_inference.improvements}</p>
+                            </div>
+                          )}
+
+                          {/* Causal Chain */}
+                          {result.logical_inference.causal_chain && result.logical_inference.causal_chain.length > 0 && (
+                            <div>
+                              <h4 className="font-semibold text-gray-900 mb-2">Causal Chain:</h4>
+                              <ul className="space-y-1">
+                                {result.logical_inference.causal_chain.map((cause, causeIndex) => (
+                                  <li key={causeIndex} className="flex items-start">
+                                    <span className="text-green-600 mr-2">⟹</span>
+                                    <span>{cause}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {/* Implications */}
+                          {result.logical_inference.implications && result.logical_inference.implications.length > 0 && (
+                            <div>
+                              <h4 className="font-semibold text-gray-900 mb-2">Implications:</h4>
+                              <ul className="space-y-1">
+                                {result.logical_inference.implications.map((implication, impIndex) => (
+                                  <li key={impIndex} className="flex items-start">
+                                    <span className="text-purple-600 mr-2">•</span>
+                                    <span>{implication}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {/* Constraint Satisfaction */}
+                          {result.logical_inference.constraint_satisfaction && (
+                            <div>
+                              <h4 className="font-semibold text-gray-900 mb-2">Constraint Satisfaction:</h4>
+                              <div className="space-y-2">
+                                {Object.entries(result.logical_inference.constraint_satisfaction).map(([constraint, score]) => (
+                                  <div key={constraint} className="flex items-center">
+                                    <span className="text-sm text-gray-700 w-1/3">{constraint.replace(/_/g, ' ')}:</span>
+                                    <div className="w-1/3 bg-gray-200 rounded-full h-2 mr-2">
+                                      <div 
+                                        className="bg-orange-500 h-2 rounded-full" 
+                                        style={{ width: `${score * 100}%` }}
+                                      ></div>
+                                    </div>
+                                    <span className="text-sm font-medium text-gray-900 w-1/3">
+                                      {Math.round(score * 100)}%
+                                    </span>
+                                  </div>
+                                ))}
+                                {result.logical_inference.overall_satisfaction && (
+                                  <div className="mt-2 pt-2 border-t border-gray-200">
+                                    <div className="flex items-center font-medium">
+                                      <span className="text-sm text-gray-900 w-1/3">Overall Satisfaction:</span>
+                                      <div className="w-1/3 bg-gray-200 rounded-full h-2 mr-2">
+                                        <div 
+                                          className="bg-blue-600 h-2 rounded-full" 
+                                          style={{ width: `${result.logical_inference.overall_satisfaction * 100}%` }}
+                                        ></div>
+                                      </div>
+                                      <span className="text-sm font-medium text-gray-900 w-1/3">
+                                        {Math.round(result.logical_inference.overall_satisfaction * 100)}%
+                                      </span>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Second Order Effects */}
+                          {result.logical_inference.second_order_effects && result.logical_inference.second_order_effects.length > 0 && (
+                            <div>
+                              <h4 className="font-semibold text-gray-900 mb-2">Second Order Effects:</h4>
+                              <ul className="space-y-1">
+                                {result.logical_inference.second_order_effects.map((effect, effectIndex) => (
+                                  <li key={effectIndex} className="flex items-start">
+                                    <span className="text-indigo-600 mr-2">↪</span>
+                                    <span>{effect}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {/* Trade-offs */}
+                          {result.logical_inference.trade_offs && result.logical_inference.trade_offs.length > 0 && (
+                            <div>
+                              <h4 className="font-semibold text-gray-900 mb-2">Trade-offs:</h4>
+                              <ul className="space-y-1">
+                                {result.logical_inference.trade_offs.map((tradeOff, tradeIndex) => (
+                                  <li key={tradeIndex} className="flex items-start">
+                                    <span className="text-amber-600 mr-2">⚖</span>
+                                    <span>{tradeOff}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {/* Contradictions */}
+                          {result.logical_inference.contradictions && result.logical_inference.contradictions.length > 0 && (
+                            <div>
+                              <h4 className="font-semibold text-gray-900 mb-2">Contradictions:</h4>
+                              <div className="space-y-2">
+                                {result.logical_inference.contradictions.map((contradiction, contIndex) => (
+                                  <div key={contIndex} className="p-2 bg-red-50 border border-red-200 rounded">
+                                    <span className="text-red-700">⚠️ {JSON.stringify(contradiction)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                              {result.logical_inference.resolution && (
+                                <div className="mt-2">
+                                  <h5 className="font-medium text-gray-800 mb-1">Resolution:</h5>
+                                  <p className="text-gray-700">{result.logical_inference.resolution}</p>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Improved Critique - Only show if detailed results enabled */}
               {showDetailedResults && (
                 <div className="border rounded-lg">

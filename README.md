@@ -496,32 +496,31 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
 
 #### Next Priority Tasks
 
-1. **Performance Optimization Audit**
-   - **Source**: Multiple AI reviewers suggested performance improvements
-   - **Context**: Current implementation works but could be optimized
+1. **[HIGH] Fix Test Implementation Mismatches**
+   - **Source**: Code investigation revealed tests expecting different APIs than implemented
+   - **Context**: Tests exist but expect wrong method names or behaviors
    - **Concrete Sub-tasks**:
-     - [ ] Profile API response times in `src/madspark/agents/` (measure baseline)
-     - [ ] Implement request batching for multi-dimensional evaluator (7x potential speedup)
-     - [ ] Add Redis caching layer for repeated queries in `utils/cache_manager.py`
-     - [ ] Optimize React re-renders in `web/frontend/src/components/IdeaList.tsx`
+     - [ ] Fix ContentSafetyFilter tests - change `is_safe()` calls to use `sanitize_content()` API
+     - [ ] Update 5 auto-bookmark tests for new CLI structure (currently skipped)
+     - [ ] Align test expectations with actual implementations
    
-2. **Enhanced Error Handling**
+2. **[MEDIUM] Complete Enhanced Error Handling**
    - **Source**: Production readiness requirements
-   - **Context**: Need better error boundaries and user-friendly error messages
+   - **Context**: Retry logic exists, but user-facing error handling incomplete
    - **Concrete Sub-tasks**:
      - [ ] Add React ErrorBoundary to `web/frontend/src/App.tsx`
      - [ ] Create user-friendly error messages enum in `utils/error_messages.py`
-     - [ ] Implement retry logic for transient API failures in `coordinator.py`
      - [ ] Add error tracking/reporting integration (e.g., Sentry)
+     - [ ] ✅ ~~Implement retry logic~~ (Already implemented in `agent_retry_wrappers.py`)
 
-3. **Test Coverage Expansion**
-   - **Source**: Current coverage is good but could be comprehensive
-   - **Context**: Some edge cases not covered in current test suite
+3. **[MEDIUM] Frontend Performance & Testing**
+   - **Source**: Web interface optimization needs
+   - **Context**: Backend optimized, frontend needs attention
    - **Concrete Sub-tasks**:
-     - [ ] Add edge case tests for empty/null responses in `test_agents.py`
-     - [ ] Create integration test for full workflow in `test_integration.py`
+     - [ ] Optimize React re-renders in `web/frontend/src/components/IdeaList.tsx`
      - [ ] Add frontend component tests for error states
-     - [ ] Test timeout handling in async coordinator (currently skipped)
+     - [ ] Add edge case tests for empty/null responses in frontend
+     - [ ] Profile and optimize WebSocket message handling
 
 #### Known Issues / Blockers
 
@@ -535,26 +534,29 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
 - **Code Organization**: Extract common rendering logic reduces duplication by ~40%
 
 
-##### Already Completed (Investigation Findings)
+##### Already Completed (August 3, 2025 Investigation)
 
-- ✅ **Error Handling in structured_output_check.py**: Already uses specific exception types (ImportError, AttributeError)
-- ✅ **Command Aliases Documentation**: Fully documented in docs/COMMAND_ALIASES.md (212 lines)
-- ✅ **Structured Output Logging**: Basic implementation exists in App.tsx
+- ✅ **Batch API Optimization**: Implemented in PR #141 - reduced API calls from O(N) to O(1)
+- ✅ **Redis Caching Layer**: Already exists in `utils/cache_manager.py` with LRU implementation
+- ✅ **Multi-dimensional Evaluator Optimization**: Uses `evaluate_ideas_batch()` for single API call (not 7)
+- ✅ **Retry Logic for API Failures**: Implemented in `agent_retry_wrappers.py`
+- ✅ **Integration Tests**: Comprehensive tests exist in multiple files
+- ✅ **Timeout Handling Tests**: Already tested in `test_coordinators.py`
+- ✅ **Content Safety Filter**: Fully implemented in `content_safety.py` (but tests need updating)
 
 ##### Low Priority/Future Improvements
 
-4. **[LOW] Optimize MultiDimensional Evaluator Performance**
-   - **Source**: PR #130 review feedback
-   - **Current**: 7 sequential API calls per idea evaluation
-   - **Improvement**: Parallel API calls could provide 7x speedup
-   - **Approach**: Use asyncio for parallel calls, implement caching
-   - **Estimated Effort**: 4-5 hours
+4. **[LOW] Schema Evolution Strategy**
+   - **Source**: PR #148 follow-up suggestion
+   - **Context**: Plan for future changes to structured output schemas
+   - **Approach**: Design versioning strategy for response schemas
+   - **Estimated Effort**: 2-3 hours
 
-5. **[LOW] Batch Processing Enhancement**
-   - **Context**: CLI improvements from PR #123 showed UX gains
-   - **Potential**: Implement `--batch` for processing multiple topics
-   - **Approach**: Extend CLI infrastructure for batch operations
-   - **Estimated Effort**: 4-6 hours
+5. **[LOW] Performance Monitoring Enhancement**
+   - **Source**: PR #148 follow-up suggestion  
+   - **Context**: Monitor performance impact of structured output
+   - **Approach**: Add metrics collection for response times
+   - **Estimated Effort**: 3-4 hours
 
 ##### Summary of Investigation
 

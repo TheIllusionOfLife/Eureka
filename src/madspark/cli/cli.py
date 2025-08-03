@@ -631,14 +631,16 @@ def _parse_structured_agent_data(agent_data: str, agent_type: str) -> Dict[str, 
         elif agent_type == 'evaluation':
             # Evaluation is handled differently - already parsed in coordinator
             return {"formatted": agent_data, "structured": structured_data}
+        
+        else:
+            # Unknown agent type - return structured data with default formatting
+            fallback_text = json.dumps(structured_data, indent=2) if structured_data else agent_data
+            return {"formatted": fallback_text, "structured": structured_data}
             
     except (json.JSONDecodeError, TypeError, ImportError):
         # Fall back to text format for backward compatibility
         fallback_text = agent_data if isinstance(agent_data, str) else str(agent_data)
         return {"formatted": fallback_text, "structured": {}}
-    
-    fallback_text = agent_data if isinstance(agent_data, str) else str(agent_data)
-    return {"formatted": fallback_text, "structured": {}}
 
 
 def format_results(results: List[Dict[str, Any]], format_type: str) -> str:

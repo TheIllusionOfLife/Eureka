@@ -175,34 +175,9 @@ def _run_workflow_internal(
     idea_gen_duration = time.time() - start_time
     log_agent_completion("IdeaGenerator", ideas_text, f"{theme[:20]}...", idea_gen_duration, verbose)
     
-    # Parse ideas based on format
-    try:
-        # Try to parse as JSON first (structured output)
-        import json
-        ideas_json = json.loads(ideas_text)
-        
-        # Extract ideas from structured format
-        parsed_ideas = []
-        for idea_obj in ideas_json:
-            # Build a formatted idea string from the structured data
-            idea_number = idea_obj.get('idea_number')
-            title = idea_obj.get('title', 'Untitled')
-            description = idea_obj.get('description', 'No description provided')
-            
-            # Format based on whether we have an idea number
-            if idea_number:
-                idea_text = f"{idea_number}. {title}: {description}"
-            else:
-                idea_text = f"{title}: {description}"
-                
-            if 'key_features' in idea_obj and idea_obj['key_features']:
-                # Add key features as a formatted list
-                features = " Key features: " + ", ".join(idea_obj['key_features'])
-                idea_text += features
-            parsed_ideas.append(idea_text.strip())
-    except (json.JSONDecodeError, TypeError):
-        # Fall back to text parsing for backward compatibility
-        parsed_ideas = [idea.strip() for idea in ideas_text.split('\n') if idea.strip()]
+    # Parse ideas using shared utility
+    from madspark.utils.json_parsers import parse_idea_generator_response
+    parsed_ideas = parse_idea_generator_response(ideas_text)
     
     if not parsed_ideas:
         logging.warning("No ideas were generated.")

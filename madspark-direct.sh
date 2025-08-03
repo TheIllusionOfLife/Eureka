@@ -5,7 +5,7 @@
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Change to project directory
-cd "$SCRIPT_DIR"
+cd "$SCRIPT_DIR" || { echo "Error: Cannot change to script directory"; exit 1; }
 
 # Activate virtual environment
 source venv/bin/activate

@@ -5,7 +5,7 @@
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Change to project directory
-cd "$SCRIPT_DIR"
+cd "$SCRIPT_DIR" || { echo "Error: Cannot change to script directory"; exit 1; }
 
 # Create output directory if it doesn't exist
 mkdir -p output/structured/reports
@@ -19,7 +19,7 @@ echo "📊 Use 'tail -f $OUTPUT_FILE' to monitor progress"
 echo "🎯 Using structured output format for clean results"
 
 # Run in background with nohup
-nohup bash -c 'source venv/bin/activate && export PYTHONPATH="${PYTHONPATH}:$(pwd)/src" && python -m madspark.cli.cli "$@"' -- "$@" > "$OUTPUT_FILE" 2>&1 &
+nohup bash -c 'set -e; source venv/bin/activate && export PYTHONPATH="${PYTHONPATH}:$(pwd)/src" && python -m madspark.cli.cli "$@"' -- "$@" > "$OUTPUT_FILE" 2>&1 &
 
 # Get the process ID
 PID=$!

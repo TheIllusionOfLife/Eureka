@@ -138,7 +138,7 @@ def evaluate_ideas(ideas: str, criteria: str, context: str, temperature: float =
         )
     else:
         # Legacy config without structured output
-        config = genai.types.GenerateContentConfig(
+        config = types.GenerateContentConfig(
             temperature=temperature,
             system_instruction=CRITIC_SYSTEM_INSTRUCTION
         )

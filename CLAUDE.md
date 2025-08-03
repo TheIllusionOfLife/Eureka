@@ -343,10 +343,16 @@ export const renderContent = (content: string | ContentStructure) => {
   if (typeof content === 'string') {
     try {
       const parsed = JSON.parse(content);
-      // Render structured JSON
-    } catch {
-      // Render as markdown
+      // Render structured JSON from 'parsed'
+      return renderStructuredJSON(parsed);
+    } catch (e) {
+      // Not valid JSON, render as markdown
+      // Log error for debugging if needed: console.debug('JSON parse failed:', e);
+      return renderMarkdown(content);
     }
+  } else {
+    // Render structured JSON from 'content' object
+    return renderStructuredJSON(content);
   }
 };
 ```

@@ -499,17 +499,29 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
 1. **Performance Optimization Audit**
    - **Source**: Multiple AI reviewers suggested performance improvements
    - **Context**: Current implementation works but could be optimized
-   - **Approach**: Profile API calls, implement caching, optimize render cycles
+   - **Concrete Sub-tasks**:
+     - [ ] Profile API response times in `src/madspark/agents/` (measure baseline)
+     - [ ] Implement request batching for multi-dimensional evaluator (7x potential speedup)
+     - [ ] Add Redis caching layer for repeated queries in `utils/cache_manager.py`
+     - [ ] Optimize React re-renders in `web/frontend/src/components/IdeaList.tsx`
    
 2. **Enhanced Error Handling**
    - **Source**: Production readiness requirements
    - **Context**: Need better error boundaries and user-friendly error messages
-   - **Approach**: Add React error boundaries, improve API error handling
+   - **Concrete Sub-tasks**:
+     - [ ] Add React ErrorBoundary to `web/frontend/src/App.tsx`
+     - [ ] Create user-friendly error messages enum in `utils/error_messages.py`
+     - [ ] Implement retry logic for transient API failures in `coordinator.py`
+     - [ ] Add error tracking/reporting integration (e.g., Sentry)
 
 3. **Test Coverage Expansion**
    - **Source**: Current coverage is good but could be comprehensive
    - **Context**: Some edge cases not covered in current test suite
-   - **Approach**: Add integration tests, edge case coverage
+   - **Concrete Sub-tasks**:
+     - [ ] Add edge case tests for empty/null responses in `test_agents.py`
+     - [ ] Create integration test for full workflow in `test_integration.py`
+     - [ ] Add frontend component tests for error states
+     - [ ] Test timeout handling in async coordinator (currently skipped)
 
 #### Known Issues / Blockers
 

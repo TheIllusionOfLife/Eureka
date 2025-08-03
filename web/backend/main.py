@@ -194,7 +194,7 @@ class ErrorTracker:
 error_tracker = ErrorTracker()
 
 
-def generate_mock_results(theme: str, num_ideas: int) -> List[Dict[str, Any]]:
+def generate_mock_results(theme: str, num_ideas: int, logical_inference: bool = False) -> List[Dict[str, Any]]:
     """Generate mock results for testing without API keys."""
     mock_ideas = {
         "urban farming": [
@@ -263,6 +263,38 @@ def generate_mock_results(theme: str, num_ideas: int) -> List[Dict[str, Any]]:
                 }
             }
         }
+        
+        # Add logical inference data if enabled
+        if logical_inference:
+            result["logical_inference"] = {
+                "inference_chain": [
+                    f"Urban environments have limited horizontal space for {theme}",
+                    f"Vertical solutions maximize space efficiency for {theme} implementation",
+                    "Technology integration enables automation and monitoring",
+                    "Community adoption drives scalability and sustainability"
+                ],
+                "conclusion": f"Integrated vertical approach optimizes {theme} implementation in urban settings",
+                "confidence": round(0.75 + random.random() * 0.2, 2),  # nosec B311
+                "improvements": f"Consider IoT sensors and AI-driven optimization for enhanced {theme} efficiency",
+                "causal_chain": [
+                    f"Limited space drives vertical {theme} solutions",
+                    f"Vertical solutions enable scalable {theme} systems",
+                    f"Scalable systems improve urban {theme} accessibility"
+                ],
+                "implications": [
+                    f"Reduced space requirements for {theme} projects",
+                    f"Increased {theme} productivity per square meter",
+                    f"Enhanced urban sustainability through {theme} integration"
+                ],
+                "constraint_satisfaction": {
+                    "space_efficiency": round(0.85 + random.random() * 0.1, 2),  # nosec B311
+                    "cost_effectiveness": round(0.65 + random.random() * 0.2, 2),  # nosec B311
+                    "technical_feasibility": round(0.75 + random.random() * 0.15, 2),  # nosec B311
+                    "community_acceptance": round(0.7 + random.random() * 0.2, 2)  # nosec B311
+                },
+                "overall_satisfaction": round(0.75 + random.random() * 0.15, 2)  # nosec B311
+            }
+        
         results.append(result)
     
     return results
@@ -917,13 +949,15 @@ async def generate_ideas(request: Request, idea_request: IdeaGenerationRequest):
     # Check if running in mock mode - check environment variable properly
     google_api_key = os.environ.get("GOOGLE_API_KEY", "").strip()
     environment = os.getenv('ENVIRONMENT', '').lower()
-    if (not google_api_key or 
+    madspark_mode = os.getenv('MADSPARK_MODE', '').lower()
+    if (madspark_mode == 'mock' or
+        not google_api_key or 
         google_api_key == "your-api-key-here" or 
         google_api_key.startswith('mock-') or 
         google_api_key.startswith('test-') or
         environment in ['test', 'ci', 'mock']):
         logger.info("Running in mock mode - returning sample results")
-        mock_results = generate_mock_results(idea_request.theme, idea_request.num_top_candidates)
+        mock_results = generate_mock_results(idea_request.theme, idea_request.num_top_candidates, idea_request.logical_inference)
         return IdeaGenerationResponse(
             status="success",
             message=f"Generated {len(mock_results)} mock ideas",

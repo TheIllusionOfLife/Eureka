@@ -74,6 +74,26 @@ export interface MultiDimensionalEvaluation {
   };
 }
 
+// Logical inference analysis structure based on InferenceResult
+export interface LogicalInferenceResult {
+  inference_chain: string[];
+  conclusion: string;
+  confidence: number;
+  improvements?: string;
+  // Analysis-specific fields
+  causal_chain?: string[];
+  feedback_loops?: string[];
+  root_cause?: string;
+  constraint_satisfaction?: Record<string, number>;
+  overall_satisfaction?: number;
+  trade_offs?: string[];
+  contradictions?: Array<Record<string, any>>;
+  resolution?: string;
+  implications?: string[];
+  second_order_effects?: string[];
+  error?: string;
+}
+
 export interface IdeaResult {
   idea: string;
   initial_score: number;
@@ -86,6 +106,7 @@ export interface IdeaResult {
   score_delta: number;
   multi_dimensional_evaluation?: MultiDimensionalEvaluation;
   improved_multi_dimensional_evaluation?: MultiDimensionalEvaluation;
+  logical_inference?: LogicalInferenceResult;
 }
 
 export interface IdeaGenerationResponse {

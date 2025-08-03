@@ -21,14 +21,16 @@ jest.mock('react-toastify', () => ({
 
 import { toast } from 'react-toastify';
 
+// Import types
+import { ErrorDetails, LogEntry, LogLevel } from '../../types';
+
 // Import modules to test
 import {
   errorHandler,
   handleApiError,
   handleBookmarkError,
   handleIdeaGenerationError,
-  handleWebSocketError,
-  ErrorDetails
+  handleWebSocketError
 } from '../errorHandler';
 
 import {
@@ -45,9 +47,7 @@ import {
   logUserAction,
   logError,
   logInfo,
-  logWebSocketEvent,
-  LogEntry,
-  LogLevel
+  logWebSocketEvent
 } from '../logger';
 
 import {

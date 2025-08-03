@@ -270,8 +270,8 @@ def generate_mock_results(theme: str, num_ideas: int, logical_inference: bool = 
                 "inference_chain": [
                     f"Urban environments have limited horizontal space for {theme}",
                     f"Vertical solutions maximize space efficiency for {theme} implementation",
-                    f"Technology integration enables automation and monitoring",
-                    f"Community adoption drives scalability and sustainability"
+                    "Technology integration enables automation and monitoring",
+                    "Community adoption drives scalability and sustainability"
                 ],
                 "conclusion": f"Integrated vertical approach optimizes {theme} implementation in urban settings",
                 "confidence": round(0.75 + random.random() * 0.2, 2),  # nosec B311

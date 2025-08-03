@@ -200,6 +200,20 @@ response = genai_client.models.generate_content(
     contents=prompt,
     config=config
 )
+
+# For structured output (JSON responses), use response_mime_type:
+from typing import TypedDict, List
+
+class ResponseSchema(TypedDict):
+    field1: str
+    field2: List[str]
+
+config = genai.types.GenerateContentConfig(
+    temperature=0.7,
+    response_mime_type="application/json",
+    response_schema=ResponseSchema,
+    system_instruction="Your system instruction"
+)
 ```
 
 For testing, mock the complete nested structure:

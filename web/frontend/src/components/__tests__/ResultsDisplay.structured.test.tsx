@@ -51,7 +51,8 @@ describe('ResultsDisplay - Structured Output Support', () => {
     initial_critique: 'Initial critique',
     improved_critique: 'Improved critique',
     advocacy: 'Advocacy points',
-    skepticism: 'Skepticism points'
+    skepticism: 'Skepticism points',
+    score_delta: 2
   });
 
   it('should apply cleaning when structured_output is false', () => {

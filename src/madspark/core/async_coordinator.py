@@ -525,8 +525,7 @@ class AsyncCoordinator:
                 eval_temp,
                 active_tasks,
                 multi_dimensional_eval,
-                engine,
-                enhanced_reasoning
+                engine
             )
             
             await self._send_progress("Workflow completed successfully!", 1.0)
@@ -580,14 +579,12 @@ class AsyncCoordinator:
         eval_temp: float = DEFAULT_EVALUATION_TEMPERATURE,
         active_tasks: Optional[List[asyncio.Task]] = None,
         multi_dimensional_eval: bool = False,
-        reasoning_engine = None,
-        enhanced_reasoning: bool = False
+        reasoning_engine = None
     ) -> List[CandidateData]:
         """Process top candidates with parallel advocacy and skepticism.
         
         This runs advocacy and skepticism for all candidates in parallel,
-        significantly improving performance. Advocacy and skepticism are only
-        run when enhanced_reasoning is True.
+        significantly improving performance.
         """
         final_candidates: List[CandidateData] = []
         
@@ -604,8 +601,7 @@ class AsyncCoordinator:
                     eval_temp,
                     constraints,
                     multi_dimensional_eval,
-                    reasoning_engine,
-                    enhanced_reasoning
+                    reasoning_engine
                 )
             )
             tasks.append(task)
@@ -655,84 +651,74 @@ class AsyncCoordinator:
         eval_temp: float = 0.3,
         constraints: str = "",
         multi_dimensional_eval: bool = False,
-        reasoning_engine = None,
-        enhanced_reasoning: bool = False
+        reasoning_engine = None
     ) -> Optional[CandidateData]:
-        """Process a single candidate with complete feedback loop: advocacy → skepticism → improvement → re-evaluation.
-        
-        Advocacy and skepticism are only run when enhanced_reasoning is True.
-        """
+        """Process a single candidate with complete feedback loop: advocacy → skepticism → improvement → re-evaluation."""
         idea_text = candidate["text"]
         evaluation_detail = candidate["critique"]
         partial_failures = []
         
-        # Initialize default values
-        advocacy_output = ""
-        skepticism_output = ""
-        
-        # Only run advocacy and skepticism if enhanced_reasoning is enabled
-        if enhanced_reasoning:
-            # Step 1: Run advocacy first
-            try:
-                advocacy_output = await asyncio.wait_for(
-                    self._run_with_semaphore(
-                        async_advocate_idea(
-                            idea=idea_text,
-                            evaluation=evaluation_detail,
-                            context=theme,
-                            temperature=advocacy_temp,
-                            use_structured_output=True
-                        )
-                    ),
-                    timeout=30.0  # 30 second timeout for advocacy
-                )
-            except asyncio.TimeoutError:
-                logger.warning(f"Advocacy timed out for idea '{idea_text[:50]}...'. Using fallback.")
-                advocacy_output = f"This idea shows strong potential in addressing {theme}. Key strengths include practical implementation approach and alignment with constraints."
-                partial_failures.append({
-                    "stage": "advocacy",
-                    "error": "Timeout after 30 seconds",
-                    "error_type": "TimeoutError"
-                })
-            except Exception as e:
-                logger.warning(f"Advocacy failed for idea '{idea_text[:50]}...': {e}")
-                advocacy_output = "Advocacy not available due to error"
-                partial_failures.append({
-                    "stage": "advocacy",
-                    "error": str(e),
-                    "error_type": type(e).__name__
-                })
-                
-            # Step 2: Run skepticism with the advocacy output
-            try:
-                skepticism_output = await asyncio.wait_for(
-                    self._run_with_semaphore(
-                        async_criticize_idea(
-                            idea=idea_text,
-                            advocacy=advocacy_output,
-                            context=theme,
-                            temperature=skepticism_temp,
-                            use_structured_output=True
-                        )
-                    ),
-                    timeout=30.0  # 30 second timeout for skepticism
-                )
-            except asyncio.TimeoutError:
-                logger.warning(f"Skepticism timed out for idea '{idea_text[:50]}...'. Using fallback.")
-                skepticism_output = "Key concerns to consider: implementation complexity, resource requirements, and scalability challenges. Further analysis needed for practical deployment."
-                partial_failures.append({
-                    "stage": "skepticism",
-                    "error": "Timeout after 30 seconds",
-                    "error_type": "TimeoutError"
-                })
-            except Exception as e:
-                logger.warning(f"Skepticism failed for idea '{idea_text[:50]}...': {e}")
-                skepticism_output = "Skepticism not available due to error"
-                partial_failures.append({
-                    "stage": "skepticism",
-                    "error": str(e),
-                    "error_type": type(e).__name__
-                })
+        # Step 1: Run advocacy first
+        try:
+            advocacy_output = await asyncio.wait_for(
+                self._run_with_semaphore(
+                    async_advocate_idea(
+                        idea=idea_text,
+                        evaluation=evaluation_detail,
+                        context=theme,
+                        temperature=advocacy_temp,
+                        use_structured_output=True
+                    )
+                ),
+                timeout=30.0  # 30 second timeout for advocacy
+            )
+        except asyncio.TimeoutError:
+            logger.warning(f"Advocacy timed out for idea '{idea_text[:50]}...'. Using fallback.")
+            advocacy_output = f"This idea shows strong potential in addressing {theme}. Key strengths include practical implementation approach and alignment with constraints."
+            partial_failures.append({
+                "stage": "advocacy",
+                "error": "Timeout after 30 seconds",
+                "error_type": "TimeoutError"
+            })
+        except Exception as e:
+            logger.warning(f"Advocacy failed for idea '{idea_text[:50]}...': {e}")
+            advocacy_output = "Advocacy not available due to error"
+            partial_failures.append({
+                "stage": "advocacy",
+                "error": str(e),
+                "error_type": type(e).__name__
+            })
+            
+        # Step 2: Run skepticism with the advocacy output
+        try:
+            skepticism_output = await asyncio.wait_for(
+                self._run_with_semaphore(
+                    async_criticize_idea(
+                        idea=idea_text,
+                        advocacy=advocacy_output,
+                        context=theme,
+                        temperature=skepticism_temp,
+                        use_structured_output=True
+                    )
+                ),
+                timeout=30.0  # 30 second timeout for skepticism
+            )
+        except asyncio.TimeoutError:
+            logger.warning(f"Skepticism timed out for idea '{idea_text[:50]}...'. Using fallback.")
+            skepticism_output = "Key concerns to consider: implementation complexity, resource requirements, and scalability challenges. Further analysis needed for practical deployment."
+            partial_failures.append({
+                "stage": "skepticism",
+                "error": "Timeout after 30 seconds",
+                "error_type": "TimeoutError"
+            })
+        except Exception as e:
+            logger.warning(f"Skepticism failed for idea '{idea_text[:50]}...': {e}")
+            skepticism_output = "Skepticism not available due to error"
+            partial_failures.append({
+                "stage": "skepticism",
+                "error": str(e),
+                "error_type": type(e).__name__
+            })
 
         # Step 3: Generate Improved Idea
         improved_idea_text = ""

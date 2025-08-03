@@ -34,7 +34,12 @@ describe('IdeaGenerationResponse', () => {
         idea: 'Test idea',
         improved_idea: 'Clean JSON improved idea without meta-commentary',
         initial_score: 7,
-        improved_score: 9
+        improved_score: 9,
+        initial_critique: 'Test critique',
+        advocacy: 'Test advocacy',
+        skepticism: 'Test skepticism',
+        improved_critique: 'Improved critique',
+        score_delta: 2
       }],
       processing_time: 1.0,
       timestamp: '2025-08-01T00:00:00Z',

@@ -442,6 +442,7 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
 - **[Batch Processing Guide](docs/BATCH_PROCESSING_GUIDE.md)** - Process multiple themes
 - **[Interactive Mode Guide](docs/INTERACTIVE_MODE_GUIDE.md)** - Conversational interface
 - **[Web Interface Guide](docs/WEB_INTERFACE_GUIDE.md)** - Modern web UI
+- **[Cost & Time Analysis](docs/COST_TIME_ANALYSIS.md)** - Detailed pricing and performance metrics
 
 ## Session Handover
 

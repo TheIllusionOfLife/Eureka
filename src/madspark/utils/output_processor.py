@@ -155,9 +155,27 @@ def format_logical_inference_results(inference_results: Dict[str, Any]) -> str:
         for implication in inference_results["implications"]:
             lines.append(f"   • {implication}")
     elif "improvements" in inference_results and inference_results["improvements"]:
-        lines.append("└─ Recommendations:")
-        for improvement in inference_results["improvements"]:
-            lines.append(f"   • {improvement}")
+        improvements = inference_results["improvements"]
+        
+        # Handle both string and list formats
+        if isinstance(improvements, str):
+            # Split by newlines and filter empty lines
+            improvement_list = [imp.strip() for imp in improvements.split('\n') if imp.strip()]
+            # If still just one long string with no newlines, use it as-is
+            if not improvement_list:
+                improvement_list = [improvements.strip()] if improvements.strip() else []
+        else:
+            # Already a list
+            improvement_list = improvements
+        
+        # Only show recommendations section if we have actual content
+        if improvement_list:
+            lines.append("└─ Recommendations:")
+            for improvement in improvement_list:
+                # Remove existing bullet points if present
+                if improvement.startswith('•'):
+                    improvement = improvement[1:].strip()
+                lines.append(f"   • {improvement}")
     
     # Handle conclusion (new format)
     elif "conclusion" in inference_results and inference_results["conclusion"]:

@@ -453,14 +453,17 @@ def convert_risk_to_safety_score(dimension_scores: Dict[str, float]) -> Dict[str
         dimension_scores: Dictionary containing dimension scores
         
     Returns:
-        Updated dictionary with safety_score instead of risk_assessment
+        New dictionary with safety_score instead of risk_assessment
     """
-    if "risk_assessment" in dimension_scores:
-        # Invert the risk score to create safety score
-        risk_score = dimension_scores.pop("risk_assessment")
-        dimension_scores["safety_score"] = 10.0 - risk_score
+    # Create a copy to avoid mutating the input
+    result = dimension_scores.copy()
     
-    return dimension_scores
+    if "risk_assessment" in result:
+        # Invert the risk score to create safety score
+        risk_score = result.pop("risk_assessment")
+        result["safety_score"] = 10.0 - risk_score
+    
+    return result
 
 
 # Aliases for consistency with agent imports

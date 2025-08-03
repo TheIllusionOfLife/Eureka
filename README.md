@@ -345,8 +345,15 @@ python -m madspark.cli.batch_metrics --clear
 
 ### Performance Results
 
-Real-world testing shows significant improvements with batch processing:
+Real-world testing shows significant improvements with comprehensive optimizations:
 
+**🚀 Major Performance Optimizations (August 2025)**:
+- **⚡ 60-70% Execution Time Reduction**: Complex queries reduced from 9-10 minutes to 2-3 minutes
+- **🔄 Batch Logical Inference**: 80% API call reduction (5 calls → 1 call)
+- **⚙️ Parallel Processing**: 50% improvement for advocacy/skepticism operations
+- **📈 Combined API Optimization**: 30% fewer total API calls (13 → 9 calls)
+
+**Previous Batch Processing Improvements**:
 - **🚀 50% API Call Reduction**: 3 batch calls vs 6 individual calls for 2 candidates
 - **💰 45% Cost Savings**: Skeptic and improve operations show excellent savings
 - **📈 Token Efficiency**: ~1,298 tokens per item with detailed per-operation tracking

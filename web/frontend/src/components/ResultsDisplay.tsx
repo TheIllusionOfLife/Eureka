@@ -652,8 +652,8 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
                 </div>
               )}
 
-              {/* Advocacy - Only show if detailed results enabled */}
-              {showDetailedResults && (
+              {/* Advocacy - Only show if detailed results enabled AND advocacy content exists */}
+              {showDetailedResults && result.advocacy && result.advocacy.trim() !== '' && (
                 <div className="border rounded-lg">
                 <button
                   type="button"
@@ -686,8 +686,8 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
                 </div>
               )}
 
-              {/* Skepticism - Only show if detailed results enabled */}
-              {showDetailedResults && (
+              {/* Skepticism - Only show if detailed results enabled AND skepticism content exists */}
+              {showDetailedResults && result.skepticism && result.skepticism.trim() !== '' && (
                 <div className="border rounded-lg">
                 <button
                   type="button"

@@ -248,8 +248,12 @@ Important:
 - Suggest concrete improvements based on logical gaps identified
 - Use the exact format with === ANALYSIS_FOR_IDEA_N === separators"""
         
-        # Add other analysis types as needed
-        return self._get_full_analysis_prompt(ideas[0], theme, context)  # Fallback to single analysis
+        # Other analysis types not yet supported for batch processing
+        else:
+            raise NotImplementedError(
+                f"Batch analysis for {analysis_type.value} type is not yet implemented. "
+                f"Only {InferenceType.FULL.value} analysis supports batch processing."
+            )
     
     def _parse_batch_response(
         self, 

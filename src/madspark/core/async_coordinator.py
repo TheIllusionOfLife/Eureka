@@ -203,6 +203,43 @@ class AsyncCoordinator:
         """Run a coroutine with semaphore limiting concurrency."""
         async with self.semaphore:
             return await coro
+    
+    def _handle_agent_output_error(self, output, stage: str, idea_text: str, theme: str, fallback_text: str, partial_failures: list) -> str:
+        """Handle errors from agent outputs (advocacy, skepticism) with consistent logging and fallback.
+        
+        Args:
+            output: The agent output (could be Exception or TimeoutError)
+            stage: The stage name ('advocacy' or 'skepticism')
+            idea_text: The idea text being processed (for logging)
+            theme: The theme context (for fallback generation)
+            fallback_text: Default fallback text if not timeout
+            partial_failures: List to append failure info to
+            
+        Returns:
+            Processed output string (either original output or fallback)
+        """
+        if isinstance(output, asyncio.TimeoutError):
+            logger.warning(f"{stage.capitalize()} timed out for idea '{idea_text[:50]}...'. Using fallback.")
+            if stage == "advocacy":
+                fallback_output = f"This idea shows strong potential in addressing {theme}. Key strengths include practical implementation approach and alignment with constraints."
+            else:  # skepticism
+                fallback_output = "Key concerns to consider: implementation complexity, resource requirements, and scalability challenges. Further analysis needed for practical deployment."
+            partial_failures.append({
+                "stage": stage,
+                "error": "Timeout after 30 seconds",
+                "error_type": "TimeoutError"
+            })
+            return fallback_output
+        elif isinstance(output, Exception):
+            logger.warning(f"{stage.capitalize()} failed for idea '{idea_text[:50]}...': {output}")
+            partial_failures.append({
+                "stage": stage,
+                "error": str(output),
+                "error_type": type(output).__name__
+            })
+            return fallback_text
+        else:
+            return output
             
     async def run_workflow(
         self,
@@ -664,8 +701,7 @@ class AsyncCoordinator:
         evaluation_detail = candidate["critique"]
         partial_failures = []
         
-        # Steps 1 & 2: Run advocacy and skepticism in parallel
-        # Both depend only on the original idea, so they can run concurrently
+        # Step 1: Run advocacy first
         advocacy_task = asyncio.create_task(
             asyncio.wait_for(
                 self._run_with_semaphore(
@@ -681,12 +717,25 @@ class AsyncCoordinator:
             )
         )
         
+        # Wait for advocacy to complete first
+        try:
+            advocacy_output = await advocacy_task
+        except Exception as e:
+            advocacy_output = e
+        
+        # Handle advocacy result using helper method
+        advocacy_output = self._handle_agent_output_error(
+            advocacy_output, "advocacy", idea_text, theme, 
+            "Advocacy not available due to error", partial_failures
+        )
+        
+        # Step 2: Run skepticism using the actual advocacy output
         skepticism_task = asyncio.create_task(
             asyncio.wait_for(
                 self._run_with_semaphore(
                     async_criticize_idea(
                         idea=idea_text,
-                        advocacy=evaluation_detail,  # Use evaluation instead of advocacy output
+                        advocacy=advocacy_output,  # Use actual advocacy output
                         context=theme,
                         temperature=skepticism_temp,
                         use_structured_output=True
@@ -696,53 +745,17 @@ class AsyncCoordinator:
             )
         )
         
-        # Wait for both to complete in parallel
+        # Wait for skepticism to complete
         try:
-            advocacy_output, skepticism_output = await asyncio.gather(
-                advocacy_task, skepticism_task, return_exceptions=True
-            )
+            skepticism_output = await skepticism_task
         except Exception as e:
-            logger.warning(f"Parallel advocacy/skepticism failed: {e}")
-            advocacy_output = Exception("Parallel processing failed")
-            skepticism_output = Exception("Parallel processing failed")
+            skepticism_output = e
         
-        # Handle advocacy result
-        if isinstance(advocacy_output, asyncio.TimeoutError):
-            logger.warning(f"Advocacy timed out for idea '{idea_text[:50]}...'. Using fallback.")
-            advocacy_output = f"This idea shows strong potential in addressing {theme}. Key strengths include practical implementation approach and alignment with constraints."
-            partial_failures.append({
-                "stage": "advocacy",
-                "error": "Timeout after 30 seconds",
-                "error_type": "TimeoutError"
-            })
-        elif isinstance(advocacy_output, Exception):
-            logger.warning(f"Advocacy failed for idea '{idea_text[:50]}...': {advocacy_output}")
-            advocacy_fallback = "Advocacy not available due to error"
-            partial_failures.append({
-                "stage": "advocacy",
-                "error": str(advocacy_output),
-                "error_type": type(advocacy_output).__name__
-            })
-            advocacy_output = advocacy_fallback
-        
-        # Handle skepticism result  
-        if isinstance(skepticism_output, asyncio.TimeoutError):
-            logger.warning(f"Skepticism timed out for idea '{idea_text[:50]}...'. Using fallback.")
-            skepticism_output = "Key concerns to consider: implementation complexity, resource requirements, and scalability challenges. Further analysis needed for practical deployment."
-            partial_failures.append({
-                "stage": "skepticism",
-                "error": "Timeout after 30 seconds",
-                "error_type": "TimeoutError"
-            })
-        elif isinstance(skepticism_output, Exception):
-            logger.warning(f"Skepticism failed for idea '{idea_text[:50]}...': {skepticism_output}")
-            skepticism_fallback = "Skepticism not available due to error"
-            partial_failures.append({
-                "stage": "skepticism",
-                "error": str(skepticism_output),
-                "error_type": type(skepticism_output).__name__
-            })
-            skepticism_output = skepticism_fallback
+        # Handle skepticism result using helper method
+        skepticism_output = self._handle_agent_output_error(
+            skepticism_output, "skepticism", idea_text, theme,
+            "Skepticism not available due to error", partial_failures
+        )
 
         # Step 3: Generate Improved Idea
         improved_idea_text = ""

@@ -45,6 +45,42 @@ class ExportManager:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"madspark_results_{timestamp}.{extension}"
         return self.output_dir / filename
+    
+    def _format_logical_inference_fallback(self, inference_data: Dict[str, Any], format_type: str = "markdown") -> str:
+        """Format logical inference data with fallback when output_processor is not available.
+        
+        Args:
+            inference_data: Logical inference data dictionary
+            format_type: Either 'markdown' or 'pdf' for different formatting
+            
+        Returns:
+            Formatted string for logical inference data
+        """
+        parts = []
+        
+        if 'inference_chain' in inference_data:
+            parts.append("**Logical Steps:**" if format_type == "markdown" else "Logical Steps:")
+            for step_i, step in enumerate(inference_data['inference_chain'], 1):
+                parts.append(f"{step_i}. {step}")
+            parts.append("")
+            
+        if 'improvements' in inference_data and inference_data['improvements']:
+            parts.append("**Recommendations:**" if format_type == "markdown" else "Recommendations:")
+            improvements = inference_data['improvements']
+            if isinstance(improvements, str):
+                improvement_list = [imp.strip() for imp in improvements.split('\n') if imp.strip()]
+            else:
+                improvement_list = improvements
+                
+            for improvement in improvement_list:
+                clean_improvement = improvement.lstrip('•').strip()
+                if format_type == "markdown":
+                    parts.append(f"- {clean_improvement}")
+                else:  # PDF format
+                    parts.append(f"• {clean_improvement}")
+            parts.append("")
+                    
+        return "\n".join(parts) if format_type == "markdown" else "<br/>".join(parts)
         
     def export_to_json(
         self, 
@@ -170,25 +206,11 @@ class ExportManager:
                             formatted_md = formatted_inference.replace('├─', '-').replace('└─', '-').replace('│  ', '  ').replace('   •', '-')
                             f.write(f"{formatted_md}\n\n")
                     except ImportError:
-                        # Fallback formatting
+                        # Use fallback formatting helper
                         f.write("### 🔍 Logical Inference Analysis\n\n")
-                        inference_data = result_dict['logical_inference']
-                        if 'inference_chain' in inference_data:
-                            f.write("**Logical Steps:**\n")
-                            for step_i, step in enumerate(inference_data['inference_chain'], 1):
-                                f.write(f"{step_i}. {step}\n")
-                            f.write("\n")
-                        if 'improvements' in inference_data and inference_data['improvements']:
-                            f.write("**Recommendations:**\n")
-                            improvements = inference_data['improvements']
-                            if isinstance(improvements, str):
-                                improvement_list = [imp.strip() for imp in improvements.split('\n') if imp.strip()]
-                            else:
-                                improvement_list = improvements
-                            for improvement in improvement_list:
-                                clean_improvement = improvement.lstrip('•').strip()
-                                f.write(f"- {clean_improvement}\n")
-                            f.write("\n")
+                        fallback_content = self._format_logical_inference_fallback(result_dict['logical_inference'], "markdown")
+                        if fallback_content:
+                            f.write(f"{fallback_content}\n")
                 
                 if i < len(results):
                     f.write("---\n\n")
@@ -313,26 +335,11 @@ class ExportManager:
                         formatted_pdf = formatted_inference.replace('├─', '•').replace('└─', '•').replace('│  ', '  ')
                         story.append(Paragraph(formatted_pdf, styles['Normal']))
                 except ImportError:
-                    # Fallback formatting
+                    # Use fallback formatting helper
                     story.append(Paragraph("<b>🔍 Logical Inference Analysis:</b>", styles['Normal']))
-                    inference_data = result_dict['logical_inference'] 
-                    inference_text_parts = []
-                    if 'inference_chain' in inference_data:
-                        inference_text_parts.append("Logical Steps:")
-                        for step_i, step in enumerate(inference_data['inference_chain'], 1):
-                            inference_text_parts.append(f"{step_i}. {step}")
-                    if 'improvements' in inference_data and inference_data['improvements']:
-                        inference_text_parts.append("Recommendations:")
-                        improvements = inference_data['improvements']
-                        if isinstance(improvements, str):
-                            improvement_list = [imp.strip() for imp in improvements.split('\n') if imp.strip()]
-                        else:
-                            improvement_list = improvements
-                        for improvement in improvement_list:
-                            clean_improvement = improvement.lstrip('•').strip()
-                            inference_text_parts.append(f"• {clean_improvement}")
-                    if inference_text_parts:
-                        story.append(Paragraph("<br/>".join(inference_text_parts), styles['Normal']))
+                    fallback_content = self._format_logical_inference_fallback(result_dict['logical_inference'], "pdf")
+                    if fallback_content:
+                        story.append(Paragraph(fallback_content, styles['Normal']))
             
             if i < len(results):
                 story.append(Spacer(1, 30))

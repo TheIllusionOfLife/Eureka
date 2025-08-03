@@ -158,6 +158,38 @@ class ExportManager:
                 f.write("### ⚠️ Skeptical Analysis\n\n")
                 f.write(f"{result_dict['skepticism']}\n\n")
                 
+                # Add logical inference analysis if available
+                if 'logical_inference' in result_dict and result_dict['logical_inference']:
+                    try:
+                        from madspark.utils.output_processor import format_logical_inference_results
+                        inference_data = result_dict['logical_inference']
+                        formatted_inference = format_logical_inference_results(inference_data)
+                        if formatted_inference:
+                            f.write("### 🔍 Logical Inference Analysis\n\n")
+                            # Convert CLI formatting to markdown
+                            formatted_md = formatted_inference.replace('├─', '-').replace('└─', '-').replace('│  ', '  ').replace('   •', '-')
+                            f.write(f"{formatted_md}\n\n")
+                    except ImportError:
+                        # Fallback formatting
+                        f.write("### 🔍 Logical Inference Analysis\n\n")
+                        inference_data = result_dict['logical_inference']
+                        if 'inference_chain' in inference_data:
+                            f.write("**Logical Steps:**\n")
+                            for step_i, step in enumerate(inference_data['inference_chain'], 1):
+                                f.write(f"{step_i}. {step}\n")
+                            f.write("\n")
+                        if 'improvements' in inference_data and inference_data['improvements']:
+                            f.write("**Recommendations:**\n")
+                            improvements = inference_data['improvements']
+                            if isinstance(improvements, str):
+                                improvement_list = [imp.strip() for imp in improvements.split('\n') if imp.strip()]
+                            else:
+                                improvement_list = improvements
+                            for improvement in improvement_list:
+                                clean_improvement = improvement.lstrip('•').strip()
+                                f.write(f"- {clean_improvement}\n")
+                            f.write("\n")
+                
                 if i < len(results):
                     f.write("---\n\n")
         
@@ -267,6 +299,40 @@ class ExportManager:
             # Skepticism
             story.append(Paragraph("<b>⚠️ Skeptical Analysis:</b>", styles['Normal']))
             story.append(Paragraph(result_dict['skepticism'], styles['Normal']))
+            story.append(Spacer(1, 10))
+            
+            # Add logical inference analysis if available
+            if 'logical_inference' in result_dict and result_dict['logical_inference']:
+                try:
+                    from madspark.utils.output_processor import format_logical_inference_results
+                    inference_data = result_dict['logical_inference']
+                    formatted_inference = format_logical_inference_results(inference_data)
+                    if formatted_inference:
+                        story.append(Paragraph("<b>🔍 Logical Inference Analysis:</b>", styles['Normal']))
+                        # Convert CLI formatting to PDF format
+                        formatted_pdf = formatted_inference.replace('├─', '•').replace('└─', '•').replace('│  ', '  ')
+                        story.append(Paragraph(formatted_pdf, styles['Normal']))
+                except ImportError:
+                    # Fallback formatting
+                    story.append(Paragraph("<b>🔍 Logical Inference Analysis:</b>", styles['Normal']))
+                    inference_data = result_dict['logical_inference'] 
+                    inference_text_parts = []
+                    if 'inference_chain' in inference_data:
+                        inference_text_parts.append("Logical Steps:")
+                        for step_i, step in enumerate(inference_data['inference_chain'], 1):
+                            inference_text_parts.append(f"{step_i}. {step}")
+                    if 'improvements' in inference_data and inference_data['improvements']:
+                        inference_text_parts.append("Recommendations:")
+                        improvements = inference_data['improvements']
+                        if isinstance(improvements, str):
+                            improvement_list = [imp.strip() for imp in improvements.split('\n') if imp.strip()]
+                        else:
+                            improvement_list = improvements
+                        for improvement in improvement_list:
+                            clean_improvement = improvement.lstrip('•').strip()
+                            inference_text_parts.append(f"• {clean_improvement}")
+                    if inference_text_parts:
+                        story.append(Paragraph("<br/>".join(inference_text_parts), styles['Normal']))
             
             if i < len(results):
                 story.append(Spacer(1, 30))

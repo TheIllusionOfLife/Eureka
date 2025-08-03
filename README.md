@@ -511,7 +511,7 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
      - [ ] Add React ErrorBoundary to `web/frontend/src/App.tsx`
      - [ ] Create user-friendly error messages enum in `utils/error_messages.py`
      - [ ] Add error tracking/reporting integration (e.g., Sentry)
-     - [ ] ✅ ~~Implement retry logic~~ (Already implemented in `agent_retry_wrappers.py`)
+     - [x] ~~Implement retry logic~~ (Already implemented in `agent_retry_wrappers.py`)
 
 3. **[MEDIUM] Frontend Performance & Testing**
    - **Source**: Web interface optimization needs

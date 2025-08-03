@@ -202,7 +202,7 @@ response = genai_client.models.generate_content(
 )
 
 # For structured output (JSON responses), use response_mime_type:
-from typing import TypedDict
+from typing import TypedDict, List
 
 class ResponseSchema(TypedDict):
     field1: str

@@ -85,9 +85,18 @@ def advocate_idea(idea: str, evaluation: str, context: str, temperature: float =
         # Return structured mock data
         import json
         mock_advocacy = {
-            "strengths": ["Mock strength: Strong foundational concept", "Mock strength: Clear practical applications"],
-            "opportunities": ["Mock opportunity: Market potential", "Mock opportunity: Scalability options"],
-            "addressing_concerns": ["Mock mitigation: Address feasibility through phased approach", "Mock mitigation: Cost optimization strategies"]
+            "strengths": [
+                {"title": "Strong Foundation", "description": "Mock strength: Strong foundational concept"},
+                {"title": "Clear Applications", "description": "Mock strength: Clear practical applications"}
+            ],
+            "opportunities": [
+                {"title": "Market Potential", "description": "Mock opportunity: Market potential"},
+                {"title": "Scalability", "description": "Mock opportunity: Scalability options"}
+            ],
+            "addressing_concerns": [
+                {"concern": "Feasibility", "response": "Mock mitigation: Address feasibility through phased approach"},
+                {"concern": "Cost", "response": "Mock mitigation: Cost optimization strategies"}
+            ]
         }
         return json.dumps(mock_advocacy)
     else:

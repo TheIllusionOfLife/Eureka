@@ -31,9 +31,13 @@ def parse_idea_generator_response(ideas_text: str) -> List[str]:
                 idea_text = f"{title}: {description}"
                 
             if 'key_features' in idea_obj and idea_obj['key_features']:
-                # Add key features as a formatted list
-                features = " Key features: " + ", ".join(idea_obj['key_features'])
-                idea_text += features
+                # Add key features as a formatted list, ensuring all items are strings
+                try:
+                    features = " Key features: " + ", ".join(str(f) for f in idea_obj['key_features'])
+                    idea_text += features
+                except Exception:
+                    # Skip features if there's any issue with formatting
+                    pass
             parsed_ideas.append(idea_text.strip())
             
         return parsed_ideas

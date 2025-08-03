@@ -56,6 +56,12 @@ def format_multi_dimensional_scores(dimension_scores: Dict[str, float],
     lines = []
     lines.append("📊 Multi-Dimensional Evaluation:")
     
+    # Handle empty dimension scores
+    if not dimension_scores:
+        lines.append(f"Overall Score: {overall_score:.1f}/10")
+        lines.append("No dimension scores available")
+        return '\n'.join(lines)
+    
     # Determine rating
     if overall_score >= 8.5:
         rating = "Excellent"
@@ -288,7 +294,11 @@ def format_improved_idea_section(improved_data: Dict[str, Any]) -> str:
     lines.append("✨ Improved Idea:")
     lines.append("")  # Add line break after header
     
-    # Title and description
+    # Title and description - check if required keys exist
+    if 'improved_title' not in improved_data or 'improved_description' not in improved_data:
+        lines.append("Error: Missing required fields (improved_title or improved_description)")
+        return '\n'.join(lines)
+    
     lines.append(f"{improved_data['improved_title']}")
     lines.append("")
     lines.append(improved_data['improved_description'])

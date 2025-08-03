@@ -91,10 +91,22 @@ def criticize_idea(idea: str, advocacy: str, context: str, temperature: float = 
         # Return structured mock data
         import json
         mock_skepticism = {
-            "critical_flaws": ["Mock flaw: Implementation complexity may be underestimated", "Mock flaw: Resource requirements not fully considered"],
-            "risks_and_challenges": ["Mock risk: Market adoption challenges", "Mock risk: Technical scalability concerns"],
-            "questionable_assumptions": ["Mock assumption: User behavior prediction", "Mock assumption: Technology maturity"],
-            "missing_considerations": ["Mock missing: Regulatory compliance", "Mock missing: Long-term maintenance costs"]
+            "critical_flaws": [
+                {"title": "Implementation Complexity", "description": "Mock flaw: Implementation complexity may be underestimated"},
+                {"title": "Resource Requirements", "description": "Mock flaw: Resource requirements not fully considered"}
+            ],
+            "risks_and_challenges": [
+                {"title": "Market Adoption", "description": "Mock risk: Market adoption challenges"},
+                {"title": "Technical Scalability", "description": "Mock risk: Technical scalability concerns"}
+            ],
+            "questionable_assumptions": [
+                {"assumption": "User behavior prediction", "concern": "Mock assumption: May not match reality"},
+                {"assumption": "Technology maturity", "concern": "Mock assumption: May be overestimated"}
+            ],
+            "missing_considerations": [
+                {"aspect": "Regulatory compliance", "importance": "Mock missing: Critical for market entry"},
+                {"aspect": "Long-term maintenance", "importance": "Mock missing: Affects total cost of ownership"}
+            ]
         }
         return json.dumps(mock_skepticism)
     else:

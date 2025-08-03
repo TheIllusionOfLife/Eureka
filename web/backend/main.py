@@ -949,7 +949,9 @@ async def generate_ideas(request: Request, idea_request: IdeaGenerationRequest):
     # Check if running in mock mode - check environment variable properly
     google_api_key = os.environ.get("GOOGLE_API_KEY", "").strip()
     environment = os.getenv('ENVIRONMENT', '').lower()
-    if (not google_api_key or 
+    madspark_mode = os.getenv('MADSPARK_MODE', '').lower()
+    if (madspark_mode == 'mock' or
+        not google_api_key or 
         google_api_key == "your-api-key-here" or 
         google_api_key.startswith('mock-') or 
         google_api_key.startswith('test-') or

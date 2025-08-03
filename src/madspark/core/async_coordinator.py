@@ -460,31 +460,7 @@ class AsyncCoordinator:
                             logger.warning(f"Multi-dimensional evaluation failed for idea {i}: {e}")
                             # Fall back to standard evaluation
                     
-                    # Enhanced reasoning: Apply logical inference if enabled
-                    logical_inference_data = None
-                    if logical_inference and engine and engine.logical_inference_engine:
-                        try:
-                            # Use the new LogicalInferenceEngine directly for better analysis
-                            inference_engine = engine.logical_inference_engine
-                            logger.info(f"Applying logical inference analysis to idea {i}")
-                            
-                            # Perform logical analysis on the idea
-                            inference_result = inference_engine.analyze(
-                                idea=idea_text,
-                                theme=theme,
-                                context=constraints,
-                                analysis_type=InferenceType.FULL  # Use full analysis for comprehensive reasoning
-                            )
-                            
-                            if inference_result.confidence > LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD:
-                                # Store logical inference data separately
-                                # Use the to_dict method to get all available data
-                                logical_inference_data = inference_result.to_dict()
-                                logger.info(f"Stored logical inference data for idea {i} with confidence {inference_result.confidence}")
-                                
-                        except (AttributeError, KeyError, TypeError, ValueError) as e:
-                            logger.warning(f"Logical inference failed for idea {i}: {e}")
-                            # Continue without logical inference
+                    # Note: Logical inference moved to batch processing after evaluation loop
                     
                     # Build the evaluated idea data
                     evaluated_idea = {
@@ -497,9 +473,7 @@ class AsyncCoordinator:
                     if multi_eval_data:
                         evaluated_idea["multi_dimensional_evaluation"] = multi_eval_data
                     
-                    # Add logical inference data if available
-                    if logical_inference_data:
-                        evaluated_idea["logical_inference"] = logical_inference_data
+                    # Note: Logical inference data will be added after batch processing
                     
                     evaluated_ideas_data.append(evaluated_idea)
                     
@@ -512,6 +486,38 @@ class AsyncCoordinator:
             except Exception as e:
                 logger.error(f"Evaluation failed: {e}")
                 raise
+            
+            # Step 2.5: Batch Logical Inference Processing (if enabled)
+            if logical_inference and engine and engine.logical_inference_engine:
+                try:
+                    await self._send_progress("Performing batch logical inference analysis...", 0.65)
+                    logger.info(f"Starting batch logical inference for {len(top_candidates)} candidates")
+                    
+                    # Extract ideas for batch processing
+                    candidate_ideas = [candidate["text"] for candidate in top_candidates]
+                    
+                    # Perform batch logical inference
+                    inference_engine = engine.logical_inference_engine
+                    batch_results = inference_engine.analyze_batch(
+                        ideas=candidate_ideas,
+                        theme=theme,
+                        context=constraints,
+                        analysis_type=InferenceType.FULL
+                    )
+                    
+                    # Add logical inference data to candidates
+                    for i, (candidate, inference_result) in enumerate(zip(top_candidates, batch_results)):
+                        if inference_result.confidence > LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD:
+                            candidate["logical_inference"] = inference_result.to_dict()
+                            logger.info(f"Added logical inference data to candidate {i+1} with confidence {inference_result.confidence}")
+                        else:
+                            logger.info(f"Skipped logical inference for candidate {i+1} due to low confidence ({inference_result.confidence})")
+                    
+                    logger.info(f"Batch logical inference completed for {len(top_candidates)} candidates")
+                    
+                except Exception as e:
+                    logger.warning(f"Batch logical inference failed: {e}")
+                    # Continue without logical inference
                 
             # Step 3: Process top candidates with complete feedback loop
             await self._send_progress(f"Processing {len(top_candidates)} candidates with complete feedback loop...", 0.7)

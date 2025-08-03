@@ -139,6 +139,168 @@ class LogicalInferenceEngine:
                 error=str(e)
             )
     
+    def analyze_batch(
+        self,
+        ideas: List[str],
+        theme: str,
+        context: str,
+        analysis_type: Union[InferenceType, str] = InferenceType.FULL
+    ) -> List[InferenceResult]:
+        """
+        Perform logical inference analysis on multiple ideas in a single API call.
+        
+        This method significantly reduces API calls from O(N) to O(1) for logical inference,
+        providing substantial performance improvements for batch processing.
+        
+        Args:
+            ideas: List of generated ideas to analyze
+            theme: Original theme/topic
+            context: Constraints and requirements
+            analysis_type: Type of analysis to perform
+            
+        Returns:
+            List of InferenceResult objects, one for each idea
+        """
+        if not ideas:
+            return []
+        
+        # Convert string to enum if needed
+        if isinstance(analysis_type, str):
+            analysis_type = InferenceType(analysis_type)
+        
+        try:
+            # Create batch prompt for all ideas
+            batch_prompt = self._get_batch_analysis_prompt(ideas, theme, context, analysis_type)
+            
+            # Call LLM using proper API pattern
+            from madspark.agents.genai_client import get_model_name
+            from google import genai
+            
+            config = genai.types.GenerateContentConfig(
+                temperature=0.7,
+                system_instruction="You are a logical reasoning expert. Analyze multiple ideas systematically and provide structured logical insights for each one."
+            )
+            
+            response = self.genai_client.models.generate_content(
+                model=get_model_name(),
+                contents=batch_prompt,
+                config=config
+            )
+            
+            # Parse batch response
+            return self._parse_batch_response(response.text, len(ideas), analysis_type)
+            
+        except (AttributeError, KeyError, TypeError, ValueError, RuntimeError) as e:
+            logger.error(f"Batch logical inference failed: {e}")
+            # Return error results for all ideas
+            return [
+                InferenceResult(
+                    conclusion="Unable to perform logical analysis due to an error",
+                    confidence=0.0,
+                    error=str(e)
+                )
+                for _ in ideas
+            ]
+    
+    def _get_batch_analysis_prompt(
+        self, 
+        ideas: List[str], 
+        theme: str, 
+        context: str, 
+        analysis_type: InferenceType
+    ) -> str:
+        """Generate batch prompt for logical analysis of multiple ideas."""
+        ideas_section = ""
+        for i, idea in enumerate(ideas, 1):
+            ideas_section += f"\nIDEA_{i}:\n{idea}\n"
+        
+        if analysis_type == InferenceType.FULL:
+            return f"""Perform comprehensive logical analysis on these {len(ideas)} ideas.
+
+Theme: {theme}
+Context/Constraints: {context}
+{ideas_section}
+
+For each idea, provide a structured logical analysis following this exact format:
+
+=== ANALYSIS_FOR_IDEA_1 ===
+INFERENCE_CHAIN:
+- [Step 1]: [First logical step explaining why this addresses the theme]
+- [Step 2]: [Next logical deduction or observation]
+- [Step 3]: [Further reasoning building on previous steps]
+- [Step N]: [Final logical step leading to conclusion]
+
+CONCLUSION: [One paragraph summary of the logical conclusion based on the inference chain]
+
+CONFIDENCE: [0.0-1.0 score indicating logical soundness]
+
+IMPROVEMENTS: [Specific suggestions to make the idea more logically sound or address gaps]
+
+=== ANALYSIS_FOR_IDEA_2 ===
+[Same format for idea 2]
+...
+[Continue for all {len(ideas)} ideas]
+
+Important:
+- Each inference step should logically follow from the previous
+- Consider causal relationships, constraints, and potential contradictions
+- Base confidence on logical consistency and how well constraints are satisfied
+- Suggest concrete improvements based on logical gaps identified
+- Use the exact format with === ANALYSIS_FOR_IDEA_N === separators"""
+        
+        # Add other analysis types as needed
+        return self._get_full_analysis_prompt(ideas[0], theme, context)  # Fallback to single analysis
+    
+    def _parse_batch_response(
+        self, 
+        response_text: str, 
+        num_ideas: int, 
+        analysis_type: InferenceType
+    ) -> List[InferenceResult]:
+        """Parse batch analysis response into individual InferenceResult objects."""
+        results = []
+        
+        try:
+            # Split response by analysis sections
+            sections = response_text.split("=== ANALYSIS_FOR_IDEA_")
+            
+            # Skip first section (usually empty or header)
+            if len(sections) > 1:
+                sections = sections[1:]
+            
+            for i, section in enumerate(sections[:num_ideas]):
+                # Extract the analysis content after the ID
+                if " ===" in section:
+                    analysis_content = section.split(" ===", 1)[1].strip()
+                else:
+                    analysis_content = section.strip()
+                
+                # Parse individual analysis
+                result = self._parse_response(analysis_content, analysis_type)
+                results.append(result)
+            
+            # Fill remaining slots if parsing didn't get all ideas
+            while len(results) < num_ideas:
+                results.append(InferenceResult(
+                    conclusion="Unable to parse logical analysis from batch response",
+                    confidence=0.0,
+                    error="Batch parsing incomplete"
+                ))
+            
+        except Exception as e:
+            logger.error(f"Failed to parse batch response: {e}")
+            # Return error results for all ideas
+            results = [
+                InferenceResult(
+                    conclusion="Unable to parse logical analysis from batch response",
+                    confidence=0.0,
+                    error=str(e)
+                )
+                for _ in range(num_ideas)
+            ]
+        
+        return results
+    
     def _get_full_analysis_prompt(self, idea: str, theme: str, context: str) -> str:
         """Generate prompt for full logical analysis."""
         return f"""Perform comprehensive logical analysis on this idea.

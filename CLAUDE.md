@@ -327,6 +327,30 @@ When encountering module resolution errors in Docker:
 - **Local First**: When CI fails, immediately run the same check locally (e.g., `uv run ruff check`)
 - **Common Issues**: Unused imports, incorrect assertion syntax (`is True` not `== True`)
 
+## Web Interface Development Patterns
+
+### Content Rendering (August 3, 2025)
+When rendering dynamic content that can be either JSON or markdown:
+- Create type-safe renderers with format detection
+- Use TypeScript union types instead of 'any'
+- Extract common rendering logic to utilities
+- Safe property access with null checks
+- Support both formats seamlessly
+
+Example:
+```typescript
+export const renderContent = (content: string | ContentStructure) => {
+  if (typeof content === 'string') {
+    try {
+      const parsed = JSON.parse(content);
+      // Render structured JSON
+    } catch {
+      // Render as markdown
+    }
+  }
+};
+```
+
 ## Session Learnings
 
 ### PR #130: AI-Powered MultiDimensional Evaluation (July 31, 2025)

@@ -51,11 +51,21 @@ except ImportError:
     )
 
 
-async def async_generate_ideas(topic: str, context: str, temperature: float = 0.9, cache_manager: Optional[CacheManager] = None) -> str:
+async def async_generate_ideas(topic: str, context: str, temperature: float = 0.9, cache_manager: Optional[CacheManager] = None, use_structured_output: bool = True) -> str:
     """Async wrapper for idea generation with retry logic.
     
     Runs the synchronous generate_ideas function in a thread pool to avoid blocking.
     Includes exponential backoff retry for resilience.
+    
+    Args:
+        topic: The main topic for idea generation
+        context: Context or constraints for the ideas
+        temperature: Controls randomness (0.0-1.0)
+        cache_manager: Optional cache manager for result caching
+        use_structured_output: Whether to use structured JSON output (default: True)
+    
+    Returns:
+        Generated ideas as JSON string (if structured) or newline-separated text
     """
     # Check cache first
     if cache_manager:
@@ -71,7 +81,8 @@ async def async_generate_ideas(topic: str, context: str, temperature: float = 0.
         generate_ideas_with_retry,
         topic,
         context,
-        temperature
+        temperature,
+        use_structured_output
     )
     
     # Cache the result
@@ -82,7 +93,7 @@ async def async_generate_ideas(topic: str, context: str, temperature: float = 0.
     return result
 
 
-async def async_evaluate_ideas(ideas: str, criteria: str, context: str, temperature: float = 0.3) -> str:
+async def async_evaluate_ideas(ideas: str, criteria: str, context: str, temperature: float = 0.3, use_structured_output: bool = True) -> str:
     """Async wrapper for idea evaluation with retry logic.
     
     Runs the synchronous evaluate_ideas function in a thread pool to avoid blocking.
@@ -95,11 +106,12 @@ async def async_evaluate_ideas(ideas: str, criteria: str, context: str, temperat
         ideas,
         criteria,
         context,
-        temperature
+        temperature,
+        use_structured_output
     )
 
 
-async def async_advocate_idea(idea: str, evaluation: str, context: str, temperature: float = 0.5) -> str:
+async def async_advocate_idea(idea: str, evaluation: str, context: str, temperature: float = 0.5, use_structured_output: bool = True) -> str:
     """Async wrapper for idea advocacy with retry logic.
     
     Runs the synchronous advocate_idea function in a thread pool to avoid blocking.
@@ -112,11 +124,12 @@ async def async_advocate_idea(idea: str, evaluation: str, context: str, temperat
         idea,
         evaluation,
         context,
-        temperature
+        temperature,
+        use_structured_output
     )
 
 
-async def async_criticize_idea(idea: str, advocacy: str, context: str, temperature: float = 0.5) -> str:
+async def async_criticize_idea(idea: str, advocacy: str, context: str, temperature: float = 0.5, use_structured_output: bool = True) -> str:
     """Async wrapper for idea criticism/skepticism with retry logic.
     
     Runs the synchronous criticize_idea function in a thread pool to avoid blocking.
@@ -129,7 +142,8 @@ async def async_criticize_idea(idea: str, advocacy: str, context: str, temperatu
         idea,
         advocacy,
         context,
-        temperature
+        temperature,
+        use_structured_output
     )
 
 
@@ -300,7 +314,20 @@ class AsyncCoordinator:
             # Initialize enhanced reasoning if needed
             engine = None
             if enhanced_reasoning or multi_dimensional_eval or logical_inference:
-                engine = reasoning_engine or ReasoningEngine()
+                if reasoning_engine:
+                    engine = reasoning_engine
+                else:
+                    # Create ReasoningEngine with proper config and GenAI client
+                    try:
+                        from madspark.agents.genai_client import get_genai_client
+                        genai_client = get_genai_client()
+                        config = {"use_logical_inference": logical_inference} if logical_inference else None
+                        engine = ReasoningEngine(config=config, genai_client=genai_client)
+                        logger.info(f"Created ReasoningEngine with logical_inference={logical_inference}")
+                    except (ImportError, AttributeError, RuntimeError):
+                        # Fallback to creating without genai_client
+                        config = {"use_logical_inference": logical_inference} if logical_inference else None
+                        engine = ReasoningEngine(config=config)
                 
             # Step 1: Generate Ideas (async)
             await self._send_progress("Generating ideas...", 0.1)
@@ -311,12 +338,16 @@ class AsyncCoordinator:
                         topic=theme,
                         context=constraints,
                         temperature=idea_temp,
-                        cache_manager=self.cache_manager
+                        cache_manager=self.cache_manager,
+                        use_structured_output=True
                     ),
                     timeout=60.0  # 60 second timeout for initial idea generation
                 )
                 
-                parsed_ideas = [idea.strip() for idea in raw_generated_ideas.split("\n") if idea.strip()]
+                # Parse ideas using shared utility
+                from madspark.utils.json_parsers import parse_idea_generator_response
+                parsed_ideas = parse_idea_generator_response(raw_generated_ideas)
+                
                 if not parsed_ideas:
                     logger.warning("No ideas were generated")
                     return []
@@ -348,14 +379,53 @@ class AsyncCoordinator:
                     ideas=ideas_for_critic,
                     criteria=constraints,
                     context=theme,
-                    temperature=eval_temp
+                    temperature=eval_temp,
+                    use_structured_output=True
                 )
                 
-                # Parse evaluations
-                parsed_evaluations = parse_json_with_fallback(
-                    raw_evaluations,
-                    expected_count=len(parsed_ideas)
-                )
+                # Parse evaluations based on format
+                try:
+                    # Try to parse as JSON first (structured output)
+                    import json
+                    evaluations_json = json.loads(raw_evaluations)
+                    
+                    # Extract evaluations from structured format
+                    parsed_evaluations = []
+                    
+                    # Handle different response formats
+                    if isinstance(evaluations_json, list):
+                        # Array of evaluation objects
+                        for eval_obj in evaluations_json:
+                            if isinstance(eval_obj, dict):
+                                parsed_evaluations.append({
+                                    "score": eval_obj.get("score", 0),
+                                    "comment": eval_obj.get("comment", eval_obj.get("critique", "No comment available"))
+                                })
+                            else:
+                                # Fallback for unexpected format
+                                parsed_evaluations.append({
+                                    "score": 0,
+                                    "comment": str(eval_obj)
+                                })
+                    elif isinstance(evaluations_json, dict):
+                        # Single evaluation object - wrap in array
+                        parsed_evaluations.append({
+                            "score": evaluations_json.get("score", 0),
+                            "comment": evaluations_json.get("comment", evaluations_json.get("critique", "No comment available"))
+                        })
+                    else:
+                        # Unexpected format - convert to string
+                        parsed_evaluations.append({
+                            "score": 0,
+                            "comment": str(evaluations_json)
+                        })
+                        
+                except (json.JSONDecodeError, TypeError, KeyError, AttributeError):
+                    # Fall back to legacy parsing for backward compatibility
+                    parsed_evaluations = parse_json_with_fallback(
+                        raw_evaluations,
+                        expected_count=len(parsed_ideas)
+                    )
                 
                 # Build evaluated ideas list
                 evaluated_ideas_data: List[EvaluatedIdea] = []
@@ -391,10 +461,12 @@ class AsyncCoordinator:
                             # Fall back to standard evaluation
                     
                     # Enhanced reasoning: Apply logical inference if enabled
+                    logical_inference_data = None
                     if logical_inference and engine and engine.logical_inference_engine:
                         try:
                             # Use the new LogicalInferenceEngine directly for better analysis
                             inference_engine = engine.logical_inference_engine
+                            logger.info(f"Applying logical inference analysis to idea {i}")
                             
                             # Perform logical analysis on the idea
                             inference_result = inference_engine.analyze(
@@ -404,15 +476,11 @@ class AsyncCoordinator:
                                 analysis_type=InferenceType.FULL  # Use full analysis for comprehensive reasoning
                             )
                             
-                            # Format the result for display (standard verbosity for critique)
-                            formatted_inference = inference_engine.format_for_display(
-                                inference_result, 
-                                verbosity='standard'
-                            )
-                            
                             if inference_result.confidence > LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD:
-                                # Enhance the critique with logical reasoning insights
-                                critique = f"{critique}\n\n{formatted_inference}"
+                                # Store logical inference data separately
+                                # Use the to_dict method to get all available data
+                                logical_inference_data = inference_result.to_dict()
+                                logger.info(f"Stored logical inference data for idea {i} with confidence {inference_result.confidence}")
                                 
                         except (AttributeError, KeyError, TypeError, ValueError) as e:
                             logger.warning(f"Logical inference failed for idea {i}: {e}")
@@ -428,6 +496,10 @@ class AsyncCoordinator:
                     # Add multi-dimensional evaluation data if available
                     if multi_eval_data:
                         evaluated_idea["multi_dimensional_evaluation"] = multi_eval_data
+                    
+                    # Add logical inference data if available
+                    if logical_inference_data:
+                        evaluated_idea["logical_inference"] = logical_inference_data
                     
                     evaluated_ideas_data.append(evaluated_idea)
                     
@@ -594,7 +666,8 @@ class AsyncCoordinator:
                         idea=idea_text,
                         evaluation=evaluation_detail,
                         context=theme,
-                        temperature=advocacy_temp
+                        temperature=advocacy_temp,
+                        use_structured_output=True
                     )
                 ),
                 timeout=30.0  # 30 second timeout for advocacy
@@ -624,7 +697,8 @@ class AsyncCoordinator:
                         idea=idea_text,
                         advocacy=advocacy_output,
                         context=theme,
-                        temperature=skepticism_temp
+                        temperature=skepticism_temp,
+                        use_structured_output=True
                     )
                 ),
                 timeout=30.0  # 30 second timeout for skepticism
@@ -704,14 +778,54 @@ class AsyncCoordinator:
                             ideas=improved_idea_text,
                             criteria=constraints,
                             context=improved_context,
-                            temperature=eval_temp
+                            temperature=eval_temp,
+                            use_structured_output=True
                         )
                     ),
                     timeout=30.0  # 30 second timeout for re-evaluation
                 )
                 
-                # Parse the evaluation
-                improved_evaluations = parse_json_with_fallback(improved_raw_eval, expected_count=1)
+                # Parse the evaluation based on format
+                try:
+                    # Try to parse as JSON first (structured output)
+                    import json
+                    improved_evaluations_json = json.loads(improved_raw_eval)
+                    
+                    # Extract evaluations from structured format
+                    improved_evaluations = []
+                    
+                    # Handle different response formats (same logic as above)
+                    if isinstance(improved_evaluations_json, list):
+                        # Array of evaluation objects
+                        for eval_obj in improved_evaluations_json:
+                            if isinstance(eval_obj, dict):
+                                improved_evaluations.append({
+                                    "score": eval_obj.get("score", 0),
+                                    "comment": eval_obj.get("comment", eval_obj.get("critique", "No comment available"))
+                                })
+                            else:
+                                # Fallback for unexpected format
+                                improved_evaluations.append({
+                                    "score": 0,
+                                    "comment": str(eval_obj)
+                                })
+                    elif isinstance(improved_evaluations_json, dict):
+                        # Single evaluation object - wrap in array
+                        improved_evaluations.append({
+                            "score": improved_evaluations_json.get("score", 0),
+                            "comment": improved_evaluations_json.get("comment", improved_evaluations_json.get("critique", "No comment available"))
+                        })
+                    else:
+                        # Unexpected format - convert to string
+                        improved_evaluations.append({
+                            "score": 0,
+                            "comment": str(improved_evaluations_json)
+                        })
+                        
+                except (json.JSONDecodeError, TypeError, KeyError, AttributeError):
+                    # Fall back to legacy parsing for backward compatibility
+                    improved_evaluations = parse_json_with_fallback(improved_raw_eval, expected_count=1)
+                
                 improved_multi_eval_data = None
                 
                 if improved_evaluations:
@@ -822,6 +936,10 @@ class AsyncCoordinator:
         # Add improved multi-dimensional evaluation if available
         if 'improved_multi_eval_data' in locals() and improved_multi_eval_data:
             result["improved_multi_dimensional_evaluation"] = improved_multi_eval_data
+        
+        # Add logical inference data if present
+        if "logical_inference" in candidate:
+            result["logical_inference"] = candidate["logical_inference"]
         
         # Only include partial_failures if there were any
         if partial_failures:

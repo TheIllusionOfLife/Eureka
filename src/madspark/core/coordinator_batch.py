@@ -168,14 +168,16 @@ def _run_workflow_internal(
     ideas_text = call_idea_generator_with_retry(
         topic=theme, 
         context=constraints, 
-        temperature=idea_temp
+        temperature=idea_temp,
+        use_structured_output=True
     )
     
     idea_gen_duration = time.time() - start_time
     log_agent_completion("IdeaGenerator", ideas_text, f"{theme[:20]}...", idea_gen_duration, verbose)
     
-    # Parse ideas
-    parsed_ideas = [idea.strip() for idea in ideas_text.split('\n') if idea.strip()]
+    # Parse ideas using shared utility
+    from madspark.utils.json_parsers import parse_idea_generator_response
+    parsed_ideas = parse_idea_generator_response(ideas_text)
     
     if not parsed_ideas:
         logging.warning("No ideas were generated.")
@@ -220,7 +222,8 @@ def _run_workflow_internal(
             ideas=ideas_text,
             criteria=constraints,
             context=theme,
-            temperature=eval_temp
+            temperature=eval_temp,
+            use_structured_output=True
         )
         
         # Parse evaluations
@@ -436,7 +439,8 @@ def _run_workflow_internal(
             ideas=improved_ideas_text,
             criteria=constraints,
             context=theme,
-            temperature=eval_temp
+            temperature=eval_temp,
+            use_structured_output=True
         )
         
         # Parse re-evaluations

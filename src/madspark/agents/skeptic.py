@@ -35,7 +35,7 @@ else:
     model_name = "mock-model"
 
 
-def criticize_idea(idea: str, advocacy: str, context: str, temperature: float = 0.5) -> str:
+def criticize_idea(idea: str, advocacy: str, context: str, temperature: float = 0.5, use_structured_output: bool = True) -> str:
   """Critically analyzes an idea, playing devil's advocate, using the skeptic model.
 
   Args:
@@ -43,9 +43,11 @@ def criticize_idea(idea: str, advocacy: str, context: str, temperature: float = 
     advocacy: The arguments previously made in favor of the idea.
     context: Additional context relevant for the critical analysis.
     temperature: Controls randomness in generation (0.0-1.0). Balanced for criticism.
+    use_structured_output: Whether to use structured JSON output (default: True)
 
   Returns:
     A string containing the critical analysis, counterarguments, and identified risks.
+    If use_structured_output is True, returns JSON string. Otherwise, returns formatted text.
     Returns a placeholder string if the model provides no content.
   Raises:
     ValueError: If idea, advocacy, or context are empty or invalid.
@@ -85,9 +87,33 @@ def criticize_idea(idea: str, advocacy: str, context: str, temperature: float = 
   
   if not GENAI_AVAILABLE or skeptic_client is None:
     # Return mock criticism for CI/testing environments or when API key is not configured
-    from madspark.utils.mock_language_utils import get_mock_response
-    combined_text = idea + advocacy + context
-    return get_mock_response('skeptic', combined_text)
+    if use_structured_output:
+        # Return structured mock data
+        import json
+        mock_skepticism = {
+            "critical_flaws": [
+                {"title": "Implementation Complexity", "description": "Mock flaw: Implementation complexity may be underestimated"},
+                {"title": "Resource Requirements", "description": "Mock flaw: Resource requirements not fully considered"}
+            ],
+            "risks_and_challenges": [
+                {"title": "Market Adoption", "description": "Mock risk: Market adoption challenges"},
+                {"title": "Technical Scalability", "description": "Mock risk: Technical scalability concerns"}
+            ],
+            "questionable_assumptions": [
+                {"assumption": "User behavior prediction", "concern": "Mock assumption: May not match reality"},
+                {"assumption": "Technology maturity", "concern": "Mock assumption: May be overestimated"}
+            ],
+            "missing_considerations": [
+                {"aspect": "Regulatory compliance", "importance": "Mock missing: Critical for market entry"},
+                {"aspect": "Long-term maintenance", "importance": "Mock missing: Affects total cost of ownership"}
+            ]
+        }
+        return json.dumps(mock_skepticism)
+    else:
+        # Legacy text format for backward compatibility
+        from madspark.utils.mock_language_utils import get_mock_response
+        combined_text = idea + advocacy + context
+        return get_mock_response('skeptic', combined_text)
   
   if skeptic_client is None:
     from madspark.utils.errors import ConfigurationError
@@ -95,10 +121,24 @@ def criticize_idea(idea: str, advocacy: str, context: str, temperature: float = 
   
   
   try:
-    config = types.GenerateContentConfig(
-        temperature=temperature,
-        system_instruction=SKEPTIC_SYSTEM_INSTRUCTION
-    )
+    if use_structured_output:
+        # Import the schema
+        from madspark.agents.response_schemas import SKEPTIC_SCHEMA
+        
+        # Create the generation config with structured output
+        config = types.GenerateContentConfig(
+            temperature=temperature,
+            response_mime_type="application/json",
+            response_schema=SKEPTIC_SCHEMA,
+            system_instruction=SKEPTIC_SYSTEM_INSTRUCTION
+        )
+    else:
+        # Legacy config without structured output
+        config = types.GenerateContentConfig(
+            temperature=temperature,
+            system_instruction=SKEPTIC_SYSTEM_INSTRUCTION
+        )
+    
     response = skeptic_client.models.generate_content(
         model=model_name,
         contents=prompt,

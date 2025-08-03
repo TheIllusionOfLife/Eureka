@@ -200,6 +200,11 @@ data/temp/
 data/exports/
 !data/exports/README.md
 
+# Output files
+madspark_output.txt
+output/markdown/*.md
+examples/data/bookmarks.json
+
 # Old structure (being deprecated)
 mad_spark_multiagent/
 

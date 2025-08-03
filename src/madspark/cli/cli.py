@@ -170,7 +170,7 @@ class BetterHelpFormatter(argparse.RawDescriptionHelpFormatter):
 def create_parser() -> argparse.ArgumentParser:
     """Create the main argument parser."""
     parser = argparse.ArgumentParser(
-        description='MadSpark Multi-Agent Idea Generation System - Optimized with 50% fewer API calls through intelligent batch processing',
+        description='MadSpark Multi-Agent Idea Generation System - Now with Google Gemini structured output for cleaner formatting and 50% fewer API calls through intelligent batch processing',
         formatter_class=BetterHelpFormatter,
         epilog="""
 Examples:
@@ -401,7 +401,7 @@ Examples:
     reasoning_group.add_argument(
         '--enhanced-reasoning', '--enhanced',
         action='store_true',
-        help='Enable enhanced reasoning capabilities with context awareness'
+        help='Add advocate & skeptic agents for balanced analysis (strengths/opportunities vs risks/flaws)'
     )
     
     # Multi-dimensional evaluation is now always enabled
@@ -415,7 +415,7 @@ Examples:
     reasoning_group.add_argument(
         '--logical-inference', '--logical',
         action='store_true',
-        help='Enable LLM-powered logical inference for deep analytical reasoning (replaces hardcoded templates)'
+        help='Add logical inference analysis (causal chains, constraints, contradictions, implications)'
     )
     
     # Output options
@@ -589,6 +589,60 @@ def remove_bookmark_command(args: argparse.Namespace):
         print(f"💾 Bookmarks file updated: {args.bookmark_file}")
 
 
+def _parse_structured_agent_data(agent_data: str, agent_type: str) -> Dict[str, Any]:
+    """Parse structured JSON agent data or fallback to text parsing.
+    
+    Args:
+        agent_data: Raw agent response (JSON or text)
+        agent_type: Type of agent ('advocacy', 'skepticism', 'evaluation')
+        
+    Returns:
+        Dictionary with parsed and formatted data
+    """
+    if not agent_data:
+        return {"formatted": f"No {agent_type} available", "structured": {}}
+    
+    # Handle both string (JSON) and dict inputs
+    if isinstance(agent_data, str):
+        if not agent_data.strip():
+            return {"formatted": f"No {agent_type} available", "structured": {}}
+        agent_data_str = agent_data
+    else:
+        # Already a dict, convert to JSON string for processing
+        agent_data_str = json.dumps(agent_data)
+    
+    try:
+        # Try to parse as JSON first
+        if isinstance(agent_data, dict):
+            structured_data = agent_data
+        else:
+            structured_data = json.loads(agent_data_str)
+        
+        if agent_type == 'advocacy':
+            from madspark.utils.output_processor import format_advocacy_section
+            formatted = format_advocacy_section(structured_data)
+            return {"formatted": formatted, "structured": structured_data}
+            
+        elif agent_type == 'skepticism':
+            from madspark.utils.output_processor import format_skepticism_section
+            formatted = format_skepticism_section(structured_data)
+            return {"formatted": formatted, "structured": structured_data}
+            
+        elif agent_type == 'evaluation':
+            # Evaluation is handled differently - already parsed in coordinator
+            return {"formatted": agent_data, "structured": structured_data}
+        
+        else:
+            # Unknown agent type - return structured data with default formatting
+            fallback_text = json.dumps(structured_data, indent=2) if structured_data else agent_data
+            return {"formatted": fallback_text, "structured": structured_data}
+            
+    except (json.JSONDecodeError, TypeError, ImportError):
+        # Fall back to text format for backward compatibility
+        fallback_text = agent_data if isinstance(agent_data, str) else str(agent_data)
+        return {"formatted": fallback_text, "structured": {}}
+
+
 def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
     """Format results according to specified format."""
     # Apply cleaning to all results before formatting (consistent across all formats)
@@ -615,8 +669,15 @@ def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
             final_idea = result.get('improved_idea', result.get('idea', 'No idea available'))
             final_score = result.get('improved_score', result.get('initial_score', 'N/A'))
             
-            # Focus on the solution first - clean presentation
-            lines.append(f"{final_idea}")
+            # Handle structured improved idea for brief format
+            if isinstance(final_idea, dict) and 'improved_title' in final_idea:
+                lines.append(f"{final_idea['improved_title']}")
+                if 'improved_description' in final_idea:
+                    lines.append("")
+                    lines.append(final_idea['improved_description'])
+            else:
+                # Focus on the solution first - clean presentation
+                lines.append(f"{final_idea}")
             lines.append("")
             
             # Add score information after the solution
@@ -643,8 +704,8 @@ def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
             lines.append(f"📊 Initial Score: {initial_score}")
             
             # Show improvement if available and meaningful
-            if 'improved_idea' in result:
-                improved_idea = result['improved_idea']
+            if 'improved_idea' in result or 'improved_score' in result or 'score_delta' in result:
+                improved_idea = result.get('improved_idea')
                 improved_score = result.get('improved_score', 'N/A')
                 score_delta = result.get('score_delta', 0)
                 
@@ -683,43 +744,124 @@ def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
         
         for i, result in enumerate(cleaned_results, 1):
             lines.append(f"\n--- IDEA {i} ---")
-            lines.append(f"Text: {result.get('idea', 'No idea available')}")
-            lines.append(f"Initial Score: {result.get('initial_score', 'N/A')}")
+            # Strip leading number from idea text if present
+            idea_text = result.get('idea', 'No idea available')
+            # Remove pattern like "3. " or "10. " from the beginning
+            import re
+            idea_text = re.sub(r'^\d+\.\s+', '', idea_text)
+            lines.append(idea_text)
+            initial_score = result.get('initial_score', 'N/A')
+            if initial_score != 'N/A':
+                lines.append(f"Initial Score: {initial_score:.2f}")
+            else:
+                lines.append(f"Initial Score: {initial_score}")
             lines.append(f"Initial Critique: {result.get('initial_critique', 'No critique available')}")
             
-            # Agent feedback
+            # Agent feedback with structured parsing
             if 'advocacy' in result:
-                lines.append(f"\n🔷 Advocacy: {result['advocacy']}")
-            if 'skepticism' in result:
-                lines.append(f"\n🔶 Skepticism: {result['skepticism']}")
-            
-            # Improved idea
-            if 'improved_idea' in result:
-                lines.append(f"\n✨ Improved Idea: {result['improved_idea']}")
-                lines.append(f"📈 Improved Score: {result.get('improved_score', 'N/A')}")
+                advocacy_data = _parse_structured_agent_data(result['advocacy'], 'advocacy')
+                lines.append(f"\n{advocacy_data['formatted']}")
                 
-                if 'score_delta' in result:
-                    lines.append(f"⬆️  Improvement: +{result['score_delta']:.1f}")
+            if 'skepticism' in result:
+                skepticism_data = _parse_structured_agent_data(result['skepticism'], 'skepticism')
+                lines.append(f"\n{skepticism_data['formatted']}")
             
-            # Multi-dimensional evaluation
+            # Show improvement section if we have improved idea OR score improvements
+            if 'improved_idea' in result or 'improved_score' in result or 'score_delta' in result:
+                # Show improved idea if available
+                if 'improved_idea' in result:
+                    lines.append("\n✨ Improved Idea:")
+                    improved_idea = result['improved_idea']
+                    
+                    # Handle structured improved idea (dictionary format)
+                    if isinstance(improved_idea, dict):
+                        try:
+                            from madspark.utils.output_processor import format_improved_idea_section
+                            formatted_improved = format_improved_idea_section(improved_idea)
+                            lines.append(formatted_improved)
+                        except ImportError:
+                            # Fallback: extract key information
+                            if 'improved_title' in improved_idea:
+                                lines.append(f"**{improved_idea['improved_title']}**")
+                            if 'improved_description' in improved_idea:
+                                lines.append(improved_idea['improved_description'])
+                            if 'key_improvements' in improved_idea:
+                                lines.append("\nKey Improvements:")
+                                for improvement in improved_idea['key_improvements']:
+                                    lines.append(f"• {improvement}")
+                            if 'implementation_steps' in improved_idea:
+                                lines.append("\nImplementation Steps:")
+                                for i, step in enumerate(improved_idea['implementation_steps'], 1):
+                                    lines.append(f"{i}. {step}")
+                    else:
+                        # Handle string format
+                        lines.append(improved_idea)
+                
+                # Show improved score if available
+                improved_score = result.get('improved_score', 'N/A')
+                if improved_score != 'N/A':
+                    lines.append(f"📈 Improved Score: {improved_score:.2f}")
+                elif 'improved_idea' not in result:
+                    # Don't show score line if there's no improved idea and no improved score
+                    pass
+                else:
+                    lines.append(f"📈 Improved Score: {improved_score}")
+                
+                # Show score delta if available
+                if 'score_delta' in result:
+                    score_delta = result['score_delta']
+                    if score_delta > 0:
+                        lines.append(f"⬆️  Improvement: +{score_delta:.1f}")
+                    elif score_delta < 0:
+                        lines.append(f"⬇️  Change: {score_delta:.1f}")
+                    else:
+                        lines.append("➡️  No significant change")
+            
+            # Multi-dimensional evaluation with enhanced formatting
             if 'multi_dimensional_evaluation' in result:
                 eval_data = result['multi_dimensional_evaluation']
                 if eval_data:
-                    lines.append("\n📊 Multi-Dimensional Evaluation:")
-                    lines.append(f"  Overall Score: {eval_data.get('overall_score', 'N/A')}")
-                    
-                    if 'dimension_scores' in eval_data:
-                        scores = eval_data['dimension_scores']
-                        lines.append(f"  • Feasibility: {scores.get('feasibility', 'N/A')}")
-                        lines.append(f"  • Innovation: {scores.get('innovation', 'N/A')}")
-                        lines.append(f"  • Impact: {scores.get('impact', 'N/A')}")
-                        lines.append(f"  • Cost-Effectiveness: {scores.get('cost_effectiveness', 'N/A')}")
-                        lines.append(f"  • Scalability: {scores.get('scalability', 'N/A')}")
-                        lines.append(f"  • Risk Assessment: {scores.get('risk_assessment', 'N/A')} (lower is better)")
-                        lines.append(f"  • Timeline: {scores.get('timeline', 'N/A')}")
-                    
-                    if 'evaluation_summary' in eval_data:
-                        lines.append(f"  Summary: {eval_data['evaluation_summary']}")
+                    try:
+                        from madspark.utils.output_processor import format_multi_dimensional_scores
+                        
+                        overall_score = eval_data.get('overall_score', 0)
+                        dimension_scores = eval_data.get('dimension_scores', {})
+                        
+                        if dimension_scores:
+                            formatted_scores = format_multi_dimensional_scores(dimension_scores, overall_score)
+                            lines.append(f"\n{formatted_scores}")
+                        else:
+                            lines.append(f"\n📊 Overall Score: {overall_score}")
+                            
+                        if 'evaluation_summary' in eval_data:
+                            lines.append(f"\n💡 Summary: {eval_data['evaluation_summary']}")
+                            
+                    except ImportError:
+                        # Fallback to simple formatting
+                        lines.append("\n📊 Multi-Dimensional Evaluation:")
+                        lines.append(f"  Overall Score: {eval_data.get('overall_score', 'N/A')}")
+                        
+                        if 'dimension_scores' in eval_data:
+                            scores = eval_data['dimension_scores']
+                            for dim, score in scores.items():
+                                lines.append(f"  • {dim.replace('_', ' ').title()}: {score}")
+            
+            # Logical inference analysis (when --logical flag is used)
+            if 'logical_inference' in result and result['logical_inference']:
+                try:
+                    from madspark.utils.output_processor import format_logical_inference_results
+                    inference_data = result['logical_inference']
+                    formatted_inference = format_logical_inference_results(inference_data)
+                    if formatted_inference:
+                        lines.append(f"\n{formatted_inference}")
+                except ImportError:
+                    # Fallback formatting
+                    lines.append("\n🔍 Logical Inference Analysis:")
+                    inference_data = result['logical_inference']
+                    if 'causal_chains' in inference_data:
+                        lines.append("  Causal Chains:")
+                        for chain in inference_data['causal_chains']:
+                            lines.append(f"    • {chain}")
             
             lines.append("-" * 80)
         
@@ -731,7 +873,10 @@ def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
             lines.append(f"--- IMPROVED IDEA {i} ---")
             
             # Get cleaned improved idea (already cleaned by clean_improved_ideas_in_results)
-            improved_idea = result.get('improved_idea', 'No improved idea available')
+            # Fall back to original idea if no improved idea available
+            improved_idea = result.get('improved_idea')
+            if not improved_idea or improved_idea == 'No improved idea available':
+                improved_idea = result.get('idea', 'No idea available')
             
             if len(improved_idea) > 500:
                 improved_idea = improved_idea[:497] + "..."
@@ -771,14 +916,18 @@ def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
         
         for i, result in enumerate(cleaned_results, 1):
             lines.append(f"\n--- IDEA {i} ---")
-            lines.append(f"Text: {result.get('idea', 'No idea available')}")
+            lines.append(result.get('idea', 'No idea available'))
             lines.append(f"Initial Score: {result.get('initial_score', 'N/A')}")
             lines.append(f"Initial Critique: {result.get('initial_critique', 'No critique available')}")
             
+            # Agent feedback with structured parsing
             if 'advocacy' in result:
-                lines.append(f"\nAdvocacy: {result['advocacy']}")
+                advocacy_data = _parse_structured_agent_data(result['advocacy'], 'advocacy')
+                lines.append(f"\nAdvocacy: {advocacy_data['formatted']}")
+                
             if 'skepticism' in result:
-                lines.append(f"\nSkepticism: {result['skepticism']}")
+                skepticism_data = _parse_structured_agent_data(result['skepticism'], 'skepticism')
+                lines.append(f"\nSkepticism: {skepticism_data['formatted']}")
             
             # Include cleaned improved idea in text format
             if 'improved_idea' in result:
@@ -1155,7 +1304,32 @@ def main():
         # Format and output results
         formatted_output = format_results(results, output_format)
         
-        if args.output_file:
+        # Check if automatic output file is needed for long outputs
+        num_ideas = args.top_ideas if args.top_ideas is not None else 1
+        if not args.output_file and output_format == 'detailed' and (
+            (num_ideas >= 3 and (args.enhanced_reasoning or args.logical_inference)) or
+            len(formatted_output) > 5000  # More than ~100 lines
+        ):
+            # Auto-generate output filename
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            theme_slug = args.theme[:30].replace(' ', '_').replace('/', '_')
+            auto_filename = f"output/markdown/madspark_{theme_slug}_{timestamp}.md"
+            
+            # Ensure output directory exists
+            os.makedirs("output/markdown", exist_ok=True)
+            
+            # Save to file
+            with open(auto_filename, 'w', encoding='utf-8') as f:
+                f.write(formatted_output)
+            
+            # Show truncated version on screen
+            from madspark.utils.output_processor import smart_truncate_text
+            truncated_output = smart_truncate_text(formatted_output)
+            print(truncated_output)
+            print(f"\n📄 Full output saved to: {auto_filename}")
+            logger.info(f"Auto-saved long output to {auto_filename}")
+        
+        elif args.output_file:
             with open(args.output_file, 'w', encoding='utf-8') as f:
                 f.write(formatted_output)
             logger.info(f"Results saved to {args.output_file}")

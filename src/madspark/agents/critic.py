@@ -33,23 +33,20 @@ else:
     model_name = "mock-model"
 
 
-def evaluate_ideas(ideas: str, criteria: str, context: str, temperature: float = DEFAULT_CRITIC_TEMPERATURE) -> str:
+def evaluate_ideas(ideas: str, criteria: str, context: str, temperature: float = DEFAULT_CRITIC_TEMPERATURE, use_structured_output: bool = True) -> str:
   """Evaluates ideas based on criteria and context using the critic model.
-
-  The model is prompted to return a newline-separated list of JSON strings.
-  Each JSON string should contain 'score' and 'comment' for an idea,
-  corresponding to the input order.
 
   Args:
     ideas: A string containing the ideas to be evaluated, typically newline-separated.
     criteria: The criteria against which the ideas should be evaluated.
     context: Additional context relevant for the evaluation.
     temperature: Controls randomness in generation (0.0-1.0). Lower values increase consistency.
+    use_structured_output: Whether to use structured JSON output (default: True)
 
   Returns:
-    A string from the LLM, expected to be newline-separated JSON objects,
-    each representing an evaluation for an idea. Returns an empty string if
-    the model provides no content.
+    A string from the LLM. If use_structured_output is True, returns JSON string.
+    Otherwise, returns newline-separated JSON objects for backward compatibility.
+    Returns an empty string if the model provides no content.
   Raises:
     ValueError: If ideas, criteria, or context are empty or invalid.
   """
@@ -79,26 +76,73 @@ def evaluate_ideas(ideas: str, criteria: str, context: str, temperature: float =
     # Return mock evaluation for CI/testing environments or when API key is not configured
     # Simple language detection for mock responses
     combined_text = ideas + criteria + context
-    if any(char >= '\u3040' and char <= '\u309F' or char >= '\u30A0' and char <= '\u30FF' or char >= '\u4E00' and char <= '\u9FAF' for char in combined_text):
-        return '{"score": 8, "comment": "テスト用のモック評価"}'
-    elif any(char in 'àâäæéèêëïîôöùûüÿ' for char in combined_text.lower()):
-        return '{"score": 8, "comment": "Évaluation factice pour les tests"}'
-    elif any(char in 'ñáíóúüç' for char in combined_text.lower()):
-        return '{"score": 8, "comment": "Evaluación simulada para pruebas"}'
-    elif any(char in 'äöüß' for char in combined_text.lower()):
-        return '{"score": 8, "comment": "Mock-Bewertung für Tests"}'
+    
+    if use_structured_output:
+        # Return structured mock data
+        import json
+        ideas_list = [idea.strip() for idea in ideas.split('\n') if idea.strip()]
+        mock_evaluations = []
+        
+        for i, idea in enumerate(ideas_list):
+            if any(char >= '\u3040' and char <= '\u309F' or char >= '\u30A0' and char <= '\u30FF' or char >= '\u4E00' and char <= '\u9FAF' for char in combined_text):
+                comment = "テスト用のモック評価"
+            elif any(char in 'àâäæéèêëïîôöùûüÿ' for char in combined_text.lower()):
+                comment = "Évaluation factice pour les tests"
+            elif any(char in 'ñáíóúüç' for char in combined_text.lower()):
+                comment = "Evaluación simulada para pruebas"
+            elif any(char in 'äöüß' for char in combined_text.lower()):
+                comment = "Mock-Bewertung für Tests"
+            else:
+                comment = "Mock evaluation for testing"
+                
+            mock_evaluations.append({
+                "idea_index": i,
+                "score": 8,
+                "comment": comment,
+                "dimensions": {
+                    "feasibility": 8.0,
+                    "innovation": 7.5,
+                    "impact": 8.5
+                }
+            })
+        
+        return json.dumps(mock_evaluations)
     else:
-        return '{"score": 8, "comment": "Mock evaluation for testing"}'
+        # Legacy text format for backward compatibility
+        if any(char >= '\u3040' and char <= '\u309F' or char >= '\u30A0' and char <= '\u30FF' or char >= '\u4E00' and char <= '\u9FAF' for char in combined_text):
+            return '{"score": 8, "comment": "テスト用のモック評価"}'
+        elif any(char in 'àâäæéèêëïîôöùûüÿ' for char in combined_text.lower()):
+            return '{"score": 8, "comment": "Évaluation factice pour les tests"}'
+        elif any(char in 'ñáíóúüç' for char in combined_text.lower()):
+            return '{"score": 8, "comment": "Evaluación simulada para pruebas"}'
+        elif any(char in 'äöüß' for char in combined_text.lower()):
+            return '{"score": 8, "comment": "Mock-Bewertung für Tests"}'
+        else:
+            return '{"score": 8, "comment": "Mock evaluation for testing"}'
   
   if critic_client is None:
     from madspark.utils.errors import ConfigurationError
     raise ConfigurationError("Critic client is not configured but GENAI is enabled")
   
   try:
-    config = genai.types.GenerateContentConfig(
-        temperature=temperature,
-        system_instruction=CRITIC_SYSTEM_INSTRUCTION
-    )
+    if use_structured_output:
+        # Import the schema
+        from madspark.agents.response_schemas import CRITIC_SCHEMA
+        
+        # Create the generation config with structured output
+        config = types.GenerateContentConfig(
+            temperature=temperature,
+            response_mime_type="application/json",
+            response_schema=CRITIC_SCHEMA,
+            system_instruction=CRITIC_SYSTEM_INSTRUCTION
+        )
+    else:
+        # Legacy config without structured output
+        config = types.GenerateContentConfig(
+            temperature=temperature,
+            system_instruction=CRITIC_SYSTEM_INSTRUCTION
+        )
+    
     response = critic_client.models.generate_content(
         model=model_name,
         contents=prompt,

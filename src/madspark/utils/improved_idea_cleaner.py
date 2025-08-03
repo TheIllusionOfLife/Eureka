@@ -204,7 +204,11 @@ def clean_improved_ideas_in_results(results: List[dict]) -> List[dict]:
     for result in results:
         cleaned_result = result.copy()
         if 'improved_idea' in cleaned_result:
-            cleaned_result['improved_idea'] = clean_improved_idea(cleaned_result['improved_idea'])
+            improved_idea = cleaned_result['improved_idea']
+            # Only clean string format improved ideas, leave dictionary format as-is
+            if isinstance(improved_idea, str):
+                cleaned_result['improved_idea'] = clean_improved_idea(improved_idea)
+            # Dictionary format doesn't need text cleaning
         cleaned_results.append(cleaned_result)
     return cleaned_results
 

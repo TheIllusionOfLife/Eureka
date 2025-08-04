@@ -27,6 +27,22 @@ from ..utils.constants import (
 
 logger = logging.getLogger(__name__)
 
+# Batch function registry - imported at module level for efficiency
+BATCH_FUNCTIONS = {}
+try:
+    from ..agents.advocate import advocate_ideas_batch
+    from ..agents.skeptic import criticize_ideas_batch
+    from ..agents.idea_generator import improve_ideas_batch
+    
+    BATCH_FUNCTIONS = {
+        'advocate_ideas_batch': advocate_ideas_batch,
+        'criticize_ideas_batch': criticize_ideas_batch,
+        'improve_ideas_batch': improve_ideas_batch
+    }
+except ImportError as e:
+    logger.error(f"Failed to import batch functions: {e}")
+    BATCH_FUNCTIONS = {}
+
 
 # Type alias for progress callback
 ProgressCallback = Callable[[str, float], Awaitable[None]]
@@ -219,18 +235,10 @@ class AsyncCoordinator:
             asyncio.TimeoutError: If operation exceeds timeout
         """
         try:
-            # Import the batch function dynamically
-            if batch_func_name == 'advocate_ideas_batch':
-                from madspark.agents.advocate import advocate_ideas_batch
-                batch_func = advocate_ideas_batch
-            elif batch_func_name == 'criticize_ideas_batch':
-                from madspark.agents.skeptic import criticize_ideas_batch
-                batch_func = criticize_ideas_batch
-            elif batch_func_name == 'improve_ideas_batch':
-                from madspark.agents.idea_generator import improve_ideas_batch
-                batch_func = improve_ideas_batch
-            else:
-                raise ValueError(f"Unknown batch function: {batch_func_name}")
+            # Get batch function from registry
+            batch_func = BATCH_FUNCTIONS.get(batch_func_name)
+            if not batch_func:
+                raise ValueError(f"Unknown or unavailable batch function: {batch_func_name}")
             
             loop = asyncio.get_running_loop()
             return await asyncio.wait_for(
@@ -255,12 +263,10 @@ class AsyncCoordinator:
             Updated candidates with advocacy data
         """
         # Prepare batch input
-        advocacy_input = []
-        for candidate in candidates:
-            advocacy_input.append({
-                "idea": candidate["text"],
-                "evaluation": candidate["critique"]
-            })
+        advocacy_input = [
+            {"idea": c["text"], "evaluation": c["critique"]}
+            for c in candidates
+        ]
         
         try:
             # Single API call for all advocacies
@@ -269,9 +275,8 @@ class AsyncCoordinator:
             )
             
             # Map results back to candidates
-            for i, advocacy in enumerate(advocacy_results):
-                if i < len(candidates):
-                    candidates[i]["advocacy"] = advocacy.get("formatted", "N/A")
+            for candidate, advocacy in zip(candidates, advocacy_results):
+                candidate["advocacy"] = advocacy.get("formatted", "N/A")
                     
         except Exception as e:
             logger.error(f"Batch advocate failed: {e}")
@@ -286,12 +291,10 @@ class AsyncCoordinator:
     ) -> List[EvaluatedIdea]:
         """Process all candidates with batch skepticism in a single API call."""
         # Prepare batch input
-        skeptic_input = []
-        for candidate in candidates:
-            skeptic_input.append({
-                "idea": candidate["text"],
-                "advocacy": candidate.get("advocacy", "N/A")
-            })
+        skeptic_input = [
+            {"idea": c["text"], "advocacy": c.get("advocacy", "N/A")}
+            for c in candidates
+        ]
         
         try:
             # Single API call for all skepticisms
@@ -300,9 +303,8 @@ class AsyncCoordinator:
             )
             
             # Map results back to candidates
-            for i, skepticism in enumerate(skepticism_results):
-                if i < len(candidates):
-                    candidates[i]["skepticism"] = skepticism.get("formatted", "N/A")
+            for candidate, skepticism in zip(candidates, skepticism_results):
+                candidate["skepticism"] = skepticism.get("formatted", "N/A")
                     
         except Exception as e:
             logger.error(f"Batch skeptic failed: {e}")
@@ -317,14 +319,15 @@ class AsyncCoordinator:
     ) -> List[EvaluatedIdea]:
         """Process all candidates with batch improvement in a single API call."""
         # Prepare batch input
-        improve_input = []
-        for candidate in candidates:
-            improve_input.append({
-                "idea": candidate["text"],
-                "critique": candidate["critique"],
-                "advocacy": candidate.get("advocacy", "N/A"),
-                "skepticism": candidate.get("skepticism", "N/A")
-            })
+        improve_input = [
+            {
+                "idea": c["text"],
+                "critique": c["critique"],
+                "advocacy": c.get("advocacy", "N/A"),
+                "skepticism": c.get("skepticism", "N/A")
+            }
+            for c in candidates
+        ]
         
         try:
             # Single API call for all improvements
@@ -333,12 +336,11 @@ class AsyncCoordinator:
             )
             
             # Map results back to candidates
-            for i, improvement in enumerate(improvement_results):
-                if i < len(candidates):
-                    candidates[i]["improved_idea"] = improvement.get(
-                        "improved_idea", 
-                        candidates[i]["text"]  # Fallback to original
-                    )
+            for candidate, improvement in zip(candidates, improvement_results):
+                candidate["improved_idea"] = improvement.get(
+                    "improved_idea", 
+                    candidate["text"]  # Fallback to original
+                )
                     
         except Exception as e:
             logger.error(f"Batch improvement failed: {e}")
@@ -383,20 +385,6 @@ class AsyncCoordinator:
         # For now, return mock results for testing
         return [{"confidence": 0.9, "inference": "Logical analysis"}] * len(candidates)
     
-    async def _process_candidates_with_batch_advocacy_safe(
-        self, candidates: List[EvaluatedIdea], theme: str, temperature: float
-    ) -> List[EvaluatedIdea]:
-        """Process candidates with batch advocacy, with error handling."""
-        try:
-            return await self._process_candidates_with_batch_advocacy(
-                candidates, theme, temperature
-            )
-        except Exception as e:
-            self.logger.warning(f"Batch advocacy failed: {e}. Using fallback.")
-            # Return candidates with fallback advocacy
-            for candidate in candidates:
-                candidate["advocacy"] = "N/A - Advocacy analysis unavailable due to technical issues"
-            return candidates
             
     async def run_workflow(
         self,

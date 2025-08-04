@@ -872,11 +872,10 @@ class AsyncCoordinator:
             
             for i, parsed_eval in enumerate(re_eval_results):
                 if i < len(candidates):
-                    candidates[i]["improved_score"] = parsed_eval.get("score", 0)
-                    candidates[i]["improved_critique"] = parsed_eval.get(
-                        "comment", 
-                        "No critique available"
-                    )
+                    # Use validate_evaluation_json for consistent field normalization
+                    eval_data = validate_evaluation_json(parsed_eval)
+                    candidates[i]["improved_score"] = eval_data["score"]
+                    candidates[i]["improved_critique"] = eval_data["comment"]
                     
         except Exception as e:
             logger.error(f"Batch re-evaluation failed: {e}")

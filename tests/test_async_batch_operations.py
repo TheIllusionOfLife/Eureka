@@ -8,12 +8,11 @@ import asyncio
 import json
 import pytest
 import time
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
-from typing import List, Dict, Any
+from unittest.mock import Mock, patch
+from typing import Any
 
 from madspark.core.async_coordinator import AsyncCoordinator
 from madspark.utils.temperature_control import TemperatureManager
-from madspark.core.enhanced_reasoning import ReasoningEngine
 
 
 class TestAsyncBatchOperations:
@@ -246,7 +245,7 @@ class TestAsyncBatchOperations:
                                    side_effect=lambda *args: track_api_call("improvement", *args)):
                             
                             # Run workflow with 5 ideas
-                            results = await async_coordinator.run_workflow(
+                            await async_coordinator.run_workflow(
                                 theme="test theme",
                                 constraints="test constraints",
                                 num_top_candidates=5,

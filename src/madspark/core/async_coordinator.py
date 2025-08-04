@@ -796,26 +796,79 @@ class AsyncCoordinator:
         
         # Step 4: Batch Re-evaluation
         await self._send_progress("Running batch re-evaluation...", 0.82)
-        improved_ideas_text = "\n".join([
-            candidate.get("improved_idea", candidate["text"]) 
-            for candidate in candidates
-        ])
+        
+        # Build improved ideas with context for re-evaluation
+        improved_ideas_with_context = []
+        for i, candidate in enumerate(candidates):
+            improved_idea = candidate.get("improved_idea", candidate["text"])
+            # Add context about this being an improved version
+            idea_with_context = (
+                f"[IMPROVED IDEA #{i+1}]\n"
+                f"{improved_idea}\n"
+                f"[CONTEXT: This is an IMPROVED version that addresses previous concerns. "
+                f"Original score: {candidate['score']}/10. "
+                f"Key improvements made: Addressed skeptic's concerns, incorporated advocate's strengths, "
+                f"applied critic's suggestions.]"
+            )
+            improved_ideas_with_context.append(idea_with_context)
+        
+        improved_ideas_text = "\n\n".join(improved_ideas_with_context)
+        
+        # Build context that includes all relevant information
+        improved_context = (
+            f"{theme}\n"
+            f"[These are IMPROVED versions of ideas that have been refined based on:\n"
+            f"- Critical analysis identifying weaknesses\n"
+            f"- Advocacy highlighting strengths\n"
+            f"- Skeptical evaluation of risks\n"
+            f"- Specific improvements to address all feedback]\n"
+            f"Please evaluate each improved idea considering the enhancements made."
+        )
         
         try:
-            # Single API call for all re-evaluations
+            # Single API call for all re-evaluations with proper context
             re_eval_output = await async_evaluate_ideas(
                 ideas=improved_ideas_text,
                 criteria=constraints,
-                context=theme,
+                context=improved_context,
                 temperature=eval_temp,
                 use_structured_output=True
             )
             
-            # Parse re-evaluations
-            re_eval_results = parse_json_with_fallback(
-                re_eval_output,
-                expected_count=len(candidates)
-            )
+            # Parse re-evaluations based on structured output
+            import json
+            try:
+                # First try to parse as structured JSON
+                re_eval_json = json.loads(re_eval_output)
+                re_eval_results = []
+                
+                # Handle different response formats
+                if isinstance(re_eval_json, list):
+                    re_eval_results = re_eval_json
+                elif isinstance(re_eval_json, dict):
+                    if "evaluations" in re_eval_json:
+                        re_eval_results = re_eval_json["evaluations"]
+                    elif "results" in re_eval_json:
+                        re_eval_results = re_eval_json["results"]
+                    else:
+                        # Single evaluation wrapped in dict
+                        re_eval_results = [re_eval_json]
+                
+                # Validate we have correct number of evaluations
+                if len(re_eval_results) != len(candidates):
+                    logger.warning(f"Expected {len(candidates)} re-evaluations, got {len(re_eval_results)}")
+                    # Fall back to parse_json_with_fallback
+                    re_eval_results = parse_json_with_fallback(
+                        re_eval_output,
+                        expected_count=len(candidates)
+                    )
+            except json.JSONDecodeError:
+                # Fall back to parse_json_with_fallback for non-JSON responses
+                logger.warning("Re-evaluation response was not valid JSON, using fallback parser")
+                re_eval_results = parse_json_with_fallback(
+                    re_eval_output,
+                    expected_count=len(candidates)
+                )
             
             for i, parsed_eval in enumerate(re_eval_results):
                 if i < len(candidates):
@@ -842,17 +895,37 @@ class AsyncCoordinator:
             improved_score = candidate.get("improved_score", initial_score)
             score_delta = improved_score - initial_score
             
+            # Calculate similarity and meaningful improvement
+            from ..utils.text_similarity import is_meaningful_improvement
+            from ..utils.constants import (
+                MEANINGFUL_IMPROVEMENT_SIMILARITY_THRESHOLD,
+                MEANINGFUL_IMPROVEMENT_SCORE_DELTA
+            )
+            
+            original_idea = candidate["text"]
+            improved_idea = candidate.get("improved_idea", original_idea)
+            
+            is_meaningful, similarity_score = is_meaningful_improvement(
+                original_idea,
+                improved_idea,
+                score_delta,
+                similarity_threshold=MEANINGFUL_IMPROVEMENT_SIMILARITY_THRESHOLD,
+                score_delta_threshold=MEANINGFUL_IMPROVEMENT_SCORE_DELTA
+            )
+            
             # Build candidate data
             candidate_data = {
-                "idea": candidate["text"],
+                "idea": original_idea,
                 "initial_score": initial_score,
                 "initial_critique": candidate["critique"],
                 "advocacy": candidate.get("advocacy", "N/A"),
                 "skepticism": candidate.get("skepticism", "N/A"),
-                "improved_idea": candidate.get("improved_idea", candidate["text"]),
+                "improved_idea": improved_idea,
                 "improved_score": improved_score,
                 "improved_critique": candidate.get("improved_critique", "N/A"),
-                "score_delta": score_delta
+                "score_delta": score_delta,
+                "is_meaningful_improvement": is_meaningful,
+                "similarity_score": similarity_score
             }
             
             # Add multi-dimensional evaluation if available

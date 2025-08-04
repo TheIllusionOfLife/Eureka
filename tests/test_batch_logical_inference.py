@@ -1,5 +1,4 @@
 """Tests for batch logical inference optimization."""
-import asyncio
 import pytest
 from unittest.mock import Mock, patch
 from madspark.utils.logical_inference_engine import LogicalInferenceEngine, InferenceResult, InferenceType

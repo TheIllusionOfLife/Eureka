@@ -1,7 +1,7 @@
 """Integration tests for batch re-evaluation with float score handling."""
 import pytest
 import asyncio
-from unittest.mock import Mock, AsyncMock, patch
+from unittest.mock import Mock, patch
 import json
 
 from madspark.core.async_coordinator import AsyncCoordinator, async_evaluate_ideas
@@ -25,8 +25,6 @@ class TestBatchReevaluationIntegration:
             ]
         })
         mock_genai_client.models.generate_content.return_value = mock_response
-        
-        coordinator = AsyncCoordinator()
         
         # Mock candidates
         candidates = [
@@ -218,8 +216,6 @@ class TestBatchReevaluationIntegration:
             ]
         ]
         
-        coordinator = AsyncCoordinator()
-        
         for test_case in test_cases:
             mock_genai_client = Mock()
             mock_response = Mock()
@@ -228,8 +224,6 @@ class TestBatchReevaluationIntegration:
             
             with patch('madspark.agents.genai_client.get_genai_client', return_value=mock_genai_client):
                 # Test parsing logic
-                from madspark.core.async_coordinator import AsyncCoordinator
-                import json
                 
                 # Simulate the parsing logic from async_coordinator
                 re_eval_json = json.loads(mock_response.text)

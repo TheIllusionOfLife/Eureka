@@ -1,5 +1,4 @@
 """Tests for score validation with float handling."""
-import pytest
 from madspark.utils.utils import validate_evaluation_json
 
 

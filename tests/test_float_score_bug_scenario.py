@@ -1,7 +1,5 @@
 """Test the exact scenario that caused the score 0 bug."""
-import pytest
 import json
-from unittest.mock import Mock, patch
 import logging
 
 from madspark.utils.utils import validate_evaluation_json, parse_json_with_fallback
@@ -24,7 +22,8 @@ class TestFloatScoreBugScenario:
         })
         
         # Parse with fallback (as done in async_coordinator)
-        results = parse_json_with_fallback(ai_response)
+        # This demonstrates that parse_json_with_fallback works correctly
+        parse_json_with_fallback(ai_response)
         
         # parse_json_with_fallback extracts the evaluations list
         parsed_data = json.loads(ai_response)

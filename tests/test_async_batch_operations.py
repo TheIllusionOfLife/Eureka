@@ -66,7 +66,10 @@ class TestAsyncBatchOperations:
                 for i in range(len(ideas_with_evaluations))
             ], 1000  # Mock token usage
         
-        with patch('madspark.agents.advocate.advocate_ideas_batch', side_effect=mock_advocate_ideas_batch):
+        # Patch the BATCH_FUNCTIONS registry instead of the original module
+        with patch.dict('madspark.core.async_coordinator.BATCH_FUNCTIONS', {
+            'advocate_ideas_batch': mock_advocate_ideas_batch
+        }):
             # Process candidates
             await async_coordinator._process_candidates_with_batch_advocacy(
                 sample_candidates, "test theme", 0.7
@@ -88,7 +91,9 @@ class TestAsyncBatchOperations:
                 for i in range(len(ideas_with_advocacy))
             ], 1000
         
-        with patch('madspark.agents.skeptic.criticize_ideas_batch', side_effect=mock_criticize_ideas_batch):
+        with patch.dict('madspark.core.async_coordinator.BATCH_FUNCTIONS', {
+            'criticize_ideas_batch': mock_criticize_ideas_batch
+        }):
             # Add mock advocacy to candidates
             for i, candidate in enumerate(sample_candidates):
                 candidate["advocacy"] = f"Advocacy for idea {i+1}"
@@ -112,7 +117,9 @@ class TestAsyncBatchOperations:
                 for i in range(len(ideas_with_feedback))
             ], 2000
         
-        with patch('madspark.agents.idea_generator.improve_ideas_batch', side_effect=mock_improve_ideas_batch):
+        with patch.dict('madspark.core.async_coordinator.BATCH_FUNCTIONS', {
+            'improve_ideas_batch': mock_improve_ideas_batch
+        }):
             # Add required fields to candidates
             for i, candidate in enumerate(sample_candidates):
                 candidate["advocacy"] = f"Advocacy {i+1}"
@@ -143,10 +150,10 @@ class TestAsyncBatchOperations:
         ]
         
         # Mock independent operations that can run in parallel
-        with patch('madspark.agents.advocate.advocate_ideas_batch', 
-                   side_effect=lambda *args: mock_batch_operation("advocacy", 0.1)):
-            with patch('madspark.agents.skeptic.criticize_ideas_batch',
-                       side_effect=lambda *args: mock_batch_operation("skepticism", 0.1)):
+        with patch.dict('madspark.core.async_coordinator.BATCH_FUNCTIONS', {
+            'advocate_ideas_batch': lambda *args: mock_batch_operation("advocacy", 0.1),
+            'criticize_ideas_batch': lambda *args: mock_batch_operation("skepticism", 0.1)
+        }):
                 
                 # Add required fields for skepticism
                 for candidate in sample_candidates:
@@ -175,7 +182,9 @@ class TestAsyncBatchOperations:
             time.sleep(10)  # Simulate slow operation
             return [], 0
         
-        with patch('madspark.agents.advocate.advocate_ideas_batch', side_effect=slow_batch_operation):
+        with patch.dict('madspark.core.async_coordinator.BATCH_FUNCTIONS', {
+            'advocate_ideas_batch': slow_batch_operation
+        }):
             with pytest.raises(asyncio.TimeoutError):
                 await async_coordinator._run_batch_with_timeout(
                     'advocate_ideas_batch', [], "theme", 0.7, timeout=0.5
@@ -187,7 +196,9 @@ class TestAsyncBatchOperations:
         def failing_batch_operation(*args):
             raise RuntimeError("API error")
         
-        with patch('madspark.agents.advocate.advocate_ideas_batch', side_effect=failing_batch_operation):
+        with patch.dict('madspark.core.async_coordinator.BATCH_FUNCTIONS', {
+            'advocate_ideas_batch': failing_batch_operation
+        }):
             # Should handle error gracefully and use fallback
             result = await async_coordinator._process_candidates_with_batch_advocacy_safe(
                 sample_candidates, "theme", 0.7
@@ -237,12 +248,11 @@ class TestAsyncBatchOperations:
                    side_effect=lambda *args, **kwargs: track_api_call("idea_generation", *args, **kwargs)):
             with patch('madspark.core.async_coordinator.async_evaluate_ideas',
                        side_effect=lambda *args, **kwargs: track_api_call("evaluation", *args, **kwargs)):
-                with patch('madspark.agents.advocate.advocate_ideas_batch',
-                           side_effect=lambda *args: track_api_call("advocacy", *args)):
-                    with patch('madspark.agents.skeptic.criticize_ideas_batch',
-                               side_effect=lambda *args: track_api_call("skepticism", *args)):
-                        with patch('madspark.agents.idea_generator.improve_ideas_batch',
-                                   side_effect=lambda *args: track_api_call("improvement", *args)):
+                with patch.dict('madspark.core.async_coordinator.BATCH_FUNCTIONS', {
+                    'advocate_ideas_batch': lambda *args: track_api_call("advocacy", *args),
+                    'criticize_ideas_batch': lambda *args: track_api_call("skepticism", *args),
+                    'improve_ideas_batch': lambda *args: track_api_call("improvement", *args)
+                }):
                             
                             # Run workflow with 5 ideas
                             await async_coordinator.run_workflow(
@@ -286,8 +296,9 @@ class TestAsyncBatchOperations:
             for i in range(5)
         ]
         
-        with patch('madspark.agents.advocate.advocate_ideas_batch',
-                   return_value=(mock_results, 1000)):
+        with patch.dict('madspark.core.async_coordinator.BATCH_FUNCTIONS', {
+            'advocate_ideas_batch': lambda *args: (mock_results, 1000)
+        }):
             await async_coordinator._process_candidates_with_batch_advocacy(
                 [{"text": f"idea{i}", "critique": f"critique{i}"} for i in range(5)],
                 "theme", 0.7
@@ -384,8 +395,9 @@ class TestAsyncCoordinatorIntegration:
                    side_effect=self._mock_api_delay(0.5, mock_idea)):
             with patch('madspark.core.async_coordinator.async_evaluate_ideas',
                        side_effect=self._mock_api_delay(0.3, mock_eval)):
-                with patch('madspark.agents.idea_generator.improve_ideas_batch',
-                           return_value=([{"improved_idea": "Even better idea"}], 1000)):
+                with patch.dict('madspark.core.async_coordinator.BATCH_FUNCTIONS', {
+                    'improve_ideas_batch': lambda *args: ([{"improved_idea": "Even better idea"}], 1000)
+                }):
                     
                     results = await coordinator.run_workflow(
                         theme="test",
@@ -464,23 +476,22 @@ class TestAsyncCoordinatorIntegration:
                     api_calls.append(name)
                     return result
                 
-                with patch('madspark.agents.advocate.advocate_ideas_batch',
-                           side_effect=lambda *a: track_batch_call("advocate_batch", ([{
-                               "idea_index": i, "formatted": f"Advocacy {i}",
-                               "strengths": ["s1"], "opportunities": ["o1"],
-                               "addressing_concerns": ["c1"]
-                           } for i in range(5)], 1000))):
-                    with patch('madspark.agents.skeptic.criticize_ideas_batch',
-                               side_effect=lambda *a: track_batch_call("skeptic_batch", ([{
-                                   "idea_index": i, "formatted": f"Skepticism {i}",
-                                   "concerns": ["c1"], "risks": ["r1"],
-                                   "questions": ["q1"]
-                               } for i in range(5)], 1000))):
-                        with patch('madspark.agents.idea_generator.improve_ideas_batch',
-                                   side_effect=lambda *a: track_batch_call("improve_batch", ([{
-                                       "idea_index": i, 
-                                       "improved_idea": f"Better idea {i}"
-                                   } for i in range(5)], 2000))):
+                with patch.dict('madspark.core.async_coordinator.BATCH_FUNCTIONS', {
+                    'advocate_ideas_batch': lambda *a: track_batch_call("advocate_batch", ([{
+                        "idea_index": i, "formatted": f"Advocacy {i}",
+                        "strengths": ["s1"], "opportunities": ["o1"],
+                        "addressing_concerns": ["c1"]
+                    } for i in range(5)], 1000)),
+                    'criticize_ideas_batch': lambda *a: track_batch_call("skeptic_batch", ([{
+                        "idea_index": i, "formatted": f"Skepticism {i}",
+                        "concerns": ["c1"], "risks": ["r1"],
+                        "questions": ["q1"]
+                    } for i in range(5)], 1000)),
+                    'improve_ideas_batch': lambda *a: track_batch_call("improve_batch", ([{
+                        "idea_index": i, 
+                        "improved_idea": f"Better idea {i}"
+                    } for i in range(5)], 2000))
+                }):
                             
                             results = await coordinator.run_workflow(
                                 theme="complex test",
@@ -542,7 +553,7 @@ class TestAsyncCoordinatorIntegration:
         coordinator = AsyncCoordinator()
         
         # Mock failing advocacy
-        async def failing_advocacy(*args):
+        def failing_advocacy(*args):
             raise RuntimeError("API Error")
         
         mock_idea = json.dumps([{
@@ -562,8 +573,9 @@ class TestAsyncCoordinatorIntegration:
                    return_value=mock_idea):
             with patch('madspark.core.async_coordinator.async_evaluate_ideas',
                        return_value=mock_eval):
-                with patch('madspark.agents.advocate.advocate_ideas_batch',
-                           side_effect=failing_advocacy):
+                with patch.dict('madspark.core.async_coordinator.BATCH_FUNCTIONS', {
+                    'advocate_ideas_batch': failing_advocacy
+                }):
                     
                     # Should still produce results with fallback
                     results = await coordinator.run_workflow(

@@ -451,7 +451,7 @@ class AsyncCoordinator:
                     "inference": result.conclusion,
                     "inference_chain": result.inference_chain,
                     "improvements": result.improvements,
-                    "error": result.error
+                    "error": getattr(result, 'error', None)
                 })
             
             return batch_results

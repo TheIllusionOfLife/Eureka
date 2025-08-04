@@ -275,8 +275,13 @@ class AsyncCoordinator:
             )
             
             # Map results back to candidates
-            for candidate, advocacy in zip(candidates, advocacy_results):
-                candidate["advocacy"] = advocacy.get("formatted", "N/A")
+            # Use enumerate to avoid data loss if API returns fewer results
+            for i, candidate in enumerate(candidates):
+                if i < len(advocacy_results):
+                    candidate["advocacy"] = advocacy_results[i].get("formatted", "N/A")
+                else:
+                    logger.warning(f"Advocacy result missing for candidate {i+1}")
+                    candidate["advocacy"] = "N/A (No result from batch API)"
                     
         except Exception as e:
             logger.error(f"Batch advocate failed: {e}")
@@ -303,8 +308,13 @@ class AsyncCoordinator:
             )
             
             # Map results back to candidates
-            for candidate, skepticism in zip(candidates, skepticism_results):
-                candidate["skepticism"] = skepticism.get("formatted", "N/A")
+            # Use enumerate to avoid data loss if API returns fewer results
+            for i, candidate in enumerate(candidates):
+                if i < len(skepticism_results):
+                    candidate["skepticism"] = skepticism_results[i].get("formatted", "N/A")
+                else:
+                    logger.warning(f"Skepticism result missing for candidate {i+1}")
+                    candidate["skepticism"] = "N/A (No result from batch API)"
                     
         except Exception as e:
             logger.error(f"Batch skeptic failed: {e}")
@@ -336,11 +346,16 @@ class AsyncCoordinator:
             )
             
             # Map results back to candidates
-            for candidate, improvement in zip(candidates, improvement_results):
-                candidate["improved_idea"] = improvement.get(
-                    "improved_idea", 
-                    candidate["text"]  # Fallback to original
-                )
+            # Use enumerate to avoid data loss if API returns fewer results
+            for i, candidate in enumerate(candidates):
+                if i < len(improvement_results):
+                    candidate["improved_idea"] = improvement_results[i].get(
+                        "improved_idea", 
+                        candidate["text"]  # Fallback to original
+                    )
+                else:
+                    logger.warning(f"Improvement result missing for candidate {i+1}")
+                    candidate["improved_idea"] = candidate["text"]  # Fallback to original
                     
         except Exception as e:
             logger.error(f"Batch improvement failed: {e}")

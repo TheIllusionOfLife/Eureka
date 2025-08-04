@@ -281,22 +281,17 @@ def validate_evaluation_json(data: Dict[str, Any]) -> Dict[str, Any]:
     
     # Validate score
     score = data.get("score", 0)
-    if isinstance(score, str):
-        try:
-            # Try to parse as float first to handle "8.7" style strings
-            float_score = float(score)
-            score = round(float_score)
-        except ValueError:
-            logging.warning(f"Could not convert score '{score}' to number, using default 0")
-            score = 0
-    elif isinstance(score, float):
-        # Round float scores to nearest integer
-        score = round(score)
-    elif isinstance(score, int):
-        # Integer scores are fine as-is
-        pass
-    else:
-        logging.warning(f"Invalid score type {type(score)}, using default 0")
+    try:
+        # This handles int, float, and valid string representations of numbers.
+        # Also handles special floats (inf, -inf, nan) by catching their exceptions
+        score = round(float(score))
+    except (ValueError, TypeError, OverflowError):
+        # This will catch:
+        # - ValueError: non-numeric strings, NaN
+        # - TypeError: None, dicts, lists, etc.
+        # - OverflowError: infinity values
+        # We log a warning and default to 0.
+        logging.warning(f"Could not convert score '{score}' of type {type(score)} to a number, using default 0")
         score = 0
     
     # Clamp score to valid range

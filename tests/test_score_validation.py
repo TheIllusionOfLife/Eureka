@@ -156,3 +156,34 @@ class TestScoreValidation:
         # Should round to 8, not default to 0
         assert result["score"] == 8
         assert result["comment"] == "Re-evaluation timed out - estimated improvement based on feedback integration"
+    
+    def test_validate_evaluation_json_with_special_floats(self):
+        """Test validation with special float values (inf, -inf, nan) - cursor[bot] bug fix."""
+        # Test infinity
+        data = {"score": float('inf'), "comment": "Infinity score"}
+        result = validate_evaluation_json(data)
+        assert result["score"] == 0  # Should default to 0, not crash
+        assert result["comment"] == "Infinity score"
+        
+        # Test negative infinity
+        data = {"score": float('-inf'), "comment": "Negative infinity"}
+        result = validate_evaluation_json(data)
+        assert result["score"] == 0  # Should default to 0, not crash
+        
+        # Test NaN (Not a Number)
+        data = {"score": float('nan'), "comment": "NaN score"}
+        result = validate_evaluation_json(data)
+        assert result["score"] == 0  # Should default to 0, not crash
+        
+        # Test string representations of special floats
+        data = {"score": "inf", "comment": "String infinity"}
+        result = validate_evaluation_json(data)
+        assert result["score"] == 0  # Should default to 0, not crash
+        
+        data = {"score": "-inf", "comment": "String negative infinity"}
+        result = validate_evaluation_json(data)
+        assert result["score"] == 0  # Should default to 0, not crash
+        
+        data = {"score": "nan", "comment": "String NaN"}
+        result = validate_evaluation_json(data)
+        assert result["score"] == 0  # Should default to 0, not crash

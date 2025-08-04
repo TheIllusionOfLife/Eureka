@@ -378,12 +378,77 @@ class AsyncCoordinator:
         )
     
     async def _run_batch_logical_inference(
-        self, candidates: List[EvaluatedIdea], theme: str, context: str
+        self, 
+        candidates: List[EvaluatedIdea], 
+        theme: str, 
+        context: str,
+        reasoning_engine = None,
+        analysis_type: InferenceType = InferenceType.FULL
     ):
-        """Run batch logical inference operation."""
-        # This would be implemented similarly to other batch operations
-        # For now, return mock results for testing
-        return [{"confidence": 0.9, "inference": "Logical analysis"}] * len(candidates)
+        """
+        Run batch logical inference operation using the actual inference engine.
+        
+        Args:
+            candidates: List of evaluated ideas
+            theme: Original theme/topic
+            context: Constraints and requirements
+            reasoning_engine: Optional ReasoningEngine instance
+            analysis_type: Type of logical analysis to perform
+            
+        Returns:
+            List of inference results with confidence scores and analysis
+        """
+        if not candidates:
+            return []
+        
+        # Extract ideas from candidates
+        ideas = [candidate["text"] for candidate in candidates]
+        
+        # Get the logical inference engine
+        engine = reasoning_engine
+        if not engine:
+            if not hasattr(self, '_reasoning_engine') or not self._reasoning_engine:
+                # Create a reasoning engine if not available
+                from .enhanced_reasoning import ReasoningEngine
+                self._reasoning_engine = ReasoningEngine()
+            engine = self._reasoning_engine
+        
+        if not engine or not engine.logical_inference_engine:
+            logger.warning("Logical inference engine not available, returning empty results")
+            return [{"confidence": 0.0, "inference": "Logical inference not available"}] * len(candidates)
+        
+        try:
+            # Run batch logical inference
+            # Use asyncio.to_thread to run the synchronous method in a thread pool
+            inference_results = await asyncio.to_thread(
+                engine.logical_inference_engine.analyze_batch,
+                ideas=ideas,
+                theme=theme,
+                context=context,
+                analysis_type=analysis_type
+            )
+            
+            # Convert InferenceResult objects to dictionaries
+            batch_results = []
+            for result in inference_results:
+                batch_results.append({
+                    "confidence": result.confidence,
+                    "inference": result.conclusion,
+                    "inference_chain": result.inference_chain,
+                    "improvements": result.improvements,
+                    "error": result.error
+                })
+            
+            return batch_results
+            
+        except Exception as e:
+            logger.error(f"Batch logical inference failed: {e}")
+            # Return fallback results
+            return [{
+                "confidence": 0.0, 
+                "inference": "Logical inference failed",
+                "error": str(e)
+            }] * len(candidates)
     
             
     async def run_workflow(
@@ -675,25 +740,23 @@ class AsyncCoordinator:
                     await self._send_progress("Performing batch logical inference analysis...", 0.65)
                     logger.info(f"Starting batch logical inference for {len(top_candidates)} candidates")
                     
-                    # Extract ideas for batch processing
-                    candidate_ideas = [candidate["text"] for candidate in top_candidates]
-                    
-                    # Perform batch logical inference
-                    inference_engine = engine.logical_inference_engine
-                    batch_results = inference_engine.analyze_batch(
-                        ideas=candidate_ideas,
+                    # Use the batch logical inference method
+                    batch_results = await self._run_batch_logical_inference(
+                        candidates=top_candidates,
                         theme=theme,
                         context=constraints,
+                        reasoning_engine=engine,
                         analysis_type=InferenceType.FULL
                     )
                     
                     # Add logical inference data to candidates
-                    for i, (candidate, inference_result) in enumerate(zip(top_candidates, batch_results)):
-                        if inference_result.confidence > LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD:
-                            candidate["logical_inference"] = inference_result.to_dict()
-                            logger.info(f"Added logical inference data to candidate {i+1} with confidence {inference_result.confidence}")
+                    for i, (candidate, inference_data) in enumerate(zip(top_candidates, batch_results)):
+                        confidence = inference_data.get("confidence", 0.0)
+                        if confidence > LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD:
+                            candidate["logical_inference"] = inference_data
+                            logger.info(f"Added logical inference data to candidate {i+1} with confidence {confidence}")
                         else:
-                            logger.info(f"Skipped logical inference for candidate {i+1} due to low confidence ({inference_result.confidence})")
+                            logger.info(f"Skipped logical inference for candidate {i+1} due to low confidence ({confidence})")
                     
                     logger.info(f"Batch logical inference completed for {len(top_candidates)} candidates")
                     

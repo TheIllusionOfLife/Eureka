@@ -269,6 +269,7 @@ def validate_evaluation_json(data: Dict[str, Any]) -> Dict[str, Any]:
     """Validate and normalize evaluation JSON data.
     
     Ensures the data contains required fields with appropriate types.
+    Handles both integer and float scores from AI models.
     
     Args:
         data: Dictionary to validate
@@ -280,14 +281,17 @@ def validate_evaluation_json(data: Dict[str, Any]) -> Dict[str, Any]:
     
     # Validate score
     score = data.get("score", 0)
-    if isinstance(score, str):
-        try:
-            score = int(score)
-        except ValueError:
-            logging.warning(f"Could not convert score '{score}' to integer, using default 0")
-            score = 0
-    elif not isinstance(score, int):
-        logging.warning(f"Invalid score type {type(score)}, using default 0")
+    try:
+        # This handles int, float, and valid string representations of numbers.
+        # Also handles special floats (inf, -inf, nan) by catching their exceptions
+        score = round(float(score))
+    except (ValueError, TypeError, OverflowError):
+        # This will catch:
+        # - ValueError: non-numeric strings, NaN
+        # - TypeError: None, dicts, lists, etc.
+        # - OverflowError: infinity values
+        # We log a warning and default to 0.
+        logging.warning(f"Could not convert score '{score}' of type {type(score)} to a number, using default 0")
         score = 0
     
     # Clamp score to valid range

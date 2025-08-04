@@ -408,9 +408,9 @@ export const renderContent = (content: string | ContentStructure) => {
 - **Backward Compatibility**: Falls back to rule-based system when no GenAI client available
 
 ### PR #158: Phase 2 Architecture Optimization (August 4, 2025)
-- **Coordinator Architecture Unification**: Created BatchOperationsBase to eliminate ~180 lines of duplicate code between coordinators
+- **Coordinator Architecture Unification**: Created `BatchOperationsBase` to eliminate ~180 lines of duplicate code from `AsyncCoordinator`
 - **Batch Logical Inference Optimization**: Reduced API calls from O(N) to O(1) for logical inference processing
-- **Inheritance Pattern**: AsyncCoordinator now inherits from BatchOperationsBase for shared functionality
+- **Inheritance Pattern**: `AsyncCoordinator` now inherits from `BatchOperationsBase` for shared functionality
 - **Test Method Signature Updates**: Changed `_run_batch_logical_inference(candidates)` to `_run_batch_logical_inference(ideas)` parameter name
 - **Batch Function Return Format**: Batch functions return tuples `(results, token_count)` not just results
 - **Safe Module Patching**: Patch batch functions where they're imported (`batch_operations_base.BATCH_FUNCTIONS`), not where defined

@@ -5,8 +5,8 @@ code duplication between async_coordinator.py and coordinator_batch.py.
 """
 import asyncio
 import logging
-from typing import List, Dict, Any, Optional, Union, Callable
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
+from typing import List, Dict, Any, Optional
+from concurrent.futures import ThreadPoolExecutor
 import concurrent.futures
 
 logger = logging.getLogger(__name__)
@@ -177,7 +177,7 @@ class BatchOperationsBase:
                     candidate[result_key] = result
                 else:
                     logger.warning(f"Unexpected result format for candidate {i+1}: {type(result)}")
-                    candidate[result_key] = f"N/A (Unexpected format)"
+                    candidate[result_key] = "N/A (Unexpected format)"
             else:
                 logger.warning(f"{result_key.title()} result missing for candidate {i+1}")
                 candidate[result_key] = f"N/A (No result from batch API)"

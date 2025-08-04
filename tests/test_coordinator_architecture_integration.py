@@ -6,10 +6,12 @@ after architecture unification, with no regressions in functionality.
 import pytest
 import asyncio
 from unittest.mock import Mock, patch, AsyncMock
-from typing import List, Dict, Any
+from typing import Dict, Any
 
 from src.madspark.core.async_coordinator import AsyncCoordinator
-from src.madspark.core.coordinator_batch import BatchCoordinator
+
+# Note: coordinator_batch.py contains functions, not a BatchCoordinator class
+# This test focuses on AsyncCoordinator using the shared BatchOperationsBase
 
 
 class TestCoordinatorArchitectureIntegration:
@@ -18,16 +20,13 @@ class TestCoordinatorArchitectureIntegration:
     def setup_method(self):
         """Set up test fixtures."""
         self.async_coordinator = AsyncCoordinator()
-        self.batch_coordinator = BatchCoordinator() if hasattr(BatchCoordinator, '__init__') else None
     
     def test_both_coordinators_use_same_batch_operations(self):
         """Test that both coordinators inherit from the same base class."""
-        # Both should inherit from BatchOperationsBase
+        # AsyncCoordinator should inherit from BatchOperationsBase
         from src.madspark.core.batch_operations_base import BatchOperationsBase
         
         assert isinstance(self.async_coordinator, BatchOperationsBase)
-        if self.batch_coordinator:
-            assert isinstance(self.batch_coordinator, BatchOperationsBase)
     
     def test_shared_batch_input_preparation(self):
         """Test that both coordinators prepare batch inputs identically."""
@@ -36,11 +35,8 @@ class TestCoordinatorArchitectureIntegration:
             {"text": "Wind turbines", "critique": "Clean but intermittent"}
         ]
         
-        # Both coordinators should prepare advocacy input identically
+        # AsyncCoordinator should prepare advocacy input correctly
         async_input = self.async_coordinator.prepare_advocacy_input(candidates)
-        if self.batch_coordinator:
-            batch_input = self.batch_coordinator.prepare_advocacy_input(candidates)
-            assert async_input == batch_input
         
         expected = [
             {"idea": "Solar panels", "evaluation": "Expensive but effective"},
@@ -56,14 +52,15 @@ class TestCoordinatorArchitectureIntegration:
             {"text": "Hydroelectric", "critique": "Environmental impact"}
         ]
         
-        # Mock the batch advocacy function
+        # Mock the batch advocacy function results - should be formatted dictionaries
         mock_advocacy_results = [
-            "Strong advocacy: Solar energy provides long-term cost savings",
-            "Strong advocacy: Modern hydroelectric minimizes environmental impact"
+            {"formatted": "Strong advocacy: Solar energy provides long-term cost savings"},
+            {"formatted": "Strong advocacy: Modern hydroelectric minimizes environmental impact"}
         ]
         
         with patch.object(self.async_coordinator, 'run_batch_with_timeout') as mock_batch:
-            mock_batch.return_value = mock_advocacy_results
+            # Batch functions return tuples (results, token_count)
+            mock_batch.return_value = (mock_advocacy_results, 1000)
             
             # This should use the shared batch operations
             result = await self.async_coordinator._process_candidates_with_batch_advocacy(
@@ -78,9 +75,9 @@ class TestCoordinatorArchitectureIntegration:
                 0.7
             )
             
-            # Verify candidates were updated
-            assert result[0]["advocacy"] == mock_advocacy_results[0]
-            assert result[1]["advocacy"] == mock_advocacy_results[1]
+            # Verify candidates were updated with formatted values
+            assert result[0]["advocacy"] == mock_advocacy_results[0]["formatted"]
+            assert result[1]["advocacy"] == mock_advocacy_results[1]["formatted"]
     
     @pytest.mark.asyncio 
     async def test_async_coordinator_batch_skepticism_workflow(self):
@@ -99,12 +96,12 @@ class TestCoordinatorArchitectureIntegration:
         ]
         
         mock_skepticism_results = [
-            "Critical analysis: Battery disposal remains problematic",
-            "Critical analysis: Hydrogen production still carbon-intensive"
+            {"formatted": "Critical analysis: Battery disposal remains problematic"},
+            {"formatted": "Critical analysis: Hydrogen production still carbon-intensive"}
         ]
         
         with patch.object(self.async_coordinator, 'run_batch_with_timeout') as mock_batch:
-            mock_batch.return_value = mock_skepticism_results
+            mock_batch.return_value = (mock_skepticism_results, 1000)
             
             result = await self.async_coordinator._process_candidates_with_batch_skepticism(
                 candidates, "clean transportation", 0.8
@@ -120,8 +117,8 @@ class TestCoordinatorArchitectureIntegration:
             )
             
             # Verify results
-            assert result[0]["skepticism"] == mock_skepticism_results[0]
-            assert result[1]["skepticism"] == mock_skepticism_results[1]
+            assert result[0]["skepticism"] == mock_skepticism_results[0]["formatted"]
+            assert result[1]["skepticism"] == mock_skepticism_results[1]["formatted"]
     
     @pytest.mark.asyncio
     async def test_async_coordinator_batch_improvement_workflow(self):
@@ -136,11 +133,11 @@ class TestCoordinatorArchitectureIntegration:
         ]
         
         mock_improvement_results = [
-            "Improved: Smart grid with enhanced security protocols and phased rollout"
+            {"improved_idea": "Improved: Smart grid with enhanced security protocols and phased rollout"}
         ]
         
         with patch.object(self.async_coordinator, 'run_batch_with_timeout') as mock_batch:
-            mock_batch.return_value = mock_improvement_results
+            mock_batch.return_value = (mock_improvement_results, 2000)
             
             result = await self.async_coordinator._process_candidates_with_batch_improvement(
                 candidates, "energy infrastructure", 0.75
@@ -155,7 +152,7 @@ class TestCoordinatorArchitectureIntegration:
                 0.75
             )
             
-            assert result[0]["improved_text"] == mock_improvement_results[0]
+            assert result[0]["improved_idea"] == mock_improvement_results[0]["improved_idea"]
     
     @pytest.mark.asyncio
     async def test_error_handling_consistency(self):
@@ -340,10 +337,14 @@ class TestCoordinatorLogicalInferenceIntegration:
 class TestRealAPIIntegration:
     """Integration tests with real API endpoints (when available)."""
     
-    @pytest.mark.skipif(not pytest.importorskip("google.genai", reason="Google GenAI not available"))
     @pytest.mark.asyncio
     async def test_batch_logical_inference_with_real_api(self):
         """Test batch logical inference with real Google GenAI API."""
+        try:
+            import google.genai
+        except ImportError:
+            pytest.skip("Google GenAI not available")
+        
         import os
         
         # Skip if no API key available
@@ -354,8 +355,11 @@ class TestRealAPIIntegration:
         from src.madspark.utils.logical_inference_engine import InferenceType
         
         # Create coordinator with real reasoning engine
+        from google import genai
+        
+        genai_client = genai.Client()
         coordinator = AsyncCoordinator()
-        reasoning_engine = ReasoningEngine(use_logical_inference=True)
+        reasoning_engine = ReasoningEngine(genai_client=genai_client)
         coordinator.reasoning_engine = reasoning_engine
         
         # Test with real ideas
@@ -382,10 +386,14 @@ class TestRealAPIIntegration:
             assert len(result.inference_chain) > 10  # Non-trivial content
             assert len(result.conclusion) > 10       # Non-trivial content
     
-    @pytest.mark.skipif(not pytest.importorskip("google.genai", reason="Google GenAI not available"))
     @pytest.mark.asyncio 
     async def test_api_call_count_with_real_api(self):
         """Verify that batch processing actually reduces API calls with real API."""
+        try:
+            import google.genai
+        except ImportError:
+            pytest.skip("Google GenAI not available")
+        
         import os
         
         if not os.getenv('GOOGLE_API_KEY'):
@@ -393,8 +401,11 @@ class TestRealAPIIntegration:
         
         from src.madspark.core.enhanced_reasoning import ReasoningEngine
         
+        from google import genai
+        
+        genai_client = genai.Client()
         coordinator = AsyncCoordinator()
-        reasoning_engine = ReasoningEngine(use_logical_inference=True)
+        reasoning_engine = ReasoningEngine(genai_client=genai_client)
         coordinator.reasoning_engine = reasoning_engine
         
         # Track API calls by monitoring the genai client

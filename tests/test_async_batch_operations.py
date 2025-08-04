@@ -66,8 +66,8 @@ class TestAsyncBatchOperations:
                 for i in range(len(ideas_with_evaluations))
             ], 1000  # Mock token usage
         
-        # Patch the BATCH_FUNCTIONS registry instead of the original module
-        with patch.dict('madspark.core.async_coordinator.BATCH_FUNCTIONS', {
+        # Patch the BATCH_FUNCTIONS registry in batch_operations_base where it's defined
+        with patch.dict('madspark.core.batch_operations_base.BATCH_FUNCTIONS', {
             'advocate_ideas_batch': mock_advocate_ideas_batch
         }):
             # Process candidates
@@ -91,7 +91,7 @@ class TestAsyncBatchOperations:
                 for i in range(len(ideas_with_advocacy))
             ], 1000
         
-        with patch.dict('madspark.core.async_coordinator.BATCH_FUNCTIONS', {
+        with patch.dict('madspark.core.batch_operations_base.BATCH_FUNCTIONS', {
             'criticize_ideas_batch': mock_criticize_ideas_batch
         }):
             # Add mock advocacy to candidates
@@ -117,7 +117,7 @@ class TestAsyncBatchOperations:
                 for i in range(len(ideas_with_feedback))
             ], 2000
         
-        with patch.dict('madspark.core.async_coordinator.BATCH_FUNCTIONS', {
+        with patch.dict('madspark.core.batch_operations_base.BATCH_FUNCTIONS', {
             'improve_ideas_batch': mock_improve_ideas_batch
         }):
             # Add required fields to candidates
@@ -150,7 +150,7 @@ class TestAsyncBatchOperations:
         ]
         
         # Mock independent operations that can run in parallel
-        with patch.dict('madspark.core.async_coordinator.BATCH_FUNCTIONS', {
+        with patch.dict('madspark.core.batch_operations_base.BATCH_FUNCTIONS', {
             'advocate_ideas_batch': lambda *args: mock_batch_operation("advocacy", 0.1),
             'criticize_ideas_batch': lambda *args: mock_batch_operation("skepticism", 0.1)
         }):
@@ -182,11 +182,11 @@ class TestAsyncBatchOperations:
             time.sleep(10)  # Simulate slow operation
             return [], 0
         
-        with patch.dict('madspark.core.async_coordinator.BATCH_FUNCTIONS', {
+        with patch.dict('madspark.core.batch_operations_base.BATCH_FUNCTIONS', {
             'advocate_ideas_batch': slow_batch_operation
         }):
             with pytest.raises(asyncio.TimeoutError):
-                await async_coordinator._run_batch_with_timeout(
+                await async_coordinator.run_batch_with_timeout(
                     'advocate_ideas_batch', [], "theme", 0.7, timeout=0.5
                 )
     
@@ -196,7 +196,7 @@ class TestAsyncBatchOperations:
         def failing_batch_operation(*args):
             raise RuntimeError("API error")
         
-        with patch.dict('madspark.core.async_coordinator.BATCH_FUNCTIONS', {
+        with patch.dict('madspark.core.batch_operations_base.BATCH_FUNCTIONS', {
             'advocate_ideas_batch': failing_batch_operation
         }):
             # Should handle error gracefully and use fallback
@@ -248,7 +248,7 @@ class TestAsyncBatchOperations:
                    side_effect=lambda *args, **kwargs: track_api_call("idea_generation", *args, **kwargs)):
             with patch('madspark.core.async_coordinator.async_evaluate_ideas',
                        side_effect=lambda *args, **kwargs: track_api_call("evaluation", *args, **kwargs)):
-                with patch.dict('madspark.core.async_coordinator.BATCH_FUNCTIONS', {
+                with patch.dict('madspark.core.batch_operations_base.BATCH_FUNCTIONS', {
                     'advocate_ideas_batch': lambda *args: track_api_call("advocacy", *args),
                     'criticize_ideas_batch': lambda *args: track_api_call("skepticism", *args),
                     'improve_ideas_batch': lambda *args: track_api_call("improvement", *args)
@@ -296,7 +296,7 @@ class TestAsyncBatchOperations:
             for i in range(5)
         ]
         
-        with patch.dict('madspark.core.async_coordinator.BATCH_FUNCTIONS', {
+        with patch.dict('madspark.core.batch_operations_base.BATCH_FUNCTIONS', {
             'advocate_ideas_batch': lambda *args: (mock_results, 1000)
         }):
             await async_coordinator._process_candidates_with_batch_advocacy(
@@ -395,7 +395,7 @@ class TestAsyncCoordinatorIntegration:
                    side_effect=self._mock_api_delay(0.5, mock_idea)):
             with patch('madspark.core.async_coordinator.async_evaluate_ideas',
                        side_effect=self._mock_api_delay(0.3, mock_eval)):
-                with patch.dict('madspark.core.async_coordinator.BATCH_FUNCTIONS', {
+                with patch.dict('madspark.core.batch_operations_base.BATCH_FUNCTIONS', {
                     'improve_ideas_batch': lambda *args: ([{"improved_idea": "Even better idea"}], 1000)
                 }):
                     
@@ -476,7 +476,7 @@ class TestAsyncCoordinatorIntegration:
                     api_calls.append(name)
                     return result
                 
-                with patch.dict('madspark.core.async_coordinator.BATCH_FUNCTIONS', {
+                with patch.dict('madspark.core.batch_operations_base.BATCH_FUNCTIONS', {
                     'advocate_ideas_batch': lambda *a: track_batch_call("advocate_batch", ([{
                         "idea_index": i, "formatted": f"Advocacy {i}",
                         "strengths": ["s1"], "opportunities": ["o1"],
@@ -573,7 +573,7 @@ class TestAsyncCoordinatorIntegration:
                    return_value=mock_idea):
             with patch('madspark.core.async_coordinator.async_evaluate_ideas',
                        return_value=mock_eval):
-                with patch.dict('madspark.core.async_coordinator.BATCH_FUNCTIONS', {
+                with patch.dict('madspark.core.batch_operations_base.BATCH_FUNCTIONS', {
                     'advocate_ideas_batch': failing_advocacy
                 }):
                     

@@ -5,7 +5,7 @@ from O(N) to O(1) through batch processing.
 """
 import pytest
 import asyncio
-from unittest.mock import Mock, patch, AsyncMock, MagicMock
+from unittest.mock import Mock, patch, AsyncMock
 from dataclasses import dataclass
 from typing import List
 

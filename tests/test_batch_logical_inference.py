@@ -255,80 +255,88 @@ class TestAsyncCoordinatorBatchLogicalInference:
         ]
         mock_engine.logical_inference_engine = mock_logical_engine
         
-        # Run batch logical inference
-        results = await async_coordinator._run_batch_logical_inference(
-            candidates=sample_candidates,
-            theme="Technology innovations",
-            context="Must be practical",
-            reasoning_engine=mock_engine
-        )
+        # Extract ideas from candidates
+        ideas = [c["text"] for c in sample_candidates]
         
-        # Verify analyze_batch was called correctly
-        mock_logical_engine.analyze_batch.assert_called_once_with(
-            ideas=["Idea 1: AI-powered education platform", "Idea 2: Smart home automation system"],
+        # Set up reasoning engine on coordinator
+        async_coordinator.reasoning_engine = mock_engine
+        
+        # Run batch logical inference with new signature
+        results = await async_coordinator._run_batch_logical_inference(
+            ideas=ideas,
             theme="Technology innovations",
             context="Must be practical",
             analysis_type=InferenceType.FULL
         )
         
-        # Verify results structure
-        assert len(results) == 2
-        assert results[0]["confidence"] == 0.85
-        assert results[0]["inference"] == "AI education platform is logically sound"
-        assert results[0]["improvements"] == "Add privacy protections"
-        assert len(results[0]["inference_chain"]) == 2
+        # Verify analyze_batch was called correctly
+        mock_logical_engine.analyze_batch.assert_called_once_with(
+            ["Idea 1: AI-powered education platform", "Idea 2: Smart home automation system"],
+            "Technology innovations",
+            "Must be practical",
+            InferenceType.FULL
+        )
         
-        assert results[1]["confidence"] == 0.90
-        assert results[1]["inference"] == "Smart home system provides clear benefits"
+        # Verify results structure - now returns InferenceResult objects
+        assert len(results) == 2
+        assert results[0].confidence == 0.85
+        assert results[0].conclusion == "AI education platform is logically sound"
+        assert results[0].improvements == "Add privacy protections"
+        assert len(results[0].inference_chain) == 2
+        
+        assert results[1].confidence == 0.90
+        assert results[1].conclusion == "Smart home system provides clear benefits"
     
     @pytest.mark.asyncio
     async def test_run_batch_logical_inference_no_engine(self, async_coordinator, sample_candidates):
         """Test _run_batch_logical_inference without engine falls back correctly."""
-        # Mock ReasoningEngine creation
-        with patch('madspark.core.async_coordinator.ReasoningEngine') as mock_reasoning_class:
-            mock_engine = Mock()
-            mock_engine.logical_inference_engine = None  # No logical inference available
-            mock_reasoning_class.return_value = mock_engine
+        # Extract ideas from candidates
+        ideas = [c["text"] for c in sample_candidates]
+        
+        # No reasoning engine set
+        async_coordinator.reasoning_engine = None
             
-            results = await async_coordinator._run_batch_logical_inference(
-                candidates=sample_candidates,
-                theme="Test",
-                context="Test"
-            )
-            
-            # Should return fallback results
-            assert len(results) == 2
-            for result in results:
-                assert result["confidence"] == 0.0
-                assert result["inference"] == "Logical inference not available"
+        results = await async_coordinator._run_batch_logical_inference(
+            ideas=ideas,
+            theme="Test",
+            context="Test"
+        )
+        
+        # Should return empty list when no engine available
+        assert results == []
     
     @pytest.mark.asyncio
     async def test_run_batch_logical_inference_error_handling(self, async_coordinator, sample_candidates):
         """Test error handling in batch logical inference."""
+        # Extract ideas from candidates
+        ideas = [c["text"] for c in sample_candidates]
+        
         mock_engine = Mock()
         mock_logical_engine = Mock()
         mock_logical_engine.analyze_batch.side_effect = RuntimeError("API failure")
         mock_engine.logical_inference_engine = mock_logical_engine
         
-        results = await async_coordinator._run_batch_logical_inference(
-            candidates=sample_candidates,
-            theme="Test",
-            context="Test",
-            reasoning_engine=mock_engine
-        )
+        # Set up coordinator with mock engine
+        async_coordinator.reasoning_engine = mock_engine
         
-        # Should return error results
-        assert len(results) == 2
-        for result in results:
-            assert result["confidence"] == 0.0
-            assert result["inference"] == "Logical inference failed"
-            assert result["error"] == "API failure"
+        # Import logger mock
+        with patch('madspark.core.async_coordinator.logger') as mock_logger:
+            results = await async_coordinator._run_batch_logical_inference(
+                ideas=ideas,
+                theme="Test",
+                context="Test"
+            )
+            
+            # Should return empty list on error
+            assert results == []
+            # Should log the error
+            mock_logger.error.assert_called_once()
     
     @pytest.mark.asyncio
     async def test_run_batch_logical_inference_empty_candidates(self, async_coordinator):
-        """Test with empty candidates list."""
+        """Test with empty ideas list."""
         results = await async_coordinator._run_batch_logical_inference(
-            candidates=[],
+            ideas=[],
             theme="Test",
             context="Test"
         )

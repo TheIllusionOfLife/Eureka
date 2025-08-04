@@ -6,7 +6,6 @@ after architecture unification, with no regressions in functionality.
 import pytest
 import asyncio
 from unittest.mock import Mock, patch, AsyncMock
-from typing import Dict, Any
 
 from src.madspark.core.async_coordinator import AsyncCoordinator
 
@@ -341,7 +340,7 @@ class TestRealAPIIntegration:
     async def test_batch_logical_inference_with_real_api(self):
         """Test batch logical inference with real Google GenAI API."""
         try:
-            import google.genai
+            import google.genai  # noqa: F401
         except ImportError:
             pytest.skip("Google GenAI not available")
         
@@ -390,7 +389,7 @@ class TestRealAPIIntegration:
     async def test_api_call_count_with_real_api(self):
         """Verify that batch processing actually reduces API calls with real API."""
         try:
-            import google.genai
+            import google.genai  # noqa: F401
         except ImportError:
             pytest.skip("Google GenAI not available")
         

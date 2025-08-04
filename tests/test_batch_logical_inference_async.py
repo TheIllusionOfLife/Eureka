@@ -7,10 +7,8 @@ import pytest
 import asyncio
 from unittest.mock import Mock, patch, AsyncMock
 from dataclasses import dataclass
-from typing import List
-
 from src.madspark.core.async_coordinator import AsyncCoordinator
-from src.madspark.utils.logical_inference_engine import InferenceResult, InferenceType
+from src.madspark.utils.logical_inference_engine import InferenceType
 
 
 @dataclass
@@ -338,7 +336,6 @@ class TestBatchLogicalInferenceIntegration:
         coordinator.reasoning_engine = mock_engine
         
         ideas = ["Idea 1", "Idea 2"]
-        candidates = [{"text": idea, "critique": f"Critique for {idea}"} for idea in ideas]
         
         start_time = time.time()
         
@@ -400,8 +397,6 @@ class TestBatchLogicalInferencePerformance:
     @pytest.mark.asyncio
     async def test_memory_efficiency_large_batch(self):
         """Test memory efficiency of batch logical inference."""
-        import sys
-        
         coordinator = AsyncCoordinator()
         
         # Mock batch function that returns large results

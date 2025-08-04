@@ -5,7 +5,7 @@ between async_coordinator.py and coordinator_batch.py.
 """
 import pytest
 import asyncio
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import Mock, patch
 from concurrent.futures import TimeoutError as FutureTimeoutError
 
 from src.madspark.core.batch_operations_base import BatchOperationsBase

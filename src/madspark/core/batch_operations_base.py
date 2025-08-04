@@ -5,7 +5,7 @@ code duplication between async_coordinator.py and coordinator_batch.py.
 """
 import asyncio
 import logging
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 from concurrent.futures import ThreadPoolExecutor
 import concurrent.futures
 
@@ -180,7 +180,7 @@ class BatchOperationsBase:
                     candidate[result_key] = "N/A (Unexpected format)"
             else:
                 logger.warning(f"{result_key.title()} result missing for candidate {i+1}")
-                candidate[result_key] = f"N/A (No result from batch API)"
+                candidate[result_key] = "N/A (No result from batch API)"
         return candidates
     
     def update_candidates_with_improvement_results(

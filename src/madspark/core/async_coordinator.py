@@ -27,6 +27,22 @@ from ..utils.constants import (
 
 logger = logging.getLogger(__name__)
 
+# Batch function registry - imported at module level for efficiency
+BATCH_FUNCTIONS = {}
+try:
+    from ..agents.advocate import advocate_ideas_batch
+    from ..agents.skeptic import criticize_ideas_batch
+    from ..agents.idea_generator import improve_ideas_batch
+    
+    BATCH_FUNCTIONS = {
+        'advocate_ideas_batch': advocate_ideas_batch,
+        'criticize_ideas_batch': criticize_ideas_batch,
+        'improve_ideas_batch': improve_ideas_batch
+    }
+except ImportError as e:
+    logger.error(f"Failed to import batch functions: {e}")
+    BATCH_FUNCTIONS = {}
+
 
 # Type alias for progress callback
 ProgressCallback = Callable[[str, float], Awaitable[None]]
@@ -203,6 +219,252 @@ class AsyncCoordinator:
         """Run a coroutine with semaphore limiting concurrency."""
         async with self.semaphore:
             return await coro
+    
+    async def _run_batch_with_timeout(self, batch_func_name: str, *args, timeout: float = 60):
+        """Run a batch function with timeout protection.
+        
+        Args:
+            batch_func_name: Name of the batch function to call
+            *args: Arguments to pass to the batch function
+            timeout: Timeout in seconds
+            
+        Returns:
+            Result from the batch function
+            
+        Raises:
+            asyncio.TimeoutError: If operation exceeds timeout
+        """
+        try:
+            # Get batch function from registry
+            batch_func = BATCH_FUNCTIONS.get(batch_func_name)
+            if not batch_func:
+                raise ValueError(f"Unknown or unavailable batch function: {batch_func_name}")
+            
+            loop = asyncio.get_running_loop()
+            return await asyncio.wait_for(
+                loop.run_in_executor(None, batch_func, *args),
+                timeout=timeout
+            )
+        except asyncio.TimeoutError:
+            logger.error(f"Batch operation {batch_func_name} timed out after {timeout}s")
+            raise
+    
+    async def _process_candidates_with_batch_advocacy(
+        self, candidates: List[EvaluatedIdea], theme: str, temperature: float
+    ) -> List[EvaluatedIdea]:
+        """Process all candidates with batch advocacy in a single API call.
+        
+        Args:
+            candidates: List of evaluated ideas
+            theme: Overall theme/context
+            temperature: Generation temperature
+            
+        Returns:
+            Updated candidates with advocacy data
+        """
+        # Prepare batch input
+        advocacy_input = [
+            {"idea": c["text"], "evaluation": c["critique"]}
+            for c in candidates
+        ]
+        
+        try:
+            # Single API call for all advocacies
+            advocacy_results, token_usage = await self._run_batch_with_timeout(
+                'advocate_ideas_batch', advocacy_input, theme, temperature
+            )
+            
+            # Map results back to candidates
+            # Use enumerate to avoid data loss if API returns fewer results
+            for i, candidate in enumerate(candidates):
+                if i < len(advocacy_results):
+                    candidate["advocacy"] = advocacy_results[i].get("formatted", "N/A")
+                else:
+                    logger.warning(f"Advocacy result missing for candidate {i+1}")
+                    candidate["advocacy"] = "N/A (No result from batch API)"
+                    
+        except Exception as e:
+            logger.error(f"Batch advocate failed: {e}")
+            # Fallback: mark all as N/A
+            for candidate in candidates:
+                candidate["advocacy"] = "N/A (Batch advocate failed)"
+        
+        return candidates
+    
+    async def _process_candidates_with_batch_skepticism(
+        self, candidates: List[EvaluatedIdea], theme: str, temperature: float
+    ) -> List[EvaluatedIdea]:
+        """Process all candidates with batch skepticism in a single API call."""
+        # Prepare batch input
+        skeptic_input = [
+            {"idea": c["text"], "advocacy": c.get("advocacy", "N/A")}
+            for c in candidates
+        ]
+        
+        try:
+            # Single API call for all skepticisms
+            skepticism_results, token_usage = await self._run_batch_with_timeout(
+                'criticize_ideas_batch', skeptic_input, theme, temperature
+            )
+            
+            # Map results back to candidates
+            # Use enumerate to avoid data loss if API returns fewer results
+            for i, candidate in enumerate(candidates):
+                if i < len(skepticism_results):
+                    candidate["skepticism"] = skepticism_results[i].get("formatted", "N/A")
+                else:
+                    logger.warning(f"Skepticism result missing for candidate {i+1}")
+                    candidate["skepticism"] = "N/A (No result from batch API)"
+                    
+        except Exception as e:
+            logger.error(f"Batch skeptic failed: {e}")
+            # Fallback: mark all as N/A
+            for candidate in candidates:
+                candidate["skepticism"] = "N/A (Batch skeptic failed)"
+        
+        return candidates
+    
+    async def _process_candidates_with_batch_improvement(
+        self, candidates: List[EvaluatedIdea], theme: str, temperature: float
+    ) -> List[EvaluatedIdea]:
+        """Process all candidates with batch improvement in a single API call."""
+        # Prepare batch input
+        improve_input = [
+            {
+                "idea": c["text"],
+                "critique": c["critique"],
+                "advocacy": c.get("advocacy", "N/A"),
+                "skepticism": c.get("skepticism", "N/A")
+            }
+            for c in candidates
+        ]
+        
+        try:
+            # Single API call for all improvements
+            improvement_results, token_usage = await self._run_batch_with_timeout(
+                'improve_ideas_batch', improve_input, theme, temperature
+            )
+            
+            # Map results back to candidates
+            # Use enumerate to avoid data loss if API returns fewer results
+            for i, candidate in enumerate(candidates):
+                if i < len(improvement_results):
+                    candidate["improved_idea"] = improvement_results[i].get(
+                        "improved_idea", 
+                        candidate["text"]  # Fallback to original
+                    )
+                else:
+                    logger.warning(f"Improvement result missing for candidate {i+1}")
+                    candidate["improved_idea"] = candidate["text"]  # Fallback to original
+                    
+        except Exception as e:
+            logger.error(f"Batch improvement failed: {e}")
+            # Fallback: use original ideas
+            for candidate in candidates:
+                candidate["improved_idea"] = candidate["text"]
+        
+        return candidates
+    
+    async def _process_candidates_with_batch_advocacy_safe(
+        self, candidates: List[EvaluatedIdea], theme: str, temperature: float
+    ) -> List[EvaluatedIdea]:
+        """Process candidates with batch advocacy, with fallback on error."""
+        try:
+            return await self._process_candidates_with_batch_advocacy(
+                candidates, theme, temperature
+            )
+        except Exception as e:
+            logger.error(f"Batch advocacy failed, using fallback: {e}")
+            # Provide fallback advocacy for all candidates
+            for candidate in candidates:
+                candidate["advocacy"] = (
+                    f"This idea shows strong potential in addressing {theme}. "
+                    "Key strengths include practical implementation approach "
+                    "and alignment with constraints."
+                )
+            return candidates
+    
+    async def _run_batch_advocacy(
+        self, candidates: List[EvaluatedIdea], theme: str, temperature: float
+    ):
+        """Run batch advocacy operation."""
+        return await self._process_candidates_with_batch_advocacy(
+            candidates, theme, temperature
+        )
+    
+    async def _run_batch_logical_inference(
+        self, 
+        candidates: List[EvaluatedIdea], 
+        theme: str, 
+        context: str,
+        reasoning_engine = None,
+        analysis_type: InferenceType = InferenceType.FULL
+    ):
+        """
+        Run batch logical inference operation using the actual inference engine.
+        
+        Args:
+            candidates: List of evaluated ideas
+            theme: Original theme/topic
+            context: Constraints and requirements
+            reasoning_engine: Optional ReasoningEngine instance
+            analysis_type: Type of logical analysis to perform
+            
+        Returns:
+            List of inference results with confidence scores and analysis
+        """
+        if not candidates:
+            return []
+        
+        # Extract ideas from candidates
+        ideas = [candidate["text"] for candidate in candidates]
+        
+        # Get the logical inference engine
+        engine = reasoning_engine
+        if not engine:
+            if not hasattr(self, '_reasoning_engine') or not self._reasoning_engine:
+                # Create a reasoning engine if not available
+                from .enhanced_reasoning import ReasoningEngine
+                self._reasoning_engine = ReasoningEngine()
+            engine = self._reasoning_engine
+        
+        if not engine or not engine.logical_inference_engine:
+            logger.warning("Logical inference engine not available, returning empty results")
+            return [{"confidence": 0.0, "inference": "Logical inference not available"}] * len(candidates)
+        
+        try:
+            # Run batch logical inference
+            # Use asyncio.to_thread to run the synchronous method in a thread pool
+            inference_results = await asyncio.to_thread(
+                engine.logical_inference_engine.analyze_batch,
+                ideas=ideas,
+                theme=theme,
+                context=context,
+                analysis_type=analysis_type
+            )
+            
+            # Convert InferenceResult objects to dictionaries
+            batch_results = []
+            for result in inference_results:
+                batch_results.append({
+                    "confidence": result.confidence,
+                    "inference": result.conclusion,
+                    "inference_chain": result.inference_chain,
+                    "improvements": result.improvements,
+                    "error": getattr(result, 'error', None)
+                })
+            
+            return batch_results
+            
+        except Exception as e:
+            logger.error(f"Batch logical inference failed: {e}")
+            # Return fallback results
+            return [{
+                "confidence": 0.0, 
+                "inference": "Logical inference failed",
+                "error": str(e)
+            }] * len(candidates)
+    
             
     async def run_workflow(
         self,
@@ -493,25 +755,23 @@ class AsyncCoordinator:
                     await self._send_progress("Performing batch logical inference analysis...", 0.65)
                     logger.info(f"Starting batch logical inference for {len(top_candidates)} candidates")
                     
-                    # Extract ideas for batch processing
-                    candidate_ideas = [candidate["text"] for candidate in top_candidates]
-                    
-                    # Perform batch logical inference
-                    inference_engine = engine.logical_inference_engine
-                    batch_results = inference_engine.analyze_batch(
-                        ideas=candidate_ideas,
+                    # Use the batch logical inference method
+                    batch_results = await self._run_batch_logical_inference(
+                        candidates=top_candidates,
                         theme=theme,
                         context=constraints,
+                        reasoning_engine=engine,
                         analysis_type=InferenceType.FULL
                     )
                     
                     # Add logical inference data to candidates
-                    for i, (candidate, inference_result) in enumerate(zip(top_candidates, batch_results)):
-                        if inference_result.confidence > LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD:
-                            candidate["logical_inference"] = inference_result.to_dict()
-                            logger.info(f"Added logical inference data to candidate {i+1} with confidence {inference_result.confidence}")
+                    for i, (candidate, inference_data) in enumerate(zip(top_candidates, batch_results)):
+                        confidence = inference_data.get("confidence", 0.0)
+                        if confidence > LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD:
+                            candidate["logical_inference"] = inference_data
+                            logger.info(f"Added logical inference data to candidate {i+1} with confidence {confidence}")
                         else:
-                            logger.info(f"Skipped logical inference for candidate {i+1} due to low confidence ({inference_result.confidence})")
+                            logger.info(f"Skipped logical inference for candidate {i+1} due to low confidence ({confidence})")
                     
                     logger.info(f"Batch logical inference completed for {len(top_candidates)} candidates")
                     
@@ -587,63 +847,175 @@ class AsyncCoordinator:
         multi_dimensional_eval: bool = False,
         reasoning_engine = None
     ) -> List[CandidateData]:
-        """Process top candidates with parallel advocacy and skepticism.
+        """Process top candidates with batch operations for efficiency.
         
-        This runs advocacy and skepticism for all candidates in parallel,
-        significantly improving performance.
+        This method uses batch API calls to process all candidates at once,
+        significantly reducing API calls and execution time.
         """
+        await self._send_progress("Processing candidates with batch operations...", 0.7)
+        
+        # Step 1: Batch Advocacy Processing
+        await self._send_progress("Running batch advocacy analysis...", 0.72)
+        candidates = await self._process_candidates_with_batch_advocacy(
+            candidates, theme, advocacy_temp
+        )
+        
+        # Step 2: Batch Skepticism Processing  
+        await self._send_progress("Running batch skepticism analysis...", 0.75)
+        candidates = await self._process_candidates_with_batch_skepticism(
+            candidates, theme, skepticism_temp
+        )
+        
+        # Step 3: Batch Improvement Processing
+        await self._send_progress("Running batch idea improvement...", 0.78)
+        candidates = await self._process_candidates_with_batch_improvement(
+            candidates, theme, idea_temp
+        )
+        
+        # Step 4: Batch Re-evaluation
+        await self._send_progress("Running batch re-evaluation...", 0.82)
+        
+        # Build improved ideas with context for re-evaluation
+        improved_ideas_with_context = []
+        for i, candidate in enumerate(candidates):
+            improved_idea = candidate.get("improved_idea", candidate["text"])
+            # Add context about this being an improved version
+            idea_with_context = (
+                f"[IMPROVED IDEA #{i+1}]\n"
+                f"{improved_idea}\n"
+                f"[CONTEXT: This is an IMPROVED version that addresses previous concerns. "
+                f"Original score: {candidate['score']}/10. "
+                f"Key improvements made: Addressed skeptic's concerns, incorporated advocate's strengths, "
+                f"applied critic's suggestions.]"
+            )
+            improved_ideas_with_context.append(idea_with_context)
+        
+        improved_ideas_text = "\n\n".join(improved_ideas_with_context)
+        
+        # Build context that includes all relevant information
+        improved_context = (
+            f"{theme}\n"
+            f"[These are IMPROVED versions of ideas that have been refined based on:\n"
+            f"- Critical analysis identifying weaknesses\n"
+            f"- Advocacy highlighting strengths\n"
+            f"- Skeptical evaluation of risks\n"
+            f"- Specific improvements to address all feedback]\n"
+            f"Please evaluate each improved idea considering the enhancements made."
+        )
+        
+        try:
+            # Single API call for all re-evaluations with proper context
+            re_eval_output = await async_evaluate_ideas(
+                ideas=improved_ideas_text,
+                criteria=constraints,
+                context=improved_context,
+                temperature=eval_temp,
+                use_structured_output=True
+            )
+            
+            # Parse re-evaluations based on structured output
+            import json
+            try:
+                # First try to parse as structured JSON
+                re_eval_json = json.loads(re_eval_output)
+                re_eval_results = []
+                
+                # Handle different response formats
+                if isinstance(re_eval_json, list):
+                    re_eval_results = re_eval_json
+                elif isinstance(re_eval_json, dict):
+                    if "evaluations" in re_eval_json:
+                        re_eval_results = re_eval_json["evaluations"]
+                    elif "results" in re_eval_json:
+                        re_eval_results = re_eval_json["results"]
+                    else:
+                        # Single evaluation wrapped in dict
+                        re_eval_results = [re_eval_json]
+                
+                # Validate we have correct number of evaluations
+                if len(re_eval_results) != len(candidates):
+                    logger.warning(f"Expected {len(candidates)} re-evaluations, got {len(re_eval_results)}")
+                    # Fall back to parse_json_with_fallback
+                    re_eval_results = parse_json_with_fallback(
+                        re_eval_output,
+                        expected_count=len(candidates)
+                    )
+            except json.JSONDecodeError:
+                # Fall back to parse_json_with_fallback for non-JSON responses
+                logger.warning("Re-evaluation response was not valid JSON, using fallback parser")
+                re_eval_results = parse_json_with_fallback(
+                    re_eval_output,
+                    expected_count=len(candidates)
+                )
+            
+            for i, parsed_eval in enumerate(re_eval_results):
+                if i < len(candidates):
+                    # Use validate_evaluation_json for consistent field normalization
+                    eval_data = validate_evaluation_json(parsed_eval)
+                    candidates[i]["improved_score"] = eval_data["score"]
+                    candidates[i]["improved_critique"] = eval_data["comment"]
+                    
+        except Exception as e:
+            logger.error(f"Batch re-evaluation failed: {e}")
+            # Fallback: use original scores
+            for candidate in candidates:
+                candidate["improved_score"] = candidate["score"]
+                candidate["improved_critique"] = "Re-evaluation failed"
+        
+        # Step 5: Build final candidate data
+        await self._send_progress("Building final results...", 0.88)
         final_candidates: List[CandidateData] = []
         
-        # Create tasks for all candidates
-        tasks = []
         for candidate in candidates:
-            task = asyncio.create_task(
-                self._process_single_candidate(
-                    candidate,
-                    theme,
-                    advocacy_temp,
-                    skepticism_temp,
-                    idea_temp,
-                    eval_temp,
-                    constraints,
-                    multi_dimensional_eval,
-                    reasoning_engine
-                )
-            )
-            tasks.append(task)
-            # Track in active_tasks if provided (for cancellation cleanup)
-            if active_tasks is not None:
-                active_tasks.append(task)
+            # Calculate score delta
+            initial_score = candidate["score"]
+            improved_score = candidate.get("improved_score", initial_score)
+            score_delta = improved_score - initial_score
             
-        # Run all tasks concurrently with semaphore limiting
-        await self._send_progress(f"Running complete feedback loop for {len(tasks)} candidates...", 0.8)
-        try:
-            # Add timeout to prevent entire candidate processing from hanging
-            processed_candidates = await asyncio.wait_for(
-                asyncio.gather(*tasks, return_exceptions=True),
-                timeout=300.0  # 5 minute timeout for all candidate processing
+            # Calculate similarity and meaningful improvement
+            from ..utils.text_similarity import is_meaningful_improvement
+            from ..utils.constants import (
+                MEANINGFUL_IMPROVEMENT_SIMILARITY_THRESHOLD,
+                MEANINGFUL_IMPROVEMENT_SCORE_DELTA
             )
-        except asyncio.TimeoutError:
-            logger.error("Candidate processing timed out after 5 minutes")
-            await self._send_progress("Candidate processing timed out - using partial results", 0.85)
-            # Return partial results if any completed
-            processed_candidates = []
-            for task in tasks:
-                if task.done() and not task.exception():
-                    processed_candidates.append(task.result())
-                else:
-                    processed_candidates.append(None)
+            
+            original_idea = candidate["text"]
+            improved_idea = candidate.get("improved_idea", original_idea)
+            
+            is_meaningful, similarity_score = is_meaningful_improvement(
+                original_idea,
+                improved_idea,
+                score_delta,
+                similarity_threshold=MEANINGFUL_IMPROVEMENT_SIMILARITY_THRESHOLD,
+                score_delta_threshold=MEANINGFUL_IMPROVEMENT_SCORE_DELTA
+            )
+            
+            # Build candidate data
+            candidate_data = {
+                "idea": original_idea,
+                "initial_score": initial_score,
+                "initial_critique": candidate["critique"],
+                "advocacy": candidate.get("advocacy", "N/A"),
+                "skepticism": candidate.get("skepticism", "N/A"),
+                "improved_idea": improved_idea,
+                "improved_score": improved_score,
+                "improved_critique": candidate.get("improved_critique", "N/A"),
+                "score_delta": score_delta,
+                "is_meaningful_improvement": is_meaningful,
+                "similarity_score": similarity_score
+            }
+            
+            # Add multi-dimensional evaluation if available
+            if "multi_dimensional_evaluation" in candidate:
+                candidate_data["multi_dimensional_evaluation"] = candidate["multi_dimensional_evaluation"]
+            
+            # Add logical inference if available
+            if "logical_inference" in candidate:
+                candidate_data["logical_inference"] = candidate["logical_inference"]
+            
+            final_candidates.append(candidate_data)
         
-        # Filter out any None results or exceptions
-        successful_candidates = 0
-        for result in processed_candidates:
-            if isinstance(result, Exception):
-                logger.error(f"Candidate processing failed with exception: {result}")
-            elif result is not None:
-                final_candidates.append(result)
-                successful_candidates += 1
-        
-        await self._send_progress(f"Completed processing {successful_candidates} candidates", 0.9)
+        await self._send_progress(f"Completed batch processing of {len(final_candidates)} candidates", 0.9)
         
         return final_candidates
         

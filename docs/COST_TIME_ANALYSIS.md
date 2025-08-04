@@ -192,8 +192,9 @@ ms "create a new game concept as a game director" "implementable within a month,
 ## Performance Insights
 
 ### Batch API Benefits
-- **Before**: 5 ideas = 15 API calls
-- **After**: 5 ideas = 3 API calls (80% reduction!)
+- **Before**: 5 ideas = 15 API calls (individual processing)
+- **After PR #154**: 5 ideas = 3 API calls in batch coordinator (80% reduction!)
+- **After Async Optimization**: 5 ideas = 3-8 API calls in async coordinator (batch operations)
 - **Cost Savings**: 45-50% with batch pricing
 
 ### Async Processing
@@ -209,6 +210,7 @@ ms "create a new game concept as a game director" "implementable within a month,
   - Token generation time for detailed responses (40,000+ output tokens)
   - Rate limiting between API calls
 - Simple queries (1-3 ideas) remain fast (30-50 seconds)
+- **Update**: With async coordinator batch optimizations, expected 60-70% reduction in execution time for multi-idea workflows
 
 ### Token Efficiency
 - Average ~1,298 tokens per complete idea workflow

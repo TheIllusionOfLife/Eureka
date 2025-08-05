@@ -139,7 +139,7 @@ class TestIdeaImprovementBatch:
             "skepticism": "Test"
         }]
         
-        with pytest.raises(RuntimeError, match="Batch improvement failed.*Invalid JSON"):
+        with pytest.raises(RuntimeError, match="Batch improvement failed: Expected 1 improvements, got 0"):
             improve_ideas_batch(ideas, "Test", 0.9)
     
     @patch('madspark.agents.idea_generator.GENAI_AVAILABLE', True)

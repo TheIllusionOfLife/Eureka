@@ -2,8 +2,6 @@
 import asyncio
 import sys
 import os
-import json
-from typing import Dict, Any, List
 
 # Add paths
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
@@ -19,7 +17,6 @@ async def test_web_interface_with_real_data():
     # No coordinator needed for this test
     
     # Test parameters
-    theme = "sustainable urban farming"
     constraints = "low-cost solutions for small spaces"
     
     # Mock results with float scores
@@ -68,9 +65,9 @@ async def test_web_interface_with_real_data():
             "inference_chain": [
                 f"Step 1: Analyze feasibility of {result['text'][:30]}...",
                 f"Step 2: Consider constraints of {constraints}",
-                f"Step 3: Evaluate potential impact"
+                "Step 3: Evaluate potential impact"
             ],
-            "improvements": f"Consider adding more details about implementation"
+            "improvements": "Consider adding more details about implementation"
         }
     
     # Test processing through coordinator's format_results method

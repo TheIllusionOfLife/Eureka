@@ -114,7 +114,7 @@ def parse_batch_json_with_fallback(text: str, expected_count: int = None) -> Lis
     try:
         obj = json.loads(fixed_text)
         if isinstance(obj, list):
-            logging.info(f"Successfully parsed JSON after fixing missing commas")
+            logging.info("Successfully parsed JSON after fixing missing commas")
             return obj
     except json.JSONDecodeError as e:
         logging.debug(f"Still failed after comma fixes: {e}")
@@ -373,26 +373,27 @@ def validate_evaluation_json(data: Dict[str, Any]) -> Dict[str, Any]:
     elif isinstance(score, (int, float)):
         # Handle special float values (inf, -inf, nan)
         if not (-float('inf') < score < float('inf')):
-            logging.warning(f"Score is infinite, using default 0")
+            logging.warning("Score is infinite, using default 0")
             score = 0
         elif score != score:  # NaN check
-            logging.warning(f"Score is NaN, using default 0")
+            logging.warning("Score is NaN, using default 0")
             score = 0
     else:
-        # Try to convert string scores to int (keeping existing behavior for strings)
+        # Try to convert string scores to float first
         if isinstance(score, str):
             try:
-                score = int(score)
+                score = float(score)
             except ValueError:
-                logging.warning(f"Could not convert score '{score}' to integer, using default 0")
+                logging.warning(f"Could not convert score '{score}' to number, using default 0")
                 score = 0
         else:
             # For all other types (None, list, dict, etc.), default to 0
             logging.warning(f"Invalid score type {type(score)}, using default 0")
             score = 0
     
-    # Clamp score to valid range
-    validated["score"] = max(0, min(10, score))
+    # Clamp score to valid range and round to nearest integer
+    # Python's round() uses banker's rounding (round half to even)
+    validated["score"] = max(0, min(10, round(score)))
     
     # Validate comment
     comment = data.get("comment") or data.get("critique") or data.get("feedback") or ""

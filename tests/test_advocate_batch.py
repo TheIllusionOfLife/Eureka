@@ -114,7 +114,7 @@ class TestAdvocateBatch:
     @patch('madspark.agents.advocate.advocate_client')
     @patch('madspark.agents.advocate.get_model_name')
     def test_advocate_ideas_batch_invalid_json(self, mock_model_name, mock_client):
-        """Test handling of invalid JSON response."""
+        """Test handling of invalid JSON response - now recovers with placeholders."""
         mock_model_name.return_value = "gemini-2.5-flash"
         
         mock_response = Mock()
@@ -123,9 +123,16 @@ class TestAdvocateBatch:
         
         ideas = [{"idea": "Test", "evaluation": "Test eval"}]
         
-        from madspark.utils.batch_exceptions import BatchAPIError
-        with pytest.raises(BatchAPIError, match="Batch advocate failed.*Invalid JSON"):
-            advocate_ideas_batch(ideas, "Test", 0.5)
+        # Should recover with placeholder data
+        results, token_usage = advocate_ideas_batch(ideas, "Test", 0.5)
+        
+        # Should return placeholder advocacy
+        assert len(results) == 1
+        assert results[0]["idea_index"] == 0
+        assert len(results[0]["strengths"]) > 0
+        assert len(results[0]["opportunities"]) > 0
+        assert len(results[0]["addressing_concerns"]) > 0
+        assert "formatted" in results[0]
     
     @patch('madspark.agents.advocate.GENAI_AVAILABLE', True)
     @patch('madspark.agents.advocate.advocate_client')

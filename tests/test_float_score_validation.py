@@ -4,7 +4,6 @@ This test suite verifies that validate_evaluation_json properly handles
 both int and float scores, addressing the web interface display issue
 where float scores were showing as 0.0.
 """
-import pytest
 from src.madspark.utils.utils import validate_evaluation_json
 
 

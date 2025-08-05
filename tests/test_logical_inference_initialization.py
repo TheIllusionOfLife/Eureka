@@ -1,5 +1,4 @@
 """Test that logical inference engine is properly initialized with genai_client."""
-import pytest
 from unittest.mock import Mock, patch
 import sys
 import os
@@ -46,7 +45,7 @@ class TestLogicalInferenceInitialization:
         li_with = LogicalInference(genai_client=mock_client)
         assert li_with.inference_engine is not None
         
-    @patch('madspark.core.enhanced_reasoning.get_genai_client')
+    @patch('madspark.agents.genai_client.get_genai_client')
     def test_reasoning_engine_auto_gets_genai_client(self, mock_get_client):
         """Test that ReasoningEngine automatically gets genai_client if not provided."""
         # Mock the get_genai_client function

@@ -1,5 +1,4 @@
 """Test for the fixed ReasoningEngine initialization."""
-import pytest
 from unittest.mock import Mock, patch
 import sys
 import os

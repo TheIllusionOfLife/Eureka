@@ -1,5 +1,4 @@
 """Test that demonstrates and fixes the ReasoningEngine initialization bug."""
-import pytest
 from unittest.mock import Mock, patch
 import sys
 import os
@@ -24,14 +23,12 @@ class TestReasoningEngineInitializationBug:
         # Initialize ReasoningEngine without explicit genai_client
         engine = ReasoningEngine()
         
-        # The bug: logical_inference was created with genai_client=None
-        # even though get_genai_client returns a valid client
+        # The bug has been fixed: logical_inference now gets the genai_client
         assert engine.logical_inference is not None
         
-        # This should be True if initialization order was correct
-        # But due to the bug, it's False
-        assert engine.logical_inference.genai_client is None  # Bug!
-        assert engine.logical_inference_engine is None  # Bug consequence!
+        # Fixed: LogicalInference now properly receives the genai_client
+        assert engine.logical_inference.genai_client == mock_client  # Fixed!
+        assert engine.logical_inference_engine is not None  # Fixed!
         
         # But multi_evaluator gets the client correctly
         assert engine.multi_evaluator is not None

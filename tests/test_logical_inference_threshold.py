@@ -1,5 +1,4 @@
 """Test that logical inference confidence threshold is set to 0.0."""
-import pytest
 from src.madspark.utils.constants import LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD
 
 

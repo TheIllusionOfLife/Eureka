@@ -131,7 +131,7 @@ class TestSkepticBatch:
         
         ideas = [{"idea": "Test", "advocacy": "Test advocacy"}]
         
-        with pytest.raises(RuntimeError, match="Batch skeptic failed.*Invalid JSON"):
+        with pytest.raises(RuntimeError, match="Batch skeptic failed: Expected 1 criticisms, got 0"):
             criticize_ideas_batch(ideas, "Test", 0.5)
     
     @patch('madspark.agents.skeptic.GENAI_AVAILABLE', True)

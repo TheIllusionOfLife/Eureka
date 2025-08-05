@@ -174,7 +174,7 @@ class TestImprovementInformationFlow:
         result = ops.prepare_improvement_input_with_context(candidates)
         
         assert len(result) == 1
-        assert result[0]["original_idea"] == TEST_IDEA
+        assert result[0]["idea"] == TEST_IDEA
         assert result[0]["critique"] == TEST_EVALUATION
         assert result[0]["advocacy"] == TEST_ADVOCACY
         assert result[0]["skepticism"] == TEST_SKEPTICISM

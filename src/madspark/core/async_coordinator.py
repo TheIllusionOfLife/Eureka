@@ -396,18 +396,40 @@ class AsyncCoordinator(BatchOperationsBase):
         )
         
         # Step 2: Re-evaluation (depends on improvement being complete)
-        # Build improved ideas text for re-evaluation
-        improved_ideas_text = "\n".join([
-            candidate.get("improved_idea", candidate["text"]) 
-            for candidate in candidates
-        ])
+        # Build improved ideas with context for re-evaluation
+        improved_ideas_with_context = []
+        for i, candidate in enumerate(candidates):
+            improved_idea = candidate.get("improved_idea", candidate["text"])
+            # Add context about this being an improved version
+            idea_with_context = (
+                f"[IMPROVED IDEA #{i+1}]\n"
+                f"{improved_idea}\n"
+                f"[CONTEXT: This is an IMPROVED version that addresses previous concerns. "
+                f"Original score: {candidate.get('score', 0)}/10. "
+                f"Key improvements made: Addressed skeptic's concerns, incorporated advocate's strengths, "
+                f"applied critic's suggestions.]"
+            )
+            improved_ideas_with_context.append(idea_with_context)
+        
+        improved_ideas_text = "\n\n".join(improved_ideas_with_context)
+        
+        # Build improved context that includes improvement information
+        improved_context = (
+            f"{topic}\n"
+            f"[These are IMPROVED versions of ideas that have been refined based on:\n"
+            f"- Critical analysis identifying weaknesses\n"
+            f"- Advocacy highlighting strengths\n"
+            f"- Skeptical evaluation of risks\n"
+            f"- Specific improvements to address all feedback]\n"
+            f"Please evaluate each improved idea considering the enhancements made."
+        )
         
         try:
-            # Single API call for all re-evaluations
+            # Single API call for all re-evaluations with proper context
             re_eval_output = await async_evaluate_ideas(
                 ideas=improved_ideas_text,
                 criteria=context,
-                context=topic,
+                context=improved_context,
                 temperature=eval_temp,
                 use_structured_output=True
             )

@@ -149,7 +149,7 @@ class BatchOperationsBase:
         """
         return [
             {
-                "original_idea": c["text"],
+                "idea": c["text"],  # Changed from original_idea to idea for compatibility
                 "critique": c["critique"],
                 "advocacy": c.get("advocacy", "Advocacy not available"),
                 "skepticism": c.get("skepticism", "Skepticism not available"),

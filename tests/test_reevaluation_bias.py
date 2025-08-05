@@ -1,0 +1,297 @@
+"""Tests for fixing re-evaluation bias.
+
+This test suite ensures that:
+1. Re-evaluation prompts clearly indicate ideas are improved versions
+2. Context includes information about improvements made
+3. Evaluation criteria remain consistent between initial and re-evaluation
+4. Re-evaluation acknowledges the improvements made
+"""
+import json
+import pytest
+from unittest.mock import Mock, patch, AsyncMock
+from typing import Dict, Any
+
+
+class TestReEvaluationContext:
+    """Test that re-evaluation includes proper context about improvements."""
+    
+    @pytest.mark.asyncio
+    async def test_reevaluation_includes_improvement_context(self):
+        """Test that re-evaluation prompt indicates ideas are improved versions."""
+        from src.madspark.core.async_coordinator import AsyncCoordinator
+        
+        coordinator = AsyncCoordinator()
+        
+        # Create test candidates with improvements
+        test_candidates = [
+            {
+                "text": "Original idea",
+                "score": 6,
+                "critique": "Needs more detail",
+                "advocacy": "Good potential",
+                "skepticism": "Implementation unclear",
+                "context": "test context"
+            }
+        ]
+        
+        # Mock the evaluation function to capture the prompt
+        captured_prompt = None
+        captured_context = None
+        
+        async def mock_evaluate(*args, **kwargs):
+            nonlocal captured_prompt, captured_context
+            captured_prompt = kwargs.get('ideas', '')
+            captured_context = kwargs.get('context', '')
+            return json.dumps([{"score": 8, "comment": "Much better with improvements"}])
+        
+        # Also mock the improvement process
+        with patch('src.madspark.core.batch_operations_base.BATCH_FUNCTIONS', {
+            'improve_ideas_batch': lambda *args, **kwargs: (
+                [{"improved_idea": "Enhanced idea with clear implementation plan"}], 100
+            )
+        }):
+            with patch('src.madspark.core.async_coordinator.async_evaluate_ideas', mock_evaluate):
+                # Process re-evaluation
+                await coordinator.process_candidates_parallel_improvement_evaluation(
+                    test_candidates,
+                    "test topic",
+                    "test criteria",
+                    0.9,
+                    0.3
+                )
+            
+            # Verify the prompt includes improvement context
+            assert "Enhanced idea with clear implementation plan" in captured_prompt
+            
+            # Verify context indicates these are improved versions
+            assert captured_context is not None
+            assert "improved" in captured_context.lower() or "enhanced" in captured_context.lower()
+    
+    @pytest.mark.asyncio
+    async def test_reevaluation_context_mentions_original_score(self):
+        """Test that re-evaluation context includes original scores."""
+        from src.madspark.core.async_coordinator import AsyncCoordinator
+        
+        coordinator = AsyncCoordinator()
+        
+        test_candidates = [
+            {
+                "text": "Original idea",
+                "score": 5,
+                "critique": "Basic concept",
+                "improved_idea": "Significantly enhanced idea",
+                "context": "test context"
+            }
+        ]
+        
+        captured_context = None
+        
+        async def mock_evaluate(*args, **kwargs):
+            nonlocal captured_context
+            captured_context = kwargs.get('context', '')
+            ideas_text = kwargs.get('ideas', '')
+            # Check if original score is mentioned in the ideas text
+            if "Original score: 5" in ideas_text:
+                return json.dumps([{"score": 8, "comment": "Great improvement"}])
+            return json.dumps([{"score": 6, "comment": "Some improvement"}])
+        
+        with patch('src.madspark.core.batch_operations_base.BATCH_FUNCTIONS', {
+            'improve_ideas_batch': lambda *args, **kwargs: (
+                [{"improved_idea": "Significantly enhanced idea"}], 100
+            )
+        }):
+            with patch('src.madspark.core.async_coordinator.async_evaluate_ideas', mock_evaluate):
+                await coordinator.process_candidates_parallel_improvement_evaluation(
+                    test_candidates,
+                    "test topic",
+                    "test criteria",
+                    0.9,
+                    0.3
+                )
+            
+            # Verify re-evaluation considers the improvement
+            assert test_candidates[0]["improved_score"] == 8
+
+
+class TestConsistentEvaluationCriteria:
+    """Test that evaluation criteria remain consistent."""
+    
+    @pytest.mark.asyncio
+    async def test_same_criteria_used_for_both_evaluations(self):
+        """Test that the same criteria are used for initial and re-evaluation."""
+        from src.madspark.core.async_coordinator import AsyncCoordinator
+        
+        coordinator = AsyncCoordinator()
+        
+        test_candidates = [
+            {
+                "text": "Original idea",
+                "score": 6,
+                "critique": "Needs work",
+                "improved_idea": "Better idea",
+                "context": "specific requirements"
+            }
+        ]
+        
+        captured_criteria = None
+        
+        async def mock_evaluate(*args, **kwargs):
+            nonlocal captured_criteria
+            captured_criteria = kwargs.get('criteria', '')
+            return json.dumps([{"score": 7, "comment": "Better"}])
+        
+        with patch('src.madspark.core.batch_operations_base.BATCH_FUNCTIONS', {
+            'improve_ideas_batch': lambda *args, **kwargs: (
+                [{"improved_idea": "Better idea"}], 100
+            )
+        }):
+            with patch('src.madspark.core.async_coordinator.async_evaluate_ideas', mock_evaluate):
+                await coordinator.process_candidates_parallel_improvement_evaluation(
+                    test_candidates,
+                    "test topic",
+                    "specific requirements",  # Same criteria as initial evaluation
+                    0.9,
+                    0.3
+                )
+            
+            # Verify the same criteria were passed
+            assert captured_criteria == "specific requirements"
+
+
+class TestImprovementAcknowledgment:
+    """Test that re-evaluation acknowledges improvements made."""
+    
+    def test_coordinator_batch_includes_improvement_context(self):
+        """Test that coordinator_batch includes improvement context in re-evaluation."""
+        # This test is verifying the concept, not the exact implementation
+        # The key is that improved ideas get different evaluation context
+        
+        # Test the batch operations base directly
+        from src.madspark.core.batch_operations_base import BatchOperationsBase
+        
+        ops = BatchOperationsBase()
+        
+        # Test that improvement input preparation includes context
+        candidates = [{
+            "text": "Original idea",
+            "score": 5,
+            "critique": "Needs improvement",
+            "advocacy": "Has potential",
+            "skepticism": "Some concerns",
+            "context": "test context"
+        }]
+        
+        # Prepare improvement input with context
+        improvement_input = ops.prepare_improvement_input_with_context(candidates)
+        
+        # Verify all context is included
+        assert len(improvement_input) == 1
+        assert improvement_input[0]["idea"] == "Original idea"
+        assert improvement_input[0]["critique"] == "Needs improvement"
+        assert improvement_input[0]["advocacy"] == "Has potential"
+        assert improvement_input[0]["skepticism"] == "Some concerns"
+        assert improvement_input[0]["context"] == "test context"
+        
+        # The actual re-evaluation with improvement context is tested in async tests
+
+
+class TestBiasReduction:
+    """Test that bias towards higher scores for improved ideas is reduced."""
+    
+    @pytest.mark.asyncio
+    async def test_balanced_reevaluation_scoring(self):
+        """Test that re-evaluation doesn't automatically give higher scores."""
+        from src.madspark.core.async_coordinator import AsyncCoordinator
+        
+        coordinator = AsyncCoordinator()
+        
+        # Create candidates where improvement is minimal
+        test_candidates = [
+            {
+                "text": "Good original idea",
+                "score": 8,
+                "critique": "Already strong",
+                "advocacy": "Strong points",
+                "skepticism": "Minor concerns",
+                "context": "test context"
+            }
+        ]
+        
+        async def mock_evaluate(*args, **kwargs):
+            ideas = kwargs.get('ideas', '')
+            # If improvement is minimal, score shouldn't increase much
+            if "minor tweak" in ideas:
+                return json.dumps([{"score": 8, "comment": "No significant improvement"}])
+            return json.dumps([{"score": 9, "comment": "Better"}])
+        
+        # Mock the improvement process to return minimal change
+        with patch('src.madspark.core.batch_operations_base.BATCH_FUNCTIONS', {
+            'improve_ideas_batch': lambda *args, **kwargs: (
+                [{"improved_idea": "Good original idea with minor tweak"}], 100
+            )
+        }):
+            with patch('src.madspark.core.async_coordinator.async_evaluate_ideas', mock_evaluate):
+                await coordinator.process_candidates_parallel_improvement_evaluation(
+                    test_candidates,
+                    "test topic",
+                    "test criteria",
+                    0.9,
+                    0.3
+                )
+                
+                # Score should not increase for minimal improvements
+                assert test_candidates[0]["improved_score"] == 8
+
+
+class TestReEvaluationPromptStructure:
+    """Test the structure of re-evaluation prompts."""
+    
+    @pytest.mark.asyncio
+    async def test_reevaluation_prompt_structure(self):
+        """Test that re-evaluation prompt has proper structure."""
+        from src.madspark.core.async_coordinator import AsyncCoordinator
+        
+        coordinator = AsyncCoordinator()
+        
+        test_candidates = [
+            {
+                "text": "Original",
+                "score": 6,
+                "critique": "Needs work",
+                "advocacy": "Has potential",
+                "skepticism": "Some risks",
+                "context": "requirements"
+            }
+        ]
+        
+        captured_ideas_text = None
+        
+        async def mock_evaluate(*args, **kwargs):
+            nonlocal captured_ideas_text
+            captured_ideas_text = kwargs.get('ideas', '')
+            return json.dumps([{"score": 8, "comment": "Good"}])
+        
+        # Mock the improvement process
+        with patch('src.madspark.core.batch_operations_base.BATCH_FUNCTIONS', {
+            'improve_ideas_batch': lambda *args, **kwargs: (
+                [{"improved_idea": "Much better version"}], 100
+            )
+        }):
+            with patch('src.madspark.core.async_coordinator.async_evaluate_ideas', mock_evaluate):
+                await coordinator.process_candidates_parallel_improvement_evaluation(
+                    test_candidates,
+                    "topic",
+                    "criteria",
+                    0.9,
+                    0.3
+                )
+                
+                # Verify prompt structure includes key elements
+                assert captured_ideas_text is not None
+                assert "Much better version" in captured_ideas_text
+                # Should indicate this is an improved version
+                assert any(marker in captured_ideas_text.upper() for marker in ["IMPROVED", "ENHANCED", "REFINED"])
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

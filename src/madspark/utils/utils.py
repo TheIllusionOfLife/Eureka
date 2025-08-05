@@ -372,10 +372,11 @@ def validate_evaluation_json(data: Dict[str, Any]) -> Dict[str, Any]:
     # If score is already a valid int or float, use it directly
     elif isinstance(score, (int, float)):
         # Handle special float values (inf, -inf, nan)
-        if not (-float('inf') < score < float('inf')):
+        import math
+        if math.isinf(score):
             logging.warning("Score is infinite, using default 0")
             score = 0
-        elif score != score:  # NaN check
+        elif math.isnan(score):
             logging.warning("Score is NaN, using default 0")
             score = 0
     else:
@@ -391,9 +392,8 @@ def validate_evaluation_json(data: Dict[str, Any]) -> Dict[str, Any]:
             logging.warning(f"Invalid score type {type(score)}, using default 0")
             score = 0
     
-    # Clamp score to valid range and round to nearest integer
-    # Python's round() uses banker's rounding (round half to even)
-    validated["score"] = max(0, min(10, round(score)))
+    # Clamp score to valid range
+    validated["score"] = max(0, min(10, score))
     
     # Validate comment
     comment = data.get("comment") or data.get("critique") or data.get("feedback") or ""

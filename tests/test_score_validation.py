@@ -39,8 +39,8 @@ class TestScoreValidation:
         data = {"score": 6.5, "comment": "Average"}
         result = validate_evaluation_json(data)
         
-        # Python's round() uses banker's rounding - 6.5 rounds to 6
-        assert result["score"] == 6
+        # Float scores should be preserved
+        assert result["score"] == 6.5
         assert result["comment"] == "Average"
     
     def test_validate_evaluation_json_with_high_midpoint_float(self):
@@ -49,8 +49,8 @@ class TestScoreValidation:
         data = {"score": 7.5, "comment": "Good"}
         result = validate_evaluation_json(data)
         
-        # 7.5 rounds to 8 (nearest even)
-        assert result["score"] == 8
+        # Float scores should be preserved
+        assert result["score"] == 7.5
         assert result["comment"] == "Good"
     
     def test_validate_evaluation_json_with_string_integer(self):
@@ -67,8 +67,8 @@ class TestScoreValidation:
         data = {"score": "8.7", "comment": "Very good"}
         result = validate_evaluation_json(data)
         
-        # Should parse as float then round
-        assert result["score"] == 9
+        # Should parse as float
+        assert result["score"] == 8.7
         assert result["comment"] == "Very good"
     
     def test_validate_evaluation_json_with_invalid_string(self):
@@ -153,8 +153,8 @@ class TestScoreValidation:
         }
         result = validate_evaluation_json(gemini_response)
         
-        # Should round to 8, not default to 0
-        assert result["score"] == 8
+        # Should preserve float value, not default to 0
+        assert result["score"] == 7.8999999999999995
         assert result["comment"] == "Re-evaluation timed out - estimated improvement based on feedback integration"
     
     def test_validate_evaluation_json_with_special_floats(self):

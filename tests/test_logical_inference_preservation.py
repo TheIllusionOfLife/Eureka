@@ -3,7 +3,11 @@ import sys
 import os
 
 # Add the backend directory to the path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'web', 'backend'))
+backend_path = os.path.join(os.path.dirname(__file__), '..', 'web', 'backend')
+if not os.path.exists(backend_path):
+    # Try from root directory (CI environment)
+    backend_path = os.path.join(os.path.dirname(__file__), '..', '..', 'web', 'backend')
+sys.path.insert(0, backend_path)
 
 # Import after path setup
 from main import format_results_for_frontend

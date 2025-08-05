@@ -78,7 +78,7 @@ class TestSyncCoordinator:
         temp_manager = TemperatureManager.from_base_temperature(0.8)
         
         result = run_multistep_workflow(
-            context="AI automation",
+            topic="AI automation",
             context="Cost-effective",
             temperature_manager=temp_manager,
             enhanced_reasoning=True,
@@ -106,7 +106,7 @@ class TestSyncCoordinator:
         mock_generate_ideas.return_value = ""  # Empty string means no ideas
         
         result = run_multistep_workflow(
-            context="AI automation",
+            topic="AI automation",
             context="Cost-effective"
         )
         
@@ -123,7 +123,7 @@ class TestSyncCoordinator:
         mock_advocate_batch.side_effect = Exception("Advocacy failed")
         
         result = run_multistep_workflow(
-            context="AI automation",
+            topic="AI automation",
             context="Cost-effective"
         )
         
@@ -211,7 +211,7 @@ class TestAsyncCoordinator:
         temp_manager = TemperatureManager.from_preset("creative")
         
         result = await coordinator.run_workflow(
-            context="AI automation",
+            topic="AI automation",
             context="Cost-effective",
             temperature_manager=temp_manager,
             enhanced_reasoning=False,  # Disable to simplify test
@@ -238,7 +238,7 @@ class TestAsyncCoordinator:
         # The async coordinator raises asyncio.TimeoutError on timeout
         with pytest.raises(asyncio.TimeoutError):
             await coordinator.run_workflow(
-                context="AI automation",
+                topic="AI automation",
                 context="Cost-effective",
                 temperature_manager=temp_manager,
                 timeout=0.001  # 1ms timeout
@@ -258,7 +258,7 @@ class TestAsyncCoordinator:
         # The async coordinator raises exceptions rather than returning error results
         with pytest.raises(Exception) as exc_info:
             await coordinator.run_workflow(
-                context="AI automation",
+                topic="AI automation",
                 context="Cost-effective",
                 temperature_manager=temp_manager
             )
@@ -288,7 +288,7 @@ class TestWorkflowIntegration:
         
         # Test workflow execution
         result = run_multistep_workflow(
-            context="AI automation",
+            topic="AI automation",
             context="Cost-effective"
         )
         
@@ -373,7 +373,7 @@ class TestTimeoutFunctionality:
                         # Should raise timeout error
                         with pytest.raises(TimeoutError):
                             run_multistep_workflow_batch(
-                                context="test theme",
+                                topic="test theme",
                                 context="test constraints",
                                 timeout=1,  # 1 second timeout
                                 verbose=True  # Enable logging to debug
@@ -389,7 +389,7 @@ class TestTimeoutFunctionality:
         
         # Default timeout should not use ThreadPoolExecutor
         result = run_multistep_workflow_batch(
-            context="test theme",
+            topic="test theme",
             context="test constraints",
             timeout=DEFAULT_TIMEOUT_SECONDS
         )
@@ -397,7 +397,7 @@ class TestTimeoutFunctionality:
         
         # Negative timeout should not use ThreadPoolExecutor 
         result = run_multistep_workflow_batch(
-            context="test theme", 
+            topic="test theme", 
             context="test constraints",
             timeout=-1
         )
@@ -405,7 +405,7 @@ class TestTimeoutFunctionality:
         
         # Zero timeout should not use ThreadPoolExecutor
         result = run_multistep_workflow_batch(
-            context="test theme",
+            topic="test theme",
             context="test constraints", 
             timeout=0
         )
@@ -413,7 +413,7 @@ class TestTimeoutFunctionality:
         
         # None timeout should not use ThreadPoolExecutor
         result = run_multistep_workflow_batch(
-            context="test theme",
+            topic="test theme",
             context="test constraints",
             timeout=None
         )
@@ -428,7 +428,7 @@ class TestTimeoutFunctionality:
             # Run with non-default timeout
             try:
                 run_multistep_workflow_batch(
-                    context="test theme",
+                    topic="test theme",
                     context="test constraints",
                     timeout=300  # Non-default timeout
                 )
@@ -460,7 +460,7 @@ class TestTimeoutFunctionality:
             # Should timeout
             with pytest.raises(asyncio.TimeoutError):
                 await coordinator.run_workflow(
-                    context="test theme",
+                    topic="test theme",
                     context="test constraints",
                     timeout=1  # 1 second timeout
                 )
@@ -486,7 +486,7 @@ class TestTimeoutFunctionality:
                             # Should complete successfully within a realistic timeout
                             # Use non-default timeout to trigger ThreadPoolExecutor path
                             results = run_multistep_workflow_batch(
-                                context="test theme",
+                                topic="test theme",
                                 context="test constraints",
                                 num_top_candidates=1,
                                 timeout=30  # 30 second timeout - realistic and triggers timeout logic
@@ -503,7 +503,7 @@ class TestTimeoutFunctionality:
         # Test that valid timeout values work
         # Using default timeout should not trigger ThreadPoolExecutor path
         result = run_multistep_workflow_batch(
-            context="test theme",
+            topic="test theme",
             context="test constraints", 
             timeout=600  # DEFAULT_TIMEOUT_SECONDS
         )
@@ -511,7 +511,7 @@ class TestTimeoutFunctionality:
         
         # Test that negative timeout is handled (ignored, no timeout enforcement)
         result = run_multistep_workflow_batch(
-            context="test theme",
+            topic="test theme",
             context="test constraints",
             timeout=-1
         )

@@ -80,8 +80,8 @@ class TestCoordinatorMismatchIssue:
             
             # Run workflow (results not used, we're testing warnings)
             _ = run_multistep_workflow(
-                theme="Test Theme",
-                constraints="Test Constraints",
+                context="Test Theme",
+                context="Test Constraints",
                 num_top_candidates=3,
                 enable_novelty_filter=False,
                 verbose=True  # Enable verbose to see warnings
@@ -159,8 +159,8 @@ The remaining ideas are more challenging to evaluate without additional context.
             
             # Run workflow
             results = run_multistep_workflow(
-                theme="Test",
-                constraints="Test",
+                context="Test",
+                context="Test",
                 num_top_candidates=2,
                 enable_novelty_filter=False,
                 verbose=False

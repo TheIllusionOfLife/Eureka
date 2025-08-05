@@ -169,8 +169,8 @@ class TestLogicalInferenceIntegration:
                     
                     # Run coordinator with logical inference enabled
                     results = await coordinator.run_workflow(
-                        theme="test theme",
-                        constraints="test constraints",
+                        context="test theme",
+                        context="test constraints",
                         num_top_candidates=1,
                         logical_inference=True
                     )

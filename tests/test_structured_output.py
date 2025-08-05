@@ -32,7 +32,7 @@ class TestStructuredOutputImplementation:
             critique="Good but needs work",
             advocacy_points="Strong potential",
             skeptic_points="Some risks",
-            theme="innovation"
+            context="innovation"
         )
         
         # Check that prompt includes format requirements
@@ -65,7 +65,7 @@ class TestStructuredOutputImplementation:
                 critique="Needs improvement",
                 advocacy_points="Has potential",
                 skeptic_points="Some concerns",
-                theme="test theme"
+                context="test theme"
             )
             
             # Verify the config was created with response schema
@@ -201,7 +201,7 @@ CRITICAL OUTPUT REQUIREMENTS:
             critique="Critique",
             advocacy_points="Advocacy",
             skeptic_points="Skeptic",
-            theme="Theme"
+            context="Theme"
         )
         
         # Should have clear format section

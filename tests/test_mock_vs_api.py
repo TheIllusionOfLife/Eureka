@@ -89,8 +89,8 @@ def test_coordinator_mock_mode():
         
         # This should handle missing API key gracefully
         result = run_workflow(
-            theme="test sustainable energy",
-            constraints="test constraints",
+            context="test sustainable energy",
+            context="test constraints",
             num_candidates=1,
             temperature=0.7,
             enhanced_reasoning=False,

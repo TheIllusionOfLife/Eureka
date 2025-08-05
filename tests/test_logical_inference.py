@@ -54,7 +54,7 @@ IMPROVEMENTS: Consider hybrid systems combining solar panels with wind turbines 
         # Test
         result = engine.analyze(
             idea="Install vertical axis wind turbines on skyscrapers",
-            theme="renewable energy",
+            context="renewable energy",
             context="urban environment constraints",
             analysis_type=InferenceType.FULL
         )
@@ -89,7 +89,7 @@ ROOT_CAUSE: Urban space constraints drive innovation in vertical renewable energ
         
         result = engine.analyze(
             idea="Vertical wind turbines for cities",
-            theme="renewable energy", 
+            context="renewable energy", 
             context="urban constraints",
             analysis_type=InferenceType.CAUSAL
         )
@@ -121,7 +121,7 @@ TRADE_OFFS:
         
         result = engine.analyze(
             idea="Rooftop wind turbines",
-            theme="renewable energy",
+            context="renewable energy",
             context="must be cost-effective, environmentally friendly, fit urban regulations",
             analysis_type=InferenceType.CONSTRAINTS
         )
@@ -153,7 +153,7 @@ NO_CONTRADICTIONS: False"""
         
         result = engine.analyze(
             idea="Anonymous social network for teenagers",
-            theme="social networking",
+            context="social networking",
             context="must be safe for minors",
             analysis_type=InferenceType.CONTRADICTION
         )
@@ -220,7 +220,7 @@ NO_CONTRADICTIONS: False"""
         
         result = engine.analyze(
             idea="Test idea",
-            theme="Test theme",
+            context="Test theme",
             context="Test context"
         )
         
@@ -239,7 +239,7 @@ NO_CONTRADICTIONS: False"""
         
         result = engine.analyze(
             idea="Test idea",
-            theme="Test theme", 
+            context="Test theme", 
             context="Test context"
         )
         
@@ -251,7 +251,7 @@ NO_CONTRADICTIONS: False"""
         """Test that prompts include all necessary fields."""
         engine.analyze(
             idea="Test idea",
-            theme="Test theme",
+            context="Test theme",
             context="Test context",
             analysis_type=InferenceType.FULL
         )

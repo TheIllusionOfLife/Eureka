@@ -71,7 +71,7 @@ IMPROVEMENTS: Balance difficulty progression"""
         # Perform batch analysis
         results = inference_engine.analyze_batch(
             ideas=sample_ideas,
-            theme="mobile games",
+            context="mobile games",
             context="simple development",
             analysis_type=InferenceType.FULL
         )
@@ -96,7 +96,7 @@ IMPROVEMENTS: Balance difficulty progression"""
         """Test batch analysis with empty ideas list."""
         results = inference_engine.analyze_batch(
             ideas=[],
-            theme="test",
+            context="test",
             context="test"
         )
         
@@ -109,7 +109,7 @@ IMPROVEMENTS: Balance difficulty progression"""
         
         results = inference_engine.analyze_batch(
             ideas=sample_ideas,
-            theme="test",
+            context="test",
             context="test"
         )
         
@@ -127,7 +127,7 @@ IMPROVEMENTS: Balance difficulty progression"""
         
         results = inference_engine.analyze_batch(
             ideas=sample_ideas,
-            theme="test",
+            context="test",
             context="test"
         )
         
@@ -159,7 +159,7 @@ Invalid content for remaining ideas..."""
         
         results = inference_engine.analyze_batch(
             ideas=sample_ideas,
-            theme="test",
+            context="test",
             context="test"
         )
         
@@ -264,7 +264,7 @@ class TestAsyncCoordinatorBatchLogicalInference:
         # Run batch logical inference with new signature
         results = await async_coordinator._run_batch_logical_inference(
             ideas=ideas,
-            theme="Technology innovations",
+            context="Technology innovations",
             context="Must be practical",
             analysis_type=InferenceType.FULL
         )
@@ -298,7 +298,7 @@ class TestAsyncCoordinatorBatchLogicalInference:
             
         results = await async_coordinator._run_batch_logical_inference(
             ideas=ideas,
-            theme="Test",
+            context="Test",
             context="Test"
         )
         
@@ -323,7 +323,7 @@ class TestAsyncCoordinatorBatchLogicalInference:
         with patch('madspark.core.async_coordinator.logger') as mock_logger:
             results = await async_coordinator._run_batch_logical_inference(
                 ideas=ideas,
-                theme="Test",
+                context="Test",
                 context="Test"
             )
             
@@ -337,7 +337,7 @@ class TestAsyncCoordinatorBatchLogicalInference:
         """Test with empty ideas list."""
         results = await async_coordinator._run_batch_logical_inference(
             ideas=[],
-            theme="Test",
+            context="Test",
             context="Test"
         )
         

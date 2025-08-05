@@ -256,8 +256,8 @@ class TestAsyncBatchOperations:
                             
                             # Run workflow with 5 ideas
                             await async_coordinator.run_workflow(
-                                theme="test theme",
-                                constraints="test constraints",
+                                context="test theme",
+                                context="test constraints",
                                 num_top_candidates=5,
                                 enhanced_reasoning=True,
                                 logical_inference=True
@@ -400,8 +400,8 @@ class TestAsyncCoordinatorIntegration:
                 }):
                     
                     results = await coordinator.run_workflow(
-                        theme="test",
-                        constraints="simple",
+                        context="test",
+                        context="simple",
                         num_top_candidates=1
                     )
                     
@@ -494,8 +494,8 @@ class TestAsyncCoordinatorIntegration:
                 }):
                             
                             results = await coordinator.run_workflow(
-                                theme="complex test",
-                                constraints="all features",
+                                context="complex test",
+                                context="all features",
                                 num_top_candidates=5,
                                 enhanced_reasoning=True,
                                 logical_inference=True,
@@ -541,8 +541,8 @@ class TestAsyncCoordinatorIntegration:
             
             with pytest.raises(asyncio.TimeoutError):
                 await coordinator.run_workflow(
-                    theme="timeout test",
-                    constraints="test",
+                    context="timeout test",
+                    context="test",
                     timeout=1  # 1 second timeout
                 )
     
@@ -579,8 +579,8 @@ class TestAsyncCoordinatorIntegration:
                     
                     # Should still produce results with fallback
                     results = await coordinator.run_workflow(
-                        theme="error test",
-                        constraints="recovery",
+                        context="error test",
+                        context="recovery",
                         num_top_candidates=1,
                         enhanced_reasoning=True
                     )

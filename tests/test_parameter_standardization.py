@@ -37,8 +37,8 @@ class TestBackendParameterStandardization:
         
         # Should still accept theme/constraints via aliases
         request = IdeaGenerationRequest(
-            theme=TEST_TOPIC,
-            constraints=TEST_CONTEXT
+            context=TEST_TOPIC,
+            context=TEST_CONTEXT
         )
         # But internally map to topic/context
         assert request.topic == TEST_TOPIC

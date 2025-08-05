@@ -42,7 +42,7 @@ class TestStructuredOutputIntegration:
                 critique="Needs better tracking and transparency",
                 advocacy_points="Great community benefits, sustainable",
                 skeptic_points="Security concerns, scalability issues",
-                theme="renewable energy"
+                context="renewable energy"
             )
         
         # Verify the result is clean without meta-commentary
@@ -72,8 +72,8 @@ class TestStructuredOutputIntegration:
                         
                         # Run workflow
                         results = run_multistep_workflow(
-                            theme="renewable energy",
-                            constraints="community-focused, scalable",
+                            context="renewable energy",
+                            context="community-focused, scalable",
                             num_top_candidates=1
                         )
                         
@@ -142,7 +142,7 @@ class TestStructuredOutputErrorHandling:
                     critique="Needs work",
                     advocacy_points="Has potential",
                     skeptic_points="Some risks",
-                    theme="innovation"
+                    context="innovation"
                 )
                 
                 # Should handle plain text gracefully
@@ -164,7 +164,7 @@ class TestStructuredOutputErrorHandling:
                     critique="Needs improvement",
                     advocacy_points="Good start",
                     skeptic_points="Some issues",
-                    theme="testing"
+                    context="testing"
                 )
                 
                 # Should return a reasonable fallback for expected errors
@@ -187,7 +187,7 @@ class TestStructuredOutputErrorHandling:
                     critique="Needs improvement",
                     advocacy_points="Good start",
                     skeptic_points="Some issues",
-                    theme="testing"
+                    context="testing"
                 )
                 
                 # Should get a reasonable fallback
@@ -217,7 +217,7 @@ class TestPromptEngineering:
             critique="Good but needs scale",
             advocacy_points="Clean energy",
             skeptic_points="High cost",
-            theme="renewable energy"
+            context="renewable energy"
         )
         
         # Should have format section

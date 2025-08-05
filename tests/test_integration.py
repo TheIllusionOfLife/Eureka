@@ -55,8 +55,8 @@ Smart Workflow Optimizer: ML-driven workflow optimization platform"""
         temp_manager = TemperatureManager.from_preset("creative")
         
         result = run_multistep_workflow(
-            theme="AI automation for productivity",
-            constraints="Cost-effective and scalable solutions",
+            context="AI automation for productivity",
+            context="Cost-effective and scalable solutions",
             temperature_manager=temp_manager,
             enhanced_reasoning=True,
             verbose=True
@@ -136,8 +136,8 @@ Smart Workflow Optimizer: ML-driven workflow optimization platform"""
         temp_manager = TemperatureManager.from_preset("creative")
         
         result = await coordinator.run_workflow(
-            theme="Async AI automation",
-            constraints="Performance-optimized",
+            context="Async AI automation",
+            context="Performance-optimized",
             temperature_manager=temp_manager,
             timeout=30.0
         )
@@ -159,16 +159,16 @@ class TestWorkflowWithComponents:
             # Add some bookmarks
             bookmark_manager.bookmark_idea(
                 idea_text="Existing Idea 1 - A previously saved idea",
-                theme="Testing",
-                constraints="Test constraints",
+                context="Testing",
+                context="Test constraints",
                 score=7,
                 tags=["automation", "productivity"]
             )
             
             bookmark_manager.bookmark_idea(
                 idea_text="Existing Idea 2 - Another saved idea", 
-                theme="Testing",
-                constraints="Test constraints",
+                context="Testing",
+                context="Test constraints",
                 score=8,
                 tags=["ai", "efficiency"]
             )
@@ -177,8 +177,8 @@ class TestWorkflowWithComponents:
             # This test just verifies bookmarks can be created alongside workflow
             
             result = run_multistep_workflow(
-                theme="AI automation",
-                constraints="Cost-effective"
+                context="AI automation",
+                context="Cost-effective"
             )
             
             # The workflow should complete normally
@@ -201,8 +201,8 @@ class TestWorkflowWithComponents:
                 mock_generate.return_value = "Test Idea: Temperature test solution"
                 
                 result = run_multistep_workflow(
-                    theme="AI automation",
-                    constraints="Cost-effective",
+                    context="AI automation",
+                    context="Cost-effective",
                     temperature_manager=TemperatureManager.from_preset("creative")
                 )
                 
@@ -228,8 +228,8 @@ class TestWorkflowWithComponents:
                 mock_generate.return_value = "Novel Idea: Unique AI solution"
                 
                 result = run_multistep_workflow(
-                    theme="AI automation",
-                    constraints="Cost-effective",
+                    context="AI automation",
+                    context="Cost-effective",
                     enable_novelty_filter=True,
                     novelty_threshold=0.8
                 )
@@ -274,8 +274,8 @@ class TestWorkflowErrorHandling:
             
             # Workflow should handle critic failure gracefully
             result = run_multistep_workflow(
-                theme="AI automation",
-                constraints="Cost-effective"
+                context="AI automation",
+                context="Cost-effective"
             )
             
             # Should return empty list if critic fails
@@ -323,8 +323,8 @@ class TestWorkflowErrorHandling:
             mock_genai.Client.return_value = mock_client
             
             result = run_multistep_workflow(
-                theme="AI automation",
-                constraints="Cost-effective"
+                context="AI automation",
+                context="Cost-effective"
             )
             
             # Should handle network errors gracefully
@@ -350,8 +350,8 @@ class TestWorkflowPerformance:
             start_time = time.time()
             
             result = run_multistep_workflow(
-                theme="AI automation",
-                constraints="Cost-effective"
+                context="AI automation",
+                context="Cost-effective"
             )
             
             end_time = time.time()
@@ -405,8 +405,8 @@ class TestWorkflowPerformance:
             start_time = time.time()
             
             _ = await coordinator.run_workflow(
-                theme="AI automation",
-                constraints="Cost-effective",
+                context="AI automation",
+                context="Cost-effective",
                 num_top_candidates=2  # Limit to speed up test
             )
             
@@ -433,8 +433,8 @@ class TestWorkflowPerformance:
             initial_size = sys.getsizeof(locals())
             
             result = run_multistep_workflow(
-                theme="AI automation",
-                constraints="Cost-effective"
+                context="AI automation",
+                context="Cost-effective"
             )
             
             # Memory shouldn't grow excessively
@@ -492,8 +492,8 @@ class TestWorkflowDataIntegrity:
         mock_critic_genai.Client.return_value = mock_critic_client
         
         result = run_multistep_workflow(
-            theme="AI automation",
-            constraints="Cost-effective"
+            context="AI automation",
+            context="Cost-effective"
         )
         
         # Verify data consistency
@@ -518,8 +518,8 @@ class TestWorkflowDataIntegrity:
             mock_genai.Client.return_value = mock_client
             
             result = run_multistep_workflow(
-                theme="AI automation",
-                constraints="Cost-effective"
+                context="AI automation",
+                context="Cost-effective"
             )
             
             # Verify output structure

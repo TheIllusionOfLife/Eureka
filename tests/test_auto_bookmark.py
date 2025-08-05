@@ -43,8 +43,8 @@ class TestAutomaticBookmarking:
         """Test that bookmarking happens automatically without --bookmark-results flag."""
         # Note: This test will fail until we implement automatic bookmarking
         test_args = argparse.Namespace(
-            theme='test topic',
-            constraints='test context',
+            context='test topic',
+            context='test context',
             bookmark_results=True,  # This should be True by default (currently fails)
             bookmark_file=temp_bookmark_file,
             bookmark_tags=[],

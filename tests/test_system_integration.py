@@ -48,8 +48,8 @@ class TestSystemIntegration:
         from madspark.core.coordinator import run_multistep_workflow
         
         result = run_multistep_workflow(
-            theme="renewable energy",
-            constraints="cost-effective for developing countries"
+            context="renewable energy",
+            context="cost-effective for developing countries"
         )
         
         assert isinstance(result, list)
@@ -69,8 +69,8 @@ class TestSystemIntegration:
         
         # Test with Japanese topic
         result = run_multistep_workflow(
-            theme="人工知能",  # AI in Japanese
-            constraints="医療応用"  # Medical applications
+            context="人工知能",  # AI in Japanese
+            context="医療応用"  # Medical applications
         )
         
         assert isinstance(result, list)
@@ -327,8 +327,8 @@ class TestWorkflowErrorHandling:
             
             # Workflow should handle critic failure gracefully
             result = run_multistep_workflow(
-                theme="AI automation",
-                constraints="Cost-effective"
+                context="AI automation",
+                context="Cost-effective"
             )
             
             # Should return empty list if critic fails
@@ -377,8 +377,8 @@ class TestWorkflowErrorHandling:
             
             # Should handle network errors gracefully
             result = run_multistep_workflow(
-                theme="AI automation",
-                constraints="Cost-effective"
+                context="AI automation",
+                context="Cost-effective"
             )
             
             assert result is not None
@@ -396,8 +396,8 @@ class TestWorkflowPerformance:
         
         start_time = time.time()
         result = run_multistep_workflow(
-            theme="performance test",
-            constraints="quick execution"
+            context="performance test",
+            context="quick execution"
         )
         end_time = time.time()
         
@@ -424,8 +424,8 @@ class TestWorkflowPerformance:
         # Run workflow multiple times
         for _ in range(10):
             result = run_multistep_workflow(
-                theme="memory test",
-                constraints="resource efficiency"
+                context="memory test",
+                context="resource efficiency"
             )
             assert isinstance(result, list)
         
@@ -449,8 +449,8 @@ class TestWorkflowDataIntegrity:
         from madspark.core.coordinator import run_multistep_workflow
         
         result = run_multistep_workflow(
-            theme="data integrity test",
-            constraints="maintain consistency"
+            context="data integrity test",
+            context="maintain consistency"
         )
         
         assert isinstance(result, list)

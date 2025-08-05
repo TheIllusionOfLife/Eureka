@@ -8,6 +8,9 @@ import json
 import logging
 from typing import List, Dict, Any, Tuple
 
+# Set up logger
+logger = logging.getLogger(__name__)
+
 # Optional import for Google GenAI - graceful fallback for CI/testing
 try:
     from google import genai
@@ -253,14 +256,21 @@ def advocate_ideas_batch(
         )
       advocacies = json.loads(response.text)
     except json.JSONDecodeError as e:
-      from madspark.utils.batch_exceptions import BatchParsingError
-      raise BatchParsingError(
-        f"Invalid JSON response from API: {e}",
-        batch_type="advocate",
-        items_count=len(ideas_with_evaluations),
-        raw_response=response.text,
-        parse_error=e
-      )
+      # Try fallback parsing for problematic JSON (especially with Japanese content)
+      try:
+        from madspark.utils.utils import parse_batch_json_with_fallback
+        logger.warning(f"JSON decode error, attempting fallback parsing: {e}")
+        advocacies = parse_batch_json_with_fallback(response.text, expected_count=len(ideas_with_evaluations))
+        logger.info(f"Fallback parsing successful, recovered {len(advocacies)} items")
+      except Exception as fallback_error:
+        from madspark.utils.batch_exceptions import BatchParsingError
+        raise BatchParsingError(
+          f"Invalid JSON response from API: {e}. Fallback parsing also failed: {fallback_error}",
+          batch_type="advocate",
+          items_count=len(ideas_with_evaluations),
+          raw_response=response.text,
+          parse_error=e
+        )
     
     # Validate and format results
     if not isinstance(advocacies, list):

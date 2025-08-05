@@ -67,6 +67,89 @@ def exponential_backoff_retry(
     return decorator
 
 
+def parse_batch_json_with_fallback(text: str, expected_count: int = None) -> List[Dict[str, Any]]:
+    """Parse batch JSON responses with fallback strategies for problematic JSON.
+    
+    Specifically designed for batch responses from advocate, skeptic, and idea improvement.
+    Handles missing commas, especially in Japanese content.
+    
+    Args:
+        text: Raw text response that should contain JSON
+        expected_count: Expected number of items (for validation)
+        
+    Returns:
+        List of parsed dictionaries
+    """
+    results = []
+    
+    # Strategy 1: Try normal JSON parsing first
+    try:
+        obj = json.loads(text)
+        if isinstance(obj, list):
+            return obj
+    except json.JSONDecodeError:
+        pass
+    
+    # Strategy 2: Fix missing commas between array elements
+    # Common issue: missing comma after closing quote or bracket
+    fixed_text = text
+    
+    # Fix missing comma after string values (before next key)
+    # e.g., "key": "value"\n    "nextkey": -> "key": "value",\n    "nextkey":
+    fixed_text = re.sub(r'("\s*)\n(\s*"[^"]+"\s*:)', r'\1,\n\2', fixed_text)
+    
+    # Fix missing comma after arrays
+    # e.g., ["item1", "item2"]\n    "nextkey": -> ["item1", "item2"],\n    "nextkey":
+    fixed_text = re.sub(r'(\]\s*)\n(\s*"[^"]+"\s*:)', r'\1,\n\2', fixed_text)
+    
+    # Fix missing comma after numbers
+    # e.g., "key": 123\n    "nextkey": -> "key": 123,\n    "nextkey":
+    fixed_text = re.sub(r'(\d\s*)\n(\s*"[^"]+"\s*:)', r'\1,\n\2', fixed_text)
+    
+    # Fix missing comma after objects
+    # e.g., {...}\n    "nextkey": -> {...},\n    "nextkey":
+    fixed_text = re.sub(r'(\}\s*)\n(\s*"[^"]+"\s*:)', r'\1,\n\2', fixed_text)
+    
+    # Try parsing the fixed text
+    try:
+        obj = json.loads(fixed_text)
+        if isinstance(obj, list):
+            logging.info(f"Successfully parsed JSON after fixing missing commas")
+            return obj
+    except json.JSONDecodeError as e:
+        logging.debug(f"Still failed after comma fixes: {e}")
+    
+    # Strategy 3: Extract individual JSON objects using regex
+    # Look for patterns like {...} within the array
+    object_pattern = re.compile(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', re.DOTALL)
+    
+    for match in object_pattern.findall(text):
+        try:
+            # Fix missing commas within this object too
+            fixed_obj = match
+            fixed_obj = re.sub(r'("\s*)\n(\s*"[^"]+"\s*:)', r'\1,\n\2', fixed_obj)
+            fixed_obj = re.sub(r'(\]\s*)\n(\s*"[^"]+"\s*:)', r'\1,\n\2', fixed_obj)
+            fixed_obj = re.sub(r'(\d\s*)\n(\s*"[^"]+"\s*:)', r'\1,\n\2', fixed_obj)
+            
+            obj = json.loads(fixed_obj)
+            if isinstance(obj, dict):
+                results.append(obj)
+        except json.JSONDecodeError:
+            continue
+    
+    if results:
+        logging.info(f"Extracted {len(results)} objects using regex fallback")
+        return results
+    
+    # Strategy 4: Create placeholder if nothing worked
+    if expected_count and expected_count > 0:
+        logging.warning(f"All parsing strategies failed. Creating {expected_count} empty results.")
+        # Return empty list instead of placeholder to trigger proper error handling
+        return []
+    
+    return results
+
+
 def parse_json_with_fallback(
     text: str,
     expected_count: Optional[int] = None

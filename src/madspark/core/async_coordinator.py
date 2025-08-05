@@ -787,7 +787,7 @@ class AsyncCoordinator(BatchOperationsBase):
                             score = multi_eval_result['weighted_score']
                             
                             # Enhance critique with multi-dimensional insights
-                            critique = f"{critique}\n\n🧠 Enhanced Analysis:\n{multi_eval_result['evaluation_summary']}"
+                            critique = f"{critique}\n\n📊 Multi-dimensional Analysis:\n{multi_eval_result['evaluation_summary']}"
                             
                         except (AttributeError, KeyError, TypeError, ValueError) as e:
                             logger.warning(f"Multi-dimensional evaluation failed for idea {i}: {e}")
@@ -1351,7 +1351,7 @@ class AsyncCoordinator(BatchOperationsBase):
                     # Use multi-dimensional score if available (parallel result)
                     if improved_multi_eval_data:
                         improved_score = improved_multi_eval_data['weighted_score']
-                        improved_critique = f"{improved_critique}\n\n🧠 Enhanced Analysis:\n{improved_multi_eval_data['evaluation_summary']}"
+                        improved_critique = f"{improved_critique}\n\n📊 Multi-dimensional Analysis:\n{improved_multi_eval_data['evaluation_summary']}"
                     
                     # Safeguard: If score decreased significantly, log warning
                     if improved_score < candidate["score"] - 1.0:

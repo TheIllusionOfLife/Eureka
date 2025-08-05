@@ -62,7 +62,7 @@ def evaluate_ideas(ideas: str, criteria: str, context: str, temperature: float =
       "You will be provided with a list of ideas, evaluation criteria, and context.\n"
       "For each idea, you MUST provide an evaluation in the form of a single-line JSON object string.\n"
       "Each JSON object must have exactly two keys: 'score' (an integer from 1 to 10, where 10 is best) "
-      "and 'comment' (a concise string explaining your reasoning).\n"
+      "and 'comment' (a detailed string thoroughly explaining your reasoning, analysis, and suggestions).\n"
       "Ensure your entire response consists ONLY of these JSON object strings, one per line, "
       "corresponding to each idea in the order they were presented.\n"
       "Do not include any other text, explanations, or formatting before or after the JSON strings.\n\n"

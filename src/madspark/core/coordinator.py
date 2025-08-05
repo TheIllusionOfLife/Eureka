@@ -18,6 +18,21 @@ from madspark.core.types_and_logging import CandidateData, EvaluatedIdea  # noqa
 # If running coordinator.py directly, basic logging will be set up below
 # --- End Logging Configuration ---
 
+
+def calculate_ideas_to_generate(num_top_candidates: int) -> int:
+    """Calculate the number of ideas to generate based on top candidates requested.
+    
+    Uses the formula: max(5, num_top_candidates + 2) to ensure we always have
+    enough ideas after filtering and evaluation.
+    
+    Args:
+        num_top_candidates: Number of top candidates requested
+        
+    Returns:
+        Number of ideas to generate
+    """
+    return max(5, num_top_candidates + 2)
+
 # SECURITY NOTE: Storing API keys directly in environment variables is suitable for
 # local development but not recommended for production.
 # Consider using a dedicated key management service for production deployments (test: not hardcoded).

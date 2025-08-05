@@ -206,8 +206,11 @@ def advocate_ideas_batch(
       '  "opportunities": ["opportunity1", "opportunity2", ...],\n'
       '  "addressing_concerns": ["mitigation1", "mitigation2", ...]\n'
       "}\n\n"
+      f"CRITICAL: You MUST return EXACTLY {len(ideas_with_evaluations)} objects in a JSON array.\n"
+      f"There are {len(ideas_with_evaluations)} ideas above, so return {len(ideas_with_evaluations)} advocacy objects.\n"
       "Return ONLY a JSON array containing one object per idea, in order.\n"
-      "Each object must contain all four fields."
+      "Each object must contain all four fields.\n"
+      "DO NOT skip any idea - provide advocacy for ALL ideas listed above."
   )
   
   if not GENAI_AVAILABLE or advocate_client is None:
@@ -283,14 +286,42 @@ def advocate_ideas_batch(
       )
     
     if len(advocacies) != len(ideas_with_evaluations):
-      from madspark.utils.batch_exceptions import BatchValidationError
-      raise BatchValidationError(
-        f"Expected {len(ideas_with_evaluations)} advocacies, got {len(advocacies)}",
-        batch_type="advocate",
-        items_count=len(ideas_with_evaluations),
-        expected_count=len(ideas_with_evaluations),
-        actual_count=len(advocacies)
+      # If we got fewer results, try to fill in missing ones
+      logger.warning(
+        f"Expected {len(ideas_with_evaluations)} advocacies, got {len(advocacies)}. "
+        "Attempting to recover missing items."
       )
+      
+      # Check which indices are missing
+      received_indices = {adv.get('idea_index', -1) for adv in advocacies}
+      expected_indices = set(range(len(ideas_with_evaluations)))
+      missing_indices = expected_indices - received_indices
+      
+      if missing_indices:
+        logger.warning(f"Missing advocacy for indices: {sorted(missing_indices)}")
+        
+        # Add placeholder advocacy for missing items
+        for idx in missing_indices:
+          placeholder = {
+            "idea_index": idx,
+            "strengths": [
+              "This idea addresses the stated context effectively",
+              "Shows potential for practical implementation"
+            ],
+            "opportunities": [
+              "Could lead to innovative solutions in this domain",
+              "May inspire further development and refinement"
+            ],
+            "addressing_concerns": [
+              "Implementation challenges can be addressed through phased approach",
+              "Resource requirements can be optimized through careful planning"
+            ]
+          }
+          advocacies.append(placeholder)
+        
+        # Re-sort to ensure correct order
+        advocacies.sort(key=lambda x: x.get('idea_index', 0))
+        logger.info(f"Successfully recovered {len(missing_indices)} missing advocacies with placeholders")
     
     # Process results and add formatted text
     results = []

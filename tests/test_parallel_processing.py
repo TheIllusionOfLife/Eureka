@@ -1,235 +1,286 @@
-"""Tests for parallel processing optimizations."""
-import pytest
+"""Tests for parallel processing implementation.
+
+This test suite ensures that:
+1. Multiple operations can run concurrently when appropriate
+2. No race conditions or data loss occurs
+3. Proper timeout handling is in place
+4. Performance improvements are measurable
+"""
 import asyncio
 import time
-from unittest.mock import Mock, AsyncMock, patch
-from madspark.core.async_coordinator import AsyncCoordinator
+import pytest
+from unittest.mock import Mock, patch, AsyncMock
+from typing import List, Dict, Any
 
 
-class TestParallelProcessing:
-    """Test cases for parallel processing optimizations."""
-    
-    @pytest.fixture
-    def coordinator(self):
-        """Create AsyncCoordinator instance for testing."""
-        return AsyncCoordinator()
-    
-    @pytest.fixture
-    def mock_candidate(self):
-        """Sample candidate data."""
-        return {
-            "text": "Test mobile game idea",
-            "score": 7.5,
-            "critique": "Good concept with room for improvement"
-        }
+class TestParallelAdvocacySkepticism:
+    """Test that advocacy and skepticism can run in parallel."""
     
     @pytest.mark.asyncio
-    async def test_parallel_advocacy_skepticism(self, coordinator, mock_candidate):
-        """Test that advocacy and skepticism run in parallel."""
-        # Mock the async functions
-        with patch('madspark.core.async_coordinator.async_advocate_idea') as mock_advocate, \
-             patch('madspark.core.async_coordinator.async_criticize_idea') as mock_criticize, \
-             patch('madspark.core.async_coordinator.async_improve_idea') as mock_improve, \
-             patch('madspark.core.async_coordinator.async_evaluate_ideas') as mock_evaluate:
-            
-            # Set up mocks with delays to test parallel execution
-            async def slow_advocate(*args, **kwargs):
-                await asyncio.sleep(0.1)  # 100ms delay
-                return "Strong advocacy response"
-            
-            async def slow_criticize(*args, **kwargs):
-                await asyncio.sleep(0.1)  # 100ms delay
-                return "Critical analysis response"
-            
-            async def fast_improve(*args, **kwargs):
-                await asyncio.sleep(0.05)  # 50ms delay 
-                return "Improved idea text"
-            
-            async def fast_evaluate(*args, **kwargs):
-                await asyncio.sleep(0.05)  # 50ms delay
-                return '{"evaluations": [{"score": 8.5, "comment": "Excellent improvement"}]}'
-            
-            mock_advocate.side_effect = slow_advocate
-            mock_criticize.side_effect = slow_criticize
-            mock_improve.side_effect = fast_improve
-            mock_evaluate.side_effect = fast_evaluate
-            
-            # Measure execution time
-            start_time = time.time()
-            
-            result = await coordinator._process_single_candidate(
-                candidate=mock_candidate,
-                theme="mobile games",
-                advocacy_temp=0.5,
-                skepticism_temp=0.5,
-                idea_temp=0.9,
-                eval_temp=0.3,
-                constraints="simple development"
+    async def test_advocacy_and_skepticism_run_concurrently(self):
+        """Test that advocacy and skepticism batch operations run at the same time."""
+        from src.madspark.core.async_coordinator import AsyncCoordinator
+        
+        coordinator = AsyncCoordinator()
+        
+        # Create test candidates
+        test_candidates = [
+            {"text": "Idea 1", "critique": "Good", "context": "test context"},
+            {"text": "Idea 2", "critique": "Better", "context": "test context"}
+        ]
+        
+        # Track when each operation starts and ends
+        advocacy_start = None
+        advocacy_end = None
+        skepticism_start = None
+        skepticism_end = None
+        
+        def mock_advocacy(*args, **kwargs):
+            nonlocal advocacy_start, advocacy_end
+            advocacy_start = time.time()
+            time.sleep(0.1)  # Simulate work
+            advocacy_end = time.time()
+            return ([{"formatted": "Advocacy 1"}, {"formatted": "Advocacy 2"}], 100)
+        
+        def mock_skepticism(*args, **kwargs):
+            nonlocal skepticism_start, skepticism_end
+            skepticism_start = time.time()
+            time.sleep(0.1)  # Simulate work
+            skepticism_end = time.time()
+            return ([{"formatted": "Skepticism 1"}, {"formatted": "Skepticism 2"}], 100)
+        
+        # Patch the batch functions to track timing
+        with patch('src.madspark.core.batch_operations_base.BATCH_FUNCTIONS', {
+            'advocate_ideas_batch': mock_advocacy,
+            'criticize_ideas_batch': mock_skepticism
+        }):
+            # Process candidates with parallel advocacy and skepticism
+            await coordinator.process_candidates_parallel_advocacy_skepticism(
+                test_candidates,
+                "test topic",
+                0.5,
+                0.5
             )
             
-            end_time = time.time()
-            execution_time = end_time - start_time
+            # Verify both operations ran
+            assert advocacy_start is not None
+            assert skepticism_start is not None
             
-            # Verify result is valid
-            assert result is not None
-            assert "advocacy" in result
-            assert "skepticism" in result
+            # Verify they overlapped (ran concurrently)
+            # If sequential: advocacy_end would be before skepticism_start
+            # If parallel: skepticism_start would be before advocacy_end
+            assert skepticism_start < advocacy_end, "Skepticism should start before advocacy finishes"
             
-            # Verify parallel execution: should take ~0.25s (0.1 parallel + 0.05 + 0.05 + overhead)
-            # instead of ~0.3s if sequential (0.1 + 0.1 + 0.05 + 0.05)
-            assert execution_time < 0.28, f"Execution took {execution_time}s, expected < 0.28s for parallel processing"
+            # Verify results were properly assigned
+            assert test_candidates[0]["advocacy"] == "Advocacy 1"
+            assert test_candidates[0]["skepticism"] == "Skepticism 1"
+            assert test_candidates[1]["advocacy"] == "Advocacy 2"
+            assert test_candidates[1]["skepticism"] == "Skepticism 2"
+
+
+class TestParallelEvaluationImprovement:
+    """Test that re-evaluation and improvement can run in parallel after both complete."""
     
     @pytest.mark.asyncio
-    async def test_parallel_evaluation_timeout_handling(self, coordinator, mock_candidate):
-        """Test timeout handling in parallel advocacy/skepticism."""
-        with patch('madspark.core.async_coordinator.async_advocate_idea') as mock_advocate, \
-             patch('madspark.core.async_coordinator.async_criticize_idea') as mock_criticize, \
-             patch('madspark.core.async_coordinator.async_improve_idea') as mock_improve, \
-             patch('madspark.core.async_coordinator.async_evaluate_ideas') as mock_evaluate:
-            
-            # Mock one function to timeout
-            async def timeout_advocate(*args, **kwargs):
-                await asyncio.sleep(35.0)  # Longer than 30s timeout
-                return "This should timeout"
-            
-            async def fast_criticize(*args, **kwargs):
-                await asyncio.sleep(0.1)
-                return "Quick criticism"
-            
-            mock_advocate.side_effect = timeout_advocate
-            mock_criticize.side_effect = fast_criticize
-            mock_improve.return_value = "Improved idea"
-            mock_evaluate.return_value = '{"evaluations": [{"score": 7.0, "comment": "Standard evaluation"}]}'
-            
-            # Should handle timeout gracefully and continue with fallback
-            result = await coordinator._process_single_candidate(
-                candidate=mock_candidate,
-                theme="mobile games",
-                advocacy_temp=0.5,
-                skepticism_temp=0.5,
-                idea_temp=0.9,
-                eval_temp=0.3,
-                constraints="simple development"
-            )
-            
-            # Should still return valid result with fallback advocacy
-            assert result is not None
-            assert "advocacy" in result
-            assert "skepticism" in result
-            # Advocacy should be fallback message due to timeout
-            assert "strong potential" in result["advocacy"].lower()
+    async def test_evaluation_and_improvement_dependencies(self):
+        """Test that improvement waits for advocacy and skepticism before starting."""
+        from src.madspark.core.async_coordinator import AsyncCoordinator
+        
+        coordinator = AsyncCoordinator()
+        
+        # Create test candidates with advocacy and skepticism
+        test_candidates = [
+            {
+                "text": "Idea 1", 
+                "critique": "Good", 
+                "context": "test context",
+                "advocacy": "Strong points",
+                "skepticism": "Some concerns",
+                "score": 7  # Add initial score
+            }
+        ]
+        
+        # Track operation order
+        operation_order = []
+        
+        def mock_improvement(*args, **kwargs):
+            operation_order.append("improvement")
+            # Verify advocacy and skepticism are present in input
+            input_data = args[0]
+            assert input_data[0]["advocacy"] == "Strong points"
+            assert input_data[0]["skepticism"] == "Some concerns"
+            return ([{"improved_idea": "Better Idea 1"}], 100)
+        
+        async def mock_evaluation(*args, **kwargs):
+            operation_order.append("evaluation")
+            return '[{"score": 9, "comment": "Much better"}]'
+        
+        with patch('src.madspark.core.batch_operations_base.BATCH_FUNCTIONS', {
+            'improve_ideas_batch': mock_improvement
+        }):
+            with patch('src.madspark.core.async_coordinator.async_evaluate_ideas', mock_evaluation):
+                # Process improvement and re-evaluation
+                await coordinator.process_candidates_parallel_improvement_evaluation(
+                    test_candidates,
+                    "test topic",
+                    "test context",
+                    0.9,
+                    0.7
+                )
+                
+                # Verify improvement ran before evaluation
+                assert operation_order == ["improvement", "evaluation"]
+                
+                # Verify results
+                assert test_candidates[0]["improved_idea"] == "Better Idea 1"
+                assert test_candidates[0]["improved_score"] == 9
+
+
+class TestTimeoutHandling:
+    """Test timeout handling in parallel operations."""
     
     @pytest.mark.asyncio
-    async def test_parallel_re_evaluation(self, coordinator, mock_candidate):
-        """Test parallel standard and multi-dimensional re-evaluation."""
-        # Mock reasoning engine
-        mock_engine = Mock()
-        mock_multi_evaluator = Mock()
-        mock_multi_evaluator.evaluate_idea = AsyncMock(return_value={
-            'weighted_score': 8.8,
-            'evaluation_summary': 'Multi-dimensional analysis shows strong performance'
-        })
-        mock_engine.multi_evaluator = mock_multi_evaluator
+    async def test_parallel_operations_respect_timeout(self):
+        """Test that parallel operations are cancelled if they exceed timeout."""
+        from src.madspark.core.async_coordinator import AsyncCoordinator
         
-        with patch('madspark.core.async_coordinator.async_advocate_idea') as mock_advocate, \
-             patch('madspark.core.async_coordinator.async_criticize_idea') as mock_criticize, \
-             patch('madspark.core.async_coordinator.async_improve_idea') as mock_improve, \
-             patch('madspark.core.async_coordinator.async_evaluate_ideas') as mock_evaluate:
-            
-            mock_advocate.return_value = "Strong points identified"
-            mock_criticize.return_value = "Areas for improvement noted"
-            mock_improve.return_value = "Significantly improved game concept"
-            
-            # Mock standard evaluation with delay
-            async def slow_evaluate(*args, **kwargs):
-                await asyncio.sleep(0.1)
-                return '{"evaluations": [{"score": 8.2, "comment": "Good improvement"}]}'
-            
-            mock_evaluate.side_effect = slow_evaluate
-            
-            # Measure execution time with multi-dimensional evaluation enabled
-            start_time = time.time()
-            
-            result = await coordinator._process_single_candidate(
-                candidate=mock_candidate,
-                theme="mobile games",
-                advocacy_temp=0.5,
-                skepticism_temp=0.5,
-                idea_temp=0.9,
-                eval_temp=0.3,
-                constraints="simple development",
-                multi_dimensional_eval=True,
-                reasoning_engine=mock_engine
+        coordinator = AsyncCoordinator()
+        
+        test_candidates = [{"text": "Idea", "critique": "Good", "context": "test"}]
+        
+        def slow_operation(*args, **kwargs):
+            time.sleep(2)  # Longer than timeout
+            return ([{"formatted": "Should not reach here"}], 100)
+        
+        with patch('src.madspark.core.batch_operations_base.BATCH_FUNCTIONS', {
+            'advocate_ideas_batch': slow_operation,
+            'criticize_ideas_batch': slow_operation
+        }):
+            # Process with short timeout
+            with pytest.raises(asyncio.TimeoutError):
+                await coordinator.process_candidates_parallel_advocacy_skepticism(
+                    test_candidates,
+                    "test topic", 
+                    0.5,
+                    0.5,
+                    timeout=0.1
+                )
+
+
+class TestDataIntegrity:
+    """Test that parallel processing maintains data integrity."""
+    
+    @pytest.mark.asyncio
+    async def test_no_data_loss_in_parallel_processing(self):
+        """Test that all candidates are processed without data loss."""
+        from src.madspark.core.async_coordinator import AsyncCoordinator
+        
+        coordinator = AsyncCoordinator()
+        
+        # Create many candidates to test concurrent processing
+        num_candidates = 10
+        test_candidates = [
+            {"text": f"Idea {i}", "critique": f"Critique {i}", "context": "test"}
+            for i in range(num_candidates)
+        ]
+        
+        def mock_batch_operation(items, *args, **kwargs):
+            # Return results for all items
+            return ([{"formatted": f"Result for {item['idea']}"} for item in items], 100)
+        
+        with patch('src.madspark.core.batch_operations_base.BATCH_FUNCTIONS', {
+            'advocate_ideas_batch': mock_batch_operation,
+            'criticize_ideas_batch': mock_batch_operation
+        }):
+            await coordinator.process_candidates_parallel_advocacy_skepticism(
+                test_candidates,
+                "test topic",
+                0.5,
+                0.5
             )
             
-            end_time = time.time()
-            execution_time = end_time - start_time
-            
-            # Verify multi-dimensional evaluation was used (higher score)
-            assert result is not None
-            assert result["improved_score"] == 8.8  # Multi-dimensional score
-            assert "Enhanced Analysis" in result["improved_critique"]
-            
-            # Verify both evaluations were called
-            assert mock_evaluate.called
-            assert mock_multi_evaluator.evaluate_idea.called
-            
-            # Should complete faster due to parallel evaluation
-            print(f"Parallel re-evaluation took {execution_time:.3f}s")
+            # Verify all candidates were processed
+            for i, candidate in enumerate(test_candidates):
+                assert "advocacy" in candidate
+                assert "skepticism" in candidate
+                assert candidate["advocacy"] == f"Result for Idea {i}"
+                assert candidate["skepticism"] == f"Result for Idea {i}"
+
+
+class TestPerformanceImprovement:
+    """Test that parallel processing improves performance."""
     
-    @pytest.mark.asyncio 
-    async def test_parallel_processing_error_handling(self, coordinator, mock_candidate):
-        """Test error handling in parallel processing."""
-        with patch('madspark.core.async_coordinator.async_advocate_idea') as mock_advocate, \
-             patch('madspark.core.async_coordinator.async_criticize_idea') as mock_criticize, \
-             patch('madspark.core.async_coordinator.async_improve_idea') as mock_improve:
+    @pytest.mark.asyncio
+    async def test_parallel_faster_than_sequential(self):
+        """Test that parallel processing is faster than sequential."""
+        from src.madspark.core.async_coordinator import AsyncCoordinator
+        
+        coordinator = AsyncCoordinator()
+        
+        test_candidates = [{"text": "Idea", "critique": "Good", "context": "test"}]
+        
+        # Simulate operations that take 100ms each
+        def timed_operation(*args, **kwargs):
+            time.sleep(0.1)
+            return ([{"formatted": "Result"}], 100)
+        
+        with patch('src.madspark.core.batch_operations_base.BATCH_FUNCTIONS', {
+            'advocate_ideas_batch': timed_operation,
+            'criticize_ideas_batch': timed_operation
+        }):
+            # Measure parallel execution time
+            start = time.time()
+            await coordinator.process_candidates_parallel_advocacy_skepticism(
+                test_candidates,
+                "test topic",
+                0.5,
+                0.5
+            )
+            parallel_time = time.time() - start
             
-            # Mock one function to raise exception
-            async def failing_advocate(*args, **kwargs):
-                raise ValueError("Advocacy service unavailable")
-            
-            async def working_criticize(*args, **kwargs):
-                return "Criticism works fine"
-            
-            mock_advocate.side_effect = failing_advocate
-            mock_criticize.side_effect = working_criticize
-            mock_improve.return_value = "Improved idea"
-            
-            # Should handle exception gracefully
-            result = await coordinator._process_single_candidate(
-                candidate=mock_candidate,
-                theme="mobile games",
-                advocacy_temp=0.5,
-                skepticism_temp=0.5,
-                idea_temp=0.9,
-                eval_temp=0.3,
-                constraints="simple development"
+            # If operations ran in parallel, should take ~0.1s
+            # If sequential, would take ~0.2s
+            # Allow some overhead
+            assert parallel_time < 0.15, f"Parallel execution took {parallel_time}s, should be < 0.15s"
+
+
+class TestErrorHandlingInParallel:
+    """Test error handling in parallel operations."""
+    
+    @pytest.mark.asyncio
+    async def test_one_operation_fails_other_continues(self):
+        """Test that if one parallel operation fails, the other still completes."""
+        from src.madspark.core.async_coordinator import AsyncCoordinator
+        
+        coordinator = AsyncCoordinator()
+        
+        test_candidates = [{"text": "Idea", "critique": "Good", "context": "test"}]
+        
+        def failing_operation(*args, **kwargs):
+            raise Exception("Simulated failure")
+        
+        def successful_operation(*args, **kwargs):
+            return ([{"formatted": "Success"}], 100)
+        
+        with patch('src.madspark.core.batch_operations_base.BATCH_FUNCTIONS', {
+            'advocate_ideas_batch': failing_operation,
+            'criticize_ideas_batch': successful_operation
+        }):
+            # Process should continue despite one failure
+            await coordinator.process_candidates_parallel_advocacy_skepticism(
+                test_candidates,
+                "test topic",
+                0.5,
+                0.5
             )
             
-            # Should still return valid result with fallback
-            assert result is not None
-            assert result["advocacy"] == "Advocacy not available due to error"
-            assert result["skepticism"] == "Criticism works fine"
-    
-    def test_performance_improvement_calculation(self):
-        """Test that parallel processing provides expected performance improvement."""
-        # Sequential timing: advocacy (30s) + skepticism (30s) = 60s
-        # Parallel timing: max(advocacy (30s), skepticism (30s)) = 30s
-        # Expected improvement: 50% reduction
-        
-        sequential_time = 30 + 30  # 60 seconds
-        parallel_time = max(30, 30)  # 30 seconds
-        
-        improvement_ratio = (sequential_time - parallel_time) / sequential_time
-        expected_improvement = 0.5  # 50%
-        
-        assert abs(improvement_ratio - expected_improvement) < 0.01
-        print(f"Expected performance improvement: {improvement_ratio:.1%}")
-        
-        # Combined with batch logical inference (5 calls → 1 call = 80% reduction)
-        # Total expected improvement: ~60-70% time reduction
-        batch_improvement = 0.8  # 80% reduction from batching
-        combined_improvement = 1 - ((1 - improvement_ratio) * (1 - batch_improvement))
-        
-        print(f"Combined improvement (parallel + batch): {combined_improvement:.1%}")
-        assert combined_improvement > 0.6  # At least 60% total improvement
+            # Verify the successful operation completed
+            assert test_candidates[0]["skepticism"] == "Success"
+            
+            # Verify the failed operation has fallback
+            assert "advocacy" in test_candidates[0]
+            assert "failed" in test_candidates[0]["advocacy"].lower()
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

@@ -290,6 +290,152 @@ class AsyncCoordinator(BatchOperationsBase):
                 candidate["improved_idea"] = candidate["text"]
             return candidates
     
+    async def process_candidates_parallel_advocacy_skepticism(
+        self,
+        candidates: List[EvaluatedIdea],
+        context: str,
+        advocacy_temp: float,
+        skepticism_temp: float,
+        timeout: float = 60
+    ) -> List[EvaluatedIdea]:
+        """Process advocacy and skepticism in parallel for better performance.
+        
+        Args:
+            candidates: List of evaluated ideas
+            context: Overall topic/context
+            advocacy_temp: Temperature for advocacy
+            skepticism_temp: Temperature for skepticism
+            timeout: Timeout for parallel operations
+            
+        Returns:
+            Updated candidates with advocacy and skepticism data
+        """
+        # Create tasks for parallel execution
+        advocacy_task = asyncio.create_task(
+            self._process_candidates_with_batch_advocacy(
+                candidates.copy(),  # Copy to avoid race conditions
+                context,
+                advocacy_temp
+            )
+        )
+        
+        skepticism_task = asyncio.create_task(
+            self._process_candidates_with_batch_skepticism(
+                candidates.copy(),  # Copy to avoid race conditions
+                context,
+                skepticism_temp
+            )
+        )
+        
+        try:
+            # Wait for both tasks with timeout
+            advocacy_results, skepticism_results = await asyncio.wait_for(
+                asyncio.gather(advocacy_task, skepticism_task, return_exceptions=True),
+                timeout=timeout
+            )
+            
+            # Handle advocacy results
+            if isinstance(advocacy_results, Exception):
+                logger.error(f"Advocacy task failed: {advocacy_results}")
+                # Apply fallback
+                for candidate in candidates:
+                    candidate["advocacy"] = "N/A (Advocacy failed)"
+            else:
+                # Copy advocacy results to main candidates
+                for i, candidate in enumerate(candidates):
+                    if i < len(advocacy_results):
+                        candidate["advocacy"] = advocacy_results[i].get("advocacy", "N/A")
+            
+            # Handle skepticism results
+            if isinstance(skepticism_results, Exception):
+                logger.error(f"Skepticism task failed: {skepticism_results}")
+                # Apply fallback
+                for candidate in candidates:
+                    candidate["skepticism"] = "N/A (Skepticism failed)"
+            else:
+                # Copy skepticism results to main candidates
+                for i, candidate in enumerate(candidates):
+                    if i < len(skepticism_results):
+                        candidate["skepticism"] = skepticism_results[i].get("skepticism", "N/A")
+            
+            return candidates
+            
+        except asyncio.TimeoutError:
+            logger.error(f"Parallel operations timed out after {timeout} seconds")
+            # Cancel pending tasks
+            advocacy_task.cancel()
+            skepticism_task.cancel()
+            raise
+    
+    async def process_candidates_parallel_improvement_evaluation(
+        self,
+        candidates: List[EvaluatedIdea],
+        topic: str,
+        context: str,
+        idea_temp: float,
+        eval_temp: float
+    ) -> List[EvaluatedIdea]:
+        """Process improvement and re-evaluation with proper dependencies.
+        
+        Improvement must complete before re-evaluation starts, but both
+        can leverage batch processing for efficiency.
+        
+        Args:
+            candidates: List of candidates with advocacy and skepticism
+            topic: Overall topic
+            context: Constraints/criteria  
+            idea_temp: Temperature for improvement
+            eval_temp: Temperature for evaluation
+            
+        Returns:
+            Updated candidates with improvements and re-evaluation scores
+        """
+        # Step 1: Improvement (depends on advocacy/skepticism being complete)
+        candidates = await self._process_candidates_with_batch_improvement(
+            candidates, context, idea_temp
+        )
+        
+        # Step 2: Re-evaluation (depends on improvement being complete)
+        # Build improved ideas text for re-evaluation
+        improved_ideas_text = "\n".join([
+            candidate.get("improved_idea", candidate["text"]) 
+            for candidate in candidates
+        ])
+        
+        try:
+            # Single API call for all re-evaluations
+            re_eval_output = await async_evaluate_ideas(
+                ideas=improved_ideas_text,
+                criteria=context,
+                context=topic,
+                temperature=eval_temp,
+                use_structured_output=True
+            )
+            
+            # Parse re-evaluations
+            import json
+            re_eval_results = json.loads(re_eval_output)
+            
+            # Update candidates with re-evaluation scores
+            for i, candidate in enumerate(candidates):
+                if i < len(re_eval_results):
+                    candidate["improved_score"] = re_eval_results[i].get("score", 0)
+                    candidate["improved_critique"] = re_eval_results[i].get(
+                        "comment", "No critique available"
+                    )
+                else:
+                    candidate["improved_score"] = candidate["score"]
+                    candidate["improved_critique"] = "Re-evaluation unavailable"
+                    
+        except Exception as e:
+            logger.error(f"Re-evaluation failed: {e}")
+            # Fallback: use original scores
+            for candidate in candidates:
+                candidate["improved_score"] = candidate["score"]
+                candidate["improved_critique"] = "Re-evaluation failed"
+        
+        return candidates
+    
     async def _process_candidates_with_batch_advocacy_safe(
         self, candidates: List[EvaluatedIdea], context: str, temperature: float
     ) -> List[EvaluatedIdea]:
@@ -772,24 +918,18 @@ class AsyncCoordinator(BatchOperationsBase):
         """
         await self._send_progress("Processing candidates with batch operations...", 0.7)
         
-        # Step 1: Batch Advocacy Processing (only if enhanced_reasoning is enabled)
+        # Step 1: Parallel Batch Advocacy and Skepticism Processing (only if enhanced_reasoning is enabled)
         if enhanced_reasoning:
-            await self._send_progress("Running batch advocacy analysis...", 0.72)
-            candidates = await self._process_candidates_with_batch_advocacy_safe(
-                candidates, context, advocacy_temp
-            )
-            
-            # Step 2: Batch Skepticism Processing (only if enhanced_reasoning is enabled)
-            await self._send_progress("Running batch skepticism analysis...", 0.75)
-            candidates = await self._process_candidates_with_batch_skepticism(
-                candidates, context, skepticism_temp
+            await self._send_progress("Running parallel advocacy and skepticism analysis...", 0.72)
+            candidates = await self.process_candidates_parallel_advocacy_skepticism(
+                candidates, context, advocacy_temp, skepticism_temp
             )
         else:
             # Don't include advocacy/skepticism fields when enhanced reasoning is disabled
             # This ensures the frontend won't show empty sections
             pass
         
-        # Step 3: Batch Improvement Processing
+        # Step 2: Batch Improvement Processing (depends on advocacy/skepticism)
         await self._send_progress("Running batch idea improvement...", 0.78)
         candidates = await self._process_candidates_with_batch_improvement(
             candidates, context, idea_temp

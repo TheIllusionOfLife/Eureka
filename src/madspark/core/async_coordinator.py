@@ -220,8 +220,8 @@ class AsyncCoordinator(BatchOperationsBase):
             Updated candidates with advocacy data
         """
         try:
-            # Prepare batch input using shared base class method
-            advocacy_input = self.prepare_advocacy_input(candidates)
+            # Prepare batch input using shared base class method with context
+            advocacy_input = self.prepare_advocacy_input_with_context(candidates)
             
             # Single API call for all advocacies using shared base class method
             advocacy_results, token_usage = await self.run_batch_with_timeout(
@@ -270,8 +270,8 @@ class AsyncCoordinator(BatchOperationsBase):
     ) -> List[EvaluatedIdea]:
         """Process all candidates with batch improvement in a single API call."""
         try:
-            # Prepare batch input using shared base class method
-            improve_input = self.prepare_improvement_input(candidates)
+            # Prepare batch input using shared base class method with full context
+            improve_input = self.prepare_improvement_input_with_context(candidates)
             
             # Single API call for all improvements using shared base class method
             improvement_results, token_usage = await self.run_batch_with_timeout(
@@ -303,7 +303,7 @@ class AsyncCoordinator(BatchOperationsBase):
             # Provide fallback advocacy for all candidates
             for candidate in candidates:
                 candidate["advocacy"] = (
-                    f"This idea shows strong potential in addressing {topic}. "
+                    f"This idea shows strong potential in addressing {context}. "
                     "Key strengths include practical implementation approach "
                     "and alignment with constraints."
                 )
@@ -631,7 +631,8 @@ class AsyncCoordinator(BatchOperationsBase):
                     evaluated_idea = {
                         "text": idea_text,
                         "score": score,
-                        "critique": critique
+                        "critique": critique,
+                        "context": context  # Add context for information flow
                     }
                     
                     # Add multi-dimensional evaluation data if available

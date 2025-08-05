@@ -243,7 +243,8 @@ def _run_workflow_internal(
                 evaluated_idea = {
                     "text": idea,
                     "score": score,
-                    "critique": critique
+                    "critique": critique,
+                    "context": context  # Add context for information flow
                 }
                 
                 # Multi-dimensional evaluation will be added in batch later if enabled

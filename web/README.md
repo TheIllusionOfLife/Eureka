@@ -41,8 +41,8 @@ docker compose up -d  # Defaults to mock mode
 
 | Display Name | Internal Name | Description |
 |-------------|--------------|-------------|
-| **Topic** | `theme` | The main subject for idea generation (required) |
-| **Context** | `constraints` | Additional requirements or limitations (optional) |
+| **Topic** | `topic` | The main subject for idea generation (required) |
+| **Context** | `context` | Additional requirements or limitations (optional) |
 | **Number of Top Ideas** | `num_top_candidates` | How many ideas to generate (1-5) |
 | **Creativity Level** | `temperature_preset` or `temperature` | Controls randomness/creativity |
 | **Enhanced Reasoning** | `enhanced_reasoning` | Enables advocate & skeptic agents |

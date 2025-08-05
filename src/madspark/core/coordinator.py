@@ -93,7 +93,7 @@ except ImportError:
 
 
 def run_multistep_workflow(
-    theme: str, constraints: str, num_top_candidates: int = 2, 
+    topic: str, context: str, num_top_candidates: int = 2, 
     enable_novelty_filter: bool = True, novelty_threshold: float = DEFAULT_NOVELTY_THRESHOLD,
     temperature_manager: Optional[TemperatureManager] = None,
     verbose: bool = False,
@@ -110,8 +110,8 @@ def run_multistep_workflow(
     50% fewer API calls while maintaining full backward compatibility.
     
     Args:
-        theme: The main topic/theme for idea generation
-        constraints: Constraints or requirements for the ideas
+        topic: The main topic/theme for idea generation
+        context: Context or constraints for the ideas
         num_top_candidates: Number of top ideas to select for detailed analysis
         enable_novelty_filter: Whether to filter duplicate/similar ideas
         novelty_threshold: Similarity threshold for novelty filtering
@@ -150,8 +150,8 @@ def run_multistep_workflow(
     # Note: The batch version handles novelty filtering internally for now
     # This ensures all existing functionality works while gaining performance benefits
     return run_multistep_workflow_batch(
-        theme=theme,
-        constraints=constraints,
+        topic=topic,
+        context=context,
         num_top_candidates=num_top_candidates,
         enable_reasoning=enhanced_reasoning,
         multi_dimensional_eval=multi_dimensional_eval,
@@ -175,19 +175,19 @@ if __name__ == "__main__":
     _ensure_environment_configured()
     
     logging.info("Starting Mad Spark Multi-Agent Workflow...")
-    sample_theme: str = "Sustainable Urban Living"
-    sample_constraints: str = (
+    sample_topic: str = "Sustainable Urban Living"
+    sample_context: str = (
         "Ideas should be implementable within a typical city budget, focus on "
         "community involvement, and be technologically feasible within the next 5 "
         "years. Ideas should also consider scalability and inclusivity."
     )
     num_ideas_to_process: int = 1
-    logging.info(f"Theme: {sample_theme}")
-    logging.info(f"Constraints: {sample_constraints}")
+    logging.info(f"Topic: {sample_topic}")
+    logging.info(f"Context: {sample_context}")
     logging.info(f"Number of top ideas to fully process: {num_ideas_to_process}")
 
     results: List[CandidateData] = run_multistep_workflow(
-        theme=sample_theme, constraints=sample_constraints, num_top_candidates=num_ideas_to_process
+        topic=sample_topic, context=sample_context, num_top_candidates=num_ideas_to_process
     )
     logging.info("--- Final Results ---")
     if results:

@@ -194,7 +194,7 @@ class ErrorTracker:
 error_tracker = ErrorTracker()
 
 
-def generate_mock_results(theme: str, num_ideas: int, logical_inference: bool = False) -> List[Dict[str, Any]]:
+def generate_mock_results(topic: str, num_ideas: int, logical_inference: bool = False) -> List[Dict[str, Any]]:
     """Generate mock results for testing without API keys."""
     mock_ideas = {
         "urban farming": [
@@ -217,16 +217,16 @@ def generate_mock_results(theme: str, num_ideas: int, logical_inference: bool = 
     # Find matching theme or use default
     theme_key = None
     for key in mock_ideas.keys():
-        if key.lower() in theme.lower() or theme.lower() in key.lower():
+        if key.lower() in topic.lower() or topic.lower() in key.lower():
             theme_key = key
             break
     
     if not theme_key:
         # Generate generic ideas if no theme match
         base_ideas = [
-            f"Innovative solution for {theme} using advanced technology",
-            f"Sustainable approach to {theme} with community involvement",
-            f"Cost-effective method for implementing {theme} at scale"
+            f"Innovative solution for {topic} using advanced technology",
+            f"Sustainable approach to {topic} with community involvement",
+            f"Cost-effective method for implementing {topic} at scale"
         ]
     else:
         base_ideas = mock_ideas[theme_key]
@@ -240,7 +240,7 @@ def generate_mock_results(theme: str, num_ideas: int, logical_inference: bool = 
             "idea": base_ideas[i],
             "initial_score": round(base_score, 1),
             "initial_critique": "Interesting concept but needs more detail on implementation and feasibility",
-            "advocacy": f"This solution addresses key challenges in {theme} with innovative thinking",
+            "advocacy": f"This solution addresses key challenges in {topic} with innovative thinking",
             "skepticism": "Implementation costs and technical complexity may be barriers",
             "improved_idea": f"{base_ideas[i]}. Enhanced with AI-driven optimization, real-time monitoring, and adaptive learning capabilities for maximum efficiency",
             "improved_score": round(improved_score, 1),
@@ -268,23 +268,23 @@ def generate_mock_results(theme: str, num_ideas: int, logical_inference: bool = 
         if logical_inference:
             result["logical_inference"] = {
                 "inference_chain": [
-                    f"Urban environments have limited horizontal space for {theme}",
-                    f"Vertical solutions maximize space efficiency for {theme} implementation",
+                    f"Urban environments have limited horizontal space for {topic}",
+                    f"Vertical solutions maximize space efficiency for {topic} implementation",
                     "Technology integration enables automation and monitoring",
                     "Community adoption drives scalability and sustainability"
                 ],
-                "conclusion": f"Integrated vertical approach optimizes {theme} implementation in urban settings",
+                "conclusion": f"Integrated vertical approach optimizes {topic} implementation in urban settings",
                 "confidence": round(0.75 + random.random() * 0.2, 2),  # nosec B311
-                "improvements": f"Consider IoT sensors and AI-driven optimization for enhanced {theme} efficiency",
+                "improvements": f"Consider IoT sensors and AI-driven optimization for enhanced {topic} efficiency",
                 "causal_chain": [
-                    f"Limited space drives vertical {theme} solutions",
-                    f"Vertical solutions enable scalable {theme} systems",
-                    f"Scalable systems improve urban {theme} accessibility"
+                    f"Limited space drives vertical {topic} solutions",
+                    f"Vertical solutions enable scalable {topic} systems",
+                    f"Scalable systems improve urban {topic} accessibility"
                 ],
                 "implications": [
-                    f"Reduced space requirements for {theme} projects",
-                    f"Increased {theme} productivity per square meter",
-                    f"Enhanced urban sustainability through {theme} integration"
+                    f"Reduced space requirements for {topic} projects",
+                    f"Increased {topic} productivity per square meter",
+                    f"Enhanced urban sustainability through {topic} integration"
                 ],
                 "constraint_satisfaction": {
                     "space_efficiency": round(0.85 + random.random() * 0.1, 2),  # nosec B311
@@ -594,21 +594,21 @@ class IdeaGenerationRequest(BaseModel):
     Request model for idea generation.
 
     Note on terminology for API backward compatibility:
-    - 'theme' maps to 'topic' in the codebase.
-    - 'constraints' maps to 'context' in the codebase.
+    - 'topic' is the primary field name (previously 'theme')
+    - 'context' is the primary field name (previously 'constraints')
     """
-    theme: str = Field(
+    topic: str = Field(
         ...,
         min_length=1,
         max_length=500,
         description="Topic for idea generation",
-        alias="topic"
+        alias="theme"  # Backward compatibility
     )
-    constraints: str = Field(
+    context: str = Field(
         default="Generate practical and innovative ideas",
         max_length=1000,
         description="Context and criteria (optional)",
-        alias="context"
+        alias="constraints"  # Backward compatibility
     )
     num_top_candidates: int = Field(default=3, ge=1, le=5, description="Number of top ideas to process (max 5 for performance)")
     enable_novelty_filter: bool = Field(default=True, description="Enable novelty filtering")
@@ -640,23 +640,23 @@ class BookmarkRequest(BaseModel):
     Request model for creating a bookmark.
 
     Note on terminology for API backward compatibility:
-    - 'theme' maps to 'topic' in the codebase.
-    - 'constraints' maps to 'context' in the codebase.
+    - 'topic' is the primary field name (previously 'theme')
+    - 'context' is the primary field name (previously 'constraints')
     """
     idea: str = Field(..., min_length=10, max_length=10000, description="Original idea text")
     improved_idea: Optional[str] = Field(default=None, max_length=10000, description="Improved idea text")
-    theme: str = Field(
+    topic: str = Field(
         ...,
         min_length=1,
         max_length=200,
         description="Topic used for generation",
-        alias="topic"
+        alias="theme"  # Backward compatibility
     )
-    constraints: str = Field(
+    context: str = Field(
         default="",
         max_length=500,
         description="Context used",
-        alias="context"
+        alias="constraints"  # Backward compatibility
     )
     initial_score: float = Field(..., ge=0, le=10, description="Initial critic score")
     improved_score: Optional[float] = Field(default=None, ge=0, le=10, description="Improved idea score")
@@ -670,7 +670,7 @@ class BookmarkRequest(BaseModel):
     class Config:
         populate_by_name = True  # Accept both alias and original names (Pydantic V2)
     
-    @validator('idea', 'improved_idea', 'theme', 'constraints', 'initial_critique', 'improved_critique', 'advocacy', 'skepticism', 'notes')
+    @validator('idea', 'improved_idea', 'topic', 'context', 'initial_critique', 'improved_critique', 'advocacy', 'skepticism', 'notes')
     def sanitize_html(cls, v):
         if v is None:
             return None
@@ -702,19 +702,19 @@ class SimilarBookmark(BaseModel):
 class DuplicateCheckRequest(BaseModel):
     """Request model for duplicate checking."""
     idea: str = Field(..., min_length=10, max_length=10000, description="Idea text to check for duplicates")
-    theme: str = Field(
+    topic: str = Field(
         ...,
         min_length=1,
         max_length=200,
         description="Topic/theme of the idea",
-        alias="topic"
+        alias="theme"  # Backward compatibility
     )
     similarity_threshold: Optional[float] = Field(default=0.8, ge=0.1, le=1.0, description="Custom similarity threshold")
 
     class Config:
         populate_by_name = True
 
-    @validator('idea', 'theme')
+    @validator('idea', 'topic')
     def sanitize_html(cls, v):
         if v is None:
             return None
@@ -983,7 +983,7 @@ async def generate_ideas(request: Request, idea_request: IdeaGenerationRequest):
         google_api_key.startswith('test-') or
         environment in ['test', 'ci', 'mock']):
         logger.info("Running in mock mode - returning sample results")
-        mock_results = generate_mock_results(idea_request.theme, idea_request.num_top_candidates, idea_request.logical_inference)
+        mock_results = generate_mock_results(idea_request.topic, idea_request.num_top_candidates, idea_request.logical_inference)
         return IdeaGenerationResponse(
             status="success",
             message=f"Generated {len(mock_results)} mock ideas",
@@ -1022,20 +1022,20 @@ async def generate_ideas(request: Request, idea_request: IdeaGenerationRequest):
             logger.warning(f"MAX_CONCURRENT_AGENTS must be a positive integer, got '{env_val}'. Using default: 10")
         
         # Handle remix context if bookmark IDs are provided
-        constraints = idea_request.constraints
+        context = idea_request.context
         if idea_request.bookmark_ids:
             try:
                 from madspark.utils.bookmark_system import remix_with_bookmarks
-                constraints = remix_with_bookmarks(
-                    theme=idea_request.theme,
-                    additional_constraints=idea_request.constraints,
+                context = remix_with_bookmarks(
+                    theme=idea_request.topic,
+                    additional_constraints=idea_request.context,
                     bookmark_ids=idea_request.bookmark_ids,
                     bookmark_file=bookmark_system.bookmark_file
                 )
                 await ws_manager.send_progress_update(f"Using {len(idea_request.bookmark_ids)} bookmarks for remix context", 5.0)
             except Exception as e:
                 logger.warning(f"Failed to create remix context: {e}")
-                # Continue with original constraints if remix fails
+                # Continue with original context if remix fails
         
         # Create async coordinator with cache and progress callback
         async_coordinator = AsyncCoordinator(
@@ -1055,8 +1055,8 @@ async def generate_ideas(request: Request, idea_request: IdeaGenerationRequest):
         try:
             results = await asyncio.wait_for(
                 async_coordinator.run_workflow(
-                    theme=idea_request.theme,
-                    constraints=constraints,  # Use potentially remixed constraints
+                    topic=idea_request.topic,
+                    context=context,  # Use potentially remixed context
                     num_top_candidates=idea_request.num_top_candidates,
                     enable_novelty_filter=idea_request.enable_novelty_filter,
                     novelty_threshold=idea_request.novelty_threshold,
@@ -1088,7 +1088,7 @@ async def generate_ideas(request: Request, idea_request: IdeaGenerationRequest):
     except Exception as e:
         processing_time = (datetime.now() - start_time).total_seconds()
         error_context = {
-            'theme': idea_request.theme,
+            'topic': idea_request.topic,
             'num_candidates': idea_request.num_top_candidates,
             'processing_time': processing_time,
             'error_type': type(e).__name__
@@ -1150,8 +1150,8 @@ async def generate_ideas_async(request: Request, idea_request: IdeaGenerationReq
         
         # Run the async workflow
         results = await async_coordinator.run_workflow(
-            theme=idea_request.theme,
-            constraints=idea_request.constraints,
+            topic=idea_request.topic,
+            context=idea_request.context,
             num_top_candidates=idea_request.num_top_candidates,
             enable_novelty_filter=idea_request.enable_novelty_filter,
             novelty_threshold=idea_request.novelty_threshold,
@@ -1213,7 +1213,7 @@ async def check_bookmark_duplicates(request: Request, duplicate_request: Duplica
         # Check for duplicates
         duplicate_result = bookmark_manager.check_for_duplicates(
             duplicate_request.idea,
-            duplicate_request.theme
+            duplicate_request.topic
         )
         
         # Convert to API response format
@@ -1252,7 +1252,7 @@ async def check_bookmark_duplicates(request: Request, duplicate_request: Duplica
     except Exception as e:
         error_context = {
             'idea_length': len(duplicate_request.idea),
-            'theme': duplicate_request.theme,
+            'topic': duplicate_request.topic,
             'error_type': type(e).__name__
         }
         error_tracker.track_error('duplicate_check', str(e), error_context)
@@ -1351,8 +1351,8 @@ async def create_bookmark(
     """Create a new bookmark with optional duplicate detection."""
     try:
         # Log the request for debugging (sanitized for security)
-        sanitized_theme = sanitize_for_logging(bookmark_request.theme, 30)
-        logger.info(f"Bookmark request received for theme='{sanitized_theme}' with {len(bookmark_request.tags)} tags.")
+        sanitized_topic = sanitize_for_logging(bookmark_request.topic, 30)
+        logger.info(f"Bookmark request received for topic='{sanitized_topic}' with {len(bookmark_request.tags)} tags.")
         
         # Use improved idea if available, otherwise use original
         idea_text = bookmark_request.improved_idea if bookmark_request.improved_idea is not None else bookmark_request.idea
@@ -1363,8 +1363,8 @@ async def create_bookmark(
             # Use enhanced bookmark creation with duplicate detection
             result = bookmark_system.bookmark_idea_with_duplicate_check(
                 idea_text=idea_text,
-                theme=bookmark_request.theme,
-                constraints=bookmark_request.constraints,
+                theme=bookmark_request.topic,
+                constraints=bookmark_request.context,
                 score=round(score, 1),
                 critique=critique or "",
                 advocacy=bookmark_request.advocacy or "",
@@ -1397,8 +1397,8 @@ async def create_bookmark(
             # Traditional bookmark creation without duplicate checking
             bookmark_id = bookmark_system.bookmark_idea(
                 idea_text=idea_text,
-                theme=bookmark_request.theme,
-                constraints=bookmark_request.constraints,
+                theme=bookmark_request.topic,
+                constraints=bookmark_request.context,
                 score=round(score, 1),
                 critique=critique or "",
                 advocacy=bookmark_request.advocacy or "",
@@ -1420,7 +1420,7 @@ async def create_bookmark(
         raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
         error_context = {
-            'theme': bookmark_request.theme,
+            'topic': bookmark_request.topic,
             'idea_length': len(bookmark_request.idea),
             'tags_count': len(bookmark_request.tags),
             'check_duplicates': check_duplicates,

@@ -152,7 +152,7 @@ async def async_improve_idea(
     critique: str, 
     advocacy_points: str, 
     skeptic_points: str, 
-    theme: str,
+    topic: str,
     temperature: float = 0.9
 ) -> str:
     """Async wrapper for idea improvement with retry logic.
@@ -168,7 +168,7 @@ async def async_improve_idea(
         critique,
         advocacy_points,
         skeptic_points,
-        theme,
+        topic,
         temperature
     )
 
@@ -207,13 +207,13 @@ class AsyncCoordinator(BatchOperationsBase):
     
     
     async def _process_candidates_with_batch_advocacy(
-        self, candidates: List[EvaluatedIdea], theme: str, temperature: float
+        self, candidates: List[EvaluatedIdea], context: str, temperature: float
     ) -> List[EvaluatedIdea]:
         """Process all candidates with batch advocacy in a single API call.
         
         Args:
             candidates: List of evaluated ideas
-            theme: Overall theme/context
+            topic: Overall topic/context
             temperature: Generation temperature
             
         Returns:
@@ -225,7 +225,7 @@ class AsyncCoordinator(BatchOperationsBase):
             
             # Single API call for all advocacies using shared base class method
             advocacy_results, token_usage = await self.run_batch_with_timeout(
-                'advocate_ideas_batch', advocacy_input, theme, temperature
+                'advocate_ideas_batch', advocacy_input, context, temperature
             )
             
             # Update candidates using shared base class method
@@ -241,7 +241,7 @@ class AsyncCoordinator(BatchOperationsBase):
             return candidates
     
     async def _process_candidates_with_batch_skepticism(
-        self, candidates: List[EvaluatedIdea], theme: str, temperature: float
+        self, candidates: List[EvaluatedIdea], context: str, temperature: float
     ) -> List[EvaluatedIdea]:
         """Process all candidates with batch skepticism in a single API call."""
         try:
@@ -250,7 +250,7 @@ class AsyncCoordinator(BatchOperationsBase):
             
             # Single API call for all skepticisms using shared base class method
             skepticism_results, token_usage = await self.run_batch_with_timeout(
-                'criticize_ideas_batch', skeptic_input, theme, temperature
+                'criticize_ideas_batch', skeptic_input, context, temperature
             )
             
             # Update candidates using shared base class method
@@ -266,7 +266,7 @@ class AsyncCoordinator(BatchOperationsBase):
             return candidates
     
     async def _process_candidates_with_batch_improvement(
-        self, candidates: List[EvaluatedIdea], theme: str, temperature: float
+        self, candidates: List[EvaluatedIdea], context: str, temperature: float
     ) -> List[EvaluatedIdea]:
         """Process all candidates with batch improvement in a single API call."""
         try:
@@ -275,7 +275,7 @@ class AsyncCoordinator(BatchOperationsBase):
             
             # Single API call for all improvements using shared base class method
             improvement_results, token_usage = await self.run_batch_with_timeout(
-                'improve_ideas_batch', improve_input, theme, temperature
+                'improve_ideas_batch', improve_input, context, temperature
             )
             
             # Update candidates using shared base class method
@@ -291,36 +291,36 @@ class AsyncCoordinator(BatchOperationsBase):
             return candidates
     
     async def _process_candidates_with_batch_advocacy_safe(
-        self, candidates: List[EvaluatedIdea], theme: str, temperature: float
+        self, candidates: List[EvaluatedIdea], context: str, temperature: float
     ) -> List[EvaluatedIdea]:
         """Process candidates with batch advocacy, with fallback on error."""
         try:
             return await self._process_candidates_with_batch_advocacy(
-                candidates, theme, temperature
+                candidates, context, temperature
             )
         except Exception as e:
             logger.error(f"Batch advocacy failed, using fallback: {e}")
             # Provide fallback advocacy for all candidates
             for candidate in candidates:
                 candidate["advocacy"] = (
-                    f"This idea shows strong potential in addressing {theme}. "
+                    f"This idea shows strong potential in addressing {topic}. "
                     "Key strengths include practical implementation approach "
                     "and alignment with constraints."
                 )
             return candidates
     
     async def _run_batch_advocacy(
-        self, candidates: List[EvaluatedIdea], theme: str, temperature: float
+        self, candidates: List[EvaluatedIdea], context: str, temperature: float
     ):
         """Run batch advocacy operation."""
         return await self._process_candidates_with_batch_advocacy(
-            candidates, theme, temperature
+            candidates, context, temperature
         )
     
     async def _run_batch_logical_inference(
         self, 
         ideas: List[str], 
-        theme: str, 
+        topic: str, 
         context: str,
         analysis_type: InferenceType = InferenceType.FULL
     ):
@@ -332,7 +332,7 @@ class AsyncCoordinator(BatchOperationsBase):
         
         Args:
             ideas: List of idea strings to analyze
-            theme: Original theme/topic
+            topic: Original topic
             context: Constraints and requirements
             analysis_type: Type of logical analysis to perform
             
@@ -357,7 +357,7 @@ class AsyncCoordinator(BatchOperationsBase):
             inference_results = await asyncio.to_thread(
                 self.reasoning_engine.logical_inference_engine.analyze_batch,
                 ideas,
-                theme,
+                topic,
                 context,
                 analysis_type
             )
@@ -371,8 +371,8 @@ class AsyncCoordinator(BatchOperationsBase):
             
     async def run_workflow(
         self,
-        theme: str,
-        constraints: str,
+        topic: str,
+        context: str,
         num_top_candidates: int = 2,
         enable_novelty_filter: bool = True,
         novelty_threshold: float = 0.8,
@@ -403,8 +403,8 @@ class AsyncCoordinator(BatchOperationsBase):
             # Wrap the actual workflow in a timeout
             return await asyncio.wait_for(
                 self._run_workflow_internal(
-                    theme=theme,
-                    constraints=constraints,
+                    topic=topic,
+                    context=context,
                     num_top_candidates=num_top_candidates,
                     enable_novelty_filter=enable_novelty_filter,
                     novelty_threshold=novelty_threshold,
@@ -424,8 +424,8 @@ class AsyncCoordinator(BatchOperationsBase):
             
     async def _run_workflow_internal(
         self,
-        theme: str,
-        constraints: str,
+        topic: str,
+        context: str,
         num_top_candidates: int = 2,
         enable_novelty_filter: bool = True,
         novelty_threshold: float = 0.8,
@@ -451,7 +451,7 @@ class AsyncCoordinator(BatchOperationsBase):
         # Check cache first if enabled
         if self.cache_manager:
             cached_result = await self.cache_manager.get_cached_workflow(
-                theme, constraints, cache_options
+                topic, context, cache_options
             )
             
             if cached_result:
@@ -500,8 +500,8 @@ class AsyncCoordinator(BatchOperationsBase):
                 # Add timeout to idea generation to prevent hanging
                 raw_generated_ideas = await asyncio.wait_for(
                     async_generate_ideas(
-                        topic=theme,
-                        context=constraints,
+                        topic=topic,
+                        context=context,
                         temperature=idea_temp,
                         cache_manager=self.cache_manager,
                         use_structured_output=True
@@ -542,8 +542,8 @@ class AsyncCoordinator(BatchOperationsBase):
                 ideas_for_critic = "\n".join(parsed_ideas)
                 raw_evaluations = await async_evaluate_ideas(
                     ideas=ideas_for_critic,
-                    criteria=constraints,
-                    context=theme,
+                    criteria=context,
+                    context=topic,
                     temperature=eval_temp,
                     use_structured_output=True
                 )
@@ -609,7 +609,7 @@ class AsyncCoordinator(BatchOperationsBase):
                         try:
                             multi_eval_result = engine.multi_evaluator.evaluate_idea(
                                 idea=idea_text,
-                                context={"theme": theme, "constraints": constraints}
+                                context={"theme": topic, "constraints": context}
                             )
                             
                             # Store the multi-dimensional evaluation data
@@ -667,8 +667,8 @@ class AsyncCoordinator(BatchOperationsBase):
                     # Use the batch logical inference method - key optimization: O(N) → O(1) API calls
                     batch_results = await self._run_batch_logical_inference(
                         ideas_for_inference,
-                        theme,
-                        constraints,
+                        topic,
+                        context,
                         InferenceType.FULL
                     )
                     
@@ -698,8 +698,8 @@ class AsyncCoordinator(BatchOperationsBase):
             await self._send_progress(f"Processing {len(top_candidates)} candidates with complete feedback loop...", 0.7)
             final_candidates = await self.process_top_candidates(
                 top_candidates,
-                theme,
-                constraints,
+                topic,
+                context,
                 advocacy_temp,
                 skepticism_temp,
                 idea_temp,
@@ -753,8 +753,8 @@ class AsyncCoordinator(BatchOperationsBase):
     async def process_top_candidates(
         self,
         candidates: List[EvaluatedIdea],
-        theme: str,
-        constraints: str,
+        topic: str,
+        context: str,
         advocacy_temp: float = DEFAULT_ADVOCACY_TEMPERATURE,
         skepticism_temp: float = DEFAULT_SKEPTICISM_TEMPERATURE,
         idea_temp: float = DEFAULT_IDEA_TEMPERATURE,
@@ -775,13 +775,13 @@ class AsyncCoordinator(BatchOperationsBase):
         if enhanced_reasoning:
             await self._send_progress("Running batch advocacy analysis...", 0.72)
             candidates = await self._process_candidates_with_batch_advocacy_safe(
-                candidates, theme, advocacy_temp
+                candidates, context, advocacy_temp
             )
             
             # Step 2: Batch Skepticism Processing (only if enhanced_reasoning is enabled)
             await self._send_progress("Running batch skepticism analysis...", 0.75)
             candidates = await self._process_candidates_with_batch_skepticism(
-                candidates, theme, skepticism_temp
+                candidates, context, skepticism_temp
             )
         else:
             # Don't include advocacy/skepticism fields when enhanced reasoning is disabled
@@ -791,7 +791,7 @@ class AsyncCoordinator(BatchOperationsBase):
         # Step 3: Batch Improvement Processing
         await self._send_progress("Running batch idea improvement...", 0.78)
         candidates = await self._process_candidates_with_batch_improvement(
-            candidates, theme, idea_temp
+            candidates, context, idea_temp
         )
         
         # Step 4: Batch Re-evaluation
@@ -816,7 +816,7 @@ class AsyncCoordinator(BatchOperationsBase):
         
         # Build context that includes all relevant information
         improved_context = (
-            f"{theme}\n"
+            f"{topic}\n"
             f"[These are IMPROVED versions of ideas that have been refined based on:\n"
             f"- Critical analysis identifying weaknesses\n"
             f"- Advocacy highlighting strengths\n"
@@ -829,7 +829,7 @@ class AsyncCoordinator(BatchOperationsBase):
             # Single API call for all re-evaluations with proper context
             re_eval_output = await async_evaluate_ideas(
                 ideas=improved_ideas_text,
-                criteria=constraints,
+                criteria=context,
                 context=improved_context,
                 temperature=eval_temp,
                 use_structured_output=True
@@ -944,7 +944,7 @@ class AsyncCoordinator(BatchOperationsBase):
     async def _process_single_candidate(
         self,
         candidate: EvaluatedIdea,
-        theme: str,
+        context: str,
         advocacy_temp: float,
         skepticism_temp: float,
         idea_temp: float = 0.9,
@@ -966,7 +966,7 @@ class AsyncCoordinator(BatchOperationsBase):
                     async_advocate_idea(
                         idea=idea_text,
                         evaluation=evaluation_detail,
-                        context=theme,
+                        context=topic,
                         temperature=advocacy_temp,
                         use_structured_output=True
                     )
@@ -981,7 +981,7 @@ class AsyncCoordinator(BatchOperationsBase):
                     async_criticize_idea(
                         idea=idea_text,
                         advocacy=evaluation_detail,  # Use evaluation instead of advocacy output
-                        context=theme,
+                        context=topic,
                         temperature=skepticism_temp,
                         use_structured_output=True
                     )
@@ -1003,7 +1003,7 @@ class AsyncCoordinator(BatchOperationsBase):
         # Handle advocacy result
         if isinstance(advocacy_output, asyncio.TimeoutError):
             logger.warning(f"Advocacy timed out for idea '{idea_text[:50]}...'. Using fallback.")
-            advocacy_output = f"This idea shows strong potential in addressing {theme}. Key strengths include practical implementation approach and alignment with constraints."
+            advocacy_output = f"This idea shows strong potential in addressing {topic}. Key strengths include practical implementation approach and alignment with constraints."
             partial_failures.append({
                 "stage": "advocacy",
                 "error": "Timeout after 30 seconds",
@@ -1052,7 +1052,7 @@ class AsyncCoordinator(BatchOperationsBase):
                         critique=evaluation_detail,
                         advocacy_points=advocacy_output,
                         skeptic_points=skepticism_output,
-                        theme=theme,
+                        topic=topic,
                         temperature=idea_temp
                     )
                 ),
@@ -1080,7 +1080,7 @@ class AsyncCoordinator(BatchOperationsBase):
             try:
                 # Call critic with improved idea
                 improved_context = (
-                    f"{theme}\n"
+                    f"{topic}\n"
                     f"[This is an IMPROVED version that addresses previous concerns]\n"
                     f"Original score: {candidate['score']}/10\n"
                     f"Key improvements made:\n"
@@ -1095,7 +1095,7 @@ class AsyncCoordinator(BatchOperationsBase):
                         self._run_with_semaphore(
                             async_evaluate_ideas(
                                 ideas=improved_idea_text,
-                                criteria=constraints,
+                                criteria=context,
                                 context=improved_context,
                                 temperature=eval_temp,
                                 use_structured_output=True
@@ -1111,7 +1111,7 @@ class AsyncCoordinator(BatchOperationsBase):
                         asyncio.wait_for(
                             reasoning_engine.multi_evaluator.evaluate_idea(
                                 idea=improved_idea_text,
-                                context={"theme": theme, "constraints": constraints}
+                                context={"theme": topic, "constraints": context}
                             ),
                             timeout=30.0  # 30 second timeout for multi-dimensional evaluation
                         )
@@ -1284,8 +1284,8 @@ class AsyncCoordinator(BatchOperationsBase):
 
 
 async def run_async_workflow(
-    theme: str,
-    constraints: str,
+    topic: str,
+    context: str,
     num_top_candidates: int = 2,
     enable_novelty_filter: bool = True,
     novelty_threshold: float = 0.8,
@@ -1309,8 +1309,8 @@ async def run_async_workflow(
     )
     
     return await coordinator.run_workflow(
-        theme=theme,
-        constraints=constraints,
+        topic=topic,
+        context=context,
         num_top_candidates=num_top_candidates,
         enable_novelty_filter=enable_novelty_filter,
         novelty_threshold=novelty_threshold,
@@ -1334,8 +1334,8 @@ if __name__ == "__main__":
             print(f"[{progress:.0%}] {message}")
             
         results = await run_async_workflow(
-            theme="Sustainable Urban Living",
-            constraints="Budget-friendly and community-focused",
+            topic="Sustainable Urban Living",
+            context="Budget-friendly and community-focused",
             num_top_candidates=2,
             progress_callback=progress_callback
         )

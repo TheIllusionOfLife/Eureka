@@ -49,8 +49,8 @@ except ImportError:
 
 
 def run_multistep_workflow_batch(
-    theme: str, 
-    constraints: str, 
+    topic: str, 
+    context: str, 
     num_top_candidates: int = 2,
     enable_reasoning: bool = True,
     multi_dimensional_eval: bool = False,
@@ -67,8 +67,8 @@ def run_multistep_workflow_batch(
     processing, reducing API calls from O(N) to O(1) for these stages.
     
     Args:
-        theme: Main topic or theme for idea generation
-        constraints: Specific constraints or requirements
+        topic: Main topic/theme for idea generation
+        context: Context/constraints for the ideas
         num_top_candidates: Number of top ideas to fully process
         enable_reasoning: Whether to use enhanced reasoning
         multi_dimensional_eval: Whether to use multi-dimensional evaluation
@@ -85,17 +85,17 @@ def run_multistep_workflow_batch(
         TimeoutError: If the workflow exceeds the specified timeout
     """
     # Validate input parameters
-    if not theme or not isinstance(theme, str) or theme.strip() == "":
-        raise ValidationError("Theme must be a non-empty string")
-    if constraints is None or not isinstance(constraints, str) or constraints.strip() == "":
-        raise ValidationError("Constraints must be a non-empty string")
+    if not topic or not isinstance(topic, str) or topic.strip() == "":
+        raise ValidationError("Topic must be a non-empty string")
+    if context is None or not isinstance(context, str) or context.strip() == "":
+        raise ValidationError("Context must be a non-empty string")
     
     # If timeout is specified and different from default, use ThreadPoolExecutor to enforce it
     if timeout is not None and timeout > 0 and timeout != DEFAULT_TIMEOUT_SECONDS:
         with ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(
                 _run_workflow_internal,
-                theme, constraints, num_top_candidates, enable_reasoning,
+                topic, context, num_top_candidates, enable_reasoning,
                 multi_dimensional_eval, temperature_manager, novelty_filter,
                 verbose, reasoning_engine
             )
@@ -110,15 +110,15 @@ def run_multistep_workflow_batch(
     else:
         # Run without timeout
         return _run_workflow_internal(
-            theme, constraints, num_top_candidates, enable_reasoning,
+            topic, context, num_top_candidates, enable_reasoning,
             multi_dimensional_eval, temperature_manager, novelty_filter,
             verbose, reasoning_engine
         )
 
 
 def _run_workflow_internal(
-    theme: str, 
-    constraints: str, 
+    topic: str, 
+    context: str, 
     num_top_candidates: int = 2,
     enable_reasoning: bool = True,
     multi_dimensional_eval: bool = False,
@@ -161,19 +161,19 @@ def _run_workflow_internal(
     
     # Step 1: Idea Generation with verbose logging
     log_verbose_step("STEP 1: Idea Generation", 
-                    f"🧠 Generating ideas for theme: {theme[:50]}...\n🌡️ Temperature: {idea_temp}", 
+                    f"🧠 Generating ideas for topic: {topic[:50]}...\n🌡️ Temperature: {idea_temp}", 
                     verbose)
     
     start_time = time.time()
     ideas_text = call_idea_generator_with_retry(
-        topic=theme, 
-        context=constraints, 
+        topic=topic, 
+        context=context, 
         temperature=idea_temp,
         use_structured_output=True
     )
     
     idea_gen_duration = time.time() - start_time
-    log_agent_completion("IdeaGenerator", ideas_text, f"{theme[:20]}...", idea_gen_duration, verbose)
+    log_agent_completion("IdeaGenerator", ideas_text, f"{topic[:20]}...", idea_gen_duration, verbose)
     
     # Parse ideas using shared utility
     from madspark.utils.json_parsers import parse_idea_generator_response
@@ -220,8 +220,8 @@ def _run_workflow_internal(
     try:
         evaluation_output = call_critic_with_retry(
             ideas=ideas_text,
-            criteria=constraints,
-            context=theme,
+            criteria=context,
+            context=topic,
             temperature=eval_temp,
             use_structured_output=True
         )
@@ -281,11 +281,11 @@ def _run_workflow_internal(
             try:
                 # Extract ideas for batch evaluation
                 ideas_for_eval = [candidate["text"] for candidate in top_candidates]
-                context = {"theme": theme, "constraints": constraints}
+                eval_context = {"topic": topic, "context": context}
                 
                 # Batch evaluate all dimensions for all ideas
                 multi_eval_results = engine.multi_evaluator.evaluate_ideas_batch(
-                    ideas_for_eval, context
+                    ideas_for_eval, eval_context
                 )
                 
                 # Add results to candidates
@@ -318,7 +318,7 @@ def _run_workflow_internal(
             # Single API call for all advocacies
             advocacy_results, token_usage = advocate_ideas_batch(
                 advocate_input, 
-                theme, 
+                topic, 
                 advocacy_temp
             )
             
@@ -357,7 +357,7 @@ def _run_workflow_internal(
             # Single API call for all skepticisms
             skepticism_results, token_usage = criticize_ideas_batch(
                 skeptic_input,
-                theme,
+                topic,
                 skepticism_temp
             )
             
@@ -398,7 +398,7 @@ def _run_workflow_internal(
             # Single API call for all improvements
             improvement_results, token_usage = improve_ideas_batch(
                 improve_input,
-                theme,
+                topic,
                 idea_temp
             )
             
@@ -437,8 +437,8 @@ def _run_workflow_internal(
         # Single API call for all re-evaluations
         re_eval_output = call_critic_with_retry(
             ideas=improved_ideas_text,
-            criteria=constraints,
-            context=theme,
+            criteria=context,
+            context=topic,
             temperature=eval_temp,
             use_structured_output=True
         )
@@ -479,11 +479,11 @@ def _run_workflow_internal(
                 ]
                 
                 # Define context for multi-dimensional evaluation
-                context = {"theme": theme, "constraints": constraints}
+                eval_context = {"topic": topic, "context": context}
                 
                 # Batch evaluate all dimensions for all improved ideas
                 improved_multi_eval_results = engine.multi_evaluator.evaluate_ideas_batch(
-                    improved_ideas, context
+                    improved_ideas, eval_context
                 )
                 
                 # Add results to candidates

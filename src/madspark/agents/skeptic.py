@@ -8,6 +8,9 @@ import json
 import logging
 from typing import List, Dict, Any, Tuple
 
+from madspark.utils.utils import parse_batch_json_with_fallback
+from madspark.utils.batch_exceptions import BatchParsingError
+
 # Set up logger
 logger = logging.getLogger(__name__)
 
@@ -267,12 +270,17 @@ def criticize_ideas_batch(
     except json.JSONDecodeError as e:
       # Try fallback parsing for problematic JSON (especially with Japanese content)
       try:
-        from madspark.utils.utils import parse_batch_json_with_fallback
         logger.warning(f"JSON decode error, attempting fallback parsing: {e}")
         criticisms = parse_batch_json_with_fallback(response.text, expected_count=len(ideas_with_advocacies))
         logger.info(f"Fallback parsing successful, recovered {len(criticisms)} items")
       except Exception as fallback_error:
-        raise ValueError(f"Invalid JSON response from API: {e}. Fallback parsing also failed: {fallback_error}")
+        raise BatchParsingError(
+          f"Invalid JSON response from API: {e}. Fallback parsing also failed: {fallback_error}",
+          batch_type="skeptic",
+          items_count=len(ideas_with_advocacies),
+          raw_response=response.text,
+          parse_error=e
+        )
     
     # Validate and format results
     if not isinstance(criticisms, list):

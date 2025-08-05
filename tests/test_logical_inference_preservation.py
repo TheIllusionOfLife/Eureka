@@ -1,6 +1,7 @@
 """Test that logical inference data is preserved in web backend formatting."""
 import sys
 import os
+import pytest
 
 # Add the backend directory to the path
 backend_path = os.path.join(os.path.dirname(__file__), '..', 'web', 'backend')
@@ -9,8 +10,11 @@ if not os.path.exists(backend_path):
     backend_path = os.path.join(os.path.dirname(__file__), '..', '..', 'web', 'backend')
 sys.path.insert(0, backend_path)
 
-# Import after path setup
-from main import format_results_for_frontend  # noqa: E402
+# Import after path setup - skip if FastAPI not available
+try:
+    from main import format_results_for_frontend  # noqa: E402
+except ImportError:
+    pytest.skip("Skipping test - FastAPI not installed", allow_module_level=True)
 
 
 class TestLogicalInferencePreservation:

@@ -87,9 +87,9 @@ class TestBatchReevaluationIntegration:
                 print(f"Eval item {i}: {eval_item}")
                 validated = validate_evaluation_json(eval_item)
                 print(f"Validated: {validated}")
-                # These assertions will FAIL until we fix the float handling
+                # Float scores should be preserved
                 assert validated["score"] > 0, f"Score should not be 0, got {validated['score']}"
-                assert validated["score"] == round(eval_item["score"]), f"Expected {round(eval_item['score'])}, got {validated['score']}"
+                assert validated["score"] == eval_item["score"], f"Expected {eval_item['score']}, got {validated['score']}"
     
     @pytest.mark.asyncio
     async def test_batch_reevaluation_partial_failure(self):
@@ -191,8 +191,8 @@ class TestBatchReevaluationIntegration:
             
             # All scores should be properly converted
             assert validated_scores[0] == 8  # Int stays int
-            assert validated_scores[1] == 8  # 7.6 rounds to 8
-            assert validated_scores[2] == 9  # "9.2" parses and rounds to 9
+            assert validated_scores[1] == 7.6  # Float stays float
+            assert validated_scores[2] == 9.2  # String float parses to float
             
             # None should be 0
             assert all(score > 0 for score in validated_scores)

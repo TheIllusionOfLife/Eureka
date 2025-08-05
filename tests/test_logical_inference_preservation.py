@@ -10,7 +10,7 @@ if not os.path.exists(backend_path):
 sys.path.insert(0, backend_path)
 
 # Import after path setup
-from main import format_results_for_frontend
+from main import format_results_for_frontend  # noqa: E402
 
 
 class TestLogicalInferencePreservation:

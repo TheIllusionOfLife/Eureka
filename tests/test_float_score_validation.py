@@ -44,7 +44,7 @@ class TestFloatScoreValidation:
         """String scores should still be converted."""
         test_cases = [
             ("8", 8),
-            ("7.5", 0),  # String floats can't convert to int, so default to 0
+            ("7.5", 7.5),  # String floats should convert to float
             ("10", 10),
             ("invalid", 0),  # Invalid strings default to 0
             ("", 0)  # Empty string defaults to 0

@@ -14,23 +14,23 @@ class TestScoreValidation:
         assert result["comment"] == "Good idea"
     
     def test_validate_evaluation_json_with_float_score(self):
-        """Test validation with float score - should convert to int."""
+        """Test validation with float score - should preserve float."""
         # This test will FAIL initially as intended by TDD
         data = {"score": 7.8, "comment": "Excellent concept"}
         result = validate_evaluation_json(data)
         
-        # Should round to nearest integer, not default to 0
-        assert result["score"] == 8  # Round 7.8 to 8
+        # Should preserve float score, not default to 0
+        assert result["score"] == 7.8  # Float preserved
         assert result["comment"] == "Excellent concept"
     
     def test_validate_evaluation_json_with_low_float_score(self):
-        """Test validation with float score that rounds down."""
+        """Test validation with float score that stays as float."""
         # This test will FAIL initially as intended by TDD
         data = {"score": 4.3, "comment": "Needs improvement"}
         result = validate_evaluation_json(data)
         
-        # Should round down to 4
-        assert result["score"] == 4
+        # Should preserve float score
+        assert result["score"] == 4.3
         assert result["comment"] == "Needs improvement"
     
     def test_validate_evaluation_json_with_midpoint_float(self):
@@ -102,7 +102,7 @@ class TestScoreValidation:
         # Test float out of range
         data = {"score": 12.5, "comment": "Float too high"}
         result = validate_evaluation_json(data)
-        assert result["score"] == 10  # Should round then clamp
+        assert result["score"] == 10  # Should clamp to max (preserves as int/float)
     
     def test_validate_evaluation_json_with_missing_score(self):
         """Test validation with missing score field."""

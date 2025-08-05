@@ -384,6 +384,14 @@ def validate_evaluation_json(data: Dict[str, Any]) -> Dict[str, Any]:
         if isinstance(score, str):
             try:
                 score = float(score)
+                # Check for special float values after conversion
+                import math
+                if math.isinf(score):
+                    logging.warning("Score is infinite, using default 0")
+                    score = 0
+                elif math.isnan(score):
+                    logging.warning("Score is NaN, using default 0")
+                    score = 0
             except ValueError:
                 logging.warning(f"Could not convert score '{score}' to number, using default 0")
                 score = 0

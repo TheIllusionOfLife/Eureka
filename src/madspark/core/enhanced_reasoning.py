@@ -1256,11 +1256,8 @@ class ReasoningEngine:
         
         # Initialize components
         self.context_memory = ContextMemory(capacity=self.config.get('memory_capacity', 1000))
-        self.logical_inference = LogicalInference(genai_client=genai_client)
-        # Share the same engine instance to avoid duplication (DRY principle)
-        self.logical_inference_engine = self.logical_inference.inference_engine
         
-        # Initialize multi-dimensional evaluator with genai_client if available
+        # Get genai_client if not provided BEFORE initializing LogicalInference
         if genai_client is None:
             try:
                 from madspark.agents.genai_client import get_genai_client
@@ -1268,6 +1265,11 @@ class ReasoningEngine:
                 from ..agents.genai_client import get_genai_client
             
             genai_client = get_genai_client()
+        
+        # Now initialize LogicalInference with the proper genai_client
+        self.logical_inference = LogicalInference(genai_client=genai_client)
+        # Share the same engine instance to avoid duplication (DRY principle)
+        self.logical_inference_engine = self.logical_inference.inference_engine
 
         if genai_client:
             self.multi_evaluator = MultiDimensionalEvaluator(

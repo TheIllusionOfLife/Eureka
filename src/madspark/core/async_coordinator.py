@@ -658,6 +658,9 @@ class AsyncCoordinator(BatchOperationsBase):
                     await self._send_progress("Performing batch logical inference analysis...", 0.65)
                     logger.info(f"Starting batch logical inference for {len(top_candidates)} candidates")
                     
+                    # Store engine in self for _run_batch_logical_inference to access
+                    self.reasoning_engine = engine
+                    
                     # Extract ideas from candidates for batch processing
                     ideas_for_inference = [candidate["text"] for candidate in top_candidates]
                     

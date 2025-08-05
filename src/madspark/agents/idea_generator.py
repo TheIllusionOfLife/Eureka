@@ -77,7 +77,7 @@ def _validate_non_empty_string(value: Any, param_name: str) -> None:
     raise ValidationError(f"Input '{param_name}' must be a non-empty string.")
 
 
-def build_generation_prompt(topic: str, context: str) -> str:
+def build_generation_prompt(topic: str, context: str, use_structured_output: bool = False) -> str:
   """Builds a prompt for generating ideas based on user input and context.
 
   Args:
@@ -105,8 +105,22 @@ SPECIAL GUIDANCE FOR BROAD TOPICS:
 
 """
   
-  # Use a clean template-based approach for better readability (KISS principle)
-  prompt_template = f"""{LANGUAGE_CONSISTENCY_INSTRUCTION}Use the user's main prompt and context below to {IDEA_GENERATION_INSTRUCTION}.
+  # Use different prompts for structured vs unstructured output
+  if use_structured_output:
+    # Simpler prompt when using structured output - no formatting instructions needed
+    prompt_template = f"""{LANGUAGE_CONSISTENCY_INSTRUCTION}Generate creative and innovative ideas based on the topic and context provided.
+Focus on practical, actionable ideas that address the user's needs.
+{broad_topic_guidance}
+Topic:
+{topic}
+
+Context:
+{context}
+
+Generate 5 diverse ideas that are innovative, practical, and directly address the topic within the given context."""
+  else:
+    # Legacy prompt with formatting instructions for text output
+    prompt_template = f"""{LANGUAGE_CONSISTENCY_INSTRUCTION}Use the user's main prompt and context below to {IDEA_GENERATION_INSTRUCTION}.
 Make sure the ideas are actionable and innovative.
 
 IMPORTANT FORMAT REQUIREMENTS:
@@ -162,7 +176,7 @@ def generate_ideas(topic: str, context: str, temperature: float = 0.9, use_struc
   _validate_non_empty_string(topic, 'topic')
   _validate_non_empty_string(context, 'context')
 
-  prompt: str = build_generation_prompt(topic=topic, context=context)
+  prompt: str = build_generation_prompt(topic=topic, context=context, use_structured_output=use_structured_output)
   
   if not GENAI_AVAILABLE or idea_generator_client is None:
     # Return mock response for CI/testing environments or when API key is not configured

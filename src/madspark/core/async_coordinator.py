@@ -658,6 +658,9 @@ class AsyncCoordinator(BatchOperationsBase):
                     await self._send_progress("Performing batch logical inference analysis...", 0.65)
                     logger.info(f"Starting batch logical inference for {len(top_candidates)} candidates")
                     
+                    # Store engine in self for _run_batch_logical_inference to access
+                    self.reasoning_engine = engine
+                    
                     # Extract ideas from candidates for batch processing
                     ideas_for_inference = [candidate["text"] for candidate in top_candidates]
                     
@@ -703,7 +706,8 @@ class AsyncCoordinator(BatchOperationsBase):
                 eval_temp,
                 active_tasks,
                 multi_dimensional_eval,
-                engine
+                engine,
+                enhanced_reasoning
             )
             
             await self._send_progress("Workflow completed successfully!", 1.0)
@@ -757,7 +761,8 @@ class AsyncCoordinator(BatchOperationsBase):
         eval_temp: float = DEFAULT_EVALUATION_TEMPERATURE,
         active_tasks: Optional[List[asyncio.Task]] = None,
         multi_dimensional_eval: bool = False,
-        reasoning_engine = None
+        reasoning_engine = None,
+        enhanced_reasoning: bool = False
     ) -> List[CandidateData]:
         """Process top candidates with batch operations for efficiency.
         
@@ -766,17 +771,22 @@ class AsyncCoordinator(BatchOperationsBase):
         """
         await self._send_progress("Processing candidates with batch operations...", 0.7)
         
-        # Step 1: Batch Advocacy Processing
-        await self._send_progress("Running batch advocacy analysis...", 0.72)
-        candidates = await self._process_candidates_with_batch_advocacy(
-            candidates, theme, advocacy_temp
-        )
-        
-        # Step 2: Batch Skepticism Processing  
-        await self._send_progress("Running batch skepticism analysis...", 0.75)
-        candidates = await self._process_candidates_with_batch_skepticism(
-            candidates, theme, skepticism_temp
-        )
+        # Step 1: Batch Advocacy Processing (only if enhanced_reasoning is enabled)
+        if enhanced_reasoning:
+            await self._send_progress("Running batch advocacy analysis...", 0.72)
+            candidates = await self._process_candidates_with_batch_advocacy_safe(
+                candidates, theme, advocacy_temp
+            )
+            
+            # Step 2: Batch Skepticism Processing (only if enhanced_reasoning is enabled)
+            await self._send_progress("Running batch skepticism analysis...", 0.75)
+            candidates = await self._process_candidates_with_batch_skepticism(
+                candidates, theme, skepticism_temp
+            )
+        else:
+            # Don't include advocacy/skepticism fields when enhanced reasoning is disabled
+            # This ensures the frontend won't show empty sections
+            pass
         
         # Step 3: Batch Improvement Processing
         await self._send_progress("Running batch idea improvement...", 0.78)

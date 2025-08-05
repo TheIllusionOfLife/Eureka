@@ -14,23 +14,23 @@ class TestScoreValidation:
         assert result["comment"] == "Good idea"
     
     def test_validate_evaluation_json_with_float_score(self):
-        """Test validation with float score - should convert to int."""
+        """Test validation with float score - should preserve float."""
         # This test will FAIL initially as intended by TDD
         data = {"score": 7.8, "comment": "Excellent concept"}
         result = validate_evaluation_json(data)
         
-        # Should round to nearest integer, not default to 0
-        assert result["score"] == 8  # Round 7.8 to 8
+        # Should preserve float score, not default to 0
+        assert result["score"] == 7.8  # Float preserved
         assert result["comment"] == "Excellent concept"
     
     def test_validate_evaluation_json_with_low_float_score(self):
-        """Test validation with float score that rounds down."""
+        """Test validation with float score that stays as float."""
         # This test will FAIL initially as intended by TDD
         data = {"score": 4.3, "comment": "Needs improvement"}
         result = validate_evaluation_json(data)
         
-        # Should round down to 4
-        assert result["score"] == 4
+        # Should preserve float score
+        assert result["score"] == 4.3
         assert result["comment"] == "Needs improvement"
     
     def test_validate_evaluation_json_with_midpoint_float(self):
@@ -39,8 +39,8 @@ class TestScoreValidation:
         data = {"score": 6.5, "comment": "Average"}
         result = validate_evaluation_json(data)
         
-        # Python's round() uses banker's rounding - 6.5 rounds to 6
-        assert result["score"] == 6
+        # Float scores should be preserved
+        assert result["score"] == 6.5
         assert result["comment"] == "Average"
     
     def test_validate_evaluation_json_with_high_midpoint_float(self):
@@ -49,8 +49,8 @@ class TestScoreValidation:
         data = {"score": 7.5, "comment": "Good"}
         result = validate_evaluation_json(data)
         
-        # 7.5 rounds to 8 (nearest even)
-        assert result["score"] == 8
+        # Float scores should be preserved
+        assert result["score"] == 7.5
         assert result["comment"] == "Good"
     
     def test_validate_evaluation_json_with_string_integer(self):
@@ -67,8 +67,8 @@ class TestScoreValidation:
         data = {"score": "8.7", "comment": "Very good"}
         result = validate_evaluation_json(data)
         
-        # Should parse as float then round
-        assert result["score"] == 9
+        # Should parse as float
+        assert result["score"] == 8.7
         assert result["comment"] == "Very good"
     
     def test_validate_evaluation_json_with_invalid_string(self):
@@ -102,7 +102,7 @@ class TestScoreValidation:
         # Test float out of range
         data = {"score": 12.5, "comment": "Float too high"}
         result = validate_evaluation_json(data)
-        assert result["score"] == 10  # Should round then clamp
+        assert result["score"] == 10  # Should clamp to max (preserves as int/float)
     
     def test_validate_evaluation_json_with_missing_score(self):
         """Test validation with missing score field."""
@@ -153,8 +153,8 @@ class TestScoreValidation:
         }
         result = validate_evaluation_json(gemini_response)
         
-        # Should round to 8, not default to 0
-        assert result["score"] == 8
+        # Should preserve float value, not default to 0
+        assert result["score"] == 7.8999999999999995
         assert result["comment"] == "Re-evaluation timed out - estimated improvement based on feedback integration"
     
     def test_validate_evaluation_json_with_special_floats(self):

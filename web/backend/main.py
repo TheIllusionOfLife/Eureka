@@ -438,7 +438,17 @@ async def lifespan(app: FastAPI):
     
     try:
         temp_manager = TemperatureManager()
-        reasoning_engine = ReasoningEngine()
+        
+        # Initialize reasoning engine with genai_client if available
+        try:
+            from madspark.agents.genai_client import get_genai_client
+            genai_client = get_genai_client()
+            reasoning_engine = ReasoningEngine(genai_client=genai_client)
+            logger.info(f"ReasoningEngine initialized with genai_client: {genai_client is not None}")
+        except Exception as e:
+            logger.warning(f"Failed to initialize ReasoningEngine with genai_client: {e}")
+            reasoning_engine = ReasoningEngine()
+        
         bookmark_system = BookmarkManager()
         
         # Initialize cache manager
@@ -473,7 +483,15 @@ def initialize_components_for_testing():
     if temp_manager is None:
         temp_manager = TemperatureManager()
     if reasoning_engine is None:
-        reasoning_engine = ReasoningEngine()
+        # Initialize reasoning engine with genai_client if available
+        try:
+            from madspark.agents.genai_client import get_genai_client
+            genai_client = get_genai_client()
+            reasoning_engine = ReasoningEngine(genai_client=genai_client)
+            logger.info(f"ReasoningEngine re-initialized with genai_client: {genai_client is not None}")
+        except Exception as e:
+            logger.warning(f"Failed to re-initialize ReasoningEngine with genai_client: {e}")
+            reasoning_engine = ReasoningEngine()
     if bookmark_system is None:
         bookmark_system = BookmarkManager()
     
@@ -746,6 +764,14 @@ def _create_success_response(results: List[Dict[str, Any]], start_time: datetime
     """
     processing_time = (datetime.now() - start_time).total_seconds()
     structured_output_used = detect_structured_output_usage(results)
+    
+    # Log logical inference results
+    logger.info(f"Creating success response with {len(results)} results")
+    for i, result in enumerate(results):
+        has_logical_inference = 'logical_inference' in result
+        logger.info(f"Result {i}: has_logical_inference={has_logical_inference}")
+        if has_logical_inference:
+            logger.info(f"  Logical inference confidence: {result['logical_inference'].get('confidence', 'N/A')}")
     
     return IdeaGenerationResponse(
         status="success",
@@ -1020,6 +1046,12 @@ async def generate_ideas(request: Request, idea_request: IdeaGenerationRequest):
         
         # Add timeout handling
         timeout_seconds = idea_request.timeout if idea_request.timeout else DEFAULT_REQUEST_TIMEOUT
+        
+        # Log logical inference request
+        logger.info(f"Running workflow with logical_inference={idea_request.logical_inference}, reasoning_engine={reasoning_eng is not None}")
+        if reasoning_eng and hasattr(reasoning_eng, 'logical_inference_engine'):
+            logger.info(f"Logical inference engine available: {reasoning_eng.logical_inference_engine is not None}")
+        
         try:
             results = await asyncio.wait_for(
                 async_coordinator.run_workflow(

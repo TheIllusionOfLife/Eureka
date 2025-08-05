@@ -281,18 +281,32 @@ def validate_evaluation_json(data: Dict[str, Any]) -> Dict[str, Any]:
     
     # Validate score
     score = data.get("score", 0)
-    try:
-        # This handles int, float, and valid string representations of numbers.
-        # Also handles special floats (inf, -inf, nan) by catching their exceptions
-        score = round(float(score))
-    except (ValueError, TypeError, OverflowError):
-        # This will catch:
-        # - ValueError: non-numeric strings, NaN
-        # - TypeError: None, dicts, lists, etc.
-        # - OverflowError: infinity values
-        # We log a warning and default to 0.
-        logging.warning(f"Could not convert score '{score}' of type {type(score)} to a number, using default 0")
+    
+    # Check for boolean type first (since bool is a subclass of int in Python)
+    if isinstance(score, bool):
+        logging.warning(f"Invalid score type {type(score)}, using default 0")
         score = 0
+    # If score is already a valid int or float, use it directly
+    elif isinstance(score, (int, float)):
+        # Handle special float values (inf, -inf, nan)
+        if not (-float('inf') < score < float('inf')):
+            logging.warning(f"Score is infinite, using default 0")
+            score = 0
+        elif score != score:  # NaN check
+            logging.warning(f"Score is NaN, using default 0")
+            score = 0
+    else:
+        # Try to convert string scores to int (keeping existing behavior for strings)
+        if isinstance(score, str):
+            try:
+                score = int(score)
+            except ValueError:
+                logging.warning(f"Could not convert score '{score}' to integer, using default 0")
+                score = 0
+        else:
+            # For all other types (None, list, dict, etc.), default to 0
+            logging.warning(f"Invalid score type {type(score)}, using default 0")
+            score = 0
     
     # Clamp score to valid range
     validated["score"] = max(0, min(10, score))

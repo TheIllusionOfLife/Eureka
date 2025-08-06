@@ -287,6 +287,16 @@ def build_improvement_prompt(
   if logical_inference:
     logical_section = f"LOGICAL INFERENCE ANALYSIS:\n{logical_inference}\n\n"
   
+  # Build logical inference guidance if provided
+  logical_guidance = ""
+  if logical_inference:
+    logical_guidance = "- Use logical reasoning insights to enhance coherence and address any logical gaps\n"
+  
+  # Build logical inference instruction if provided
+  logical_instruction = ""
+  if logical_inference:
+    logical_instruction = "6. Incorporates insights from the logical inference analysis\n"
+  
   return (
       "You are helping to enhance an innovative idea based on comprehensive feedback.\n" +
       LANGUAGE_CONSISTENCY_INSTRUCTION +
@@ -303,15 +313,16 @@ def build_improvement_prompt(
       f"1. SPECIFICALLY addresses each evaluation criterion from the professional review\n"
       f"2. Maintains and amplifies the identified strengths\n"
       f"3. Provides concrete solutions for each concern raised\n"
-      f"4. {('Incorporates insights from the logical inference analysis\n5. ' if logical_inference else '')}Remains bold, creative, and ambitious\n"
-      f"{'5' if not logical_inference else '6'}. Shows clear improvements in the areas that scored lower\n\n"
+      f"4. Remains bold, creative, and ambitious\n"
+      f"5. Shows clear improvements in the areas that scored lower\n"
+      f"{logical_instruction}\n"
       f"IMPORTANT GUIDELINES:\n"
       f"- If feasibility scored low, add specific implementation steps\n"
       f"- If innovation scored low, add unique differentiating features\n"
       f"- If cost-effectiveness scored low, optimize resource usage\n"
       f"- If scalability scored low, design for growth\n"
       f"- Keep all positive aspects while fixing weaknesses\n"
-      f"{('- Use logical reasoning insights to enhance coherence and address any logical gaps\n' if logical_inference else '')}\n"
+      f"{logical_guidance}"
       f"FORMAT REQUIREMENTS:\n"
       f"- Start directly with your improved idea (no meta-commentary)\n"
       f"- Present the idea in 2-3 clear, focused paragraphs\n"

@@ -20,8 +20,8 @@ class TestCLITimeoutParsing:
         """Test default timeout value."""
         parser = create_parser()
         args = parser.parse_args(['my topic', 'my context'])
-        assert hasattr(args, 'timeout'), "CLI should have timeout argument"
-        assert args.timeout == 600, "Default timeout should be 600 seconds"
+        assert getattr(args, 'timeout', None) is not None, "CLI should have timeout argument"
+        assert args.timeout == 1200, "Default timeout should be 1200 seconds"
     
     def test_parse_timeout_argument_custom(self):
         """Test custom timeout value."""

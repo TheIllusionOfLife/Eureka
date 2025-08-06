@@ -10,6 +10,7 @@ import logging
 import hashlib
 import datetime
 import json
+import os
 from typing import Dict, List, Any, Optional, TypedDict, Union
 from dataclasses import dataclass, field
 from collections import defaultdict
@@ -837,9 +838,49 @@ Respond with only the numeric score (e.g., "6")."""
     
         
     def _generate_evaluation_summary(self, dimension_scores: Dict[str, float], idea: str) -> str:
-        """Generate a summary of the evaluation."""
+        """Generate a summary of the evaluation using AI for language consistency."""
+        from madspark.utils.constants import LANGUAGE_CONSISTENCY_INSTRUCTION
+        from madspark.agents.genai_client import get_model_name
+        
         avg_score = sum(dimension_scores.values()) / len(dimension_scores)
         
+        # Find strongest and weakest dimensions
+        strongest = max(dimension_scores.items(), key=lambda x: x[1])
+        weakest = min(dimension_scores.items(), key=lambda x: x[1])
+        
+        # If GenAI client is available, generate a language-consistent summary
+        if self.genai_client:
+            prompt = f"""{LANGUAGE_CONSISTENCY_INSTRUCTION}
+
+Based on the multi-dimensional evaluation scores below, provide a concise summary of the evaluation.
+
+Idea: {idea[:500]}
+
+Evaluation Scores:
+- Average Score: {avg_score:.1f}/10
+- Strongest Dimension: {strongest[0]} (score: {strongest[1]:.1f})
+- Weakest Dimension: {weakest[0]} (score: {weakest[1]:.1f})
+- All Scores: {', '.join(f'{k}: {v:.1f}' for k, v in dimension_scores.items())}
+
+Provide a brief 1-2 sentence summary that captures the overall assessment, highlighting the strongest aspect and area for improvement.
+"""
+            
+            try:
+                # Call without config - testing showed this works better
+                response = self.genai_client.models.generate_content(
+                    model=get_model_name(),
+                    contents=prompt
+                )
+                
+                if response and hasattr(response, 'text') and response.text:
+                    return response.text.strip()
+                else:
+                    raise ValueError("Empty response from AI")
+            except Exception as e:
+                logging.warning(f"Failed to generate AI summary, using fallback: {e}")
+                # Fallback to hardcoded English if AI fails
+        
+        # Fallback: hardcoded English summary
         if avg_score >= 8:
             overall_rating = "Excellent"
         elif avg_score >= 6:
@@ -848,10 +889,6 @@ Respond with only the numeric score (e.g., "6")."""
             overall_rating = "Fair"
         else:
             overall_rating = "Poor"
-            
-        # Find strongest and weakest dimensions
-        strongest = max(dimension_scores.items(), key=lambda x: x[1])
-        weakest = min(dimension_scores.items(), key=lambda x: x[1])
         
         return (f"{overall_rating} idea with strongest aspect being {strongest[0]} "
                 f"(score: {strongest[1]:.1f}) and area for improvement in "

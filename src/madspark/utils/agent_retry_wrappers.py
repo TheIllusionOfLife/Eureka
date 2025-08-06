@@ -33,15 +33,15 @@ class AgentRetryWrapper:
     
     @staticmethod
     @exponential_backoff_retry(max_retries=2, initial_delay=1.0)
-    def advocate(idea: str, evaluation: str, context: str, temperature: float = 0.5, use_structured_output: bool = True) -> str:
+    def advocate(idea: str, evaluation: str, topic: str, context: str, temperature: float = 0.5, use_structured_output: bool = True) -> str:
         """Advocate for an idea with retry logic."""
-        return advocate_idea(idea=idea, evaluation=evaluation, context=context, temperature=temperature, use_structured_output=use_structured_output)
+        return advocate_idea(idea=idea, evaluation=evaluation, topic=topic, context=context, temperature=temperature, use_structured_output=use_structured_output)
     
     @staticmethod
     @exponential_backoff_retry(max_retries=2, initial_delay=1.0)
-    def skeptic(idea: str, advocacy: str, context: str, temperature: float = 0.5, use_structured_output: bool = True) -> str:
+    def skeptic(idea: str, advocacy: str, topic: str, context: str, temperature: float = 0.5, use_structured_output: bool = True) -> str:
         """Provide skeptical analysis with retry logic."""
-        return criticize_idea(idea=idea, advocacy=advocacy, context=context, temperature=temperature, use_structured_output=use_structured_output)
+        return criticize_idea(idea=idea, advocacy=advocacy, topic=topic, context=context, temperature=temperature, use_structured_output=use_structured_output)
     
     @staticmethod
     @exponential_backoff_retry(max_retries=3, initial_delay=2.0)

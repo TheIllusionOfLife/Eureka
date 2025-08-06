@@ -41,13 +41,14 @@ else:
     model_name = "mock-model"
 
 
-def criticize_idea(idea: str, advocacy: str, context: str, temperature: float = 0.5, use_structured_output: bool = True) -> str:
+def criticize_idea(idea: str, advocacy: str, topic: str, context: str, temperature: float = 0.5, use_structured_output: bool = True) -> str:
   """Critically analyzes an idea, playing devil's advocate, using the skeptic model.
 
   Args:
     idea: The idea to be critically analyzed.
     advocacy: The arguments previously made in favor of the idea.
-    context: Additional context relevant for the critical analysis.
+    topic: The main topic or theme being explored.
+    context: Additional constraints or criteria for evaluation.
     temperature: Controls randomness in generation (0.0-1.0). Balanced for criticism.
     use_structured_output: Whether to use structured JSON output (default: True)
 
@@ -56,7 +57,7 @@ def criticize_idea(idea: str, advocacy: str, context: str, temperature: float = 
     If use_structured_output is True, returns JSON string. Otherwise, returns formatted text.
     Returns a placeholder string if the model provides no content.
   Raises:
-    ValueError: If idea, advocacy, or context are empty or invalid.
+    ValueError: If idea, advocacy, topic, or context are empty or invalid.
   """
   if not isinstance(idea, str) or not idea.strip():
     raise ValueError("Input 'idea' to criticize_idea must be a non-empty string.")
@@ -64,15 +65,18 @@ def criticize_idea(idea: str, advocacy: str, context: str, temperature: float = 
     # Advocacy might be a placeholder like "Advocacy not available..." which is fine.
     # This check ensures it's not an empty string from an unexpected source.
     raise ValueError("Input 'advocacy' to criticize_idea must be a non-empty string.")
+  if not isinstance(topic, str) or not topic.strip():
+    raise ValueError("Input 'topic' to criticize_idea must be a non-empty string.")
   if not isinstance(context, str) or not context.strip():
     raise ValueError("Input 'context' to criticize_idea must be a non-empty string.")
 
   prompt: str = (
       LANGUAGE_CONSISTENCY_INSTRUCTION +
+      f"Topic: {topic}\n"
+      f"Context/Constraints: {context}\n\n"
       f"Here's an idea:\n{idea}\n\n"
       f"Here's the case made for it:\n{advocacy}\n\n"
-      f"And the context:\n{context}\n\n"
-      "Play devil's advocate. Format your critical analysis as follows:\n\n"
+      "Play devil's advocate considering the topic and context. Format your critical analysis as follows:\n\n"
       "CRITICAL FLAWS:\n"
       "• [specific flaw 1]\n"
       "• [specific flaw 2]\n"
@@ -164,6 +168,7 @@ def criticize_idea(idea: str, advocacy: str, context: str, temperature: float = 
 
 def criticize_ideas_batch(
     ideas_with_advocacies: List[Dict[str, str]], 
+    topic: str,
     context: str, 
     temperature: float = 0.5
 ) -> Tuple[List[Dict[str, Any]], int]:
@@ -174,7 +179,8 @@ def criticize_ideas_batch(
   
   Args:
     ideas_with_advocacies: List of dicts with 'idea' and 'advocacy' keys
-    context: Theme/context for all ideas
+    topic: The main topic or theme being explored
+    context: Additional constraints or criteria for evaluation
     temperature: Generation temperature (0.0-1.0)
     
   Returns:
@@ -212,9 +218,10 @@ def criticize_ideas_batch(
   newline = '\n'
   prompt = (
       LANGUAGE_CONSISTENCY_INSTRUCTION +
-      f"Context: {context}\n\n"
+      f"Topic: {topic}\n"
+      f"Context/Constraints: {context}\n\n"
       f"{newline.join(items_text)}\n\n"
-      "For EACH idea above, play devil's advocate and provide criticism in this exact JSON format:\n"
+      "For EACH idea above, play devil's advocate considering the topic and context and provide criticism in this exact JSON format:\n"
       "{\n"
       '  "idea_index": <0-based index>,\n'
       '  "critical_flaws": ["flaw1", "flaw2", ...],\n'

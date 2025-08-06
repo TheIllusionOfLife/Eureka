@@ -148,12 +148,12 @@ class TestBatchReevaluationIntegration:
             # Process single candidate with correct parameters
             result = await coordinator._process_single_candidate(
                 candidate,
-                context="Test theme",
+                topic="Test theme",
                 advocacy_temp=0.5,
                 skepticism_temp=0.5,
                 idea_temp=0.9,
                 eval_temp=0.5,
-                constraints="Test constraints"
+                context="Test constraints"
             )
             
             # Should handle timeout gracefully and return estimated improvement

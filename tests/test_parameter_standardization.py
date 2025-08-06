@@ -166,7 +166,8 @@ class TestAgentParameterStandardization:
             result = advocate_idea(
                 idea="Test idea",
                 evaluation="Good evaluation",
-                context=TEST_TOPIC,  # Should accept context, not theme
+                topic=TEST_TOPIC,
+                context=TEST_CONTEXT,
                 use_structured_output=False
             )
             

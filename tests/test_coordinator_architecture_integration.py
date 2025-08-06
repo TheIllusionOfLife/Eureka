@@ -63,14 +63,15 @@ class TestCoordinatorArchitectureIntegration:
             
             # This should use the shared batch operations
             result = await self.async_coordinator._process_candidates_with_batch_advocacy(
-                candidates, "renewable energy", 0.7
+                candidates, "renewable energy", "sustainable solutions", 0.7
             )
             
             # Verify batch operation was called
             mock_batch.assert_called_once_with(
                 'advocate_ideas_batch',
-                self.async_coordinator.prepare_advocacy_input(candidates),
+                self.async_coordinator.prepare_advocacy_input_with_context(candidates),
                 "renewable energy",
+                "sustainable solutions",  # context parameter
                 0.7
             )
             
@@ -103,7 +104,7 @@ class TestCoordinatorArchitectureIntegration:
             mock_batch.return_value = (mock_skepticism_results, 1000)
             
             result = await self.async_coordinator._process_candidates_with_batch_skepticism(
-                candidates, "clean transportation", 0.8
+                candidates, "clean transportation", "sustainable options", 0.8
             )
             
             # Verify correct input preparation
@@ -111,7 +112,8 @@ class TestCoordinatorArchitectureIntegration:
             mock_batch.assert_called_once_with(
                 'criticize_ideas_batch',
                 expected_input,
-                "clean transportation", 
+                "clean transportation",
+                "sustainable options", 
                 0.8
             )
             
@@ -139,7 +141,7 @@ class TestCoordinatorArchitectureIntegration:
             mock_batch.return_value = (mock_improvement_results, 2000)
             
             result = await self.async_coordinator._process_candidates_with_batch_improvement(
-                candidates, "energy infrastructure", 0.75
+                candidates, "energy infrastructure", "reliable and secure", 0.75
             )
             
             # Verify proper input preparation
@@ -148,6 +150,7 @@ class TestCoordinatorArchitectureIntegration:
                 'improve_ideas_batch',
                 expected_input,
                 "energy infrastructure",
+                "reliable and secure",
                 0.75
             )
             

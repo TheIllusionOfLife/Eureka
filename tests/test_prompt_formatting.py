@@ -124,10 +124,7 @@ class TestStructuredAdvocacy:
             mock_response.usage_metadata = Mock(total_token_count=100)
             mock_client.models.generate_content.return_value = mock_response
             
-            results, tokens = advocate_ideas_batch(
-                ideas_with_evaluations,
-                context="test context",
-                temperature=0.5
+            results, tokens = advocate_ideas_batch(ideas_with_evaluations, topic="test", context="test context", temperature=0.5
             )
             
             # Verify structured output was requested

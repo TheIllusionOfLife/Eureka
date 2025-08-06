@@ -65,10 +65,7 @@ class TestBatchAdvocateJSONFix:
         ]
         
         # After the fix, this should work with fallback parsing
-        result, token_count = advocate_ideas_batch(
-            ideas_with_evaluations=ideas_with_evaluations,
-            context="都市農業",
-            temperature=0.5
+        result, token_count = advocate_ideas_batch(ideas_with_evaluations=ideas_with_evaluations, topic="test topic", context="都市農業", temperature=0.5
         )
         
         # Verify results

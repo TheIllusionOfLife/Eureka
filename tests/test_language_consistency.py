@@ -77,17 +77,20 @@ class TestLanguageConsistency:
             'timeline': 6.0
         }
         
+        # Mock response for summary generation
+        mock_response = Mock()
+        mock_response.text = "良いアイデアです。実現可能性が高く、革新的です。"
+        mock_client.models.generate_content.return_value = mock_response
+        
         # Act
         summary = evaluator._generate_evaluation_summary(
             dimension_scores, 
             "革新的なアイデア"  # Japanese idea
         )
         
-        # Assert - summary format should be consistent (not testing actual translation)
-        # The method currently generates English summaries, but with language instruction
-        # it should generate in the user's language
-        assert "Good idea" in summary or "良いアイデア" in summary, \
-            "Summary should be generated (language depends on LLM response)"
+        # Assert - summary should be the response text
+        assert summary == "良いアイデアです。実現可能性が高く、革新的です。", \
+            "Summary should be the LLM response text"
             
     def test_dimension_prompts_format_correctly_with_unicode(self):
         """Test that dimension prompts handle Unicode characters correctly."""

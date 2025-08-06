@@ -49,8 +49,8 @@ class TestMultiDimensionalBatchEvaluation:
         assert "overall_score" in results[0]
         assert "weighted_score" in results[0]
         
-        # Verify single API call
-        assert mock_client.models.generate_content.call_count == 1
+        # Verify API calls: 1 for batch evaluation + 1 for summary
+        assert mock_client.models.generate_content.call_count == 2
     
     def test_evaluate_ideas_batch_multiple_ideas(self):
         """Test batch evaluation with multiple ideas."""
@@ -112,8 +112,8 @@ class TestMultiDimensionalBatchEvaluation:
             assert "overall_score" in result
             assert "weighted_score" in result
         
-        # Verify single API call for all ideas
-        assert mock_client.models.generate_content.call_count == 1
+        # Verify API calls: 1 for batch evaluation + 3 for summaries (one per idea)
+        assert mock_client.models.generate_content.call_count == 4
     
     def test_evaluate_ideas_batch_validates_response(self):
         """Test that batch evaluation validates response structure."""

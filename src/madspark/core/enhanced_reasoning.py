@@ -787,15 +787,10 @@ Respond with only the numeric score (e.g., "6")."""
         except ImportError:
             from ..agents.genai_client import get_model_name
         
-        generate_config = self.types.GenerateContentConfig(
-            temperature=0.3,  # Low for consistency
-            system_instruction="You are an expert evaluator. Return only a numeric score."
-        )
-        
+        # Direct API call without config - testing showed this works better
         response = self.genai_client.models.generate_content(
             model=get_model_name(),
-            contents=prompt,
-            config=generate_config
+            contents=prompt
         )
         
         # Parse score from response
@@ -959,17 +954,10 @@ Provide a brief 1-2 sentence summary that captures the overall assessment, highl
             except ImportError:
                 from ..agents.genai_client import get_model_name
             
-            # Configure for structured JSON response
-            generate_config = self.types.GenerateContentConfig(
-                temperature=0.3,  # Low for consistency
-                response_mime_type="application/json",
-                system_instruction="You are an expert evaluator. Return a JSON array with evaluation scores for each idea."
-            )
-            
+            # Direct API call without config - testing showed this works better
             response = self.genai_client.models.generate_content(
                 model=get_model_name(),
-                contents=prompt,
-                config=generate_config
+                contents=prompt
             )
             
             # Parse response

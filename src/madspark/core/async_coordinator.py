@@ -405,40 +405,20 @@ class AsyncCoordinator(BatchOperationsBase):
         )
         
         # Step 2: Re-evaluation (depends on improvement being complete)
-        # Build improved ideas with context for re-evaluation
-        improved_ideas_with_context = []
-        for i, candidate in enumerate(candidates):
+        # Collect improved ideas for re-evaluation
+        improved_ideas = []
+        for candidate in candidates:
             improved_idea = candidate.get("improved_idea", candidate["text"])
-            # Add context about this being an improved version
-            idea_with_context = (
-                f"[IMPROVED IDEA #{i+1}]\n"
-                f"{improved_idea}\n"
-                f"[CONTEXT: This is an IMPROVED version that addresses previous concerns. "
-                f"Original score: {candidate.get('score', 0)}/10. "
-                f"Key improvements made: Addressed skeptic's concerns, incorporated advocate's strengths, "
-                f"applied critic's suggestions.]"
-            )
-            improved_ideas_with_context.append(idea_with_context)
+            improved_ideas.append(improved_idea)
         
-        improved_ideas_text = "\n\n".join(improved_ideas_with_context)
-        
-        # Build improved context that includes improvement information
-        improved_context = (
-            f"{topic}\n"
-            f"[These are IMPROVED versions of ideas that have been refined based on:\n"
-            f"- Critical analysis identifying weaknesses\n"
-            f"- Advocacy highlighting strengths\n"
-            f"- Skeptical evaluation of risks\n"
-            f"- Specific improvements to address all feedback]\n"
-            f"Please evaluate each improved idea considering the enhancements made."
-        )
+        improved_ideas_text = "\n\n".join(improved_ideas)
         
         try:
-            # Single API call for all re-evaluations with proper context
+            # Single API call for all re-evaluations with original context
             re_eval_output = await async_evaluate_ideas(
                 ideas=improved_ideas_text,
                 topic=topic,
-                context=improved_context,
+                context=context,  # Use original context to avoid bias
                 temperature=eval_temp,
                 use_structured_output=True
             )
@@ -969,40 +949,20 @@ class AsyncCoordinator(BatchOperationsBase):
         # Step 4: Batch Re-evaluation
         await self._send_progress("Running batch re-evaluation...", 0.82)
         
-        # Build improved ideas with context for re-evaluation
-        improved_ideas_with_context = []
-        for i, candidate in enumerate(candidates):
+        # Collect improved ideas for re-evaluation
+        improved_ideas = []
+        for candidate in candidates:
             improved_idea = candidate.get("improved_idea", candidate["text"])
-            # Add context about this being an improved version
-            idea_with_context = (
-                f"[IMPROVED IDEA #{i+1}]\n"
-                f"{improved_idea}\n"
-                f"[CONTEXT: This is an IMPROVED version that addresses previous concerns. "
-                f"Original score: {candidate['score']}/10. "
-                f"Key improvements made: Addressed skeptic's concerns, incorporated advocate's strengths, "
-                f"applied critic's suggestions.]"
-            )
-            improved_ideas_with_context.append(idea_with_context)
+            improved_ideas.append(improved_idea)
         
-        improved_ideas_text = "\n\n".join(improved_ideas_with_context)
-        
-        # Build context that includes all relevant information
-        improved_context = (
-            f"{topic}\n"
-            f"[These are IMPROVED versions of ideas that have been refined based on:\n"
-            f"- Critical analysis identifying weaknesses\n"
-            f"- Advocacy highlighting strengths\n"
-            f"- Skeptical evaluation of risks\n"
-            f"- Specific improvements to address all feedback]\n"
-            f"Please evaluate each improved idea considering the enhancements made."
-        )
+        improved_ideas_text = "\n\n".join(improved_ideas)
         
         try:
-            # Single API call for all re-evaluations with proper context
+            # Single API call for all re-evaluations with original context
             re_eval_output = await async_evaluate_ideas(
                 ideas=improved_ideas_text,
                 topic=topic,
-                context=improved_context,
+                context=context,  # Use original context to avoid bias
                 temperature=eval_temp,
                 use_structured_output=True
             )
@@ -1226,7 +1186,8 @@ class AsyncCoordinator(BatchOperationsBase):
                         critique=evaluation_detail,
                         advocacy_points=advocacy_output,
                         skeptic_points=skepticism_output,
-                        topic=context,
+                        topic=topic,
+                        context=context,
                         temperature=idea_temp
                     )
                 ),
@@ -1252,16 +1213,7 @@ class AsyncCoordinator(BatchOperationsBase):
         # Step 4: Re-evaluate Improved Idea
         if improved_idea_text and improved_idea_text != idea_text:
             try:
-                # Call critic with improved idea
-                improved_context = (
-                    f"{topic}\n"
-                    f"[This is an IMPROVED version that addresses previous concerns]\n"
-                    f"Original score: {candidate['score']}/10\n"
-                    f"Key improvements made:\n"
-                    f"- Addressed skeptic's concerns about feasibility\n"
-                    f"- Incorporated advocate's strengths\n"
-                    f"- Applied critic's suggestions"
-                )
+                # Call critic with improved idea using original context
                 
                 # Create parallel tasks for standard and multi-dimensional evaluation
                 standard_eval_task = asyncio.create_task(
@@ -1269,8 +1221,8 @@ class AsyncCoordinator(BatchOperationsBase):
                         self._run_with_semaphore(
                             async_evaluate_ideas(
                                 ideas=improved_idea_text,
-                                topic=topic,  # context parameter contains the constraints
-                                context=improved_context,
+                                topic=topic,
+                                context=context,  # Use original context to avoid bias
                                 temperature=eval_temp,
                                 use_structured_output=True
                             )

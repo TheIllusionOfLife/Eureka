@@ -437,11 +437,11 @@ def _run_workflow_internal(
     ])
     
     try:
-        # Single API call for all re-evaluations
+        # Single API call for all re-evaluations using original context
         re_eval_output = call_critic_with_retry(
             ideas=improved_ideas_text,
             topic=topic,
-            context=context,
+            context=context,  # Use original context to avoid bias
             temperature=eval_temp,
             use_structured_output=True
         )

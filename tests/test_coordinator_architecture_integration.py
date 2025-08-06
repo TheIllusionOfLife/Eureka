@@ -145,7 +145,7 @@ class TestCoordinatorArchitectureIntegration:
             )
             
             # Verify proper input preparation
-            expected_input = self.async_coordinator.prepare_improvement_input(candidates)
+            expected_input = self.async_coordinator.prepare_improvement_input_with_context(candidates)
             mock_batch.assert_called_once_with(
                 'improve_ideas_batch',
                 expected_input,

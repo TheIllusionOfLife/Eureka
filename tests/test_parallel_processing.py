@@ -57,6 +57,7 @@ class TestParallelAdvocacySkepticism:
             await coordinator.process_candidates_parallel_advocacy_skepticism(
                 test_candidates,
                 "test topic",
+                "test context",
                 0.5,
                 0.5
             )
@@ -159,7 +160,8 @@ class TestTimeoutHandling:
             with pytest.raises(asyncio.TimeoutError):
                 await coordinator.process_candidates_parallel_advocacy_skepticism(
                     test_candidates,
-                    "test topic", 
+                    "test topic",
+                    "test context",
                     0.5,
                     0.5,
                     timeout=0.1
@@ -194,6 +196,7 @@ class TestDataIntegrity:
             await coordinator.process_candidates_parallel_advocacy_skepticism(
                 test_candidates,
                 "test topic",
+                "test context",
                 0.5,
                 0.5
             )
@@ -232,6 +235,7 @@ class TestPerformanceImprovement:
             await coordinator.process_candidates_parallel_advocacy_skepticism(
                 test_candidates,
                 "test topic",
+                "test context",
                 0.5,
                 0.5
             )
@@ -269,6 +273,7 @@ class TestErrorHandlingInParallel:
             await coordinator.process_candidates_parallel_advocacy_skepticism(
                 test_candidates,
                 "test topic",
+                "test context",
                 0.5,
                 0.5
             )

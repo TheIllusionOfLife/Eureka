@@ -155,8 +155,8 @@ class BookmarkManager:
     def bookmark_idea(
         self, 
         idea_text: str, 
-        theme: str, 
-        constraints: str,
+        topic: str, 
+        context: str,
         score: int = 0,
         critique: str = "",
         advocacy: str = "",
@@ -185,8 +185,8 @@ class BookmarkManager:
         bookmark = BookmarkedIdea(
             id=bookmark_id,
             text=idea_text,
-            theme=theme,
-            constraints=constraints,
+            theme=topic,
+            constraints=context,
             score=score,
             critique=critique,
             advocacy=advocacy,
@@ -343,8 +343,8 @@ class BookmarkManager:
     def bookmark_idea_with_duplicate_check(
         self,
         idea_text: str,
-        theme: str,
-        constraints: str,
+        topic: str,
+        context: str,
         score: int = 0,
         critique: str = "",
         advocacy: str = "",
@@ -472,8 +472,8 @@ class BookmarkManager:
 # Convenience functions for CLI usage
 def bookmark_from_result(
     result: Dict[str, Any], 
-    theme: str, 
-    constraints: str, 
+    topic: str, 
+    context: str, 
     tags: Optional[List[str]] = None,
     bookmark_file: str = "examples/data/bookmarks.json"
 ) -> str:
@@ -481,8 +481,8 @@ def bookmark_from_result(
     
     Args:
         result: Result dictionary from run_multistep_workflow
-        theme: Theme used to generate the idea
-        constraints: Constraints used
+        topic: Topic used to generate the idea
+        context: Context/constraints used
         tags: Optional tags
         bookmark_file: Bookmark storage file
         
@@ -492,8 +492,8 @@ def bookmark_from_result(
     manager = BookmarkManager(bookmark_file)
     return manager.bookmark_idea(
         idea_text=result.get("idea", ""),
-        theme=theme,
-        constraints=constraints,
+        topic=topic,
+        context=context,
         score=result.get("initial_score", 0),
         critique=result.get("initial_critique", ""),
         advocacy=result.get("advocacy", ""),

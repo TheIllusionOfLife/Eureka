@@ -6,12 +6,17 @@ throughout all layers of the application.
 import pytest
 import json
 from unittest.mock import Mock, patch, AsyncMock
+import importlib.util
 
 # Test data
 TEST_TOPIC = "sustainable urban farming"
 TEST_CONTEXT = "low-cost solutions for apartment dwellers"
 
+# Check if fastapi is available
+fastapi_available = importlib.util.find_spec("fastapi") is not None
 
+
+@pytest.mark.skipif(not fastapi_available, reason="FastAPI not available in CI")
 class TestBackendParameterStandardization:
     """Test that the backend API uses topic/context consistently."""
     
@@ -237,7 +242,7 @@ class TestBatchOperationsParameterStandardization:
         
         assert len(improvement_input) == 1
         item = improvement_input[0]
-        assert "original_idea" in item
+        assert "idea" in item  # Changed from original_idea to idea
         assert "critique" in item
         assert "advocacy" in item
         assert "skepticism" in item

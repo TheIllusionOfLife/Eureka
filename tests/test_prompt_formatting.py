@@ -164,6 +164,7 @@ class TestStructuredSkepticism:
             
             results, tokens = criticize_ideas_batch(
                 ideas_with_advocacy,
+                topic="test topic",
                 context="test context",
                 temperature=0.5
             )

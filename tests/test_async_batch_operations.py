@@ -57,7 +57,7 @@ class TestAsyncBatchOperations:
         api_call_count = 0
         
         # Mock the batch advocacy function
-        def mock_advocate_ideas_batch(ideas_with_evaluations, context, temperature):
+        def mock_advocate_ideas_batch(ideas_with_evaluations, topic, context, temperature):
             nonlocal api_call_count
             api_call_count += 1
             # Return synchronous result (the async wrapper will handle it)
@@ -82,7 +82,7 @@ class TestAsyncBatchOperations:
         """Test that skepticism uses batch processing."""
         api_call_count = 0
         
-        def mock_criticize_ideas_batch(ideas_with_advocacy, context, temperature):
+        def mock_criticize_ideas_batch(ideas_with_advocacy, topic, context, temperature):
             nonlocal api_call_count
             api_call_count += 1
             return [
@@ -295,7 +295,7 @@ class TestAsyncBatchOperations:
         }):
             await async_coordinator._process_candidates_with_batch_advocacy(
                 [{"text": f"idea{i}", "critique": f"critique{i}"} for i in range(5)],
-                "theme", 0.7
+                "test topic", "test context", 0.7
             )
             
             # For now, just pass since progress tracking is optional

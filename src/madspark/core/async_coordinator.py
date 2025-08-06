@@ -50,6 +50,11 @@ except ImportError:
         improve_idea_with_retry
     )
 
+# Create a shared thread pool executor for all async functions
+# This avoids the overhead of creating/destroying executors repeatedly
+import concurrent.futures
+_SHARED_EXECUTOR = concurrent.futures.ThreadPoolExecutor(max_workers=4)
+
 
 async def async_generate_ideas(topic: str, context: str, temperature: float = 0.9, cache_manager: Optional[CacheManager] = None, use_structured_output: bool = True) -> str:
     """Async wrapper for idea generation with retry logic.
@@ -76,8 +81,9 @@ async def async_generate_ideas(topic: str, context: str, temperature: float = 0.
             return cached
     
     loop = asyncio.get_running_loop()
+    # Use shared executor to avoid hanging issues in some environments
     result = await loop.run_in_executor(
-        None, 
+        _SHARED_EXECUTOR, 
         generate_ideas_with_retry,
         topic,
         context,
@@ -101,7 +107,7 @@ async def async_evaluate_ideas(ideas: str, topic: str, context: str, temperature
     """
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(
-        None,
+        _SHARED_EXECUTOR,
         evaluate_ideas_with_retry,
         ideas,
         topic,
@@ -119,7 +125,7 @@ async def async_advocate_idea(idea: str, evaluation: str, topic: str, context: s
     """
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(
-        None,
+        _SHARED_EXECUTOR,
         advocate_idea_with_retry,
         idea,
         evaluation,
@@ -138,7 +144,7 @@ async def async_criticize_idea(idea: str, advocacy: str, topic: str, context: st
     """
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(
-        None,
+        _SHARED_EXECUTOR,
         criticize_idea_with_retry,
         idea,
         advocacy,
@@ -165,7 +171,7 @@ async def async_improve_idea(
     """
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(
-        None,
+        _SHARED_EXECUTOR,
         improve_idea_with_retry,
         original_idea,
         critique,

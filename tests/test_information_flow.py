@@ -204,7 +204,8 @@ class TestCoordinatorInformationFlow:
             # Call the improvement method directly
             await coordinator._process_candidates_with_batch_improvement(
                 test_candidates,
-                TEST_TOPIC,  # Topic parameter (passed as context to improve_ideas_batch)
+                TEST_TOPIC,  # Topic parameter
+                TEST_CONTEXT,  # Context parameter 
                 0.9  # Temperature
             )
             

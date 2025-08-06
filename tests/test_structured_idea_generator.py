@@ -46,6 +46,7 @@ class TestStructuredIdeaGeneration:
             critique="Needs better tracking",
             advocacy_points="Great community aspect",
             skeptic_points="Security concerns",
+            topic="renewable energy solutions",
             context="renewable energy",
             genai_client=mock_client
         )
@@ -70,6 +71,7 @@ class TestStructuredIdeaGeneration:
             critique="Needs work",
             advocacy_points="Good start",
             skeptic_points="Some issues",
+            topic="energy solutions",
             context="energy",
             genai_client=mock_client
         )
@@ -85,6 +87,7 @@ class TestStructuredIdeaGeneration:
                 critique="Good",
                 advocacy_points="Nice",
                 skeptic_points="Issues",
+                topic="test topic",
                 context="test"
             )
     
@@ -96,6 +99,7 @@ class TestStructuredIdeaGeneration:
             critique="Needs improvement",
             advocacy_points="Has potential",
             skeptic_points="Some concerns",
+            topic="innovation ideas",
             context="innovation"
         )
         
@@ -129,6 +133,7 @@ class TestStructuredIdeaGeneration:
                 critique="Critique",
                 advocacy_points="Advocacy",
                 skeptic_points="Skeptic",
+                topic="Test topic",
                 context="Theme",
                 genai_client=mock_client
             )

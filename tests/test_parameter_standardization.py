@@ -3,6 +3,7 @@
 This test suite ensures consistent use of 'topic' and 'context' parameters
 throughout all layers of the application.
 """
+import os
 import pytest
 import json
 from unittest.mock import Mock, patch, AsyncMock
@@ -48,6 +49,10 @@ class TestBackendParameterStandardization:
         assert request.context == TEST_CONTEXT
     
     @pytest.mark.asyncio
+    @pytest.mark.skipif(
+        os.getenv("MADSPARK_MODE") == "mock" or not importlib.util.find_spec("web.backend.main"),
+        reason="Requires web backend and non-mock mode"
+    )
     async def test_generate_ideas_endpoint_uses_topic_context(self):
         """Test that generate_ideas endpoint passes topic/context to coordinator."""
         from web.backend.main import app
@@ -120,12 +125,12 @@ class TestCoordinatorParameterStandardization:
                     num_top_candidates=1
                 )
                 
-                # Verify evaluator was called with context as criteria
+                # Verify evaluator was called with topic and context
                 # Check the first call (initial evaluation, not re-evaluation)
                 assert mock_eval.call_count >= 1
                 first_call_args = mock_eval.call_args_list[0][1]
-                assert first_call_args['criteria'] == TEST_CONTEXT
-                assert first_call_args['context'] == TEST_TOPIC
+                assert first_call_args['topic'] == TEST_TOPIC
+                assert first_call_args['context'] == TEST_CONTEXT
 
 
 class TestAgentParameterStandardization:

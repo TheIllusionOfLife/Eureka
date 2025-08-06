@@ -124,7 +124,7 @@ class TestAsyncBatchOperations:
                 candidate["skepticism"] = f"Skepticism {i+1}"
             
             await async_coordinator._process_candidates_with_batch_improvement(
-                sample_candidates, "test theme", 0.9
+                sample_candidates, "test theme", "test context", 0.9
             )
             
             assert api_call_count == 1, f"Expected 1 batch API call, got {api_call_count}"

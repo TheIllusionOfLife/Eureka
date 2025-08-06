@@ -119,7 +119,7 @@ class TestBatchReevaluationIntegration:
             
             # Process candidates with batch improvement
             result = await coordinator._process_candidates_with_batch_improvement(
-                candidates, "Test theme", temp_manager.get_temperature_for_stage("idea_generation")
+                candidates, "Test theme", "test context", temp_manager.get_temperature_for_stage("idea_generation")
             )
             
             # Should handle partial failure gracefully

@@ -3,6 +3,7 @@
 This module tests that both async and batch coordinators work identically
 after architecture unification, with no regressions in functionality.
 """
+import os
 import pytest
 import asyncio
 from unittest.mock import Mock, patch, AsyncMock
@@ -141,7 +142,7 @@ class TestCoordinatorArchitectureIntegration:
             mock_batch.return_value = (mock_improvement_results, 2000)
             
             result = await self.async_coordinator._process_candidates_with_batch_improvement(
-                candidates, "energy infrastructure", 0.75
+                candidates, "energy infrastructure", "test context", 0.75
             )
             
             # Verify proper input preparation
@@ -149,8 +150,8 @@ class TestCoordinatorArchitectureIntegration:
             mock_batch.assert_called_once_with(
                 'improve_ideas_batch',
                 expected_input,
-                "renewable energy",  # topic
-                "energy infrastructure",  # context
+                "energy infrastructure",  # topic
+                "test context",  # context
                 0.75
             )
             
@@ -337,6 +338,10 @@ class TestCoordinatorLogicalInferenceIntegration:
 
 
 @pytest.mark.integration
+@pytest.mark.skipif(
+    not os.getenv("GOOGLE_API_KEY") or os.getenv("MADSPARK_MODE") == "mock", 
+    reason="Requires real Google API key and non-mock mode"
+)
 class TestRealAPIIntegration:
     """Integration tests with real API endpoints (when available)."""
     

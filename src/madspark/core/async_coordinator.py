@@ -700,7 +700,7 @@ class AsyncCoordinator(BatchOperationsBase):
                 raw_evaluations = await async_evaluate_ideas(
                     ideas=ideas_for_critic,
                     topic=topic,
-                    context=topic,
+                    context=context,
                     temperature=eval_temp,
                     use_structured_output=True
                 )

@@ -277,14 +277,14 @@ class BookmarkManager:
     def check_for_duplicates(
         self, 
         idea_text: str, 
-        theme: str,
+        topic: str,
         exclude_bookmark_id: Optional[str] = None
     ) -> DuplicateCheckResult:
         """Check if a bookmark idea would be a duplicate.
         
         Args:
             idea_text: The idea text to check for duplicates
-            theme: Theme/topic of the idea
+            topic: Topic/theme of the idea
             exclude_bookmark_id: Optional bookmark ID to exclude from comparison
             
         Returns:
@@ -298,20 +298,20 @@ class BookmarkManager:
             existing_bookmarks.append(bookmark)
         
         return self.duplicate_detector.check_for_duplicates(
-            idea_text, theme, existing_bookmarks
+            idea_text, topic, existing_bookmarks
         )
     
     def find_similar_bookmarks(
         self, 
         idea_text: str, 
-        theme: str,
+        topic: str,
         max_results: int = 5
     ) -> List[Dict[str, Any]]:
         """Find bookmarks similar to the given text.
         
         Args:
             idea_text: Text to find similar bookmarks for
-            theme: Theme of the idea
+            topic: Topic/theme of the idea
             max_results: Maximum number of results to return
             
         Returns:
@@ -319,7 +319,7 @@ class BookmarkManager:
         """
         existing_bookmarks = list(self.bookmarks.values())
         similar_results = self.duplicate_detector.find_duplicates(
-            idea_text, theme, existing_bookmarks
+            idea_text, topic, existing_bookmarks
         )
         
         # Convert to user-friendly format

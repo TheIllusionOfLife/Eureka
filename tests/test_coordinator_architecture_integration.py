@@ -141,7 +141,7 @@ class TestCoordinatorArchitectureIntegration:
             mock_batch.return_value = (mock_improvement_results, 2000)
             
             result = await self.async_coordinator._process_candidates_with_batch_improvement(
-                candidates, "energy infrastructure", "reliable and secure", 0.75
+                candidates, "energy infrastructure", 0.75
             )
             
             # Verify proper input preparation
@@ -149,8 +149,7 @@ class TestCoordinatorArchitectureIntegration:
             mock_batch.assert_called_once_with(
                 'improve_ideas_batch',
                 expected_input,
-                "energy infrastructure",
-                "reliable and secure",
+                "energy infrastructure",  # This is passed as context to improve_ideas_batch
                 0.75
             )
             

@@ -44,10 +44,7 @@ class TestAdvocateInformationFlow:
             }])
             mock_client.models.generate_content.return_value = mock_response
             
-            results, _ = advocate_ideas_batch(
-                ideas_with_evaluations,
-                context=TEST_CONTEXT,
-                temperature=0.5
+            results, _ = advocate_ideas_batch(ideas_with_evaluations, topic=TEST_TOPIC, context=TEST_CONTEXT, temperature=0.5
             )
             
             # Verify the prompt includes context
@@ -102,10 +99,7 @@ class TestSkepticInformationFlow:
             }])
             mock_client.models.generate_content.return_value = mock_response
             
-            results, _ = criticize_ideas_batch(
-                ideas_with_advocacy,
-                context=TEST_CONTEXT,
-                temperature=0.5
+            results, _ = criticize_ideas_batch(ideas_with_advocacy, topic=TEST_TOPIC, context=TEST_CONTEXT, temperature=0.5
             )
             
             # Verify the prompt includes context
@@ -209,8 +203,8 @@ class TestCoordinatorInformationFlow:
             # Call the improvement method directly
             await coordinator._process_candidates_with_batch_improvement(
                 test_candidates,
-                context=TEST_TOPIC,  # This is the theme/topic used as context for batch functions
-                temperature=0.9
+                TEST_TOPIC,  # Topic parameter (passed as context to improve_ideas_batch)
+                0.9  # Temperature
             )
             
             # Verify improvement was called with context

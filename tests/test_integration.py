@@ -156,15 +156,15 @@ class TestWorkflowWithComponents:
             
             # Add some bookmarks
             bookmark_manager.bookmark_idea(idea_text="Existing Idea 1 - A previously saved idea",
-                topic="Testing",
-                context="Test constraints",
+                theme="Testing",
+                constraints="Test constraints",
                 score=7,
                 tags=["automation", "productivity"]
             )
             
             bookmark_manager.bookmark_idea(idea_text="Existing Idea 2 - Another saved idea", 
-                topic="Testing",
-                context="Test constraints",
+                theme="Testing",
+                constraints="Test constraints",
                 score=8,
                 tags=["ai", "efficiency"]
             )

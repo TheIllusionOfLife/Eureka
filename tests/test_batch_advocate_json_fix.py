@@ -98,6 +98,7 @@ class TestBatchAdvocateJSONFix:
         # Test batch advocacy
         result, token_count = advocate_ideas_batch(
             ideas_with_evaluations=[{"idea": "Test idea", "evaluation": "Good"}],
+            topic="Test topic",
             context="Test context",
             temperature=0.5
         )

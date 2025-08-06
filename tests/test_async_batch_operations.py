@@ -71,8 +71,7 @@ class TestAsyncBatchOperations:
             'advocate_ideas_batch': mock_advocate_ideas_batch
         }):
             # Process candidates
-            await async_coordinator._process_candidates_with_batch_advocacy(
-                sample_candidates, "test theme", 0.7
+            await async_coordinator._process_candidates_with_batch_advocacy(sample_candidates, "test theme", "test context", 0.7
             )
             
             # Should make only 1 API call for all 5 candidates
@@ -98,8 +97,7 @@ class TestAsyncBatchOperations:
             for i, candidate in enumerate(sample_candidates):
                 candidate["advocacy"] = f"Advocacy for idea {i+1}"
             
-            await async_coordinator._process_candidates_with_batch_skepticism(
-                sample_candidates, "test theme", 0.7
+            await async_coordinator._process_candidates_with_batch_skepticism(sample_candidates, "test theme", "test context", 0.7
             )
             
             assert api_call_count == 1, f"Expected 1 batch API call, got {api_call_count}"
@@ -162,11 +160,9 @@ class TestAsyncBatchOperations:
                 # Run operations that should be parallel
                 start_time = time.time()
                 await asyncio.gather(
-                    async_coordinator._process_candidates_with_batch_advocacy(
-                        sample_candidates[:], "theme", 0.7
+                    async_coordinator._process_candidates_with_batch_advocacy(sample_candidates[:], "theme", "test context", 0.7
                     ),
-                    async_coordinator._process_candidates_with_batch_skepticism(
-                        sample_candidates[:], "theme", 0.7
+                    async_coordinator._process_candidates_with_batch_skepticism(sample_candidates[:], "theme", "test context", 0.7
                     )
                 )
                 total_time = time.time() - start_time
@@ -200,8 +196,7 @@ class TestAsyncBatchOperations:
             'advocate_ideas_batch': failing_batch_operation
         }):
             # Should handle error gracefully and use fallback
-            result = await async_coordinator._process_candidates_with_batch_advocacy_safe(
-                sample_candidates, "theme", 0.7
+            result = await async_coordinator._process_candidates_with_batch_advocacy_safe(sample_candidates, "theme", "test context", 0.7
             )
             
             # Should have fallback advocacy for all candidates

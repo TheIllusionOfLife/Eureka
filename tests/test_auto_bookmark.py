@@ -42,8 +42,7 @@ class TestAutomaticBookmarking:
     def test_bookmarking_happens_by_default(self, temp_bookmark_file, mock_coordinator_response):
         """Test that bookmarking happens automatically without --bookmark-results flag."""
         # Note: This test will fail until we implement automatic bookmarking
-        test_args = argparse.Namespace(
-            context='test topic',
+        test_args = argparse.Namespace(topic='test topic',
             context='test context',
             bookmark_results=True,  # This should be True by default (currently fails)
             bookmark_file=temp_bookmark_file,

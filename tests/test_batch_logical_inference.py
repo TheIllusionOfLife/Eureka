@@ -69,9 +69,8 @@ IMPROVEMENTS: Balance difficulty progression"""
         mock_genai_client.models.generate_content.return_value = mock_response
         
         # Perform batch analysis
-        results = inference_engine.analyze_batch(
-            ideas=sample_ideas,
-            context="mobile games",
+        results = inference_engine.analyze_batch(ideas=sample_ideas,
+            topic="mobile games",
             context="simple development",
             analysis_type=InferenceType.FULL
         )
@@ -94,9 +93,8 @@ IMPROVEMENTS: Balance difficulty progression"""
     
     def test_analyze_batch_empty_list(self, inference_engine):
         """Test batch analysis with empty ideas list."""
-        results = inference_engine.analyze_batch(
-            ideas=[],
-            context="test",
+        results = inference_engine.analyze_batch(ideas=[],
+            topic="test",
             context="test"
         )
         
@@ -107,9 +105,8 @@ IMPROVEMENTS: Balance difficulty progression"""
         # Mock API error
         mock_genai_client.models.generate_content.side_effect = RuntimeError("API Error")
         
-        results = inference_engine.analyze_batch(
-            ideas=sample_ideas,
-            context="test",
+        results = inference_engine.analyze_batch(ideas=sample_ideas,
+            topic="test",
             context="test"
         )
         
@@ -125,9 +122,8 @@ IMPROVEMENTS: Balance difficulty progression"""
         mock_response.text = "Invalid response format"
         mock_genai_client.models.generate_content.return_value = mock_response
         
-        results = inference_engine.analyze_batch(
-            ideas=sample_ideas,
-            context="test",
+        results = inference_engine.analyze_batch(ideas=sample_ideas,
+            topic="test",
             context="test"
         )
         
@@ -157,9 +153,8 @@ Invalid content for remaining ideas..."""
         
         mock_genai_client.models.generate_content.return_value = mock_response
         
-        results = inference_engine.analyze_batch(
-            ideas=sample_ideas,
-            context="test",
+        results = inference_engine.analyze_batch(ideas=sample_ideas,
+            topic="test",
             context="test"
         )
         
@@ -262,9 +257,8 @@ class TestAsyncCoordinatorBatchLogicalInference:
         async_coordinator.reasoning_engine = mock_engine
         
         # Run batch logical inference with new signature
-        results = await async_coordinator._run_batch_logical_inference(
-            ideas=ideas,
-            context="Technology innovations",
+        results = await async_coordinator._run_batch_logical_inference(ideas=ideas,
+            topic="Technology innovations",
             context="Must be practical",
             analysis_type=InferenceType.FULL
         )
@@ -296,9 +290,8 @@ class TestAsyncCoordinatorBatchLogicalInference:
         # No reasoning engine set
         async_coordinator.reasoning_engine = None
             
-        results = await async_coordinator._run_batch_logical_inference(
-            ideas=ideas,
-            context="Test",
+        results = await async_coordinator._run_batch_logical_inference(ideas=ideas,
+            topic="Test",
             context="Test"
         )
         
@@ -321,9 +314,8 @@ class TestAsyncCoordinatorBatchLogicalInference:
         
         # Import logger mock
         with patch('madspark.core.async_coordinator.logger') as mock_logger:
-            results = await async_coordinator._run_batch_logical_inference(
-                ideas=ideas,
-                context="Test",
+            results = await async_coordinator._run_batch_logical_inference(ideas=ideas,
+                topic="Test",
                 context="Test"
             )
             
@@ -335,9 +327,8 @@ class TestAsyncCoordinatorBatchLogicalInference:
     @pytest.mark.asyncio
     async def test_run_batch_logical_inference_empty_candidates(self, async_coordinator):
         """Test with empty ideas list."""
-        results = await async_coordinator._run_batch_logical_inference(
-            ideas=[],
-            context="Test",
+        results = await async_coordinator._run_batch_logical_inference(ideas=[],
+            topic="Test",
             context="Test"
         )
         

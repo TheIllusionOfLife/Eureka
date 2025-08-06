@@ -28,8 +28,7 @@ class TestCoordinatorWarnings:
             with caplog.at_level(logging.WARNING):
                 caplog.clear()
                 try:
-                    run_multistep_workflow(
-                        context="test",
+                    run_multistep_workflow(topic="test",
                         context="test",
                         num_top_candidates=1,
                         verbose=False  # Non-verbose mode
@@ -57,8 +56,7 @@ class TestCoordinatorWarnings:
             with caplog.at_level(logging.WARNING):
                 caplog.clear()
                 try:
-                    run_multistep_workflow(
-                        context="test",
+                    run_multistep_workflow(topic="test",
                         context="test",
                         num_top_candidates=1,
                         verbose=True  # Verbose mode

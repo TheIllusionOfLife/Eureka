@@ -71,8 +71,7 @@ class TestStructuredOutputIntegration:
                         mock_skeptic.return_value = "• Scalability concerns"
                         
                         # Run workflow
-                        results = run_multistep_workflow(
-                            context="renewable energy",
+                        results = run_multistep_workflow(topic="renewable energy",
                             context="community-focused, scalable",
                             num_top_candidates=1
                         )

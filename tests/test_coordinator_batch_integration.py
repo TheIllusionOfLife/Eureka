@@ -119,8 +119,7 @@ Idea 3: Community solar gardens with blockchain-based energy sharing"""
         ], 2500)
         
         # Run the workflow
-        results = run_multistep_workflow_batch(
-            context="Sustainable Urban Innovation",
+        results = run_multistep_workflow_batch(topic="Sustainable Urban Innovation",
             context="Must be implementable within 5 years, community-focused, and environmentally beneficial",
             num_top_candidates=3,
             verbose=False
@@ -204,8 +203,7 @@ Idea 3: Community solar gardens with blockchain-based energy sharing"""
         }], 100)
         
         # Run workflow - should handle advocate failure gracefully
-        results = run_multistep_workflow_batch(
-            context="Test",
+        results = run_multistep_workflow_batch(topic="Test",
             context="Test constraints",
             num_top_candidates=1
         )

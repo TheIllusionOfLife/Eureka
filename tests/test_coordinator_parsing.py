@@ -165,8 +165,7 @@ Score: 7, Comment: Second evaluation is good
             mock_improve_batch.side_effect = mock_improve_response
             
             # Run workflow with reduced ideas
-            results = run_multistep_workflow(
-                context="Sustainable Urban Living",
+            results = run_multistep_workflow(topic="Sustainable Urban Living",
                 context="Budget-friendly and community-focused",
                 num_top_candidates=2,
                 enable_novelty_filter=False,  # Disable to test all ideas

@@ -47,8 +47,7 @@ class TestSystemIntegration:
         """Test complete workflow from idea generation to final output."""
         from madspark.core.coordinator import run_multistep_workflow
         
-        result = run_multistep_workflow(
-            context="renewable energy",
+        result = run_multistep_workflow(topic="renewable energy",
             context="cost-effective for developing countries"
         )
         
@@ -326,8 +325,7 @@ class TestWorkflowErrorHandling:
             mock_critic_genai.Client.return_value = mock_critic_client
             
             # Workflow should handle critic failure gracefully
-            result = run_multistep_workflow(
-                context="AI automation",
+            result = run_multistep_workflow(topic="AI automation",
                 context="Cost-effective"
             )
             
@@ -376,8 +374,7 @@ class TestWorkflowErrorHandling:
             mock_genai.Client.return_value = mock_client
             
             # Should handle network errors gracefully
-            result = run_multistep_workflow(
-                context="AI automation",
+            result = run_multistep_workflow(topic="AI automation",
                 context="Cost-effective"
             )
             
@@ -395,8 +392,7 @@ class TestWorkflowPerformance:
         from madspark.core.coordinator import run_multistep_workflow
         
         start_time = time.time()
-        result = run_multistep_workflow(
-            context="performance test",
+        result = run_multistep_workflow(topic="performance test",
             context="quick execution"
         )
         end_time = time.time()
@@ -423,8 +419,7 @@ class TestWorkflowPerformance:
         
         # Run workflow multiple times
         for _ in range(10):
-            result = run_multistep_workflow(
-                context="memory test",
+            result = run_multistep_workflow(topic="memory test",
                 context="resource efficiency"
             )
             assert isinstance(result, list)
@@ -448,8 +443,7 @@ class TestWorkflowDataIntegrity:
         """Test data remains consistent through workflow steps."""
         from madspark.core.coordinator import run_multistep_workflow
         
-        result = run_multistep_workflow(
-            context="data integrity test",
+        result = run_multistep_workflow(topic="data integrity test",
             context="maintain consistency"
         )
         

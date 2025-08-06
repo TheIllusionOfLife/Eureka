@@ -52,9 +52,8 @@ IMPROVEMENTS: Consider hybrid systems combining solar panels with wind turbines 
         mock_genai_client.models = mock_models
         
         # Test
-        result = engine.analyze(
-            idea="Install vertical axis wind turbines on skyscrapers",
-            context="renewable energy",
+        result = engine.analyze(idea="Install vertical axis wind turbines on skyscrapers",
+            topic="renewable energy",
             context="urban environment constraints",
             analysis_type=InferenceType.FULL
         )
@@ -87,9 +86,8 @@ ROOT_CAUSE: Urban space constraints drive innovation in vertical renewable energ
         mock_models.generate_content.return_value = mock_response
         mock_genai_client.models = mock_models
         
-        result = engine.analyze(
-            idea="Vertical wind turbines for cities",
-            context="renewable energy", 
+        result = engine.analyze(idea="Vertical wind turbines for cities",
+            topic="renewable energy", 
             context="urban constraints",
             analysis_type=InferenceType.CAUSAL
         )
@@ -119,9 +117,8 @@ TRADE_OFFS:
         mock_models.generate_content.return_value = mock_response
         mock_genai_client.models = mock_models
         
-        result = engine.analyze(
-            idea="Rooftop wind turbines",
-            context="renewable energy",
+        result = engine.analyze(idea="Rooftop wind turbines",
+            topic="renewable energy",
             context="must be cost-effective, environmentally friendly, fit urban regulations",
             analysis_type=InferenceType.CONSTRAINTS
         )
@@ -151,9 +148,8 @@ NO_CONTRADICTIONS: False"""
         mock_models.generate_content.return_value = mock_response
         mock_genai_client.models = mock_models
         
-        result = engine.analyze(
-            idea="Anonymous social network for teenagers",
-            context="social networking",
+        result = engine.analyze(idea="Anonymous social network for teenagers",
+            topic="social networking",
             context="must be safe for minors",
             analysis_type=InferenceType.CONTRADICTION
         )
@@ -218,9 +214,8 @@ NO_CONTRADICTIONS: False"""
         mock_models.generate_content.side_effect = RuntimeError("API Error")
         mock_genai_client.models = mock_models
         
-        result = engine.analyze(
-            idea="Test idea",
-            context="Test theme",
+        result = engine.analyze(idea="Test idea",
+            topic="Test theme",
             context="Test context"
         )
         
@@ -237,9 +232,8 @@ NO_CONTRADICTIONS: False"""
         mock_models.generate_content.return_value = mock_response
         mock_genai_client.models = mock_models
         
-        result = engine.analyze(
-            idea="Test idea",
-            context="Test theme", 
+        result = engine.analyze(idea="Test idea",
+            topic="Test theme", 
             context="Test context"
         )
         
@@ -249,9 +243,8 @@ NO_CONTRADICTIONS: False"""
     
     def test_prompt_template_includes_all_fields(self, engine, mock_genai_client):
         """Test that prompts include all necessary fields."""
-        engine.analyze(
-            idea="Test idea",
-            context="Test theme",
+        engine.analyze(idea="Test idea",
+            topic="Test theme",
             context="Test context",
             analysis_type=InferenceType.FULL
         )

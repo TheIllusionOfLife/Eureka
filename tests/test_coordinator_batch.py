@@ -60,8 +60,7 @@ class TestCoordinatorBatchProcessing:
         }], 100)
         
         # Run workflow
-        run_multistep_workflow(
-            context="Urban Innovation",
+        run_multistep_workflow(topic="Urban Innovation",
             context="Budget-friendly",
             num_top_candidates=1
         )
@@ -162,8 +161,7 @@ Idea 3: Community bike sharing"""
         ], 1800)
         
         # Run workflow with 3 candidates
-        run_multistep_workflow(
-            context="Urban Innovation",
+        run_multistep_workflow(topic="Urban Innovation",
             context="Budget-friendly",
             num_top_candidates=3
         )
@@ -274,8 +272,7 @@ Idea 3: Community bike sharing"""
         }], 100)
         
         # Run workflow with multi-dimensional eval
-        run_multistep_workflow(
-            context="Urban Innovation",
+        run_multistep_workflow(topic="Urban Innovation",
             context="Budget-friendly",
             num_top_candidates=1,
             multi_dimensional_eval=True,

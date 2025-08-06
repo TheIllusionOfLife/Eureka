@@ -159,9 +159,8 @@ class TestBookmarkManager:
             }
             
             # Bookmark idea
-            manager.bookmark_idea(
-                idea_text=idea["title"] + " - " + idea["description"],
-                context="Testing",
+            manager.bookmark_idea(idea_text=idea["title"] + " - " + idea["description"],
+                topic="Testing",
                 context="Test constraints",
                 score=idea["innovation_score"],
                 tags=["test", "automation"]
@@ -184,9 +183,8 @@ class TestBookmarkManager:
                 "innovation_score": 8
             }
             
-            manager.bookmark_idea(
-                idea_text=idea["title"] + " - " + idea["description"],
-                context="Testing",
+            manager.bookmark_idea(idea_text=idea["title"] + " - " + idea["description"],
+                topic="Testing",
                 context="Test constraints",
                 score=idea["innovation_score"],
                 tags=["ai", "productivity"]
@@ -209,16 +207,14 @@ class TestBookmarkManager:
             }
             
             # Bookmark same idea multiple times
-            manager.bookmark_idea(
-                idea_text=idea["title"] + " - " + idea["description"],
-                context="Testing",
+            manager.bookmark_idea(idea_text=idea["title"] + " - " + idea["description"],
+                topic="Testing",
                 context="Test constraints",
                 score=idea["innovation_score"],
                 tags=["test"]
             )
-            manager.bookmark_idea(
-                idea_text=idea["title"] + " - " + idea["description"],
-                context="Testing",
+            manager.bookmark_idea(idea_text=idea["title"] + " - " + idea["description"],
+                topic="Testing",
                 context="Test constraints",
                 score=idea["innovation_score"],
                 tags=["test"]

@@ -1363,8 +1363,8 @@ async def create_bookmark(
             # Use enhanced bookmark creation with duplicate detection
             result = bookmark_system.bookmark_idea_with_duplicate_check(
                 idea_text=idea_text,
-                theme=bookmark_request.topic,
-                constraints=bookmark_request.context,
+                topic=bookmark_request.topic,
+                context=bookmark_request.context,
                 score=round(score, 1),
                 critique=critique or "",
                 advocacy=bookmark_request.advocacy or "",
@@ -1397,8 +1397,8 @@ async def create_bookmark(
             # Traditional bookmark creation without duplicate checking
             bookmark_id = bookmark_system.bookmark_idea(
                 idea_text=idea_text,
-                theme=bookmark_request.topic,
-                constraints=bookmark_request.context,
+                topic=bookmark_request.topic,
+                context=bookmark_request.context,
                 score=round(score, 1),
                 critique=critique or "",
                 advocacy=bookmark_request.advocacy or "",

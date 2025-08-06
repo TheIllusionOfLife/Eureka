@@ -4,6 +4,8 @@ This module provides async execution capabilities for concurrent agent processin
 improving performance by running multiple agent calls in parallel.
 """
 import asyncio
+import atexit
+import concurrent.futures
 import logging
 from typing import List, Optional, Callable, Awaitable
 
@@ -50,6 +52,16 @@ except ImportError:
         improve_idea_with_retry
     )
 
+# Create a shared thread pool executor for all async functions
+# This avoids the overhead of creating/destroying executors repeatedly
+_SHARED_EXECUTOR = concurrent.futures.ThreadPoolExecutor(max_workers=4)
+
+# Ensure threads are cleaned up on interpreter exit
+def _shutdown_shared_executor():
+    _SHARED_EXECUTOR.shutdown(wait=False)
+
+atexit.register(_shutdown_shared_executor)
+
 
 async def async_generate_ideas(topic: str, context: str, temperature: float = 0.9, cache_manager: Optional[CacheManager] = None, use_structured_output: bool = True) -> str:
     """Async wrapper for idea generation with retry logic.
@@ -76,8 +88,9 @@ async def async_generate_ideas(topic: str, context: str, temperature: float = 0.
             return cached
     
     loop = asyncio.get_running_loop()
+    # Use shared executor to avoid hanging issues in some environments
     result = await loop.run_in_executor(
-        None, 
+        _SHARED_EXECUTOR, 
         generate_ideas_with_retry,
         topic,
         context,
@@ -101,7 +114,7 @@ async def async_evaluate_ideas(ideas: str, topic: str, context: str, temperature
     """
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(
-        None,
+        _SHARED_EXECUTOR,
         evaluate_ideas_with_retry,
         ideas,
         topic,
@@ -119,7 +132,7 @@ async def async_advocate_idea(idea: str, evaluation: str, topic: str, context: s
     """
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(
-        None,
+        _SHARED_EXECUTOR,
         advocate_idea_with_retry,
         idea,
         evaluation,
@@ -138,7 +151,7 @@ async def async_criticize_idea(idea: str, advocacy: str, topic: str, context: st
     """
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(
-        None,
+        _SHARED_EXECUTOR,
         criticize_idea_with_retry,
         idea,
         advocacy,
@@ -165,7 +178,7 @@ async def async_improve_idea(
     """
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(
-        None,
+        _SHARED_EXECUTOR,
         improve_idea_with_retry,
         original_idea,
         critique,
@@ -539,7 +552,7 @@ class AsyncCoordinator(BatchOperationsBase):
         multi_dimensional_eval: bool = False,
         logical_inference: bool = False,
         reasoning_engine: Optional[ReasoningEngine] = None,
-        timeout: int = 600
+        timeout: int = 1200
     ) -> List[CandidateData]:
         """Run the complete async workflow with timeout support.
         

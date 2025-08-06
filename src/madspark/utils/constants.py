@@ -177,7 +177,7 @@ INDIVIDUAL_CALL_OVERHEAD_MULTIPLIER = 1.3  # Individual calls cost ~30% more due
 ORIGINAL_CALLS_PER_ITEM = 7  # Estimated original API calls per item in non-batch system
 
 # Timeout Constants
-DEFAULT_TIMEOUT_SECONDS = 600  # Default timeout (10 minutes)
+DEFAULT_TIMEOUT_SECONDS = 1200  # Default timeout (20 minutes)
 MAX_TIMEOUT_SECONDS = 3600  # Maximum timeout (1 hour)
 MIN_TIMEOUT_SECONDS = 60  # Minimum timeout (1 minute)
 

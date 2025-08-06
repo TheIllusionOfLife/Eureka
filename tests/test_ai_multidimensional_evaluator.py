@@ -46,8 +46,8 @@ class TestAIMultiDimensionalEvaluator:
             assert dim in result['dimension_scores']
             assert 1 <= result['dimension_scores'][dim] <= 10
         
-        # Verify AI was called for each dimension
-        assert mock_client.models.generate_content.call_count == len(dimensions)
+        # Verify AI was called for each dimension plus summary
+        assert mock_client.models.generate_content.call_count == len(dimensions) + 1
     
     def test_ai_failure_raises_error(self):
         """Test that AI failures raise clear errors."""
@@ -142,7 +142,7 @@ class TestAIMultiDimensionalEvaluator:
         
         # Capture the prompts used
         captured_prompts = []
-        def capture_prompt(model, contents, config):
+        def capture_prompt(model, contents):
             captured_prompts.append(contents)
             return mock_response
         
@@ -154,13 +154,20 @@ class TestAIMultiDimensionalEvaluator:
         )
         
         # Verify prompts contain dimension-specific content
-        assert len(captured_prompts) == 7
+        # Now includes 8 calls: 7 for dimensions + 1 for summary generation
+        assert len(captured_prompts) == 8
         
         # Check that prompts contain the idea and dimension-specific guidance
-        for prompt in captured_prompts:
+        # First 7 are dimension evaluations, last one is summary
+        for i, prompt in enumerate(captured_prompts[:-1]):  # Skip last (summary)
             assert "Build a quantum computer" in prompt
             assert "scale of 1-10" in prompt
             assert "Respond with only the numeric score" in prompt
+        
+        # Check the summary prompt (last one)
+        summary_prompt = captured_prompts[-1]
+        assert "Build a quantum computer" in summary_prompt
+        assert "summary" in summary_prompt.lower()
     
     def test_weighted_score_calculation(self):
         """Test that weighted scores are calculated correctly."""
@@ -175,9 +182,12 @@ class TestAIMultiDimensionalEvaluator:
                           'scalability', 'risk_assessment', 'timeline']
         
         call_count = 0
-        def return_score_by_dimension(model, contents, config):
+        def return_score_by_dimension(model, contents):
             nonlocal call_count
-            score = scores[dimension_order[call_count]]
+            if call_count < len(dimension_order):
+                score = scores[dimension_order[call_count]]
+            else:
+                score = "Summary text"  # For the summary generation call
             call_count += 1
             mock_response = Mock()
             mock_response.text = score

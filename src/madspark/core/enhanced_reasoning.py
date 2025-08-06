@@ -298,12 +298,30 @@ class LogicalInference:
             
         validity_score = self._calculate_validity_score(steps, premises)
         
+        # Create InferenceResult for consistency with production mode
+        from madspark.utils.logical_inference_engine import InferenceResult
+        
+        # Build inference chain from steps
+        inference_chain = []
+        for step in steps:
+            inference_chain.append(f"[Step]: {step.reasoning}")
+        
+        # Create mock InferenceResult with same structure as production
+        mock_result = InferenceResult(
+            inference_chain=inference_chain if inference_chain else ["[Step]: Rule-based inference applied"],
+            conclusion=final_conclusion,
+            confidence=overall_confidence,
+            improvements="Consider using AI-powered inference for more detailed analysis"
+        )
+        
+        # Return consistent structure with production mode
         return {
             'steps': [{'premise': s.premise, 'conclusion': s.conclusion, 
                       'confidence': s.confidence, 'reasoning': s.reasoning} for s in steps],
             'conclusion': final_conclusion,
             'confidence_score': overall_confidence,
-            'validity_score': validity_score
+            'validity_score': validity_score,
+            'inference_result': mock_result  # Add this for parity with production mode
         }
         
     def analyze_consistency(self, statements: List[str]) -> Dict[str, Any]:
@@ -769,15 +787,10 @@ Respond with only the numeric score (e.g., "6")."""
         except ImportError:
             from ..agents.genai_client import get_model_name
         
-        generate_config = self.types.GenerateContentConfig(
-            temperature=0.3,  # Low for consistency
-            system_instruction="You are an expert evaluator. Return only a numeric score."
-        )
-        
+        # Direct API call without config - testing showed this works better
         response = self.genai_client.models.generate_content(
             model=get_model_name(),
-            contents=prompt,
-            config=generate_config
+            contents=prompt
         )
         
         # Parse score from response
@@ -793,6 +806,12 @@ Respond with only the numeric score (e.g., "6")."""
     
     def _build_dimension_prompt(self, idea: str, context: Dict[str, Any], dimension: str) -> str:
         """Build evaluation prompt for a specific dimension."""
+        # Import language consistency instruction
+        try:
+            from madspark.utils.constants import LANGUAGE_CONSISTENCY_INSTRUCTION
+        except ImportError:
+            from ..utils.constants import LANGUAGE_CONSISTENCY_INSTRUCTION
+        
         # Format context as human-readable string
         context_parts = []
         if 'theme' in context:
@@ -806,13 +825,56 @@ Respond with only the numeric score (e.g., "6")."""
         context_str = ". ".join(context_parts) if context_parts else "General context"
         
         prompt_template = self.DIMENSION_PROMPTS.get(dimension, self.DIMENSION_PROMPTS['feasibility'])
-        return prompt_template.format(idea=idea, context=context_str)
+        base_prompt = prompt_template.format(idea=idea, context=context_str)
+        
+        # Prepend language consistency instruction
+        return f"{LANGUAGE_CONSISTENCY_INSTRUCTION}{base_prompt}"
     
         
     def _generate_evaluation_summary(self, dimension_scores: Dict[str, float], idea: str) -> str:
-        """Generate a summary of the evaluation."""
+        """Generate a summary of the evaluation using AI for language consistency."""
+        from madspark.utils.constants import LANGUAGE_CONSISTENCY_INSTRUCTION
+        from madspark.agents.genai_client import get_model_name
+        
         avg_score = sum(dimension_scores.values()) / len(dimension_scores)
         
+        # Find strongest and weakest dimensions
+        strongest = max(dimension_scores.items(), key=lambda x: x[1])
+        weakest = min(dimension_scores.items(), key=lambda x: x[1])
+        
+        # If GenAI client is available, generate a language-consistent summary
+        if self.genai_client:
+            prompt = f"""{LANGUAGE_CONSISTENCY_INSTRUCTION}
+
+Based on the multi-dimensional evaluation scores below, provide a concise summary of the evaluation.
+
+Idea: {idea[:500]}
+
+Evaluation Scores:
+- Average Score: {avg_score:.1f}/10
+- Strongest Dimension: {strongest[0]} (score: {strongest[1]:.1f})
+- Weakest Dimension: {weakest[0]} (score: {weakest[1]:.1f})
+- All Scores: {', '.join(f'{k}: {v:.1f}' for k, v in dimension_scores.items())}
+
+Provide a brief 1-2 sentence summary that captures the overall assessment, highlighting the strongest aspect and area for improvement.
+"""
+            
+            try:
+                # Call without config - testing showed this works better
+                response = self.genai_client.models.generate_content(
+                    model=get_model_name(),
+                    contents=prompt
+                )
+                
+                if response and hasattr(response, 'text') and response.text:
+                    return response.text.strip()
+                else:
+                    raise ValueError("Empty response from AI")
+            except Exception as e:
+                logging.warning(f"Failed to generate AI summary, using fallback: {e}")
+                # Fallback to hardcoded English if AI fails
+        
+        # Fallback: hardcoded English summary
         if avg_score >= 8:
             overall_rating = "Excellent"
         elif avg_score >= 6:
@@ -821,10 +883,6 @@ Respond with only the numeric score (e.g., "6")."""
             overall_rating = "Fair"
         else:
             overall_rating = "Poor"
-            
-        # Find strongest and weakest dimensions
-        strongest = max(dimension_scores.items(), key=lambda x: x[1])
-        weakest = min(dimension_scores.items(), key=lambda x: x[1])
         
         return (f"{overall_rating} idea with strongest aspect being {strongest[0]} "
                 f"(score: {strongest[1]:.1f}) and area for improvement in "
@@ -896,17 +954,10 @@ Respond with only the numeric score (e.g., "6")."""
             except ImportError:
                 from ..agents.genai_client import get_model_name
             
-            # Configure for structured JSON response
-            generate_config = self.types.GenerateContentConfig(
-                temperature=0.3,  # Low for consistency
-                response_mime_type="application/json",
-                system_instruction="You are an expert evaluator. Return a JSON array with evaluation scores for each idea."
-            )
-            
+            # Direct API call without config - testing showed this works better
             response = self.genai_client.models.generate_content(
                 model=get_model_name(),
-                contents=prompt,
-                config=generate_config
+                contents=prompt
             )
             
             # Parse response
@@ -977,6 +1028,12 @@ Respond with only the numeric score (e.g., "6")."""
     
     def _build_batch_evaluation_prompt(self, ideas: List[str], context: Dict[str, Any]) -> str:
         """Build prompt for batch evaluation of multiple ideas."""
+        # Import language consistency instruction
+        try:
+            from madspark.utils.constants import LANGUAGE_CONSISTENCY_INSTRUCTION
+        except ImportError:
+            from ..utils.constants import LANGUAGE_CONSISTENCY_INSTRUCTION
+        
         # Format context
         context_parts = []
         if 'theme' in context:
@@ -1002,7 +1059,8 @@ Respond with only the numeric score (e.g., "6")."""
         # Define newline for use in f-string
         newline = '\n'
         
-        prompt = f"""Evaluate the following {len(ideas)} ideas across all 7 dimensions.
+        # Prepend language consistency instruction
+        prompt = f"""{LANGUAGE_CONSISTENCY_INSTRUCTION}Evaluate the following {len(ideas)} ideas across all 7 dimensions.
 
 Context: {context_str}
 

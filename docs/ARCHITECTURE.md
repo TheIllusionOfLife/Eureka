@@ -141,10 +141,26 @@ sequenceDiagram
             GeminiAPI-->>Skeptic: structured criticism
         end
         
-        Coordinator->>IdeaGen: improve_idea(idea, critique, advocacy, skepticism, topic, context)
+        Coordinator->>IdeaGen: improve_idea(idea, critique, advocacy, skepticism, topic, context, logical_inference)
         IdeaGen->>GeminiAPI: generate_content(prompt, temperature=0.9)
         GeminiAPI-->>IdeaGen: improved idea
         IdeaGen-->>Coordinator: improved_idea_text
+        
+        Note over Coordinator: Logical inference provides additional reasoning context
+        
+        opt Logical Inference Enabled
+            Coordinator->>LogicalInference: analyze(idea, topic, context)
+            LogicalInference->>GeminiAPI: generate_content(logical_prompt)
+            GeminiAPI-->>LogicalInference: inference result
+            LogicalInference-->>Coordinator: InferenceResult
+        end
+        
+        opt Multi-Dimensional Evaluation Enabled
+            Coordinator->>MultiDimEval: evaluate_idea(idea, {topic, context})
+            MultiDimEval->>GeminiAPI: generate_content(eval_prompt)
+            GeminiAPI-->>MultiDimEval: dimension scores
+            MultiDimEval-->>Coordinator: evaluation result
+        end
         
         Coordinator->>Critic: evaluate_ideas(improved_idea, topic, context)
         Critic-->>Coordinator: improved_score + critique
@@ -202,6 +218,7 @@ def improve_idea(
     skeptic_points: str,
     topic: str,          # Main topic
     context: str,        # Constraints
+    logical_inference: Optional[str] = None,  # Logical analysis results
     temperature: float = 0.9
 ) -> str
 
@@ -233,7 +250,7 @@ def criticize_ideas_batch(
 ) -> Tuple[List[Dict[str, Any]], int]  # (results, token_count)
 
 def improve_ideas_batch(
-    ideas_with_feedback: List[Dict[str, str]],  # List of {"idea": str, "critique": str, "advocacy": str, "skepticism": str}
+    ideas_with_feedback: List[Dict[str, str]],  # List of {"idea": str, "critique": str, "advocacy": str, "skepticism": str, "logical_inference"?: str}
     topic: str,          # Main topic
     context: str,        # Constraints
     temperature: float = 0.9
@@ -379,17 +396,116 @@ async def _process_single_candidate(
 - `CONTRADICTION_DETECTION` - Find conflicts
 - `IMPLICATION_ANALYSIS` - Downstream effects
 
+**Key Function Signatures**:
+```python
+def analyze(
+    self,
+    idea: str,           # The generated idea to analyze
+    topic: str,          # Original topic/theme
+    context: str,        # Constraints and requirements
+    analysis_type: Union[InferenceType, str] = InferenceType.FULL
+) -> InferenceResult:
+    """Perform logical inference analysis on an idea."""
+
+def analyze_batch(
+    self,
+    ideas: List[str],    # Multiple ideas to analyze
+    topic: str,          # Original topic/theme
+    context: str,        # Constraints and requirements
+    analysis_type: Union[InferenceType, str] = InferenceType.FULL
+) -> List[InferenceResult]:
+    """Perform logical inference analysis on multiple ideas in a single API call.
+    
+    Key optimization: Reduces API calls from O(N) to O(1) for logical inference.
+    """
+```
+
+**InferenceResult Schema**:
+```python
+@dataclass
+class InferenceResult:
+    inference_chain: List[str]      # Step-by-step reasoning
+    conclusion: str                 # Final logical conclusion
+    confidence: float               # Confidence score (0.0-1.0)
+    improvements: Optional[str]     # Suggested logical improvements
+    
+    # Analysis-specific fields
+    causal_chain: Optional[List[str]]               # For CAUSAL analysis
+    constraint_satisfaction: Optional[Dict[str, float]]  # For CONSTRAINTS analysis
+    contradictions: Optional[List[Dict[str, Any]]]  # For CONTRADICTION analysis
+    implications: Optional[List[str]]               # For IMPLICATIONS analysis
+    
+    error: Optional[str]            # Error information if analysis failed
+```
+
 #### MultiDimensionalEvaluator (`src/madspark/core/enhanced_reasoning.py`)
 **Purpose**: Evaluate ideas across multiple dimensions
 
-**Dimensions**:
-1. Innovation (0-10)
-2. Feasibility (0-10)
-3. Impact (0-10)
-4. Scalability (0-10)
-5. Sustainability (0-10)
-6. Cost-effectiveness (0-10)
-7. Risk level (0-10)
+**Evaluation Dimensions**:
+1. Innovation (0-10) - Novelty and creativity
+2. Feasibility (0-10) - Technical and practical viability
+3. Impact (0-10) - Potential positive effect
+4. Scalability (0-10) - Growth and expansion potential
+5. Sustainability (0-10) - Long-term viability
+6. Cost-effectiveness (0-10) - Resource efficiency
+7. Risk level (0-10) - Associated risks and mitigation
+
+**Key Function Signatures**:
+```python
+def evaluate_idea(
+    self, 
+    idea: str,           # The idea to evaluate
+    context: Dict[str, Any]  # Context information including topic and constraints
+) -> Dict[str, Any]:
+    """Evaluate an idea across multiple dimensions.
+    
+    Returns:
+        Dict containing:
+        - overall_score: Simple average of all dimensions
+        - weighted_score: Weighted average based on dimension importance
+        - dimension_scores: Individual scores for each dimension
+        - confidence_interval: Confidence based on score variance
+        - evaluation_summary: Human-readable summary
+    """
+
+def evaluate_ideas_batch(
+    self, 
+    ideas: List[str],    # Multiple ideas to evaluate
+    context: Dict[str, Any]  # Context information
+) -> List[Dict[str, Any]]:
+    """Evaluate multiple ideas across all dimensions in a single API call.
+    
+    Key optimization: Reduces API calls from 7 × N to O(1) for multi-dimensional evaluation.
+    """
+```
+
+**Context Schema**:
+```python
+context = {
+    "topic": str,        # Main topic/theme
+    "context": str,      # Constraints and requirements
+    "user_preferences": Dict[str, Any]  # Optional user preferences
+}
+```
+
+**Evaluation Result Schema**:
+```python
+{
+    "overall_score": float,          # 0.0-10.0
+    "weighted_score": float,         # 0.0-10.0
+    "dimension_scores": {
+        "innovation": float,
+        "feasibility": float,
+        "impact": float,
+        "scalability": float,
+        "sustainability": float,
+        "cost_effectiveness": float,
+        "risk_level": float
+    },
+    "confidence_interval": float,    # 0.0-1.0
+    "evaluation_summary": str        # Human-readable summary
+}
+```
 
 ## 🔐 Security & API Management
 

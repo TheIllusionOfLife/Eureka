@@ -265,7 +265,8 @@ def build_improvement_prompt(
     advocacy_points: str, 
     skeptic_points: str, 
     topic: str,
-    context: str
+    context: str,
+    logical_inference: Optional[str] = None
 ) -> str:
   """Builds a prompt for improving an idea based on feedback.
   
@@ -276,10 +277,16 @@ def build_improvement_prompt(
     skeptic_points: The skeptic's structured concerns.
     topic: The main topic/theme for the idea.
     context: The constraints or additional context for improvement.
+    logical_inference: Optional logical analysis results to inform improvement.
     
   Returns:
     A formatted prompt string for idea improvement.
   """
+  # Build logical inference section if provided
+  logical_section = ""
+  if logical_inference:
+    logical_section = f"LOGICAL INFERENCE ANALYSIS:\n{logical_inference}\n\n"
+  
   return (
       "You are helping to enhance an innovative idea based on comprehensive feedback.\n" +
       LANGUAGE_CONSISTENCY_INSTRUCTION +
@@ -289,20 +296,22 @@ def build_improvement_prompt(
       f"EVALUATION CRITERIA AND FEEDBACK:\n{critique}\n"
       f"Pay special attention to the specific scores and criteria mentioned above. "
       f"Your improved version should directly address any low-scoring areas while maintaining high-scoring aspects.\n\n"
+      f"{logical_section}"
       f"STRENGTHS TO PRESERVE AND BUILD UPON:\n{advocacy_points}\n\n"
       f"CONCERNS TO ADDRESS WITH SOLUTIONS:\n{skeptic_points}\n\n"
       f"Generate an IMPROVED version of this idea that:\n"
       f"1. SPECIFICALLY addresses each evaluation criterion from the professional review\n"
       f"2. Maintains and amplifies the identified strengths\n"
       f"3. Provides concrete solutions for each concern raised\n"
-      f"4. Remains bold, creative, and ambitious\n"
-      f"5. Shows clear improvements in the areas that scored lower\n\n"
+      f"4. {('Incorporates insights from the logical inference analysis\n5. ' if logical_inference else '')}Remains bold, creative, and ambitious\n"
+      f"{'5' if not logical_inference else '6'}. Shows clear improvements in the areas that scored lower\n\n"
       f"IMPORTANT GUIDELINES:\n"
       f"- If feasibility scored low, add specific implementation steps\n"
       f"- If innovation scored low, add unique differentiating features\n"
       f"- If cost-effectiveness scored low, optimize resource usage\n"
       f"- If scalability scored low, design for growth\n"
-      f"- Keep all positive aspects while fixing weaknesses\n\n"
+      f"- Keep all positive aspects while fixing weaknesses\n"
+      f"{('- Use logical reasoning insights to enhance coherence and address any logical gaps\n' if logical_inference else '')}\n"
       f"FORMAT REQUIREMENTS:\n"
       f"- Start directly with your improved idea (no meta-commentary)\n"
       f"- Present the idea in 2-3 clear, focused paragraphs\n"
@@ -342,6 +351,7 @@ def improve_idea(
     skeptic_points: str,
     topic: str,
     context: str,
+    logical_inference: Optional[str] = None,
     temperature: float = 0.9
 ) -> str:
   """Improves an idea based on feedback from multiple agents.
@@ -356,6 +366,7 @@ def improve_idea(
     skeptic_points: The skeptic's concerns.
     topic: The main topic/theme for the idea.
     context: The constraints or additional context for improvement.
+    logical_inference: Optional logical analysis results to inform improvement.
     temperature: Controls randomness in generation (0.0-1.0). 
                  Default 0.9 to maintain creativity.
     
@@ -378,6 +389,7 @@ def improve_idea(
         skeptic_points=skeptic_points,
         topic=topic,
         context=context,
+        logical_inference=logical_inference,
         temperature=temperature,
         genai_client=idea_generator_client,
         model_name=model_name
@@ -405,7 +417,8 @@ def improve_idea(
       advocacy_points=advocacy_points,
       skeptic_points=skeptic_points,
       topic=topic,
-      context=context
+      context=context,
+      logical_inference=logical_inference
   )
   
   if not GENAI_AVAILABLE or idea_generator_client is None:
@@ -478,7 +491,8 @@ def improve_ideas_batch(
   in one request instead of making N separate calls.
   
   Args:
-    ideas_with_feedback: List of dicts with 'idea', 'critique', 'advocacy', and 'skepticism' keys
+    ideas_with_feedback: List of dicts with 'idea', 'critique', 'advocacy', 'skepticism' keys
+                        and optional 'logical_inference' key
     topic: The main topic/theme for the ideas
     context: The constraints or additional context for improvement
     temperature: Generation temperature (0.0-1.0)
@@ -507,11 +521,16 @@ def improve_ideas_batch(
   # Build batch prompt
   items_text = []
   for i, item in enumerate(ideas_with_feedback):
+    # Build logical inference section if available
+    logical_section = ""
+    if item.get('logical_inference'):
+      logical_section = f"\n\nLOGICAL INFERENCE ANALYSIS:\n{item['logical_inference']}"
+    
     items_text.append(
       f"IDEA {i+1}:\n{item['idea']}\n\n"
       f"CRITIQUE:\n{item['critique']}\n\n"
       f"ADVOCACY:\n{item['advocacy']}\n\n"
-      f"SKEPTICISM:\n{item['skepticism']}"
+      f"SKEPTICISM:\n{item['skepticism']}{logical_section}"
     )
   
   # Define newline for use in f-string
@@ -525,7 +544,8 @@ def improve_ideas_batch(
       "1. Addresses ALL critique points\n"
       "2. Maintains the advocated strengths\n"
       "3. Provides solutions for skeptic concerns\n"
-      "4. Remains bold and creative\n\n"
+      "4. Incorporates insights from logical inference analysis (when provided)\n"
+      "5. Remains bold and creative\n\n"
       "Return improvements in this exact JSON format:\n"
       "{\n"
       '  "idea_index": <0-based index>,\n'

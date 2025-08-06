@@ -1239,8 +1239,8 @@ def main():
                     
                     bookmark_id = manager.bookmark_idea(
                         idea_text=idea_text,
-                        theme=args.theme,
-                        constraints=args.constraints,
+                        topic=args.theme,
+                        context=args.constraints,
                         score=score,
                         critique=critique,
                         advocacy=result.get("advocacy", ""),

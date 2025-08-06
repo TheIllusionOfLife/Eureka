@@ -122,7 +122,7 @@ sequenceDiagram
     IdeaGen-->>Coordinator: List[str] ideas
     
     loop For each idea
-        Coordinator->>Critic: evaluate_idea(idea, context)
+        Coordinator->>Critic: evaluate_ideas(idea, topic, context)
         Critic->>GeminiAPI: generate_content(prompt, temperature=0.3)
         GeminiAPI-->>Critic: evaluation JSON
         Critic-->>Coordinator: score + critique
@@ -141,12 +141,12 @@ sequenceDiagram
             GeminiAPI-->>Skeptic: structured criticism
         end
         
-        Coordinator->>IdeaGen: improve_idea(idea, advocacy, skepticism, topic)
+        Coordinator->>IdeaGen: improve_idea(idea, critique, advocacy, skepticism, topic, context)
         IdeaGen->>GeminiAPI: generate_content(prompt, temperature=0.9)
         GeminiAPI-->>IdeaGen: improved idea
         IdeaGen-->>Coordinator: improved_idea_text
         
-        Coordinator->>Critic: evaluate_idea(improved_idea, context)
+        Coordinator->>Critic: evaluate_ideas(improved_idea, topic, context)
         Critic-->>Coordinator: improved_score + critique
     end
     
@@ -200,16 +200,44 @@ def improve_idea(
     critique: str,
     advocacy_points: str,
     skeptic_points: str,
-    topic: str,          # Main topic (NOT context!)
+    topic: str,          # Main topic
+    context: str,        # Constraints
     temperature: float = 0.9
 ) -> str
 
-# ⚠️ CRITIC: Uses context, not topic
-def evaluate_idea(
-    idea: str,
-    criteria: str,       # This is the context/constraints
-    temperature: float = 0.3
+def evaluate_ideas(
+    ideas: str,
+    topic: str,          # Main topic
+    context: str,        # Constraints
+    temperature: float = 0.3,
+    use_structured_output: bool = True
 ) -> str
+```
+
+### Batch Function Signatures
+
+```python
+# Batch functions for reduced API calls
+def advocate_ideas_batch(
+    ideas_with_evaluation: List[Dict[str, str]],  # List of {"idea": str, "evaluation": str}
+    topic: str,          # Main topic
+    context: str,        # Constraints
+    temperature: float = 0.5
+) -> Tuple[List[Dict[str, Any]], int]  # (results, token_count)
+
+def criticize_ideas_batch(
+    ideas_with_advocacy: List[Dict[str, str]],  # List of {"idea": str, "advocacy": str}
+    topic: str,          # Main topic
+    context: str,        # Constraints
+    temperature: float = 0.5
+) -> Tuple[List[Dict[str, Any]], int]  # (results, token_count)
+
+def improve_ideas_batch(
+    ideas_with_feedback: List[Dict[str, str]],  # List of {"idea": str, "critique": str, "advocacy": str, "skepticism": str}
+    topic: str,          # Main topic
+    context: str,        # Constraints
+    temperature: float = 0.9
+) -> Tuple[List[Dict[str, Any]], int]  # (results, token_count)
 ```
 
 ## 📦 Component Architecture

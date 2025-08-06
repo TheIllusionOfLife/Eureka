@@ -107,7 +107,7 @@ class TestAsyncBatchOperations:
         """Test that improvement uses batch processing."""
         api_call_count = 0
         
-        def mock_improve_ideas_batch(ideas_with_feedback, theme, temperature):
+        def mock_improve_ideas_batch(ideas_with_feedback, topic, context, temperature):
             nonlocal api_call_count
             api_call_count += 1
             return [

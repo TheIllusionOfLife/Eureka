@@ -27,9 +27,9 @@ class AgentRetryWrapper:
     
     @staticmethod
     @exponential_backoff_retry(max_retries=3, initial_delay=2.0)
-    def critic(ideas: str, criteria: str, context: str, temperature: float = 0.3, use_structured_output: bool = True) -> str:
+    def critic(ideas: str, topic: str, context: str, temperature: float = 0.3, use_structured_output: bool = True) -> str:
         """Evaluate ideas with retry logic."""
-        return evaluate_ideas(ideas=ideas, criteria=criteria, context=context, temperature=temperature, use_structured_output=use_structured_output)
+        return evaluate_ideas(ideas=ideas, topic=topic, context=context, temperature=temperature, use_structured_output=use_structured_output)
     
     @staticmethod
     @exponential_backoff_retry(max_retries=2, initial_delay=1.0)
@@ -45,7 +45,7 @@ class AgentRetryWrapper:
     
     @staticmethod
     @exponential_backoff_retry(max_retries=3, initial_delay=2.0)
-    def improve_idea_agent(original_idea: str, critique: str, advocacy_points: str, skeptic_points: str, context: str, temperature: float = 0.9) -> str:
+    def improve_idea_agent(original_idea: str, critique: str, advocacy_points: str, skeptic_points: str, topic: str, context: str, temperature: float = 0.9) -> str:
         """Improve an idea based on feedback with retry logic."""
         # Note: improve_idea automatically handles structured output internally
         return improve_idea(
@@ -53,6 +53,7 @@ class AgentRetryWrapper:
             critique=critique,
             advocacy_points=advocacy_points,
             skeptic_points=skeptic_points,
+            topic=topic,
             context=context,
             temperature=temperature
         )

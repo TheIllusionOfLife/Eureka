@@ -75,7 +75,7 @@ class TestEvaluationFeedbackQuality:
             )
             
             # Call the function
-            evaluate_ideas("Test idea", "Test criteria", "Test context")
+            evaluate_ideas("Test idea", "Test topic", "Test context")
             
             # Get the prompt that was passed
             call_args = mock_client.models.generate_content.call_args

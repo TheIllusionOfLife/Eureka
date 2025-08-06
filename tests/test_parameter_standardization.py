@@ -153,8 +153,8 @@ class TestAgentParameterStandardization:
             
             result = evaluate_ideas(
                 ideas="Test idea",
-                criteria=TEST_CONTEXT,  # Context is passed as criteria
-                context=TEST_TOPIC,     # Topic is passed as context
+                topic=TEST_TOPIC,       # Topic is now topic
+                context=TEST_CONTEXT,   # Context is now context
                 use_structured_output=False
             )
             
@@ -185,13 +185,14 @@ class TestAgentParameterStandardization:
         with patch('src.madspark.agents.idea_generator.idea_generator_client') as mock_client:
             mock_client.models.generate_content.return_value = Mock(text="Improved idea")
             
-            # Should accept context parameter (not theme)
+            # Should accept both topic and context parameters
             result = improve_idea(
                 original_idea="Test idea",
                 critique="Needs work",
                 advocacy_points="Good potential",
                 skeptic_points="Some risks",
-                context=TEST_TOPIC,  # Changed from theme to context
+                topic=TEST_TOPIC,
+                context=TEST_CONTEXT,
                 temperature=0.9
             )
             

@@ -93,7 +93,7 @@ async def async_generate_ideas(topic: str, context: str, temperature: float = 0.
     return result
 
 
-async def async_evaluate_ideas(ideas: str, criteria: str, context: str, temperature: float = 0.3, use_structured_output: bool = True) -> str:
+async def async_evaluate_ideas(ideas: str, topic: str, context: str, temperature: float = 0.3, use_structured_output: bool = True) -> str:
     """Async wrapper for idea evaluation with retry logic.
     
     Runs the synchronous evaluate_ideas function in a thread pool to avoid blocking.
@@ -104,7 +104,7 @@ async def async_evaluate_ideas(ideas: str, criteria: str, context: str, temperat
         None,
         evaluate_ideas_with_retry,
         ideas,
-        criteria,
+        topic,
         context,
         temperature,
         use_structured_output
@@ -155,15 +155,13 @@ async def async_improve_idea(
     advocacy_points: str, 
     skeptic_points: str, 
     topic: str,
+    context: str,
     temperature: float = 0.9
 ) -> str:
     """Async wrapper for idea improvement with retry logic.
     
     Runs the synchronous improve_idea function in a thread pool to avoid blocking.
     Includes exponential backoff retry for resilience.
-    
-    Note: This wrapper accepts 'topic' for interface consistency but passes it
-    as 'context' to improve_idea_with_retry per the standardization.
     """
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(
@@ -173,7 +171,8 @@ async def async_improve_idea(
         critique,
         advocacy_points,
         skeptic_points,
-        topic,  # This is passed as the 'context' parameter to improve_idea_with_retry
+        topic,
+        context,
         temperature
     )
 
@@ -272,7 +271,7 @@ class AsyncCoordinator(BatchOperationsBase):
             return candidates
     
     async def _process_candidates_with_batch_improvement(
-        self, candidates: List[EvaluatedIdea], topic: str, temperature: float
+        self, candidates: List[EvaluatedIdea], topic: str, context: str, temperature: float
     ) -> List[EvaluatedIdea]:
         """Process all candidates with batch improvement in a single API call."""
         try:
@@ -281,7 +280,7 @@ class AsyncCoordinator(BatchOperationsBase):
             
             # Single API call for all improvements using shared base class method
             improvement_results, token_usage = await self.run_batch_with_timeout(
-                'improve_ideas_batch', improve_input, topic, temperature
+                'improve_ideas_batch', improve_input, topic, context, temperature
             )
             
             # Update candidates using shared base class method
@@ -402,7 +401,7 @@ class AsyncCoordinator(BatchOperationsBase):
         """
         # Step 1: Improvement (depends on advocacy/skepticism being complete)
         candidates = await self._process_candidates_with_batch_improvement(
-            candidates, context, idea_temp
+            candidates, topic, context, idea_temp
         )
         
         # Step 2: Re-evaluation (depends on improvement being complete)
@@ -438,7 +437,7 @@ class AsyncCoordinator(BatchOperationsBase):
             # Single API call for all re-evaluations with proper context
             re_eval_output = await async_evaluate_ideas(
                 ideas=improved_ideas_text,
-                criteria=context,
+                topic=topic,
                 context=improved_context,
                 temperature=eval_temp,
                 use_structured_output=True
@@ -720,7 +719,7 @@ class AsyncCoordinator(BatchOperationsBase):
                 ideas_for_critic = "\n".join(parsed_ideas)
                 raw_evaluations = await async_evaluate_ideas(
                     ideas=ideas_for_critic,
-                    criteria=context,
+                    topic=topic,
                     context=topic,
                     temperature=eval_temp,
                     use_structured_output=True
@@ -964,7 +963,7 @@ class AsyncCoordinator(BatchOperationsBase):
         # Step 2: Batch Improvement Processing (depends on advocacy/skepticism)
         await self._send_progress("Running batch idea improvement...", 0.78)
         candidates = await self._process_candidates_with_batch_improvement(
-            candidates, topic, idea_temp
+            candidates, topic, context, idea_temp
         )
         
         # Step 4: Batch Re-evaluation
@@ -1002,7 +1001,7 @@ class AsyncCoordinator(BatchOperationsBase):
             # Single API call for all re-evaluations with proper context
             re_eval_output = await async_evaluate_ideas(
                 ideas=improved_ideas_text,
-                criteria=context,
+                topic=topic,
                 context=improved_context,
                 temperature=eval_temp,
                 use_structured_output=True
@@ -1227,7 +1226,7 @@ class AsyncCoordinator(BatchOperationsBase):
                         critique=evaluation_detail,
                         advocacy_points=advocacy_output,
                         skeptic_points=skepticism_output,
-                        topic=topic,
+                        topic=context,
                         temperature=idea_temp
                     )
                 ),
@@ -1270,7 +1269,7 @@ class AsyncCoordinator(BatchOperationsBase):
                         self._run_with_semaphore(
                             async_evaluate_ideas(
                                 ideas=improved_idea_text,
-                                criteria=context,  # context parameter contains the constraints
+                                topic=topic,  # context parameter contains the constraints
                                 context=improved_context,
                                 temperature=eval_temp,
                                 use_structured_output=True

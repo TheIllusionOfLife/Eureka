@@ -149,7 +149,8 @@ class TestCoordinatorArchitectureIntegration:
             mock_batch.assert_called_once_with(
                 'improve_ideas_batch',
                 expected_input,
-                "energy infrastructure",  # This is passed as context to improve_ideas_batch
+                "renewable energy",  # topic
+                "energy infrastructure",  # context
                 0.75
             )
             

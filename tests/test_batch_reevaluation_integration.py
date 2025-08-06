@@ -59,7 +59,7 @@ class TestBatchReevaluationIntegration:
             # Call the actual re-evaluation logic
             eval_result = await async_evaluate_ideas(
                 ideas=improved_ideas_text,
-                criteria="Test criteria",
+                topic="Test topic",
                 context="Re-evaluation after improvements",
                 temperature=0.5,
                 use_structured_output=True

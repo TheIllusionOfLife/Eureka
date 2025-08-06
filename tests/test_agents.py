@@ -238,7 +238,7 @@ class TestAgentIntegration:
         
         # Test with None input - these should raise ValueError, so we need to catch them
         try:
-            _ = evaluate_ideas(None, "criteria", "context")
+            _ = evaluate_ideas(None, "topic", "context")
             assert False, "Should have raised ValueError"
         except ValueError:
             pass  # Expected behavior

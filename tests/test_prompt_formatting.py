@@ -84,7 +84,7 @@ class TestStructuredEvaluation:
             
             evaluate_ideas(
                 ideas="Idea 1\nIdea 2",
-                criteria="test criteria",
+                topic="test topic",
                 context="test context",
                 temperature=0.3,
                 use_structured_output=True
@@ -207,7 +207,8 @@ class TestStructuredImprovement:
             
             results, tokens = improve_ideas_batch(
                 ideas_with_feedback,
-                context="test context",
+                "test topic",
+                "test context",
                 temperature=0.9
             )
             

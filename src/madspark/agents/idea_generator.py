@@ -264,6 +264,7 @@ def build_improvement_prompt(
     critique: str, 
     advocacy_points: str, 
     skeptic_points: str, 
+    topic: str,
     context: str
 ) -> str:
   """Builds a prompt for improving an idea based on feedback.
@@ -273,7 +274,8 @@ def build_improvement_prompt(
     critique: The critic's evaluation of the idea.
     advocacy_points: The advocate's structured bullet points.
     skeptic_points: The skeptic's structured concerns.
-    context: The original context for improvement.
+    topic: The main topic/theme for the idea.
+    context: The constraints or additional context for improvement.
     
   Returns:
     A formatted prompt string for idea improvement.
@@ -281,7 +283,8 @@ def build_improvement_prompt(
   return (
       "You are helping to enhance an innovative idea based on comprehensive feedback.\n" +
       LANGUAGE_CONSISTENCY_INSTRUCTION +
-      f"ORIGINAL CONTEXT: {context}\n\n"
+      f"TOPIC: {topic}\n"
+      f"CONTEXT: {context}\n\n"
       f"ORIGINAL IDEA:\n{original_idea}\n\n"
       f"EVALUATION CRITERIA AND FEEDBACK:\n{critique}\n"
       f"Pay special attention to the specific scores and criteria mentioned above. "
@@ -337,6 +340,7 @@ def improve_idea(
     critique: str,
     advocacy_points: str,
     skeptic_points: str,
+    topic: str,
     context: str,
     temperature: float = 0.9
 ) -> str:
@@ -350,7 +354,8 @@ def improve_idea(
     critique: The critic's evaluation.
     advocacy_points: The advocate's bullet points.
     skeptic_points: The skeptic's concerns.
-    context: The original context for improvement.
+    topic: The main topic/theme for the idea.
+    context: The constraints or additional context for improvement.
     temperature: Controls randomness in generation (0.0-1.0). 
                  Default 0.9 to maintain creativity.
     
@@ -371,6 +376,7 @@ def improve_idea(
         critique=critique,
         advocacy_points=advocacy_points,
         skeptic_points=skeptic_points,
+        topic=topic,
         context=context,
         temperature=temperature,
         genai_client=idea_generator_client,
@@ -390,6 +396,7 @@ def improve_idea(
   _validate_non_empty_string(critique, 'critique')
   _validate_non_empty_string(advocacy_points, 'advocacy_points')
   _validate_non_empty_string(skeptic_points, 'skeptic_points')
+  _validate_non_empty_string(topic, 'topic')
   _validate_non_empty_string(context, 'context')
   
   prompt: str = build_improvement_prompt(
@@ -397,6 +404,7 @@ def improve_idea(
       critique=critique,
       advocacy_points=advocacy_points,
       skeptic_points=skeptic_points,
+      topic=topic,
       context=context
   )
   
@@ -460,6 +468,7 @@ def improve_idea(
 
 def improve_ideas_batch(
     ideas_with_feedback: List[Dict[str, str]], 
+    topic: str,
     context: str, 
     temperature: float = 0.9
 ) -> Tuple[List[Dict[str, Any]], int]:
@@ -470,7 +479,8 @@ def improve_ideas_batch(
   
   Args:
     ideas_with_feedback: List of dicts with 'idea', 'critique', 'advocacy', and 'skepticism' keys
-    context: Overall context for improvement
+    topic: The main topic/theme for the ideas
+    context: The constraints or additional context for improvement
     temperature: Generation temperature (0.0-1.0)
     
   Returns:
@@ -508,6 +518,7 @@ def improve_ideas_batch(
   newline = '\n'
   prompt = (
       LANGUAGE_CONSISTENCY_INSTRUCTION +
+      f"Topic: {topic}\n"
       f"Context: {context}\n\n"
       f"{newline.join(items_text)}\n\n"
       "For EACH idea above, create an improved version that:\n"

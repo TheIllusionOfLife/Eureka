@@ -220,8 +220,8 @@ def _run_workflow_internal(
     try:
         evaluation_output = call_critic_with_retry(
             ideas=ideas_text,
-            criteria=context,
-            context=topic,
+            topic=topic,
+            context=context,
             temperature=eval_temp,
             use_structured_output=True
         )
@@ -319,7 +319,8 @@ def _run_workflow_internal(
             # Single API call for all advocacies
             advocacy_results, token_usage = advocate_ideas_batch(
                 advocate_input, 
-                topic, 
+                topic,
+                context, 
                 advocacy_temp
             )
             
@@ -359,6 +360,7 @@ def _run_workflow_internal(
             skepticism_results, token_usage = criticize_ideas_batch(
                 skeptic_input,
                 topic,
+                context,
                 skepticism_temp
             )
             
@@ -399,7 +401,7 @@ def _run_workflow_internal(
             # Single API call for all improvements
             improvement_results, token_usage = improve_ideas_batch(
                 improve_input,
-                topic,
+                context,
                 idea_temp
             )
             
@@ -438,8 +440,8 @@ def _run_workflow_internal(
         # Single API call for all re-evaluations
         re_eval_output = call_critic_with_retry(
             ideas=improved_ideas_text,
-            criteria=context,
-            context=topic,
+            topic=topic,
+            context=context,
             temperature=eval_temp,
             use_structured_output=True
         )

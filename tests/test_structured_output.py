@@ -65,7 +65,8 @@ class TestStructuredOutputImplementation:
                 critique="Needs improvement",
                 advocacy_points="Has potential",
                 skeptic_points="Some concerns",
-                context="test theme"
+                topic="test topic",
+                context="test context"
             )
             
             # Verify the config was created with response schema

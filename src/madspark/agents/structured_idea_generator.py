@@ -43,6 +43,7 @@ def improve_idea_structured(
     critique: str,
     advocacy_points: str,
     skeptic_points: str,
+    topic: str,
     context: str,
     temperature: float = 0.9,
     genai_client: Optional[Any] = None,
@@ -78,10 +79,12 @@ def improve_idea_structured(
     _validate_non_empty_string(critique, 'critique')
     _validate_non_empty_string(advocacy_points, 'advocacy_points')
     _validate_non_empty_string(skeptic_points, 'skeptic_points')
+    _validate_non_empty_string(topic, 'topic')
     _validate_non_empty_string(context, 'context')
     
     # Build focused prompt
-    prompt = f"""Context: {context}
+    prompt = f"""Topic: {topic}
+Context: {context}
 
 Original Idea: {original_idea}
 

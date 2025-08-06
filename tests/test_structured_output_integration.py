@@ -42,7 +42,8 @@ class TestStructuredOutputIntegration:
                 critique="Needs better tracking and transparency",
                 advocacy_points="Great community benefits, sustainable",
                 skeptic_points="Security concerns, scalability issues",
-                context="renewable energy"
+                topic="renewable energy solutions",
+                context="community-based initiatives"
             )
         
         # Verify the result is clean without meta-commentary
@@ -141,7 +142,8 @@ class TestStructuredOutputErrorHandling:
                     critique="Needs work",
                     advocacy_points="Has potential",
                     skeptic_points="Some risks",
-                    context="innovation"
+                    topic="innovation topic",
+                    context="innovation constraints"
                 )
                 
                 # Should handle plain text gracefully
@@ -163,7 +165,8 @@ class TestStructuredOutputErrorHandling:
                     critique="Needs improvement",
                     advocacy_points="Good start",
                     skeptic_points="Some issues",
-                    context="testing"
+                    topic="testing topic",
+                    context="testing context"
                 )
                 
                 # Should return a reasonable fallback for expected errors
@@ -186,7 +189,8 @@ class TestStructuredOutputErrorHandling:
                     critique="Needs improvement",
                     advocacy_points="Good start",
                     skeptic_points="Some issues",
-                    context="testing"
+                    topic="testing topic",
+                    context="testing context"
                 )
                 
                 # Should get a reasonable fallback

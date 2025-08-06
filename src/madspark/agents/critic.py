@@ -33,13 +33,13 @@ else:
     model_name = "mock-model"
 
 
-def evaluate_ideas(ideas: str, criteria: str, context: str, temperature: float = DEFAULT_CRITIC_TEMPERATURE, use_structured_output: bool = True) -> str:
-  """Evaluates ideas based on criteria and context using the critic model.
+def evaluate_ideas(ideas: str, topic: str, context: str, temperature: float = DEFAULT_CRITIC_TEMPERATURE, use_structured_output: bool = True) -> str:
+  """Evaluates ideas based on topic and context using the critic model.
 
   Args:
     ideas: A string containing the ideas to be evaluated, typically newline-separated.
-    criteria: The criteria against which the ideas should be evaluated.
-    context: Additional context relevant for the evaluation.
+    topic: The main topic/theme for the ideas.
+    context: The constraints or additional context for evaluation.
     temperature: Controls randomness in generation (0.0-1.0). Lower values increase consistency.
     use_structured_output: Whether to use structured JSON output (default: True)
 
@@ -48,18 +48,18 @@ def evaluate_ideas(ideas: str, criteria: str, context: str, temperature: float =
     Otherwise, returns newline-separated JSON objects for backward compatibility.
     Returns an empty string if the model provides no content.
   Raises:
-    ValueError: If ideas, criteria, or context are empty or invalid.
+    ValueError: If ideas, topic, or context are empty or invalid.
   """
   if not isinstance(ideas, str) or not ideas.strip():
     raise ValueError("Input 'ideas' to evaluate_ideas must be a non-empty string.")
-  if not isinstance(criteria, str) or not criteria.strip():
-    raise ValueError("Input 'criteria' to evaluate_ideas must be a non-empty string.")
+  if not isinstance(topic, str) or not topic.strip():
+    raise ValueError("Input 'topic' to evaluate_ideas must be a non-empty string.")
   if not isinstance(context, str) or not context.strip():
     raise ValueError("Input 'context' to evaluate_ideas must be a non-empty string.")
 
   prompt: str = (
       LANGUAGE_CONSISTENCY_INSTRUCTION +
-      "You will be provided with a list of ideas, evaluation criteria, and context.\n"
+      "You will be provided with a list of ideas, topic, and context.\n"
       "For each idea, you MUST provide an evaluation in the form of a single-line JSON object string.\n"
       "Each JSON object must have exactly two keys: 'score' (an integer from 1 to 10, where 10 is best) "
       "and 'comment' (a detailed string thoroughly explaining your reasoning, analysis, and suggestions).\n"
@@ -67,7 +67,7 @@ def evaluate_ideas(ideas: str, criteria: str, context: str, temperature: float =
       "corresponding to each idea in the order they were presented.\n"
       "Do not include any other text, explanations, or formatting before or after the JSON strings.\n\n"
       f"Here are the ideas (one per line):\n{ideas}\n\n"
-      f"Evaluation Criteria:\n{criteria}\n\n"
+      f"Topic:\n{topic}\n\n"
       f"Context for evaluation:\n{context}\n\n"
       "Provide your JSON evaluations now (one per line, in the same order as the input ideas):"
   )
@@ -75,7 +75,7 @@ def evaluate_ideas(ideas: str, criteria: str, context: str, temperature: float =
   if not GENAI_AVAILABLE or critic_client is None:
     # Return mock evaluation for CI/testing environments or when API key is not configured
     # Simple language detection for mock responses
-    combined_text = ideas + criteria + context
+    combined_text = ideas + topic + context
     
     if use_structured_output:
         # Return structured mock data

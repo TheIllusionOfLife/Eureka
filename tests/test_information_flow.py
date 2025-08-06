@@ -136,7 +136,8 @@ class TestImprovementInformationFlow:
             
             results, tokens = improve_ideas_batch(
                 ideas_with_feedback,
-                context=TEST_CONTEXT,
+                TEST_TOPIC,
+                TEST_CONTEXT,
                 temperature=0.9
             )
             

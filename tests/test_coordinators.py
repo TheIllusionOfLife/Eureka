@@ -306,7 +306,7 @@ class TestWorkflowIntegration:
         temp_manager = TemperatureManager.from_preset("creative")
         
         result = run_multistep_workflow(
-            context="AI automation",
+            topic="AI automation",
             context="Cost-effective",
             temperature_manager=temp_manager
         )

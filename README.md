@@ -445,6 +445,7 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
 
 ## Documentation
 
+- **[System Architecture](docs/ARCHITECTURE.md)** - Complete technical architecture, data flows, and component details
 - **[Quick Start Examples](docs/QUICK_START_EXAMPLES.md)** - Common usage patterns
 - **[Batch Processing Guide](docs/BATCH_PROCESSING_GUIDE.md)** - Process multiple themes
 - **[Interactive Mode Guide](docs/INTERACTIVE_MODE_GUIDE.md)** - Conversational interface

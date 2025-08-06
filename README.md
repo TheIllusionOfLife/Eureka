@@ -103,7 +103,7 @@ ms "renewable energy" --logical
 # Cache results with Redis for instant repeated queries                   
 ms "how the universe began" --top-ideas 3 --enable-cache
 
-# Set custom timeout (default: 600 seconds / 10 minutes)
+# Set custom timeout (default: 1200 seconds / 20 minutes)
 ms "complex analysis" --timeout 300     # 5 minute timeout
 ms "quick idea" --timeout 60 --async   # 1 minute timeout (async mode enforces timeout)
 
@@ -454,7 +454,7 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
 
 ## Session Handover
 
-### Last Updated: August 07, 2025 03:41 AM JST
+### Last Updated: August 7, 2025 03:41 AM JST
 
 #### Recently Completed
 
@@ -462,9 +462,9 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
   - **Language Consistency**: Fixed multi-dimensional evaluation to respond in user's language (Japanese, Chinese, etc.)
   - **Thread Pool Management**: Added proper atexit cleanup handler to prevent resource leaks
   - **Timeout Configuration**: Permanently increased default timeout from 600s (10 min) to 1200s (20 min) for long-running workflows
-  - **Parameter Consistency**: Fixed all bookmark entries from theme/constraints to topic/context
+  - **Parameter Consistency**: Fixed all bookmark entries from `theme/constraints` to `topic/context`
   - **Mock-Production Parity**: Ensured logical inference field consistency between modes
-  - **CI Test Fixes**: Resolved all 13 CI checks including ruff linting, import order, and test expectations
+  - **CI Test Fixes**: Resolved all 13 CI checks including `ruff` linting, import order, and test expectations
 
 - ✅ **[PR #162](https://github.com/TheIllusionOfLife/Eureka/pull/162)**: Complete MadSpark Workflow Improvements - Parameter Standardization & Test Fixing (August 6, 2025)
   - **Major Achievement**: Successfully completed all 9 priority workflow improvements from TODO_20250806.md

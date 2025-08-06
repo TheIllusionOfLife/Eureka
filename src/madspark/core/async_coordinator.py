@@ -1139,7 +1139,6 @@ class AsyncCoordinator(BatchOperationsBase):
                     async_advocate_idea(
                         idea=idea_text,
                         evaluation=evaluation_detail,
-                        topic=topic,
                         context=context,
                         temperature=advocacy_temp,
                         use_structured_output=True
@@ -1155,7 +1154,6 @@ class AsyncCoordinator(BatchOperationsBase):
                     async_criticize_idea(
                         idea=idea_text,
                         advocacy=evaluation_detail,  # Use evaluation instead of advocacy output
-                        topic=topic,
                         context=context,
                         temperature=skepticism_temp,
                         use_structured_output=True
@@ -1227,7 +1225,7 @@ class AsyncCoordinator(BatchOperationsBase):
                         critique=evaluation_detail,
                         advocacy_points=advocacy_output,
                         skeptic_points=skepticism_output,
-                        topic=topic,
+                        topic=context,
                         temperature=idea_temp
                     )
                 ),
@@ -1255,7 +1253,7 @@ class AsyncCoordinator(BatchOperationsBase):
             try:
                 # Call critic with improved idea
                 improved_context = (
-                    f"{topic}\n"
+                    f"{context}\n"
                     f"[This is an IMPROVED version that addresses previous concerns]\n"
                     f"Original score: {candidate['score']}/10\n"
                     f"Key improvements made:\n"

@@ -14,9 +14,10 @@
 
 ### 2. ✅ Language Consistency in Multi-dimensional Evaluation
 - **Problem**: Multi-dimensional Analysis summaries didn't respond in user's input language
-- **Root Cause**: LANGUAGE_CONSISTENCY_INSTRUCTION wasn't being prepended to evaluation prompts
-- **Fix**: Modified MultiDimensionalEvaluator and LogicalInferenceEngine to include language instruction
-- **Status**: FIXED and TESTED with Japanese input
+- **Root Cause**: _generate_evaluation_summary() was hardcoded to return English text
+- **Fix**: Modified to use GenAI client with LANGUAGE_CONSISTENCY_INSTRUCTION
+- **Additional Fix**: Removed problematic GenerateContentConfig parameters causing None responses
+- **Status**: FIXED and CONFIRMED with Japanese input (August 6, 2025)
 
 ### 3. ✅ Logical Inference Field Parity
 - **Problem**: Mock mode returned different field structure than production mode

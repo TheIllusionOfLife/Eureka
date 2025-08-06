@@ -415,3 +415,12 @@ export const renderContent = (content: string | ContentStructure) => {
 - **Batch Function Return Format**: Batch functions return tuples `(results, token_count)` not just results
 - **Safe Module Patching**: Patch batch functions where they're imported (`batch_operations_base.BATCH_FUNCTIONS`), not where defined
 - **Timing Constraints for CI**: Relaxed concurrent execution tests from 0.15s to 0.25s threshold for CI reliability
+
+### PR #162: Parameter Standardization & Comprehensive Test Fixing (August 6, 2025)
+- **Comprehensive Parameter Standardization**: Successfully migrated entire codebase from `theme/constraints/criteria` to unified `topic/context` parameters across 62 files (3,739 additions, 886 deletions)
+- **Systematic CI Test Fix Protocol**: Developed 4-phase approach for fixing test failures after major refactoring - categorize failures, fix systematically, target correct mock paths, verify comprehensively
+- **Mock Path Targeting**: Critical insight that mocks must target actual production code paths, not indirection layers (e.g., mock `improve_ideas_batch` not `improve_idea` wrapper)
+- **Re-evaluation Bias Prevention**: Tests correctly validate that original context is preserved during re-evaluation to prevent inflated scores
+- **Logical Inference Integration**: Successfully integrated `logical_inference` parameter into structured output prompts when provided
+- **Test Coverage**: Added comprehensive test modules (test_parameter_standardization.py, test_reevaluation_bias.py, test_information_flow.py) for regression prevention
+- **Batch Function Compatibility**: Ensured all test mocks match expected return format of batch functions (tuple with results and token count), preventing test failures during batch operation refactoring and maintaining consistency across coordinator architectures

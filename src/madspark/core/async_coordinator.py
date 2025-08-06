@@ -552,7 +552,7 @@ class AsyncCoordinator(BatchOperationsBase):
         multi_dimensional_eval: bool = False,
         logical_inference: bool = False,
         reasoning_engine: Optional[ReasoningEngine] = None,
-        timeout: int = 600
+        timeout: int = 1200
     ) -> List[CandidateData]:
         """Run the complete async workflow with timeout support.
         

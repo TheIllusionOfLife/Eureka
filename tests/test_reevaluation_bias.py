@@ -8,8 +8,7 @@ This test suite ensures that:
 """
 import json
 import pytest
-from unittest.mock import Mock, patch, AsyncMock
-from typing import Dict, Any
+from unittest.mock import patch
 
 
 class TestReEvaluationContext:

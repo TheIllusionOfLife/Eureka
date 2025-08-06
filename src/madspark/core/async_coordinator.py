@@ -885,8 +885,8 @@ class AsyncCoordinator(BatchOperationsBase):
             if self.cache_manager:
                 # Reuse the cache_options from the beginning of the method
                 await self.cache_manager.cache_workflow_result(
-                    theme,
-                    constraints,
+                    topic,
+                    context,
                     cache_options,
                     {"candidates": final_candidates}
                 )
@@ -1129,7 +1129,7 @@ class AsyncCoordinator(BatchOperationsBase):
                     async_advocate_idea(
                         idea=idea_text,
                         evaluation=evaluation_detail,
-                        context=topic,
+                        context=context,
                         temperature=advocacy_temp,
                         use_structured_output=True
                     )
@@ -1144,7 +1144,7 @@ class AsyncCoordinator(BatchOperationsBase):
                     async_criticize_idea(
                         idea=idea_text,
                         advocacy=evaluation_detail,  # Use evaluation instead of advocacy output
-                        context=topic,
+                        context=context,
                         temperature=skepticism_temp,
                         use_structured_output=True
                     )
@@ -1166,7 +1166,7 @@ class AsyncCoordinator(BatchOperationsBase):
         # Handle advocacy result
         if isinstance(advocacy_output, asyncio.TimeoutError):
             logger.warning(f"Advocacy timed out for idea '{idea_text[:50]}...'. Using fallback.")
-            advocacy_output = f"This idea shows strong potential in addressing {topic}. Key strengths include practical implementation approach and alignment with constraints."
+            advocacy_output = f"This idea shows strong potential in addressing {context}. Key strengths include practical implementation approach and alignment with constraints."
             partial_failures.append({
                 "stage": "advocacy",
                 "error": "Timeout after 30 seconds",
@@ -1215,7 +1215,7 @@ class AsyncCoordinator(BatchOperationsBase):
                         critique=evaluation_detail,
                         advocacy_points=advocacy_output,
                         skeptic_points=skepticism_output,
-                        topic=topic,
+                        topic=context,
                         temperature=idea_temp
                     )
                 ),
@@ -1243,7 +1243,7 @@ class AsyncCoordinator(BatchOperationsBase):
             try:
                 # Call critic with improved idea
                 improved_context = (
-                    f"{topic}\n"
+                    f"{context}\n"
                     f"[This is an IMPROVED version that addresses previous concerns]\n"
                     f"Original score: {candidate['score']}/10\n"
                     f"Key improvements made:\n"
@@ -1274,7 +1274,7 @@ class AsyncCoordinator(BatchOperationsBase):
                         asyncio.wait_for(
                             reasoning_engine.multi_evaluator.evaluate_idea(
                                 idea=improved_idea_text,
-                                context={"theme": topic, "constraints": context}
+                                context={"theme": context, "constraints": constraints}
                             ),
                             timeout=30.0  # 30 second timeout for multi-dimensional evaluation
                         )

@@ -9,7 +9,6 @@ This test suite ensures that:
 import json
 import pytest
 from unittest.mock import Mock, patch
-from typing import Dict, Any
 
 
 class TestDisplayNames:
@@ -100,11 +99,11 @@ class TestBatchMultiDimensionalEvaluation:
         try:
             from src.madspark.engines.engine import engine
             if engine and hasattr(engine, 'multi_evaluator'):
-                has_multi_eval = True
+                pass  # has_multi_eval would be True
             else:
-                has_multi_eval = False
-        except:
-            has_multi_eval = False
+                pass  # has_multi_eval would be False
+        except Exception:
+            pass  # has_multi_eval would be False
         
         # Currently multi-dimensional evaluation is done one idea at a time
         # Future optimization: implement batch processing

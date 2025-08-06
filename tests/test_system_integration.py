@@ -68,7 +68,7 @@ class TestSystemIntegration:
         
         # Test with Japanese topic
         result = run_multistep_workflow(
-            context="人工知能",  # AI in Japanese
+            topic="人工知能",  # AI in Japanese
             context="医療応用"  # Medical applications
         )
         

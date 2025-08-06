@@ -153,7 +153,7 @@ class TestBatchReevaluationIntegration:
                 skepticism_temp=0.5,
                 idea_temp=0.9,
                 eval_temp=0.5,
-                context="Test constraints"
+                constraints="Test constraints"
             )
             
             # Should handle timeout gracefully and return estimated improvement

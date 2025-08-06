@@ -9,8 +9,7 @@ This test suite ensures that:
 import asyncio
 import time
 import pytest
-from unittest.mock import Mock, patch, AsyncMock
-from typing import List, Dict, Any
+from unittest.mock import patch
 
 
 class TestParallelAdvocacySkepticism:

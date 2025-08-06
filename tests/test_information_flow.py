@@ -8,8 +8,7 @@ This test suite ensures that:
 """
 import json
 import pytest
-from unittest.mock import Mock, patch, AsyncMock
-from typing import Dict, Any
+from unittest.mock import Mock, patch
 
 # Test data
 TEST_TOPIC = "renewable energy solutions"

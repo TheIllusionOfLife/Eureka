@@ -6,8 +6,6 @@ throughout all layers of the application.
 import pytest
 import json
 from unittest.mock import Mock, patch, AsyncMock
-import asyncio
-from typing import Dict, Any
 
 # Test data
 TEST_TOPIC = "sustainable urban farming"
@@ -58,7 +56,7 @@ class TestBackendParameterStandardization:
             mock_coordinator.return_value = mock_instance
             
             # Make request with topic/context
-            response = client.post("/api/generate-ideas", json={
+            client.post("/api/generate-ideas", json={
                 "topic": TEST_TOPIC,
                 "context": TEST_CONTEXT,
                 "num_top_candidates": 1

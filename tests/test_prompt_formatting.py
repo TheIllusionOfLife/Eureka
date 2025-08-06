@@ -9,7 +9,6 @@ This test suite ensures that:
 import json
 import pytest
 from unittest.mock import Mock, patch
-from typing import Dict, Any
 
 
 class TestStructuredIdeaGeneration:
@@ -30,7 +29,7 @@ class TestStructuredIdeaGeneration:
             })
             mock_client.models.generate_content.return_value = mock_response
             
-            result = generate_ideas(
+            generate_ideas(
                 topic="test topic",
                 context="test context",
                 temperature=0.7,
@@ -83,7 +82,7 @@ class TestStructuredEvaluation:
             ])
             mock_client.models.generate_content.return_value = mock_response
             
-            result = evaluate_ideas(
+            evaluate_ideas(
                 ideas="Idea 1\nIdea 2",
                 criteria="test criteria",
                 context="test context",

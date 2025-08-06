@@ -269,10 +269,10 @@ class TestCoordinatorLogicalInferenceIntegration:
         
         # Run multiple batch operations
         await self.coordinator._run_batch_logical_inference(
-            batch1_ideas, "theme1", "context1"
+            batch1_ideas, "topic1", "context1"
         )
         await self.coordinator._run_batch_logical_inference(
-            batch2_ideas, "theme2", "context2"
+            batch2_ideas, "topic2", "context2"
         )
         
         # Should be 2 API calls total (1 per batch), not 5 individual calls
@@ -317,7 +317,7 @@ class TestCoordinatorLogicalInferenceIntegration:
                 candidates, "theme", 0.7
             )
             logical_task = self.coordinator._run_batch_logical_inference(
-                ideas, "theme", "context"
+                ideas, "topic", "context"
             )
             
             advocacy_result, logical_result = await asyncio.gather(

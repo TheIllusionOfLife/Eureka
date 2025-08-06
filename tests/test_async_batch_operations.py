@@ -332,8 +332,8 @@ class TestAsyncBatchOperations:
         
         # Run workflow twice with same parameters
         params = {
-            "theme": "cached theme",
-            "constraints": "cached constraints",
+            "topic": "cached theme",
+            "context": "cached constraints",
             "num_top_candidates": 2
         }
         

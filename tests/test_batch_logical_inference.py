@@ -70,7 +70,7 @@ IMPROVEMENTS: Balance difficulty progression"""
         
         # Perform batch analysis
         results = inference_engine.analyze_batch(ideas=sample_ideas,
-            topic="mobile games",
+            theme="mobile games",
             context="simple development",
             analysis_type=InferenceType.FULL
         )
@@ -94,7 +94,7 @@ IMPROVEMENTS: Balance difficulty progression"""
     def test_analyze_batch_empty_list(self, inference_engine):
         """Test batch analysis with empty ideas list."""
         results = inference_engine.analyze_batch(ideas=[],
-            topic="test",
+            theme="test",
             context="test"
         )
         
@@ -106,7 +106,7 @@ IMPROVEMENTS: Balance difficulty progression"""
         mock_genai_client.models.generate_content.side_effect = RuntimeError("API Error")
         
         results = inference_engine.analyze_batch(ideas=sample_ideas,
-            topic="test",
+            theme="test",
             context="test"
         )
         
@@ -123,7 +123,7 @@ IMPROVEMENTS: Balance difficulty progression"""
         mock_genai_client.models.generate_content.return_value = mock_response
         
         results = inference_engine.analyze_batch(ideas=sample_ideas,
-            topic="test",
+            theme="test",
             context="test"
         )
         
@@ -154,7 +154,7 @@ Invalid content for remaining ideas..."""
         mock_genai_client.models.generate_content.return_value = mock_response
         
         results = inference_engine.analyze_batch(ideas=sample_ideas,
-            topic="test",
+            theme="test",
             context="test"
         )
         

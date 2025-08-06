@@ -4,10 +4,10 @@ This test suite ensures that all components respond in the same language
 as the user's input, addressing the issue where Multi-dimensional Analysis
 doesn't respond in the user's language.
 """
+import os
+import sys
 import pytest
 from unittest.mock import Mock, patch
-import sys
-import os
 
 # Add src to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))

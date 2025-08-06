@@ -53,7 +53,15 @@ except ImportError:
 
 # Create a shared thread pool executor for all async functions
 # This avoids the overhead of creating/destroying executors repeatedly
+import atexit
+
 _SHARED_EXECUTOR = concurrent.futures.ThreadPoolExecutor(max_workers=4)
+
+# Ensure threads are cleaned up on interpreter exit
+def _shutdown_shared_executor():
+    _SHARED_EXECUTOR.shutdown(wait=False)
+
+atexit.register(_shutdown_shared_executor)
 
 
 async def async_generate_ideas(topic: str, context: str, temperature: float = 0.9, cache_manager: Optional[CacheManager] = None, use_structured_output: bool = True) -> str:

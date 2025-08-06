@@ -4,10 +4,10 @@ This test suite ensures that both CLI and web interfaces use consistent
 field names for the same data, addressing the issue where field names
 differ between interfaces.
 """
+import os
+import sys
 import pytest
 from unittest.mock import Mock, patch
-import sys
-import os
 
 # Add src to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
@@ -141,7 +141,7 @@ class TestFieldNameStandardization:
         bookmark = manager.get_bookmark(bookmark_id)
         
         # Check internal field names
-        assert hasattr(bookmark, 'text')  # Internal storage uses 'text' attribute
+        assert getattr(bookmark, 'text', None) is not None  # Internal storage uses 'text' attribute
         # But the API should accept 'idea_text' for consistency
     
     def test_field_mapping_consistency(self):
@@ -226,9 +226,9 @@ IMPROVEMENTS: Test improvements"""
         )
         
         # Result fields should be consistent
-        assert hasattr(result, 'conclusion')
-        assert hasattr(result, 'confidence')
-        assert hasattr(result, 'inference_chain')
+        assert getattr(result, 'conclusion', None) is not None
+        assert getattr(result, 'confidence', None) is not None
+        assert getattr(result, 'inference_chain', None) is not None
     
     @pytest.mark.skipif(os.getenv('CI') == 'true', reason="Skipping in CI - requires FastAPI")
     def test_api_request_parameter_names(self):
@@ -272,15 +272,15 @@ IMPROVEMENTS: Test improvements"""
         # Check what names are currently used
         # Note: As of now, CLI still uses 'theme' and 'constraints'
         # This test documents the current state that needs to be fixed
-        if hasattr(args, 'theme'):
+        if getattr(args, 'theme', None) is not None:
             # Current state - needs to be fixed
             assert args.theme == 'topic text'
             assert args.constraints == 'context text'
             # This should be changed to use 'topic' and 'context'
         else:
             # Desired state after fix
-            assert hasattr(args, 'topic')
-            assert hasattr(args, 'context')
+            assert getattr(args, 'topic', None) is not None
+            assert getattr(args, 'context', None) is not None
             assert args.topic == 'topic text'
             assert args.context == 'context text'
 

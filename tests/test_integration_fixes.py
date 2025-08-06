@@ -9,9 +9,7 @@ This test suite verifies that all the fixes work together correctly:
 import pytest
 import os
 import sys
-import json
-import tempfile
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 
 # Add src to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
@@ -49,7 +47,8 @@ class TestIntegrationFixes:
         )
         
         # DuplicateCheckResult has has_duplicates attribute
-        assert duplicate_result.has_duplicates or len(duplicate_result.similar_bookmarks) > 0
+        # At least one similar bookmark should be found (the one we just added)
+        assert duplicate_result.has_duplicates is True or len(duplicate_result.similar_bookmarks) > 0
         
         # Find similar bookmarks using topic parameter
         similar = manager.find_similar_bookmarks(
@@ -107,7 +106,7 @@ CONFIDENCE: 0.85"""
         engine = LogicalInferenceEngine(genai_client=mock_client)
         
         # The analyze method should include language instruction
-        result = engine.analyze(
+        engine.analyze(
             idea="革新的なアイデア",
             topic="テーマ",
             context="制約条件",
@@ -167,7 +166,7 @@ IMPROVEMENTS: Add more detail"""
         
         # Mock all agent functions
         with patch('madspark.agents.idea_generator.generate_ideas') as mock_gen:
-            with patch('madspark.agents.evaluator.evaluate_ideas_batch') as mock_eval:
+            with patch('madspark.agents.critic.evaluate_ideas_batch') as mock_eval:
                 with patch('madspark.agents.advocate.advocate_for_ideas_batch') as mock_adv:
                     with patch('madspark.agents.idea_improver.improve_ideas_batch') as mock_imp:
                         with patch('madspark.agents.reevaluator.reevaluate_ideas_batch') as mock_reeval:
@@ -203,10 +202,14 @@ IMPROVEMENTS: Add more detail"""
                             assert 'improved_score' in result
                             assert 'score_delta' in result
     
+    @pytest.mark.skipif(os.getenv('CI') == 'true', reason="Skipping in CI - requires FastAPI")
     def test_web_api_bookmark_integration(self):
         """Test web API bookmark endpoint with fixed parameters."""
         # This would normally test the actual API, but we'll test the models
-        from main import BookmarkRequest
+        try:
+            from web.backend.main import BookmarkRequest
+        except ImportError:
+            pytest.skip("FastAPI not available")
         
         # Create request with standardized field names
         bookmark_req = BookmarkRequest(

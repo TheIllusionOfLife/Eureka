@@ -4,6 +4,7 @@ This module provides async execution capabilities for concurrent agent processin
 improving performance by running multiple agent calls in parallel.
 """
 import asyncio
+import concurrent.futures
 import logging
 from typing import List, Optional, Callable, Awaitable
 
@@ -52,7 +53,6 @@ except ImportError:
 
 # Create a shared thread pool executor for all async functions
 # This avoids the overhead of creating/destroying executors repeatedly
-import concurrent.futures
 _SHARED_EXECUTOR = concurrent.futures.ThreadPoolExecutor(max_workers=4)
 
 

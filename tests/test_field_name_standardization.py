@@ -5,10 +5,9 @@ field names for the same data, addressing the issue where field names
 differ between interfaces.
 """
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 import sys
 import os
-import json
 
 # Add src to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
@@ -25,41 +24,43 @@ class TestFieldNameStandardization:
         # regardless of where it's called from (CLI or web)
         
         with patch('madspark.agents.idea_generator.generate_ideas') as mock_gen:
-            with patch('madspark.agents.evaluator_agent.evaluate_ideas_batch') as mock_eval:
-                with patch('madspark.agents.advocate_agent.advocate_for_ideas_batch') as mock_adv:
+            with patch('madspark.agents.critic.evaluate_ideas_batch') as mock_eval:
+                with patch('madspark.agents.advocate.advocate_for_ideas_batch') as mock_adv:
                     with patch('madspark.agents.idea_improver.improve_ideas_batch') as mock_imp:
-                        # Setup mock returns
-                        mock_gen.return_value = (["Test idea 1"], 100)
-                        mock_eval.return_value = ([{"score": 7.5, "critique": "Good"}], 100)
-                        mock_adv.return_value = (["Strong advocacy"], 100)
-                        mock_imp.return_value = (["Improved idea 1"], 100)
-                        
-                        # Run coordinator
-                        results = run_multistep_workflow(
-                            topic="Test topic",
-                            context="Test context",
-                            num_candidates=1,
-                            novelty_filter=False,
-                            verbose=False
-                        )
-                        
-                        # Check standardized field names
-                        assert len(results) == 1
-                        result = results[0]
-                        
-                        # These should be the standardized field names
-                        assert 'idea' in result  # Original idea text
-                        assert 'initial_score' in result  # Initial evaluation score
-                        assert 'critique' in result  # Evaluation critique
-                        assert 'advocacy' in result  # Advocacy text
-                        assert 'improved_idea' in result  # Improved idea text
-                        assert 'improved_score' in result  # Re-evaluated score
-                        assert 'score_delta' in result  # Score improvement
-                        
-                        # These fields should NOT exist (old names)
-                        assert 'text' not in result  # Should be 'idea'
-                        assert 'theme' not in result  # Should be part of context, not in result
-                        assert 'constraints' not in result  # Should be part of context, not in result
+                        with patch('madspark.agents.reevaluator.reevaluate_ideas_batch') as mock_reeval:
+                            # Setup mock returns in correct format (tuple with token count)
+                            mock_gen.return_value = (["Test idea 1"], 100)
+                            mock_eval.return_value = ([{"score": 7.5, "critique": "Good"}], 100)
+                            mock_adv.return_value = (["Strong advocacy"], 100)
+                            mock_imp.return_value = (["Improved idea 1"], 100)
+                            mock_reeval.return_value = ([{"score": 8.5, "critique": "Better"}], 100)
+                            
+                            # Run coordinator
+                            results = run_multistep_workflow(
+                                topic="Test topic",
+                                context="Test context",
+                                num_candidates=1,
+                                novelty_filter=False,
+                                verbose=False
+                            )
+                            
+                            # Check standardized field names
+                            assert len(results) == 1
+                            result = results[0]
+                            
+                            # These should be the standardized field names
+                            assert 'idea' in result  # Original idea text
+                            assert 'initial_score' in result  # Initial evaluation score
+                            assert 'critique' in result  # Evaluation critique
+                            assert 'advocacy' in result  # Advocacy text
+                            assert 'improved_idea' in result  # Improved idea text
+                            assert 'improved_score' in result  # Re-evaluated score
+                            assert 'score_delta' in result  # Score improvement
+                            
+                            # These fields should NOT exist (old names)
+                            assert 'text' not in result  # Should be 'idea'
+                            assert 'theme' not in result  # Should be part of context, not in result
+                            assert 'constraints' not in result  # Should be part of context, not in result
     
     def test_cli_uses_standardized_field_names(self):
         """Test that CLI uses standardized field names when displaying results."""
@@ -89,7 +90,6 @@ class TestFieldNameStandardization:
     def test_web_api_response_field_names(self):
         """Test that web API returns standardized field names."""
         # This would normally test the actual API, but we'll test the response model
-        from web.backend.main import IdeaGenerationResponse
         
         # The response should use standardized field names
         mock_results = [
@@ -140,7 +140,9 @@ class TestFieldNameStandardization:
         # When data flows from coordinator -> CLI/Web -> Bookmark system,
         # field names should be mapped consistently
         
-        coordinator_output = {
+        # Expected output format (documenting for future standardization)
+        # This documents what the standardized output should look like
+        _ = {
             'idea': 'Original text',
             'improved_idea': 'Enhanced text',
             'initial_score': 7.0,
@@ -159,10 +161,21 @@ class TestFieldNameStandardization:
         from madspark.core.enhanced_reasoning import MultiDimensionalEvaluator
         
         mock_client = Mock()
-        mock_response = Mock()
-        # For single idea evaluation, mock should return single score
-        mock_response.text = "8"  # Single dimension score
-        mock_client.models.generate_content.return_value = mock_response
+        # Create separate mock responses for dimensions and summary
+        dimension_scores = ["8", "7", "9", "6", "8", "7", "8"]  # 7 dimensions
+        call_count = 0
+        
+        def mock_generate_content(model, contents):
+            nonlocal call_count
+            mock_response = Mock()
+            if call_count < len(dimension_scores):
+                mock_response.text = dimension_scores[call_count]
+            else:
+                mock_response.text = "Summary of evaluation"  # Summary call
+            call_count += 1
+            return mock_response
+        
+        mock_client.models.generate_content.side_effect = mock_generate_content
         
         evaluator = MultiDimensionalEvaluator(genai_client=mock_client)
         
@@ -172,10 +185,11 @@ class TestFieldNameStandardization:
             context={"topic": "Test", "context": "Test"}  # Should use topic/context
         )
         
-        # Result should have standardized dimension names
-        assert 'feasibility' in result
-        assert 'innovation' in result
-        assert 'impact' in result
+        # Result should have standardized dimension names in dimension_scores
+        assert 'dimension_scores' in result
+        assert 'feasibility' in result['dimension_scores']
+        assert 'innovation' in result['dimension_scores']
+        assert 'impact' in result['dimension_scores']
         
     def test_logical_inference_field_names(self):
         """Test that logical inference uses standardized field names."""
@@ -207,9 +221,13 @@ IMPROVEMENTS: Test improvements"""
         assert hasattr(result, 'confidence')
         assert hasattr(result, 'inference_chain')
     
+    @pytest.mark.skipif(os.getenv('CI') == 'true', reason="Skipping in CI - requires FastAPI")
     def test_api_request_parameter_names(self):
         """Test that API request models use standardized parameter names."""
-        from web.backend.main import IdeaGenerationRequest, BookmarkRequest
+        try:
+            from web.backend.main import IdeaGenerationRequest, BookmarkRequest
+        except ImportError:
+            pytest.skip("FastAPI not available")
         
         # IdeaGenerationRequest should use topic/context
         idea_req = IdeaGenerationRequest(
@@ -235,7 +253,6 @@ IMPROVEMENTS: Test improvements"""
         
     def test_cli_argument_names(self):
         """Test that CLI arguments use standardized names."""
-        import argparse
         from madspark.cli.cli import create_parser
         
         parser = create_parser()

@@ -2,7 +2,6 @@
 
 This test will help us understand what fields need to be added for parity.
 """
-import pytest
 from unittest.mock import Mock
 import sys
 import os
@@ -11,7 +10,6 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from madspark.core.enhanced_reasoning import LogicalInference
-from madspark.utils.logical_inference_engine import InferenceType
 
 
 def test_detailed_field_comparison():

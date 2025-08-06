@@ -4,7 +4,7 @@ This test suite ensures that logical inference returns consistent fields
 regardless of whether it's running in mock mode or with a real API.
 """
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock
 import sys
 import os
 
@@ -12,7 +12,6 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from madspark.utils.logical_inference_engine import LogicalInferenceEngine, InferenceResult, InferenceType
-from madspark.core.enhanced_reasoning import ReasoningEngine
 
 
 class TestLogicalInferenceFieldParity:

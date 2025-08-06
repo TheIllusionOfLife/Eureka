@@ -13,14 +13,12 @@ Usage:
 """
 import os
 import sys
-import json
-from datetime import datetime
 
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from madspark.utils.bookmark_system import BookmarkManager
-from madspark.core.enhanced_reasoning import MultiDimensionalEvaluator, LogicalInference
+from madspark.core.enhanced_reasoning import MultiDimensionalEvaluator
 from madspark.utils.logical_inference_engine import LogicalInferenceEngine, InferenceType
 from madspark.agents.genai_client import get_genai_client
 from madspark.core.coordinator import run_multistep_workflow

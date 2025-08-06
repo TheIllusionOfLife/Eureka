@@ -5,7 +5,7 @@ as the user's input, addressing the issue where Multi-dimensional Analysis
 doesn't respond in the user's language.
 """
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 import sys
 import os
 

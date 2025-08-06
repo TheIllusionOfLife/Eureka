@@ -220,6 +220,7 @@ class TestPromptEngineering:
             critique="Good but needs scale",
             advocacy_points="Clean energy",
             skeptic_points="High cost",
+            topic="renewable energy solutions",
             context="renewable energy"
         )
         

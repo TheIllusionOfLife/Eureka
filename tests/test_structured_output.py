@@ -32,6 +32,7 @@ class TestStructuredOutputImplementation:
             critique="Good but needs work",
             advocacy_points="Strong potential",
             skeptic_points="Some risks",
+            topic="test topic",
             context="innovation"
         )
         
@@ -202,6 +203,7 @@ CRITICAL OUTPUT REQUIREMENTS:
             critique="Critique",
             advocacy_points="Advocacy",
             skeptic_points="Skeptic",
+            topic="test topic",
             context="Theme"
         )
         

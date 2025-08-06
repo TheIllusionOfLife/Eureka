@@ -406,7 +406,8 @@ class TestLanguageMatching:
             "Critique feedback", 
             "Advocacy points",
             "Skeptic concerns",
-            "Theme"
+            "Theme",
+            "Test context"
         )
         assert "Please respond in the same language as this prompt" in prompt
         assert "Original idea" in prompt

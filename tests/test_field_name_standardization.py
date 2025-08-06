@@ -39,7 +39,7 @@ class TestFieldNameStandardization:
                         with patch('madspark.agents.reevaluator.reevaluate_ideas_batch') as mock_reeval:
                             # Setup mock returns in correct format (tuple with token count)
                             mock_gen.return_value = (["Test idea 1"], 100)
-                            mock_eval.return_value = ([{"score": 7.5, "critique": "Good"}], 100)
+                            # mock_eval is handled by mock_batch_funcs above
                             mock_adv.return_value = (["Strong advocacy"], 100)
                             mock_imp.return_value = (["Improved idea 1"], 100)
                             mock_reeval.return_value = ([{"score": 8.5, "critique": "Better"}], 100)

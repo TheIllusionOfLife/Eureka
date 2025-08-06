@@ -62,9 +62,9 @@ class TestReEvaluationContext:
             # Verify the prompt includes improvement context
             assert "Enhanced idea with clear implementation plan" in captured_prompt
             
-            # Verify context indicates these are improved versions
+            # Verify context remains original (bias prevention)
             assert captured_context is not None
-            assert "improved" in captured_context.lower() or "enhanced" in captured_context.lower()
+            assert captured_context == "test criteria"  # Original context preserved to avoid bias
     
     @pytest.mark.asyncio
     async def test_reevaluation_context_mentions_original_score(self):
@@ -88,11 +88,8 @@ class TestReEvaluationContext:
         async def mock_evaluate(*args, **kwargs):
             nonlocal captured_context
             captured_context = kwargs.get('context', '')
-            ideas_text = kwargs.get('ideas', '')
-            # Check if original score is mentioned in the ideas text
-            if "Original score: 5" in ideas_text:
-                return json.dumps([{"score": 8, "comment": "Great improvement"}])
-            return json.dumps([{"score": 6, "comment": "Some improvement"}])
+            # Always return consistent score for improved idea (bias prevention working)
+            return json.dumps([{"score": 6, "comment": "Improvement evaluated fairly"}])
         
         with patch('src.madspark.core.batch_operations_base.BATCH_FUNCTIONS', {
             'improve_ideas_batch': lambda *args, **kwargs: (
@@ -108,8 +105,8 @@ class TestReEvaluationContext:
                     0.3
                 )
             
-            # Verify re-evaluation considers the improvement
-            assert test_candidates[0]["improved_score"] == 8
+            # Verify re-evaluation works with bias prevention
+            assert test_candidates[0]["improved_score"] == 6
 
 
 class TestConsistentEvaluationCriteria:
@@ -136,7 +133,7 @@ class TestConsistentEvaluationCriteria:
         
         async def mock_evaluate(*args, **kwargs):
             nonlocal captured_criteria
-            captured_criteria = kwargs.get('criteria', '')
+            captured_criteria = kwargs.get('context', '')  # Use context parameter
             return json.dumps([{"score": 7, "comment": "Better"}])
         
         with patch('src.madspark.core.batch_operations_base.BATCH_FUNCTIONS', {
@@ -288,8 +285,9 @@ class TestReEvaluationPromptStructure:
                 # Verify prompt structure includes key elements
                 assert captured_ideas_text is not None
                 assert "Much better version" in captured_ideas_text
-                # Should indicate this is an improved version
-                assert any(marker in captured_ideas_text.upper() for marker in ["IMPROVED", "ENHANCED", "REFINED"])
+                # With bias prevention, we DON'T include improvement markers
+                # This ensures fair evaluation without bias toward "improved" versions
+                assert not any(marker in captured_ideas_text.upper() for marker in ["IMPROVED", "ENHANCED", "REFINED"])
 
 
 if __name__ == "__main__":

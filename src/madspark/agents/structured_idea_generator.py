@@ -45,6 +45,7 @@ def improve_idea_structured(
     skeptic_points: str,
     topic: str,
     context: str,
+    logical_inference: Optional[str] = None,
     temperature: float = 0.9,
     genai_client: Optional[Any] = None,
     model_name: str = "gemini-2.5-flash"
@@ -92,7 +93,13 @@ Professional Evaluation: {critique}
 
 Key Strengths: {advocacy_points}
 
-Critical Concerns: {skeptic_points}
+Critical Concerns: {skeptic_points}"""
+    
+    # Add logical inference if provided
+    if logical_inference:
+        prompt += f"\n\nLogical Analysis: {logical_inference}"
+    
+    prompt += """
 
 Task: Generate an improved version that:
 1. Addresses ALL evaluation criteria

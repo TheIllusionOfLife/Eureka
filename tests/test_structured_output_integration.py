@@ -52,13 +52,16 @@ class TestStructuredOutputIntegration:
         assert "blockchain-based renewable energy marketplace" in result
     
     @pytest.mark.skipif(os.getenv("MADSPARK_MODE") == "mock", reason="Test requires full mock control")
-    @patch('madspark.utils.agent_retry_wrappers.improve_idea')
-    def test_coordinator_uses_clean_improved_ideas(self, mock_improve_idea):
+    @patch('madspark.agents.idea_generator.improve_ideas_batch')
+    def test_coordinator_uses_clean_improved_ideas(self, mock_improve_ideas_batch):
         """Test that coordinator receives clean improved ideas."""
         from madspark.core.coordinator import run_multistep_workflow
         
-        # Mock clean improved idea (no meta-commentary)
-        mock_improve_idea.return_value = "A peer-to-peer energy trading platform using smart contracts for automated transactions"
+        # Mock clean improved idea (no meta-commentary) - batch function returns list of dicts
+        mock_improve_ideas_batch.return_value = (
+            [{"improved_idea": "A peer-to-peer energy trading platform using smart contracts for automated transactions"}], 
+            100  # token count
+        )
         
         # Mock other agent functions
         with patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry') as mock_generator:

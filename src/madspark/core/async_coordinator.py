@@ -787,7 +787,7 @@ class AsyncCoordinator(BatchOperationsBase):
                         try:
                             multi_eval_result = engine.multi_evaluator.evaluate_idea(
                                 idea=idea_text,
-                                context={"theme": topic, "constraints": context}
+                                context={"topic": topic, "context": context}
                             )
                             
                             # Store the multi-dimensional evaluation data
@@ -1286,7 +1286,7 @@ class AsyncCoordinator(BatchOperationsBase):
                         asyncio.wait_for(
                             reasoning_engine.multi_evaluator.evaluate_idea(
                                 idea=improved_idea_text,
-                                context={"theme": topic, "constraints": context}
+                                context={"topic": topic, "context": context}
                             ),
                             timeout=30.0  # 30 second timeout for multi-dimensional evaluation
                         )

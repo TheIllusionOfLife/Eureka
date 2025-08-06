@@ -372,7 +372,7 @@ class BookmarkManager:
             tags = []
         
         # Check for duplicates first
-        duplicate_check = self.check_for_duplicates(idea_text, theme)
+        duplicate_check = self.check_for_duplicates(idea_text, topic)
         
         result = {
             'duplicate_check': {
@@ -411,7 +411,7 @@ class BookmarkManager:
         if should_save or force_save:
             # Save the bookmark
             bookmark_id = self.bookmark_idea(
-                idea_text, theme, constraints, score, 
+                idea_text, topic, context, score, 
                 critique, advocacy, skepticism, tags
             )
             result['bookmark_created'] = True

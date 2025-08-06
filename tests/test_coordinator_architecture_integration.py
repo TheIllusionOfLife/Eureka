@@ -316,7 +316,7 @@ class TestCoordinatorLogicalInferenceIntegration:
             
             # Run operations concurrently
             advocacy_task = self.coordinator._process_candidates_with_batch_advocacy(
-                candidates, "theme", 0.7
+                candidates, "topic", "context", 0.7
             )
             logical_task = self.coordinator._run_batch_logical_inference(
                 ideas, "topic", "context"

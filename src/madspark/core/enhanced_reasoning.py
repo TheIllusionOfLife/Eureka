@@ -298,12 +298,30 @@ class LogicalInference:
             
         validity_score = self._calculate_validity_score(steps, premises)
         
+        # Create InferenceResult for consistency with production mode
+        from madspark.utils.logical_inference_engine import InferenceResult
+        
+        # Build inference chain from steps
+        inference_chain = []
+        for step in steps:
+            inference_chain.append(f"[Step]: {step.reasoning}")
+        
+        # Create mock InferenceResult with same structure as production
+        mock_result = InferenceResult(
+            inference_chain=inference_chain if inference_chain else ["[Step]: Rule-based inference applied"],
+            conclusion=final_conclusion,
+            confidence=overall_confidence,
+            improvements="Consider using AI-powered inference for more detailed analysis"
+        )
+        
+        # Return consistent structure with production mode
         return {
             'steps': [{'premise': s.premise, 'conclusion': s.conclusion, 
                       'confidence': s.confidence, 'reasoning': s.reasoning} for s in steps],
             'conclusion': final_conclusion,
             'confidence_score': overall_confidence,
-            'validity_score': validity_score
+            'validity_score': validity_score,
+            'inference_result': mock_result  # Add this for parity with production mode
         }
         
     def analyze_consistency(self, statements: List[str]) -> Dict[str, Any]:

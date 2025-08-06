@@ -1024,8 +1024,8 @@ def main():
         try:
             session_data = run_interactive_mode()
             # Update args with interactive session data
-            args.theme = session_data['theme']
-            args.constraints = session_data['constraints']
+            args.theme = session_data['topic']
+            args.constraints = session_data['context']
             
             # Update args with config from interactive session
             config = session_data['config']
@@ -1154,8 +1154,8 @@ def main():
         
         # Extract common workflow arguments to avoid duplication
         workflow_kwargs = {
-            "theme": args.theme,
-            "constraints": args.constraints,
+            "topic": args.theme,  # Map theme to topic for consistency
+            "context": args.constraints,  # Map constraints to context for consistency
             "num_top_candidates": num_candidates,
             "enable_novelty_filter": not args.disable_novelty_filter,
             "novelty_threshold": args.similarity_threshold if args.similarity_threshold is not None else args.novelty_threshold,
@@ -1239,8 +1239,8 @@ def main():
                     
                     bookmark_id = manager.bookmark_idea(
                         idea_text=idea_text,
-                        theme=args.theme,
-                        constraints=args.constraints,
+                        topic=args.theme,
+                        context=args.constraints,
                         score=score,
                         critique=critique,
                         advocacy=result.get("advocacy", ""),

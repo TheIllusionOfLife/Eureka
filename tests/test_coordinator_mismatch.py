@@ -79,9 +79,8 @@ class TestCoordinatorMismatchIssue:
             caplog.set_level(logging.WARNING)
             
             # Run workflow (results not used, we're testing warnings)
-            _ = run_multistep_workflow(
-                theme="Test Theme",
-                constraints="Test Constraints",
+            _ = run_multistep_workflow(topic="Test Theme",
+                context="Test Constraints",
                 num_top_candidates=3,
                 enable_novelty_filter=False,
                 verbose=True  # Enable verbose to see warnings
@@ -158,9 +157,8 @@ The remaining ideas are more challenging to evaluate without additional context.
             } for i in range(len(ideas))], 100)
             
             # Run workflow
-            results = run_multistep_workflow(
-                theme="Test",
-                constraints="Test",
+            results = run_multistep_workflow(topic="Test",
+                context="Test",
                 num_top_candidates=2,
                 enable_novelty_filter=False,
                 verbose=False

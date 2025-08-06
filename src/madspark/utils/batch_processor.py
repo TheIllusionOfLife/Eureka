@@ -255,8 +255,8 @@ class BatchProcessor:
             # Run workflow
             logger.info(f"Processing: {item.theme}")
             result = await coordinator.run_workflow(
-                theme=item.theme,
-                constraints=item.constraints,
+                topic=item.theme,  # Map theme to topic
+                context=item.constraints,  # Map constraints to context
                 num_top_candidates=item.num_candidates,
                 temperature_manager=temp_manager,
                 **workflow_options
@@ -297,8 +297,8 @@ class BatchProcessor:
             # Run workflow
             logger.info(f"Processing: {item.theme}")
             result = run_multistep_workflow(
-                theme=item.theme,
-                constraints=item.constraints,
+                topic=item.theme,  # Map theme to topic
+                context=item.constraints,  # Map constraints to context
                 num_top_candidates=item.num_candidates,
                 temperature_manager=temp_manager,
                 **workflow_options

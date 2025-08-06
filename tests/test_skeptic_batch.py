@@ -37,7 +37,7 @@ class TestSkepticBatch:
             "advocacy": "STRENGTHS:\n• Innovative\n• High impact\n\nOPPORTUNITIES:\n• Market leader"
         }]
         
-        results, token_usage = criticize_ideas_batch(ideas_with_advocacies, "Education technology", 0.5)
+        results, token_usage = criticize_ideas_batch(ideas_with_advocacies, "Education", "Education technology", 0.5)
         
         assert len(results) == 1
         assert isinstance(token_usage, int)
@@ -92,7 +92,7 @@ class TestSkepticBatch:
             {"idea": "Auto grading", "advocacy": "Efficiency gains"}
         ]
         
-        results, token_usage = criticize_ideas_batch(ideas_with_advocacies, "EdTech", 0.5)
+        results, token_usage = criticize_ideas_batch(ideas_with_advocacies, "EdTech", "EdTech", 0.5)
         
         assert len(results) == 3
         assert isinstance(token_usage, int)
@@ -111,7 +111,7 @@ class TestSkepticBatch:
     @patch('madspark.agents.skeptic.skeptic_client')
     def test_criticize_ideas_batch_empty_list(self, mock_client):
         """Test batch skeptic with empty list."""
-        results, token_usage = criticize_ideas_batch([], "Test context", 0.5)
+        results, token_usage = criticize_ideas_batch([], "test topic", "Test context", 0.5)
         
         assert results == []
         assert token_usage == 0
@@ -132,7 +132,7 @@ class TestSkepticBatch:
         ideas = [{"idea": "Test", "advocacy": "Test advocacy"}]
         
         with pytest.raises(RuntimeError, match="Batch skeptic failed: Expected 1 criticisms, got 0"):
-            criticize_ideas_batch(ideas, "Test", 0.5)
+            criticize_ideas_batch(ideas, "Test", "Test", 0.5)
     
     @patch('madspark.agents.skeptic.GENAI_AVAILABLE', True)
     @patch('madspark.agents.skeptic.skeptic_client')
@@ -145,7 +145,7 @@ class TestSkepticBatch:
         ideas = [{"idea": "Test", "advocacy": "Test advocacy"}]
         
         with pytest.raises(RuntimeError, match="Batch skeptic failed"):
-            criticize_ideas_batch(ideas, "Test", 0.5)
+            criticize_ideas_batch(ideas, "Test", "Test", 0.5)
     
     @patch('madspark.agents.skeptic.GENAI_AVAILABLE', True)
     @patch('madspark.agents.skeptic.skeptic_client')
@@ -166,7 +166,7 @@ class TestSkepticBatch:
         mock_client.models.generate_content.return_value = mock_response
         
         ideas = [{"idea": "Test idea", "advocacy": "Good points"}]
-        results, token_usage = criticize_ideas_batch(ideas, "Test", 0.5)
+        results, token_usage = criticize_ideas_batch(ideas, "Test", "Test", 0.5)
         
         assert isinstance(token_usage, int)
         assert "formatted" in results[0]
@@ -186,7 +186,7 @@ class TestSkepticBatch:
             {"idea": "Test idea 2", "advocacy": "Better"}
         ]
         
-        results, token_usage = criticize_ideas_batch(ideas, "Test context", 0.5)
+        results, token_usage = criticize_ideas_batch(ideas, "test topic", "Test context", 0.5)
         
         # Should return mock data
         assert len(results) == 2
@@ -204,7 +204,7 @@ class TestSkepticBatch:
             ideas = [{"idea": "Test", "advocacy": "Test"}]
             
             # Should return mock results when client is None
-            results, token_usage = criticize_ideas_batch(ideas, "Test", 0.5)
+            results, token_usage = criticize_ideas_batch(ideas, "Test", "Test", 0.5)
             assert len(results) == 1
             assert token_usage == 0
             assert "critical_flaws" in results[0]
@@ -213,8 +213,8 @@ class TestSkepticBatch:
         """Test that input validation works correctly."""
         # Test with non-dict item
         with pytest.raises(ValueError, match="must be a dictionary"):
-            criticize_ideas_batch(["not a dict"], "Test", 0.5)
+            criticize_ideas_batch(["not a dict"], "Test", "Test", 0.5)
         
         # Test with missing keys
         with pytest.raises(ValueError, match="must have 'idea' and 'advocacy' keys"):
-            criticize_ideas_batch([{"idea": "Test"}], "Test", 0.5)
+            criticize_ideas_batch([{"idea": "Test"}], "Test", "Test", 0.5)

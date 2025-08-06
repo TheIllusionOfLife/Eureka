@@ -88,9 +88,8 @@ def test_coordinator_mock_mode():
         from madspark.core.coordinator import run_workflow
         
         # This should handle missing API key gracefully
-        result = run_workflow(
-            theme="test sustainable energy",
-            constraints="test constraints",
+        result = run_workflow(topic="test sustainable energy",
+            context="test constraints",
             num_candidates=1,
             temperature=0.7,
             enhanced_reasoning=False,

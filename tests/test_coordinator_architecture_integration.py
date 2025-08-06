@@ -3,6 +3,7 @@
 This module tests that both async and batch coordinators work identically
 after architecture unification, with no regressions in functionality.
 """
+import os
 import pytest
 import asyncio
 from unittest.mock import Mock, patch, AsyncMock
@@ -63,14 +64,15 @@ class TestCoordinatorArchitectureIntegration:
             
             # This should use the shared batch operations
             result = await self.async_coordinator._process_candidates_with_batch_advocacy(
-                candidates, "renewable energy", 0.7
+                candidates, "renewable energy", "sustainable solutions", 0.7
             )
             
             # Verify batch operation was called
             mock_batch.assert_called_once_with(
                 'advocate_ideas_batch',
-                self.async_coordinator.prepare_advocacy_input(candidates),
+                self.async_coordinator.prepare_advocacy_input_with_context(candidates),
                 "renewable energy",
+                "sustainable solutions",  # context parameter
                 0.7
             )
             
@@ -103,7 +105,7 @@ class TestCoordinatorArchitectureIntegration:
             mock_batch.return_value = (mock_skepticism_results, 1000)
             
             result = await self.async_coordinator._process_candidates_with_batch_skepticism(
-                candidates, "clean transportation", 0.8
+                candidates, "clean transportation", "sustainable options", 0.8
             )
             
             # Verify correct input preparation
@@ -111,7 +113,8 @@ class TestCoordinatorArchitectureIntegration:
             mock_batch.assert_called_once_with(
                 'criticize_ideas_batch',
                 expected_input,
-                "clean transportation", 
+                "clean transportation",
+                "sustainable options", 
                 0.8
             )
             
@@ -139,15 +142,16 @@ class TestCoordinatorArchitectureIntegration:
             mock_batch.return_value = (mock_improvement_results, 2000)
             
             result = await self.async_coordinator._process_candidates_with_batch_improvement(
-                candidates, "energy infrastructure", 0.75
+                candidates, "energy infrastructure", "test context", 0.75
             )
             
             # Verify proper input preparation
-            expected_input = self.async_coordinator.prepare_improvement_input(candidates)
+            expected_input = self.async_coordinator.prepare_improvement_input_with_context(candidates)
             mock_batch.assert_called_once_with(
                 'improve_ideas_batch',
                 expected_input,
-                "energy infrastructure",
+                "energy infrastructure",  # topic
+                "test context",  # context
                 0.75
             )
             
@@ -269,10 +273,10 @@ class TestCoordinatorLogicalInferenceIntegration:
         
         # Run multiple batch operations
         await self.coordinator._run_batch_logical_inference(
-            batch1_ideas, "theme1", "context1"
+            batch1_ideas, "topic1", "context1"
         )
         await self.coordinator._run_batch_logical_inference(
-            batch2_ideas, "theme2", "context2"
+            batch2_ideas, "topic2", "context2"
         )
         
         # Should be 2 API calls total (1 per batch), not 5 individual calls
@@ -314,10 +318,10 @@ class TestCoordinatorLogicalInferenceIntegration:
             
             # Run operations concurrently
             advocacy_task = self.coordinator._process_candidates_with_batch_advocacy(
-                candidates, "theme", 0.7
+                candidates, "topic", "context", 0.7
             )
             logical_task = self.coordinator._run_batch_logical_inference(
-                ideas, "theme", "context"
+                ideas, "topic", "context"
             )
             
             advocacy_result, logical_result = await asyncio.gather(
@@ -334,6 +338,10 @@ class TestCoordinatorLogicalInferenceIntegration:
 
 
 @pytest.mark.integration
+@pytest.mark.skipif(
+    not os.getenv("GOOGLE_API_KEY") or os.getenv("MADSPARK_MODE") == "mock", 
+    reason="Requires real Google API key and non-mock mode"
+)
 class TestRealAPIIntegration:
     """Integration tests with real API endpoints (when available)."""
     

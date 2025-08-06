@@ -16,9 +16,20 @@ def parse_idea_generator_response(ideas_text: str) -> List[str]:
         # Try to parse as JSON first (structured output)
         ideas_json = json.loads(ideas_text)
         
+        # Handle different JSON structures
+        if isinstance(ideas_json, dict) and 'ideas' in ideas_json:
+            # New structured format with "ideas" key
+            ideas_list = ideas_json['ideas']
+        elif isinstance(ideas_json, list):
+            # Direct list of ideas
+            ideas_list = ideas_json
+        else:
+            # Single idea object - wrap in list
+            ideas_list = [ideas_json]
+        
         # Extract ideas from structured format
         parsed_ideas = []
-        for idea_obj in ideas_json:
+        for idea_obj in ideas_list:
             # Build a formatted idea string from the structured data
             idea_number = idea_obj.get('idea_number')
             title = idea_obj.get('title', 'Untitled')

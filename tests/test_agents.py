@@ -183,7 +183,7 @@ class TestAdvocate:
         mock_response.text = "STRENGTHS:\n• Mock strength 1\n• Mock strength 2"
         mock_client.models.generate_content.return_value = mock_response
         
-        result = advocate_idea(str(sample_idea), "positive evaluation with high potential", "technology startup context")
+        result = advocate_idea(str(sample_idea), "positive evaluation with high potential", "technology", "startup context")
         
         assert result is not None
         assert isinstance(result, str)
@@ -213,7 +213,7 @@ class TestSkeptic:
         mock_response.text = "CRITICAL FLAWS:\n• Mock flaw 1\n• Mock flaw 2"
         mock_client.models.generate_content.return_value = mock_response
         
-        result = criticize_idea(str(sample_idea), "strong advocacy arguments with market potential", "technology startup context")
+        result = criticize_idea(str(sample_idea), "strong advocacy arguments with market potential", "technology", "startup context")
         
         assert result is not None
         assert isinstance(result, str)
@@ -238,7 +238,7 @@ class TestAgentIntegration:
         
         # Test with None input - these should raise ValueError, so we need to catch them
         try:
-            _ = evaluate_ideas(None, "criteria", "context")
+            _ = evaluate_ideas(None, "topic", "context")
             assert False, "Should have raised ValueError"
         except ValueError:
             pass  # Expected behavior
@@ -327,7 +327,7 @@ class TestLanguageMatching:
         mock_client.models.generate_content.return_value = mock_response
         
         # French input
-        result = advocate_idea("Intelligence artificielle", "Évaluation positive", "Contexte technologique")
+        result = advocate_idea("Intelligence artificielle", "Évaluation positive", "Contexte", "technologique")
         
         # Verify the function was called and prompt contains language instruction
         mock_client.models.generate_content.assert_called_once()
@@ -347,7 +347,7 @@ class TestLanguageMatching:
         mock_client.models.generate_content.return_value = mock_response
         
         # German input
-        result = criticize_idea("Künstliche Intelligenz", "Positive Argumente", "Technologischer Kontext")
+        result = criticize_idea("Künstliche Intelligenz", "Positive Argumente", "Technologischer", "Kontext")
         
         # Verify the function was called and prompt contains language instruction
         mock_client.models.generate_content.assert_called_once()
@@ -372,19 +372,19 @@ class TestLanguageMatching:
         
         # Test French
         with patch('madspark.agents.advocate.GENAI_AVAILABLE', False):
-            result = advocate_idea("Idée test", "Évaluation", "Contexte", use_structured_output=False)
+            result = advocate_idea("Idée test", "Évaluation", "test topic", "Contexte", use_structured_output=False)
             assert "FORCES:" in result
             assert "Force factice" in result
         
         # Test German - Note: ö overlaps with French chars so this will show French
         with patch('madspark.agents.skeptic.GENAI_AVAILABLE', False):
-            result = criticize_idea("Test Idee", "Befürwortung", "Größe", use_structured_output=False)  # "Größe" has ö
+            result = criticize_idea("Test Idee", "Befürwortung", "test topic", "Größe", use_structured_output=False)  # "Größe" has ö
             # Due to character overlap, this will be detected as French
             assert "DÉFAUTS CRITIQUES:" in result or "KRITISCHE SCHWÄCHEN:" in result
         
         # Test English fallback
         with patch('madspark.agents.advocate.GENAI_AVAILABLE', False):
-            result = advocate_idea("Test idea", "Evaluation", "Context", use_structured_output=False)
+            result = advocate_idea("Test idea", "Evaluation", "test topic", "Context", use_structured_output=False)
             assert "STRENGTHS:" in result
             assert "Mock strength" in result
     
@@ -406,7 +406,8 @@ class TestLanguageMatching:
             "Critique feedback", 
             "Advocacy points",
             "Skeptic concerns",
-            "Theme"
+            "Theme",
+            "Test context"
         )
         assert "Please respond in the same language as this prompt" in prompt
         assert "Original idea" in prompt

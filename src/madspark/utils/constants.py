@@ -51,9 +51,10 @@ CRITICAL OUTPUT REQUIREMENTS:
 # Agent system instructions
 CRITIC_SYSTEM_INSTRUCTION = (
     "You are an expert critic. Evaluate the given ideas based on the"
-    " provided criteria and context. Provide constructive feedback and"
-    " identify potential weaknesses. Always respond in the same language"
-    " as the input provided."
+    " provided criteria and context. Provide detailed, constructive feedback"
+    " that thoroughly analyzes strengths, weaknesses, and potential improvements."
+    " Your evaluation should be comprehensive and actionable."
+    " Always respond in the same language as the input provided."
 )
 
 ADVOCATE_SYSTEM_INSTRUCTION = (

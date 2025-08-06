@@ -286,7 +286,7 @@ class TestBatchOperationsIntegration:
             
             improvement_input = self.batch_ops.prepare_improvement_input(candidates)
             batch_results = await self.batch_ops.run_batch_with_timeout(
-                'improve_ideas_batch', improvement_input, "theme", 0.7
+                'improve_ideas_batch', improvement_input, "theme", "context", 0.7
             )
             updated = self.batch_ops.update_candidates_with_batch_results(
                 candidates, batch_results, 'improved_text'

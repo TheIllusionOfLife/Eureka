@@ -90,7 +90,7 @@ class LogicalInferenceEngine:
     def analyze(
         self,
         idea: str,
-        theme: str,
+        topic: str,
         context: str,
         analysis_type: Union[InferenceType, str] = InferenceType.FULL
     ) -> InferenceResult:
@@ -99,7 +99,7 @@ class LogicalInferenceEngine:
         
         Args:
             idea: The generated idea to analyze
-            theme: Original theme/topic
+            topic: Original topic/topic
             context: Constraints and requirements
             analysis_type: Type of analysis to perform
             
@@ -112,7 +112,7 @@ class LogicalInferenceEngine:
         
         try:
             # Get appropriate prompt
-            prompt = self.prompts[analysis_type](idea, theme, context)
+            prompt = self.prompts[analysis_type](idea, topic, context)
             
             # Call LLM using proper API pattern
             from madspark.agents.genai_client import get_model_name
@@ -142,7 +142,7 @@ class LogicalInferenceEngine:
     def analyze_batch(
         self,
         ideas: List[str],
-        theme: str,
+        topic: str,
         context: str,
         analysis_type: Union[InferenceType, str] = InferenceType.FULL
     ) -> List[InferenceResult]:
@@ -154,7 +154,7 @@ class LogicalInferenceEngine:
         
         Args:
             ideas: List of generated ideas to analyze
-            theme: Original theme/topic
+            topic: Original topic
             context: Constraints and requirements
             analysis_type: Type of analysis to perform
             
@@ -170,7 +170,7 @@ class LogicalInferenceEngine:
         
         try:
             # Create batch prompt for all ideas
-            batch_prompt = self._get_batch_analysis_prompt(ideas, theme, context, analysis_type)
+            batch_prompt = self._get_batch_analysis_prompt(ideas, topic, context, analysis_type)
             
             # Call LLM using proper API pattern
             from madspark.agents.genai_client import get_model_name
@@ -205,7 +205,7 @@ class LogicalInferenceEngine:
     def _get_batch_analysis_prompt(
         self, 
         ideas: List[str], 
-        theme: str, 
+        topic: str, 
         context: str, 
         analysis_type: InferenceType
     ) -> str:
@@ -217,7 +217,7 @@ class LogicalInferenceEngine:
         if analysis_type == InferenceType.FULL:
             return f"""Perform comprehensive logical analysis on these {len(ideas)} ideas.
 
-Theme: {theme}
+Theme: {topic}
 Context/Constraints: {context}
 {ideas_section}
 
@@ -225,7 +225,7 @@ For each idea, provide a structured logical analysis following this exact format
 
 === ANALYSIS_FOR_IDEA_1 ===
 INFERENCE_CHAIN:
-- [Step 1]: [First logical step explaining why this addresses the theme]
+- [Step 1]: [First logical step explaining why this addresses the topic]
 - [Step 2]: [Next logical deduction or observation]
 - [Step 3]: [Further reasoning building on previous steps]
 - [Step N]: [Final logical step leading to conclusion]
@@ -249,7 +249,7 @@ Important:
 - Use the exact format with === ANALYSIS_FOR_IDEA_N === separators"""
         
         # Add other analysis types as needed
-        return self._get_full_analysis_prompt(ideas[0], theme, context)  # Fallback to single analysis
+        return self._get_full_analysis_prompt(ideas[0], topic, context)  # Fallback to single analysis
     
     def _parse_batch_response(
         self, 
@@ -301,18 +301,18 @@ Important:
         
         return results
     
-    def _get_full_analysis_prompt(self, idea: str, theme: str, context: str) -> str:
+    def _get_full_analysis_prompt(self, idea: str, topic: str, context: str) -> str:
         """Generate prompt for full logical analysis."""
         return f"""Perform comprehensive logical analysis on this idea.
 
-Theme: {theme}
+Theme: {topic}
 Context/Constraints: {context}
 Idea: {idea}
 
 Provide a structured logical analysis following this exact format:
 
 INFERENCE_CHAIN:
-- [Step 1]: [First logical step explaining why this addresses the theme]
+- [Step 1]: [First logical step explaining why this addresses the topic]
 - [Step 2]: [Next logical deduction or observation]
 - [Step 3]: [Further reasoning building on previous steps]
 - [Step N]: [Final logical step leading to conclusion]
@@ -329,11 +329,11 @@ Important:
 - Base confidence on logical consistency and how well constraints are satisfied
 - Suggest concrete improvements based on logical gaps identified"""
     
-    def _get_causal_analysis_prompt(self, idea: str, theme: str, context: str) -> str:
+    def _get_causal_analysis_prompt(self, idea: str, topic: str, context: str) -> str:
         """Generate prompt for causal reasoning analysis."""
         return f"""Analyze the causal relationships in this idea.
 
-Theme: {theme}
+Theme: {topic}
 Context: {context}
 Idea: {idea}
 
@@ -351,11 +351,11 @@ ROOT_CAUSE: [Identify the fundamental cause that makes this idea necessary]
 
 Trace the complete causal chain from root causes to final outcomes."""
     
-    def _get_constraint_analysis_prompt(self, idea: str, theme: str, context: str) -> str:
+    def _get_constraint_analysis_prompt(self, idea: str, topic: str, context: str) -> str:
         """Generate prompt for constraint satisfaction analysis."""
         return f"""Analyze how well this idea satisfies the given constraints.
 
-Theme: {theme}
+Theme: {topic}
 Constraints: {context}
 Idea: {idea}
 
@@ -374,11 +374,11 @@ TRADE_OFFS:
 
 Evaluate each constraint separately and explain the degree of satisfaction."""
     
-    def _get_contradiction_analysis_prompt(self, idea: str, theme: str, context: str) -> str:
+    def _get_contradiction_analysis_prompt(self, idea: str, topic: str, context: str) -> str:
         """Generate prompt for contradiction detection."""
         return f"""Identify any logical contradictions in this idea.
 
-Theme: {theme}
+Theme: {topic}
 Context: {context}
 Idea: {idea}
 
@@ -400,11 +400,11 @@ RESOLUTION:
 NO_CONTRADICTIONS: True
 Explanation: [Why the idea is logically consistent]"""
     
-    def _get_implications_analysis_prompt(self, idea: str, theme: str, context: str) -> str:
+    def _get_implications_analysis_prompt(self, idea: str, topic: str, context: str) -> str:
         """Generate prompt for implications analysis."""
         return f"""Analyze the logical implications and consequences of this idea.
 
-Theme: {theme}
+Theme: {topic}
 Context: {context}
 Idea: {idea}
 

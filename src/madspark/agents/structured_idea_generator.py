@@ -43,7 +43,9 @@ def improve_idea_structured(
     critique: str,
     advocacy_points: str,
     skeptic_points: str,
-    theme: str,
+    topic: str,
+    context: str,
+    logical_inference: Optional[str] = None,
     temperature: float = 0.9,
     genai_client: Optional[Any] = None,
     model_name: str = "gemini-2.5-flash"
@@ -58,7 +60,7 @@ def improve_idea_structured(
         critique: The critic's evaluation
         advocacy_points: The advocate's bullet points
         skeptic_points: The skeptic's concerns
-        theme: The original theme for context
+        context: The original context for improvement
         temperature: Controls randomness (0.0-1.0)
         genai_client: Optional GenAI client instance
         model_name: Model to use for generation
@@ -78,10 +80,12 @@ def improve_idea_structured(
     _validate_non_empty_string(critique, 'critique')
     _validate_non_empty_string(advocacy_points, 'advocacy_points')
     _validate_non_empty_string(skeptic_points, 'skeptic_points')
-    _validate_non_empty_string(theme, 'theme')
+    _validate_non_empty_string(topic, 'topic')
+    _validate_non_empty_string(context, 'context')
     
     # Build focused prompt
-    prompt = f"""Theme: {theme}
+    prompt = f"""Topic: {topic}
+Context: {context}
 
 Original Idea: {original_idea}
 
@@ -89,7 +93,13 @@ Professional Evaluation: {critique}
 
 Key Strengths: {advocacy_points}
 
-Critical Concerns: {skeptic_points}
+Critical Concerns: {skeptic_points}"""
+    
+    # Add logical inference if provided
+    if logical_inference:
+        prompt += f"\n\nLogical Analysis: {logical_inference}"
+    
+    prompt += """
 
 Task: Generate an improved version that:
 1. Addresses ALL evaluation criteria
@@ -101,7 +111,7 @@ Write ONLY the improved idea. No introductions, no meta-commentary."""
     
     if not GENAI_AVAILABLE or genai_client is None:
         # Mock response for testing
-        return f"A revolutionary {theme} solution that addresses all feedback points through innovative implementation."
+        return f"A revolutionary {context} solution that addresses all feedback points through innovative implementation."
     
     try:
         # Configure for structured output
@@ -128,18 +138,18 @@ Write ONLY the improved idea. No introductions, no meta-commentary."""
                 logging.warning("Response was not valid JSON, using raw text")
                 return response.text
         else:
-            return f"An enhanced {theme} approach incorporating all feedback."
+            return f"An enhanced {context} approach incorporating all feedback."
             
     except (AttributeError, ValueError, KeyError, json.JSONDecodeError) as e:
         # Handle specific expected errors from API or JSON parsing
         logging.error(f"Error in structured idea improvement: {e}")
         # Return a reasonable fallback
-        return f"An innovative {theme} solution that balances all stakeholder concerns."
+        return f"An innovative {context} solution that balances all stakeholder concerns."
     except Exception as e:
         # Log unexpected errors but still return a fallback for robustness
         # This allows the main improve_idea to decide whether to retry with original implementation
         logging.error(f"Unexpected error in structured improvement: {e}")
-        return f"An enhanced {theme} solution addressing the provided feedback."
+        return f"An enhanced {context} solution addressing the provided feedback."
 
 
 def generate_ideas_structured(

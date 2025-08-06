@@ -77,7 +77,7 @@ def test_real_api():
                 # Perform analysis
                 result = engine.analyze(
                     idea=test['idea'],
-                    theme=test['theme'],
+                    topic=test['theme'],
                     context=test['context'],
                     analysis_type=test['analysis_type']
                 )

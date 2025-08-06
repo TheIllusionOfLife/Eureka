@@ -253,7 +253,7 @@ class LogicalInference:
             # Perform LLM-based inference
             result = self.inference_engine.analyze(
                 idea=idea,
-                theme=theme or "General reasoning",
+                topic=theme or "General reasoning",
                 context=context or "Logical analysis",
                 analysis_type=analysis_type
             )

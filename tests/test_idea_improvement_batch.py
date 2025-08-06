@@ -37,7 +37,7 @@ class TestIdeaImprovementBatch:
             "skepticism": "Implementation complexity"
         }]
         
-        results, token_usage = improve_ideas_batch(ideas_with_feedback, "Education tech", 0.9)
+        results, token_usage = improve_ideas_batch(ideas_with_feedback, "Education tech", "Online learning context", 0.9)
         
         assert len(results) == 1
         assert results[0]["idea_index"] == 0
@@ -98,7 +98,7 @@ class TestIdeaImprovementBatch:
             }
         ]
         
-        results, token_usage = improve_ideas_batch(ideas_with_feedback, "EdTech", 0.9)
+        results, token_usage = improve_ideas_batch(ideas_with_feedback, "EdTech", "Technology in education", 0.9)
         
         assert len(results) == 3
         assert isinstance(token_usage, int)
@@ -114,7 +114,7 @@ class TestIdeaImprovementBatch:
     @patch('madspark.agents.idea_generator.idea_generator_client')
     def test_improve_ideas_batch_empty_list(self, mock_client):
         """Test batch improvement with empty list."""
-        results, token_usage = improve_ideas_batch([], "Test context", 0.9)
+        results, token_usage = improve_ideas_batch([], "Test topic", "Test context", 0.9)
         
         assert results == []
         assert token_usage == 0
@@ -140,7 +140,7 @@ class TestIdeaImprovementBatch:
         }]
         
         with pytest.raises(RuntimeError, match="Batch improvement failed: Expected 1 improvements, got 0"):
-            improve_ideas_batch(ideas, "Test", 0.9)
+            improve_ideas_batch(ideas, "Test topic", "Test context", 0.9)
     
     @patch('madspark.agents.idea_generator.GENAI_AVAILABLE', True)
     @patch('madspark.agents.idea_generator.idea_generator_client')
@@ -158,7 +158,7 @@ class TestIdeaImprovementBatch:
         }]
         
         with pytest.raises(RuntimeError, match="Batch improvement failed"):
-            improve_ideas_batch(ideas, "Test", 0.9)
+            improve_ideas_batch(ideas, "Test topic", "Test context", 0.9)
     
     @patch('madspark.agents.idea_generator.GENAI_AVAILABLE', False)
     def test_improve_ideas_batch_mock_mode(self):
@@ -178,7 +178,7 @@ class TestIdeaImprovementBatch:
             }
         ]
         
-        results, token_usage = improve_ideas_batch(ideas, "Test context", 0.9)
+        results, token_usage = improve_ideas_batch(ideas, "Test topic", "Test context", 0.9)
         
         # Should return mock data
         assert len(results) == 2
@@ -199,7 +199,7 @@ class TestIdeaImprovementBatch:
             }]
             
             # Should return mock results when client is None
-            results, token_usage = improve_ideas_batch(ideas, "Test", 0.9)
+            results, token_usage = improve_ideas_batch(ideas, "Test topic", "Test context", 0.9)
             assert len(results) == 1
             assert "improved_idea" in results[0]
     
@@ -207,11 +207,11 @@ class TestIdeaImprovementBatch:
         """Test that input validation works correctly."""
         # Test with non-dict item
         with pytest.raises(ValueError, match="must be a dictionary"):
-            improve_ideas_batch(["not a dict"], "Test", 0.9)
+            improve_ideas_batch(["not a dict"], "Test topic", "Test context", 0.9)
         
         # Test with missing keys
         with pytest.raises(ValueError, match="must have 'idea', 'critique', 'advocacy', and 'skepticism' keys"):
-            improve_ideas_batch([{"idea": "Test"}], "Test", 0.9)
+            improve_ideas_batch([{"idea": "Test"}], "Test topic", "Test context", 0.9)
         
         # Test with partial keys
         with pytest.raises(ValueError, match="must have 'idea', 'critique', 'advocacy', and 'skepticism' keys"):
@@ -220,7 +220,7 @@ class TestIdeaImprovementBatch:
                 "critique": "Test",
                 "advocacy": "Test"
                 # Missing skepticism
-            }], "Test", 0.9)
+            }], "Test topic", "Test context", 0.9)
     
     @patch('madspark.agents.idea_generator.GENAI_AVAILABLE', True)
     @patch('madspark.agents.idea_generator.idea_generator_client')
@@ -257,7 +257,7 @@ class TestIdeaImprovementBatch:
             {"idea": "C", "critique": "C", "advocacy": "A", "skepticism": "S"}
         ]
         
-        results, token_usage = improve_ideas_batch(ideas, "Test", 0.9)
+        results, token_usage = improve_ideas_batch(ideas, "Test topic", "Test context", 0.9)
         
         # Results should be sorted by idea_index
         assert results[0]["idea_index"] == 0

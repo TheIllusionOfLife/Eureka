@@ -4,11 +4,11 @@
 
 ## Overview
 
-The MadSpark Multi-Agent System supports batch processing, allowing you to generate ideas for multiple themes simultaneously. This is perfect for:
+The MadSpark Multi-Agent System supports batch processing, allowing you to generate ideas for multiple topics simultaneously. This is perfect for:
 - Exploring variations of a concept
 - Processing multiple client requests
 - Generating ideas across different domains
-- A/B testing different constraints
+- A/B testing different contexts
 
 ## Quick Start
 
@@ -30,15 +30,15 @@ python cli.py --batch sample_batch.csv
 Create a CSV file with the following columns:
 
 ```csv
-theme,constraints,temperature_preset,num_candidates,tags
+topic,context,temperature_preset,num_candidates,tags
 "AI in healthcare","Budget-friendly, implementable within 6 months",balanced,2,"healthcare,ai,budget"
 "Sustainable urban farming","Small spaces, minimal water usage",creative,3,"sustainability,urban,farming"
 "Remote education technology","Works offline, accessible to all ages",conservative,2,"education,remote,accessibility"
 ```
 
 **Column Descriptions:**
-- `theme` (required): The main topic for idea generation
-- `constraints` (optional): Specific requirements or limitations
+- `topic` (required): The main topic for idea generation
+- `context` (optional): Specific requirements or limitations
 - `temperature_preset` (optional): One of: conservative, balanced, creative, wild
 - `num_candidates` (optional): Number of top ideas to fully process (1-5)
 - `tags` (optional): Comma-separated tags for organization
@@ -50,8 +50,8 @@ For more complex configurations, use JSON:
 ```json
 [
   {
-    "theme": "AI in healthcare",
-    "constraints": "Budget-friendly, HIPAA compliant",
+    "topic": "AI in healthcare",
+    "context": "Budget-friendly, HIPAA compliant",
     "temperature_preset": "balanced",
     "num_candidates": 2,
     "enhanced_reasoning": true,
@@ -59,8 +59,8 @@ For more complex configurations, use JSON:
     "tags": ["healthcare", "ai", "compliance"]
   },
   {
-    "theme": "Green energy solutions",
-    "constraints": "Residential scale",
+    "topic": "Green energy solutions",
+    "context": "Residential scale",
     "temperature": 0.8,
     "num_candidates": 3,
     "logical_inference": true,
@@ -113,12 +113,12 @@ python cli.py --batch input.csv --verbose > batch_log.txt 2>&1
 Batch results are saved as:
 ```
 batch_export_dir/
-├── item_001_[theme_slug]/
+├── item_001_[topic_slug]/
 │   ├── results.json
 │   ├── results.csv
 │   ├── results.md
 │   └── results.pdf
-├── item_002_[theme_slug]/
+├── item_002_[topic_slug]/
 │   └── ...
 └── batch_summary.json
 ```
@@ -135,7 +135,7 @@ The `batch_summary.json` contains:
   "timestamp": "2025-07-14T12:00:00",
   "items": [
     {
-      "theme": "AI in healthcare",
+      "topic": "AI in healthcare",
       "status": "success",
       "ideas_generated": 2,
       "processing_time": 42.1,
@@ -166,7 +166,7 @@ The `batch_summary.json` contains:
 ```bash
 # Create research batch file
 cat > research_topics.csv << EOF
-theme,constraints,temperature_preset,num_candidates,tags
+topic,context,temperature_preset,num_candidates,tags
 "Quantum computing applications","Practical, near-term",balanced,3,"quantum,research"
 "Biotechnology breakthroughs","Ethical, sustainable",creative,3,"biotech,research"
 "Space exploration tech","Cost-effective",conservative,2,"space,research"

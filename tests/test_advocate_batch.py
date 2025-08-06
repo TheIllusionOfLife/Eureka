@@ -36,7 +36,7 @@ class TestAdvocateBatch:
             "evaluation": "Score: 8/10. Strong concept with good feasibility."
         }]
         
-        results, token_usage = advocate_ideas_batch(ideas_with_evaluations, "Education technology", 0.5)
+        results, token_usage = advocate_ideas_batch(ideas_with_evaluations, "Education", "Education technology", 0.5)
         
         assert len(results) == 1
         assert results[0]["idea_index"] == 0
@@ -86,7 +86,7 @@ class TestAdvocateBatch:
             {"idea": "Auto grading", "evaluation": "Score: 9/10"}
         ]
         
-        results, token_usage = advocate_ideas_batch(ideas_with_evaluations, "EdTech", 0.5)
+        results, token_usage = advocate_ideas_batch(ideas_with_evaluations, "EdTech", "EdTech", 0.5)
         
         assert len(results) == 3
         assert isinstance(token_usage, int)
@@ -103,7 +103,7 @@ class TestAdvocateBatch:
     @patch('madspark.agents.advocate.advocate_client')
     def test_advocate_ideas_batch_empty_list(self, mock_client):
         """Test batch advocate with empty list."""
-        results, token_usage = advocate_ideas_batch([], "Test context", 0.5)
+        results, token_usage = advocate_ideas_batch([], "test topic", "Test context", 0.5)
         
         assert results == []
         assert token_usage == 0
@@ -124,7 +124,7 @@ class TestAdvocateBatch:
         ideas = [{"idea": "Test", "evaluation": "Test eval"}]
         
         # Should recover with placeholder data
-        results, token_usage = advocate_ideas_batch(ideas, "Test", 0.5)
+        results, token_usage = advocate_ideas_batch(ideas, "Test", "Test", 0.5)
         
         # Should return placeholder advocacy
         assert len(results) == 1
@@ -146,7 +146,7 @@ class TestAdvocateBatch:
         
         from madspark.utils.batch_exceptions import BatchAPIError
         with pytest.raises(BatchAPIError, match="Batch advocate failed"):
-            advocate_ideas_batch(ideas, "Test", 0.5)
+            advocate_ideas_batch(ideas, "Test", "Test", 0.5)
     
     @patch('madspark.agents.advocate.GENAI_AVAILABLE', True)
     @patch('madspark.agents.advocate.advocate_client')
@@ -166,7 +166,7 @@ class TestAdvocateBatch:
         mock_client.models.generate_content.return_value = mock_response
         
         ideas = [{"idea": "Test idea", "evaluation": "Good"}]
-        results, token_usage = advocate_ideas_batch(ideas, "Test", 0.5)
+        results, token_usage = advocate_ideas_batch(ideas, "Test", "Test", 0.5)
         
         assert isinstance(token_usage, int)
         assert "formatted" in results[0]
@@ -185,7 +185,7 @@ class TestAdvocateBatch:
             {"idea": "Test idea 2", "evaluation": "Better"}
         ]
         
-        results, token_usage = advocate_ideas_batch(ideas, "Test context", 0.5)
+        results, token_usage = advocate_ideas_batch(ideas, "test topic", "Test context", 0.5)
         
         # Should return mock data
         assert len(results) == 2
@@ -202,7 +202,7 @@ class TestAdvocateBatch:
             ideas = [{"idea": "Test", "evaluation": "Test"}]
             
             # Should return mock results when client is None
-            results, token_usage = advocate_ideas_batch(ideas, "Test", 0.5)
+            results, token_usage = advocate_ideas_batch(ideas, "Test", "Test", 0.5)
             assert len(results) == 1
             assert token_usage == 0  # Mock mode
             assert "strengths" in results[0]

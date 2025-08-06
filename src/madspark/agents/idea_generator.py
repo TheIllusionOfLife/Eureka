@@ -6,7 +6,7 @@ and contextual information.
 """
 import json
 import logging
-from typing import Any, List, Dict, Tuple
+from typing import Any, List, Dict, Tuple, Optional
 
 from madspark.utils.utils import parse_batch_json_with_fallback
 from madspark.utils.batch_exceptions import BatchParsingError
@@ -77,7 +77,7 @@ def _validate_non_empty_string(value: Any, param_name: str) -> None:
     raise ValidationError(f"Input '{param_name}' must be a non-empty string.")
 
 
-def build_generation_prompt(topic: str, context: str) -> str:
+def build_generation_prompt(topic: str, context: str, use_structured_output: bool = False) -> str:
   """Builds a prompt for generating ideas based on user input and context.
 
   Args:
@@ -105,8 +105,22 @@ SPECIAL GUIDANCE FOR BROAD TOPICS:
 
 """
   
-  # Use a clean template-based approach for better readability (KISS principle)
-  prompt_template = f"""{LANGUAGE_CONSISTENCY_INSTRUCTION}Use the user's main prompt and context below to {IDEA_GENERATION_INSTRUCTION}.
+  # Use different prompts for structured vs unstructured output
+  if use_structured_output:
+    # Simpler prompt when using structured output - no formatting instructions needed
+    prompt_template = f"""{LANGUAGE_CONSISTENCY_INSTRUCTION}Generate creative and innovative ideas based on the topic and context provided.
+Focus on practical, actionable ideas that address the user's needs.
+{broad_topic_guidance}
+Topic:
+{topic}
+
+Context:
+{context}
+
+Generate 5 diverse ideas that are innovative, practical, and directly address the topic within the given context."""
+  else:
+    # Legacy prompt with formatting instructions for text output
+    prompt_template = f"""{LANGUAGE_CONSISTENCY_INSTRUCTION}Use the user's main prompt and context below to {IDEA_GENERATION_INSTRUCTION}.
 Make sure the ideas are actionable and innovative.
 
 IMPORTANT FORMAT REQUIREMENTS:
@@ -162,7 +176,7 @@ def generate_ideas(topic: str, context: str, temperature: float = 0.9, use_struc
   _validate_non_empty_string(topic, 'topic')
   _validate_non_empty_string(context, 'context')
 
-  prompt: str = build_generation_prompt(topic=topic, context=context)
+  prompt: str = build_generation_prompt(topic=topic, context=context, use_structured_output=use_structured_output)
   
   if not GENAI_AVAILABLE or idea_generator_client is None:
     # Return mock response for CI/testing environments or when API key is not configured
@@ -250,7 +264,9 @@ def build_improvement_prompt(
     critique: str, 
     advocacy_points: str, 
     skeptic_points: str, 
-    theme: str
+    topic: str,
+    context: str,
+    logical_inference: Optional[str] = None
 ) -> str:
   """Builds a prompt for improving an idea based on feedback.
   
@@ -259,19 +275,38 @@ def build_improvement_prompt(
     critique: The critic's evaluation of the idea.
     advocacy_points: The advocate's structured bullet points.
     skeptic_points: The skeptic's structured concerns.
-    theme: The original theme/topic for context.
+    topic: The main topic/theme for the idea.
+    context: The constraints or additional context for improvement.
+    logical_inference: Optional logical analysis results to inform improvement.
     
   Returns:
     A formatted prompt string for idea improvement.
   """
+  # Build logical inference section if provided
+  logical_section = ""
+  if logical_inference:
+    logical_section = f"LOGICAL INFERENCE ANALYSIS:\n{logical_inference}\n\n"
+  
+  # Build logical inference guidance if provided
+  logical_guidance = ""
+  if logical_inference:
+    logical_guidance = "- Use logical reasoning insights to enhance coherence and address any logical gaps\n"
+  
+  # Build logical inference instruction if provided
+  logical_instruction = ""
+  if logical_inference:
+    logical_instruction = "6. Incorporates insights from the logical inference analysis\n"
+  
   return (
       "You are helping to enhance an innovative idea based on comprehensive feedback.\n" +
       LANGUAGE_CONSISTENCY_INSTRUCTION +
-      f"ORIGINAL THEME: {theme}\n\n"
+      f"TOPIC: {topic}\n"
+      f"CONTEXT: {context}\n\n"
       f"ORIGINAL IDEA:\n{original_idea}\n\n"
       f"EVALUATION CRITERIA AND FEEDBACK:\n{critique}\n"
       f"Pay special attention to the specific scores and criteria mentioned above. "
       f"Your improved version should directly address any low-scoring areas while maintaining high-scoring aspects.\n\n"
+      f"{logical_section}"
       f"STRENGTHS TO PRESERVE AND BUILD UPON:\n{advocacy_points}\n\n"
       f"CONCERNS TO ADDRESS WITH SOLUTIONS:\n{skeptic_points}\n\n"
       f"Generate an IMPROVED version of this idea that:\n"
@@ -279,13 +314,15 @@ def build_improvement_prompt(
       f"2. Maintains and amplifies the identified strengths\n"
       f"3. Provides concrete solutions for each concern raised\n"
       f"4. Remains bold, creative, and ambitious\n"
-      f"5. Shows clear improvements in the areas that scored lower\n\n"
+      f"5. Shows clear improvements in the areas that scored lower\n"
+      f"{logical_instruction}\n"
       f"IMPORTANT GUIDELINES:\n"
       f"- If feasibility scored low, add specific implementation steps\n"
       f"- If innovation scored low, add unique differentiating features\n"
       f"- If cost-effectiveness scored low, optimize resource usage\n"
       f"- If scalability scored low, design for growth\n"
-      f"- Keep all positive aspects while fixing weaknesses\n\n"
+      f"- Keep all positive aspects while fixing weaknesses\n"
+      f"{logical_guidance}"
       f"FORMAT REQUIREMENTS:\n"
       f"- Start directly with your improved idea (no meta-commentary)\n"
       f"- Present the idea in 2-3 clear, focused paragraphs\n"
@@ -323,7 +360,9 @@ def improve_idea(
     critique: str,
     advocacy_points: str,
     skeptic_points: str,
-    theme: str,
+    topic: str,
+    context: str,
+    logical_inference: Optional[str] = None,
     temperature: float = 0.9
 ) -> str:
   """Improves an idea based on feedback from multiple agents.
@@ -336,7 +375,9 @@ def improve_idea(
     critique: The critic's evaluation.
     advocacy_points: The advocate's bullet points.
     skeptic_points: The skeptic's concerns.
-    theme: The original theme for context.
+    topic: The main topic/theme for the idea.
+    context: The constraints or additional context for improvement.
+    logical_inference: Optional logical analysis results to inform improvement.
     temperature: Controls randomness in generation (0.0-1.0). 
                  Default 0.9 to maintain creativity.
     
@@ -357,7 +398,9 @@ def improve_idea(
         critique=critique,
         advocacy_points=advocacy_points,
         skeptic_points=skeptic_points,
-        theme=theme,
+        topic=topic,
+        context=context,
+        logical_inference=logical_inference,
         temperature=temperature,
         genai_client=idea_generator_client,
         model_name=model_name
@@ -376,14 +419,17 @@ def improve_idea(
   _validate_non_empty_string(critique, 'critique')
   _validate_non_empty_string(advocacy_points, 'advocacy_points')
   _validate_non_empty_string(skeptic_points, 'skeptic_points')
-  _validate_non_empty_string(theme, 'theme')
+  _validate_non_empty_string(topic, 'topic')
+  _validate_non_empty_string(context, 'context')
   
   prompt: str = build_improvement_prompt(
       original_idea=original_idea,
       critique=critique,
       advocacy_points=advocacy_points,
       skeptic_points=skeptic_points,
-      theme=theme
+      topic=topic,
+      context=context,
+      logical_inference=logical_inference
   )
   
   if not GENAI_AVAILABLE or idea_generator_client is None:
@@ -446,7 +492,8 @@ def improve_idea(
 
 def improve_ideas_batch(
     ideas_with_feedback: List[Dict[str, str]], 
-    theme: str, 
+    topic: str,
+    context: str, 
     temperature: float = 0.9
 ) -> Tuple[List[Dict[str, Any]], int]:
   """Batch improvement for multiple ideas in a single API call.
@@ -455,8 +502,10 @@ def improve_ideas_batch(
   in one request instead of making N separate calls.
   
   Args:
-    ideas_with_feedback: List of dicts with 'idea', 'critique', 'advocacy', and 'skepticism' keys
-    theme: Overall theme/context for improvement
+    ideas_with_feedback: List of dicts with 'idea', 'critique', 'advocacy', 'skepticism' keys
+                        and optional 'logical_inference' key
+    topic: The main topic/theme for the ideas
+    context: The constraints or additional context for improvement
     temperature: Generation temperature (0.0-1.0)
     
   Returns:
@@ -483,24 +532,31 @@ def improve_ideas_batch(
   # Build batch prompt
   items_text = []
   for i, item in enumerate(ideas_with_feedback):
+    # Build logical inference section if available
+    logical_section = ""
+    if item.get('logical_inference'):
+      logical_section = f"\n\nLOGICAL INFERENCE ANALYSIS:\n{item['logical_inference']}"
+    
     items_text.append(
       f"IDEA {i+1}:\n{item['idea']}\n\n"
       f"CRITIQUE:\n{item['critique']}\n\n"
       f"ADVOCACY:\n{item['advocacy']}\n\n"
-      f"SKEPTICISM:\n{item['skepticism']}"
+      f"SKEPTICISM:\n{item['skepticism']}{logical_section}"
     )
   
   # Define newline for use in f-string
   newline = '\n'
   prompt = (
       LANGUAGE_CONSISTENCY_INSTRUCTION +
-      f"Theme: {theme}\n\n"
+      f"Topic: {topic}\n"
+      f"Context: {context}\n\n"
       f"{newline.join(items_text)}\n\n"
       "For EACH idea above, create an improved version that:\n"
       "1. Addresses ALL critique points\n"
       "2. Maintains the advocated strengths\n"
       "3. Provides solutions for skeptic concerns\n"
-      "4. Remains bold and creative\n\n"
+      "4. Incorporates insights from logical inference analysis (when provided)\n"
+      "5. Remains bold and creative\n\n"
       "Return improvements in this exact JSON format:\n"
       "{\n"
       '  "idea_index": <0-based index>,\n'

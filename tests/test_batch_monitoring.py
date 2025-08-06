@@ -234,9 +234,8 @@ class TestBatchIntegration:
         # Run coordinator
         from madspark.core.coordinator_batch import run_multistep_workflow_batch
         
-        results = run_multistep_workflow_batch(
-            theme="Test Theme",
-            constraints="Test Constraints", 
+        results = run_multistep_workflow_batch(topic="Test Theme",
+            context="Test Constraints", 
             num_top_candidates=1,
             verbose=False
         )
@@ -280,9 +279,8 @@ class TestBatchIntegration:
             
             from madspark.core.coordinator_batch import run_multistep_workflow_batch
             
-            results = run_multistep_workflow_batch(
-                theme="Test Theme",
-                constraints="Test Constraints",
+            results = run_multistep_workflow_batch(topic="Test Theme",
+                context="Test Constraints",
                 num_top_candidates=1,
                 verbose=False
             )

@@ -59,7 +59,7 @@ class TestBatchReevaluationIntegration:
             # Call the actual re-evaluation logic
             eval_result = await async_evaluate_ideas(
                 ideas=improved_ideas_text,
-                criteria="Test criteria",
+                topic="Test topic",
                 context="Re-evaluation after improvements",
                 temperature=0.5,
                 use_structured_output=True
@@ -119,7 +119,7 @@ class TestBatchReevaluationIntegration:
             
             # Process candidates with batch improvement
             result = await coordinator._process_candidates_with_batch_improvement(
-                candidates, "Test theme", temp_manager.get_temperature_for_stage("idea_generation")
+                candidates, "Test theme", "test context", temp_manager.get_temperature_for_stage("idea_generation")
             )
             
             # Should handle partial failure gracefully
@@ -148,12 +148,12 @@ class TestBatchReevaluationIntegration:
             # Process single candidate with correct parameters
             result = await coordinator._process_single_candidate(
                 candidate,
-                theme="Test theme",
+                topic="Test theme",
                 advocacy_temp=0.5,
                 skepticism_temp=0.5,
                 idea_temp=0.9,
                 eval_temp=0.5,
-                constraints="Test constraints"
+                context="Test constraints"
             )
             
             # Should handle timeout gracefully and return estimated improvement

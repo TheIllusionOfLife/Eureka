@@ -84,8 +84,8 @@ class TestStructuredOutputEndToEnd:
                     mock_critic.return_value = '[{"score": 8, "comment": "Good idea"}]'
                     
                     results = run_multistep_workflow_batch(
-                        theme='Test theme',
-                        constraints='Test constraints',
+                        topic='Test theme',
+                        context='Test constraints',
                         num_top_candidates=1,
                         verbose=False
                     )

@@ -46,7 +46,8 @@ class TestStructuredIdeaGeneration:
             critique="Needs better tracking",
             advocacy_points="Great community aspect",
             skeptic_points="Security concerns",
-            theme="renewable energy",
+            topic="renewable energy solutions",
+            context="renewable energy",
             genai_client=mock_client
         )
         
@@ -70,7 +71,8 @@ class TestStructuredIdeaGeneration:
             critique="Needs work",
             advocacy_points="Good start",
             skeptic_points="Some issues",
-            theme="energy",
+            topic="energy solutions",
+            context="energy",
             genai_client=mock_client
         )
         
@@ -85,7 +87,8 @@ class TestStructuredIdeaGeneration:
                 critique="Good",
                 advocacy_points="Nice",
                 skeptic_points="Issues",
-                theme="test"
+                topic="test topic",
+                context="test"
             )
     
     @patch('madspark.agents.structured_idea_generator.GENAI_AVAILABLE', False)
@@ -96,7 +99,8 @@ class TestStructuredIdeaGeneration:
             critique="Needs improvement",
             advocacy_points="Has potential",
             skeptic_points="Some concerns",
-            theme="innovation"
+            topic="innovation ideas",
+            context="innovation"
         )
         
         # Should return mock response
@@ -129,7 +133,8 @@ class TestStructuredIdeaGeneration:
                 critique="Critique",
                 advocacy_points="Advocacy",
                 skeptic_points="Skeptic",
-                theme="Theme",
+                topic="Test topic",
+                context="Theme",
                 genai_client=mock_client
             )
             

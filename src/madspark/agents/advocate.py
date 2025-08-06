@@ -40,13 +40,14 @@ else:
     model_name = "mock-model"
 
 
-def advocate_idea(idea: str, evaluation: str, context: str, temperature: float = 0.5, use_structured_output: bool = True) -> str:
-  """Advocates for an idea using its evaluation and context via the advocate model.
+def advocate_idea(idea: str, evaluation: str, topic: str, context: str, temperature: float = 0.5, use_structured_output: bool = True) -> str:
+  """Advocates for an idea using its evaluation, topic, and context via the advocate model.
 
   Args:
     idea: The idea to advocate for.
     evaluation: The evaluation received for the idea (e.g., from a critic).
-    context: Additional context relevant for building the advocacy.
+    topic: The main topic or theme being explored.
+    context: Additional constraints or criteria for evaluation.
     temperature: Controls randomness in generation (0.0-1.0). Balanced for argumentation.
     use_structured_output: Whether to use structured JSON output (default: True)
 
@@ -55,21 +56,24 @@ def advocate_idea(idea: str, evaluation: str, context: str, temperature: float =
     returns JSON string. Otherwise, returns formatted text for backward compatibility.
     Returns a placeholder string if the model provides no content.
   Raises:
-    ValueError: If idea, evaluation, or context are empty or invalid.
+    ValueError: If idea, evaluation, topic, or context are empty or invalid.
   """
   if not isinstance(idea, str) or not idea.strip():
     raise ValueError("Input 'idea' to advocate_idea must be a non-empty string.")
   if not isinstance(evaluation, str) or not evaluation.strip():
     raise ValueError("Input 'evaluation' to advocate_idea must be a non-empty string.")
+  if not isinstance(topic, str) or not topic.strip():
+    raise ValueError("Input 'topic' to advocate_idea must be a non-empty string.")
   if not isinstance(context, str) or not context.strip():
     raise ValueError("Input 'context' to advocate_idea must be a non-empty string.")
 
   prompt: str = (
       LANGUAGE_CONSISTENCY_INSTRUCTION +
+      f"Topic: {topic}\n"
+      f"Context/Constraints: {context}\n\n"
       f"Here's an idea:\n{idea}\n\n"
       f"Here's its evaluation:\n{evaluation}\n\n"
-      f"And the context:\n{context}\n\n"
-      "Build a strong case for this idea. Format your response as follows:\n\n"
+      "Build a strong case for this idea considering the topic and context. Format your response as follows:\n\n"
       "STRENGTHS:\n"
       "• [specific strength 1]\n"
       "• [specific strength 2]\n"
@@ -152,6 +156,7 @@ def advocate_idea(idea: str, evaluation: str, context: str, temperature: float =
 
 def advocate_ideas_batch(
     ideas_with_evaluations: List[Dict[str, str]], 
+    topic: str,
     context: str, 
     temperature: float = 0.5
 ) -> Tuple[List[Dict[str, Any]], int]:
@@ -162,7 +167,8 @@ def advocate_ideas_batch(
   
   Args:
     ideas_with_evaluations: List of dicts with 'idea' and 'evaluation' keys
-    context: Theme/context for all ideas
+    topic: The main topic or theme being explored
+    context: Additional constraints or criteria for evaluation
     temperature: Generation temperature (0.0-1.0)
     
   Returns:
@@ -199,9 +205,10 @@ def advocate_ideas_batch(
   newline = '\n'
   prompt = (
       LANGUAGE_CONSISTENCY_INSTRUCTION +
-      f"Context: {context}\n\n"
+      f"Topic: {topic}\n"
+      f"Context/Constraints: {context}\n\n"
       f"{newline.join(items_text)}\n\n"
-      "For EACH idea above, provide advocacy in this exact JSON format:\n"
+      "For EACH idea above, provide advocacy considering the topic and context in this exact JSON format:\n"
       "{\n"
       '  "idea_index": <0-based index>,\n'
       '  "strengths": ["strength1", "strength2", ...],\n'

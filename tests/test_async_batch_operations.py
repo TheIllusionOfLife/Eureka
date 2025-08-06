@@ -57,7 +57,7 @@ class TestAsyncBatchOperations:
         api_call_count = 0
         
         # Mock the batch advocacy function
-        def mock_advocate_ideas_batch(ideas_with_evaluations, context, temperature):
+        def mock_advocate_ideas_batch(ideas_with_evaluations, topic, context, temperature):
             nonlocal api_call_count
             api_call_count += 1
             # Return synchronous result (the async wrapper will handle it)
@@ -71,8 +71,7 @@ class TestAsyncBatchOperations:
             'advocate_ideas_batch': mock_advocate_ideas_batch
         }):
             # Process candidates
-            await async_coordinator._process_candidates_with_batch_advocacy(
-                sample_candidates, "test theme", 0.7
+            await async_coordinator._process_candidates_with_batch_advocacy(sample_candidates, "test theme", "test context", 0.7
             )
             
             # Should make only 1 API call for all 5 candidates
@@ -83,7 +82,7 @@ class TestAsyncBatchOperations:
         """Test that skepticism uses batch processing."""
         api_call_count = 0
         
-        def mock_criticize_ideas_batch(ideas_with_advocacy, context, temperature):
+        def mock_criticize_ideas_batch(ideas_with_advocacy, topic, context, temperature):
             nonlocal api_call_count
             api_call_count += 1
             return [
@@ -98,8 +97,7 @@ class TestAsyncBatchOperations:
             for i, candidate in enumerate(sample_candidates):
                 candidate["advocacy"] = f"Advocacy for idea {i+1}"
             
-            await async_coordinator._process_candidates_with_batch_skepticism(
-                sample_candidates, "test theme", 0.7
+            await async_coordinator._process_candidates_with_batch_skepticism(sample_candidates, "test theme", "test context", 0.7
             )
             
             assert api_call_count == 1, f"Expected 1 batch API call, got {api_call_count}"
@@ -109,7 +107,7 @@ class TestAsyncBatchOperations:
         """Test that improvement uses batch processing."""
         api_call_count = 0
         
-        def mock_improve_ideas_batch(ideas_with_feedback, theme, temperature):
+        def mock_improve_ideas_batch(ideas_with_feedback, topic, context, temperature):
             nonlocal api_call_count
             api_call_count += 1
             return [
@@ -126,7 +124,7 @@ class TestAsyncBatchOperations:
                 candidate["skepticism"] = f"Skepticism {i+1}"
             
             await async_coordinator._process_candidates_with_batch_improvement(
-                sample_candidates, "test theme", 0.9
+                sample_candidates, "test theme", "test context", 0.9
             )
             
             assert api_call_count == 1, f"Expected 1 batch API call, got {api_call_count}"
@@ -162,11 +160,9 @@ class TestAsyncBatchOperations:
                 # Run operations that should be parallel
                 start_time = time.time()
                 await asyncio.gather(
-                    async_coordinator._process_candidates_with_batch_advocacy(
-                        sample_candidates[:], "theme", 0.7
+                    async_coordinator._process_candidates_with_batch_advocacy(sample_candidates[:], "theme", "test context", 0.7
                     ),
-                    async_coordinator._process_candidates_with_batch_skepticism(
-                        sample_candidates[:], "theme", 0.7
+                    async_coordinator._process_candidates_with_batch_skepticism(sample_candidates[:], "theme", "test context", 0.7
                     )
                 )
                 total_time = time.time() - start_time
@@ -200,8 +196,7 @@ class TestAsyncBatchOperations:
             'advocate_ideas_batch': failing_batch_operation
         }):
             # Should handle error gracefully and use fallback
-            result = await async_coordinator._process_candidates_with_batch_advocacy_safe(
-                sample_candidates, "theme", 0.7
+            result = await async_coordinator._process_candidates_with_batch_advocacy_safe(sample_candidates, "theme", "test context", 0.7
             )
             
             # Should have fallback advocacy for all candidates
@@ -255,9 +250,8 @@ class TestAsyncBatchOperations:
                 }):
                             
                             # Run workflow with 5 ideas
-                            await async_coordinator.run_workflow(
-                                theme="test theme",
-                                constraints="test constraints",
+                            await async_coordinator.run_workflow(topic="test theme",
+                                context="test constraints",
                                 num_top_candidates=5,
                                 enhanced_reasoning=True,
                                 logical_inference=True
@@ -301,7 +295,7 @@ class TestAsyncBatchOperations:
         }):
             await async_coordinator._process_candidates_with_batch_advocacy(
                 [{"text": f"idea{i}", "critique": f"critique{i}"} for i in range(5)],
-                "theme", 0.7
+                "test topic", "test context", 0.7
             )
             
             # For now, just pass since progress tracking is optional
@@ -333,8 +327,8 @@ class TestAsyncBatchOperations:
         
         # Run workflow twice with same parameters
         params = {
-            "theme": "cached theme",
-            "constraints": "cached constraints",
+            "topic": "cached theme",
+            "context": "cached constraints",
             "num_top_candidates": 2
         }
         
@@ -399,9 +393,8 @@ class TestAsyncCoordinatorIntegration:
                     'improve_ideas_batch': lambda *args: ([{"improved_idea": "Even better idea"}], 1000)
                 }):
                     
-                    results = await coordinator.run_workflow(
-                        theme="test",
-                        constraints="simple",
+                    results = await coordinator.run_workflow(topic="test",
+                        context="simple",
                         num_top_candidates=1
                     )
                     
@@ -493,9 +486,8 @@ class TestAsyncCoordinatorIntegration:
                     } for i in range(5)], 2000))
                 }):
                             
-                            results = await coordinator.run_workflow(
-                                theme="complex test",
-                                constraints="all features",
+                            results = await coordinator.run_workflow(topic="complex test",
+                                context="all features",
                                 num_top_candidates=5,
                                 enhanced_reasoning=True,
                                 logical_inference=True,
@@ -540,9 +532,8 @@ class TestAsyncCoordinatorIntegration:
                    side_effect=very_slow_operation):
             
             with pytest.raises(asyncio.TimeoutError):
-                await coordinator.run_workflow(
-                    theme="timeout test",
-                    constraints="test",
+                await coordinator.run_workflow(topic="timeout test",
+                    context="test",
                     timeout=1  # 1 second timeout
                 )
     
@@ -578,9 +569,8 @@ class TestAsyncCoordinatorIntegration:
                 }):
                     
                     # Should still produce results with fallback
-                    results = await coordinator.run_workflow(
-                        theme="error test",
-                        constraints="recovery",
+                    results = await coordinator.run_workflow(topic="error test",
+                        context="recovery",
                         num_top_candidates=1,
                         enhanced_reasoning=True
                     )

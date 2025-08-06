@@ -66,9 +66,8 @@ class TestCoordinatorTimeoutImplementation:
             
             # Should timeout quickly
             with pytest.raises(asyncio.TimeoutError):
-                await coordinator.run_workflow(
-                    theme="test topic",
-                    constraints="test context",
+                await coordinator.run_workflow(topic="test topic",
+                    context="test context",
                     timeout=0.1  # Very short timeout
                 )
     
@@ -89,9 +88,8 @@ class TestCoordinatorTimeoutImplementation:
             ]
             
             # Should complete within timeout
-            results = await coordinator.run_workflow(
-                theme="test topic",
-                constraints="test context",
+            results = await coordinator.run_workflow(topic="test topic",
+                context="test context",
                 timeout=10.0  # Generous timeout
             )
             
@@ -110,9 +108,8 @@ class TestCoordinatorTimeoutImplementation:
                 mock_gen.return_value = "Idea 1: Test"
                 
                 # This should not raise an error and should log warning
-                run_multistep_workflow(
-                    theme="test",
-                    constraints="context",
+                run_multistep_workflow(topic="test",
+                    context="context",
                     timeout=300
                 )
                 
@@ -192,9 +189,8 @@ class TestTimeoutErrorMessages:
             mock_internal.side_effect = slow_response
             
             with pytest.raises(asyncio.TimeoutError) as exc_info:
-                await coordinator.run_workflow(
-                    theme="test",
-                    constraints="test",
+                await coordinator.run_workflow(topic="test",
+                    context="test",
                     timeout=0.1
                 )
             

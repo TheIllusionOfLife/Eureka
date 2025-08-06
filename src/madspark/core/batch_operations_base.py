@@ -88,6 +88,20 @@ class BatchOperationsBase:
             for c in candidates
         ]
     
+    def prepare_advocacy_input_with_context(self, candidates: List[Dict]) -> List[Dict]:
+        """Prepare advocacy input from candidates including context.
+        
+        Args:
+            candidates: List of candidate dictionaries with 'text', 'critique', and 'context' keys
+            
+        Returns:
+            List of dictionaries formatted for advocacy batch processing with context
+        """
+        return [
+            {"idea": c["text"], "evaluation": c["critique"], "context": c.get("context", "")}
+            for c in candidates
+        ]
+    
     def prepare_skepticism_input(self, candidates: List[Dict]) -> List[Dict]:
         """Prepare skepticism input from candidates.
         
@@ -120,6 +134,27 @@ class BatchOperationsBase:
                 "critique": c["critique"],
                 "advocacy": c.get("advocacy", "N/A"), 
                 "skepticism": c.get("skepticism", "N/A")
+            }
+            for c in candidates
+        ]
+    
+    def prepare_improvement_input_with_context(self, candidates: List[Dict]) -> List[Dict]:
+        """Prepare improvement input from candidates including all context.
+        
+        Args:
+            candidates: List of candidate dictionaries with all feedback fields and context
+            
+        Returns:
+            List of dictionaries formatted for improvement batch processing with full context
+        """
+        return [
+            {
+                "idea": c["text"],  # Changed from original_idea to idea for compatibility
+                "critique": c["critique"],
+                "advocacy": c.get("advocacy", "Advocacy not available"),
+                "skepticism": c.get("skepticism", "Skepticism not available"),
+                "context": c.get("context", ""),
+                "logical_inference": c.get("logical_inference", {})
             }
             for c in candidates
         ]

@@ -85,8 +85,8 @@ IMPROVEMENTS: Consider hybrid solar-wind systems."""
         
         # Create conversation data with logical inference flag
         conversation_data = {
-            'theme': 'renewable energy',
-            'constraints': 'urban environment',
+            'topic': 'renewable energy',
+            'context': 'urban environment',
             'current_request': {
                 'idea': 'Building-integrated wind turbines',
                 'agent': 'idea_generator',

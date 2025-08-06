@@ -793,6 +793,12 @@ Respond with only the numeric score (e.g., "6")."""
     
     def _build_dimension_prompt(self, idea: str, context: Dict[str, Any], dimension: str) -> str:
         """Build evaluation prompt for a specific dimension."""
+        # Import language consistency instruction
+        try:
+            from madspark.utils.constants import LANGUAGE_CONSISTENCY_INSTRUCTION
+        except ImportError:
+            from ..utils.constants import LANGUAGE_CONSISTENCY_INSTRUCTION
+        
         # Format context as human-readable string
         context_parts = []
         if 'theme' in context:
@@ -806,7 +812,10 @@ Respond with only the numeric score (e.g., "6")."""
         context_str = ". ".join(context_parts) if context_parts else "General context"
         
         prompt_template = self.DIMENSION_PROMPTS.get(dimension, self.DIMENSION_PROMPTS['feasibility'])
-        return prompt_template.format(idea=idea, context=context_str)
+        base_prompt = prompt_template.format(idea=idea, context=context_str)
+        
+        # Prepend language consistency instruction
+        return f"{LANGUAGE_CONSISTENCY_INSTRUCTION}{base_prompt}"
     
         
     def _generate_evaluation_summary(self, dimension_scores: Dict[str, float], idea: str) -> str:
@@ -977,6 +986,12 @@ Respond with only the numeric score (e.g., "6")."""
     
     def _build_batch_evaluation_prompt(self, ideas: List[str], context: Dict[str, Any]) -> str:
         """Build prompt for batch evaluation of multiple ideas."""
+        # Import language consistency instruction
+        try:
+            from madspark.utils.constants import LANGUAGE_CONSISTENCY_INSTRUCTION
+        except ImportError:
+            from ..utils.constants import LANGUAGE_CONSISTENCY_INSTRUCTION
+        
         # Format context
         context_parts = []
         if 'theme' in context:
@@ -1002,7 +1017,8 @@ Respond with only the numeric score (e.g., "6")."""
         # Define newline for use in f-string
         newline = '\n'
         
-        prompt = f"""Evaluate the following {len(ideas)} ideas across all 7 dimensions.
+        # Prepend language consistency instruction
+        prompt = f"""{LANGUAGE_CONSISTENCY_INSTRUCTION}Evaluate the following {len(ideas)} ideas across all 7 dimensions.
 
 Context: {context_str}
 

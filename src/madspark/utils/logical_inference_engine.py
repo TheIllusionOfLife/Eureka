@@ -210,12 +210,18 @@ class LogicalInferenceEngine:
         analysis_type: InferenceType
     ) -> str:
         """Generate batch prompt for logical analysis of multiple ideas."""
+        # Import language consistency instruction
+        try:
+            from madspark.utils.constants import LANGUAGE_CONSISTENCY_INSTRUCTION
+        except ImportError:
+            from .constants import LANGUAGE_CONSISTENCY_INSTRUCTION
+        
         ideas_section = ""
         for i, idea in enumerate(ideas, 1):
             ideas_section += f"\nIDEA_{i}:\n{idea}\n"
         
         if analysis_type == InferenceType.FULL:
-            return f"""Perform comprehensive logical analysis on these {len(ideas)} ideas.
+            return f"""{LANGUAGE_CONSISTENCY_INSTRUCTION}Perform comprehensive logical analysis on these {len(ideas)} ideas.
 
 Theme: {topic}
 Context/Constraints: {context}
@@ -303,7 +309,13 @@ Important:
     
     def _get_full_analysis_prompt(self, idea: str, topic: str, context: str) -> str:
         """Generate prompt for full logical analysis."""
-        return f"""Perform comprehensive logical analysis on this idea.
+        # Import language consistency instruction
+        try:
+            from madspark.utils.constants import LANGUAGE_CONSISTENCY_INSTRUCTION
+        except ImportError:
+            from .constants import LANGUAGE_CONSISTENCY_INSTRUCTION
+        
+        return f"""{LANGUAGE_CONSISTENCY_INSTRUCTION}Perform comprehensive logical analysis on this idea.
 
 Theme: {topic}
 Context/Constraints: {context}
@@ -331,7 +343,13 @@ Important:
     
     def _get_causal_analysis_prompt(self, idea: str, topic: str, context: str) -> str:
         """Generate prompt for causal reasoning analysis."""
-        return f"""Analyze the causal relationships in this idea.
+        # Import language consistency instruction
+        try:
+            from madspark.utils.constants import LANGUAGE_CONSISTENCY_INSTRUCTION
+        except ImportError:
+            from .constants import LANGUAGE_CONSISTENCY_INSTRUCTION
+        
+        return f"""{LANGUAGE_CONSISTENCY_INSTRUCTION}Analyze the causal relationships in this idea.
 
 Theme: {topic}
 Context: {context}
@@ -353,7 +371,13 @@ Trace the complete causal chain from root causes to final outcomes."""
     
     def _get_constraint_analysis_prompt(self, idea: str, topic: str, context: str) -> str:
         """Generate prompt for constraint satisfaction analysis."""
-        return f"""Analyze how well this idea satisfies the given constraints.
+        # Import language consistency instruction
+        try:
+            from madspark.utils.constants import LANGUAGE_CONSISTENCY_INSTRUCTION
+        except ImportError:
+            from .constants import LANGUAGE_CONSISTENCY_INSTRUCTION
+        
+        return f"""{LANGUAGE_CONSISTENCY_INSTRUCTION}Analyze how well this idea satisfies the given constraints.
 
 Theme: {topic}
 Constraints: {context}
@@ -376,7 +400,13 @@ Evaluate each constraint separately and explain the degree of satisfaction."""
     
     def _get_contradiction_analysis_prompt(self, idea: str, topic: str, context: str) -> str:
         """Generate prompt for contradiction detection."""
-        return f"""Identify any logical contradictions in this idea.
+        # Import language consistency instruction
+        try:
+            from madspark.utils.constants import LANGUAGE_CONSISTENCY_INSTRUCTION
+        except ImportError:
+            from .constants import LANGUAGE_CONSISTENCY_INSTRUCTION
+        
+        return f"""{LANGUAGE_CONSISTENCY_INSTRUCTION}Identify any logical contradictions in this idea.
 
 Theme: {topic}
 Context: {context}
@@ -402,7 +432,13 @@ Explanation: [Why the idea is logically consistent]"""
     
     def _get_implications_analysis_prompt(self, idea: str, topic: str, context: str) -> str:
         """Generate prompt for implications analysis."""
-        return f"""Analyze the logical implications and consequences of this idea.
+        # Import language consistency instruction
+        try:
+            from madspark.utils.constants import LANGUAGE_CONSISTENCY_INSTRUCTION
+        except ImportError:
+            from .constants import LANGUAGE_CONSISTENCY_INSTRUCTION
+        
+        return f"""{LANGUAGE_CONSISTENCY_INSTRUCTION}Analyze the logical implications and consequences of this idea.
 
 Theme: {topic}
 Context: {context}

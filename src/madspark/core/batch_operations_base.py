@@ -11,21 +11,31 @@ import concurrent.futures
 
 logger = logging.getLogger(__name__)
 
-# Import batch functions registry
+# Import batch functions registry using centralized import management
 BATCH_FUNCTIONS = {}
 try:
-    from ..agents.advocate import advocate_ideas_batch
-    from ..agents.skeptic import criticize_ideas_batch
-    from ..agents.idea_generator import improve_ideas_batch
-    
-    BATCH_FUNCTIONS = {
-        'advocate_ideas_batch': advocate_ideas_batch,
-        'criticize_ideas_batch': criticize_ideas_batch,
-        'improve_ideas_batch': improve_ideas_batch
-    }
-except ImportError as e:
-    logger.error(f"Failed to import batch functions: {e}")
-    BATCH_FUNCTIONS = {}
+    from ..utils.import_manager import ImportManager
+    BATCH_FUNCTIONS = ImportManager.import_batch_functions()
+    if BATCH_FUNCTIONS:
+        logger.debug(f"Loaded {len(BATCH_FUNCTIONS)} batch functions")
+    else:
+        logger.warning("No batch functions available")
+except ImportError:
+    # Fallback to original implementation
+    try:
+        from ..agents.advocate import advocate_ideas_batch
+        from ..agents.skeptic import criticize_ideas_batch
+        from ..agents.idea_generator import improve_ideas_batch
+        
+        BATCH_FUNCTIONS = {
+            'advocate_ideas_batch': advocate_ideas_batch,
+            'criticize_ideas_batch': criticize_ideas_batch,
+            'improve_ideas_batch': improve_ideas_batch
+        }
+        logger.debug("Using fallback batch function imports")
+    except ImportError as e:
+        logger.error(f"Failed to import batch functions: {e}")
+        BATCH_FUNCTIONS = {}
 
 
 class BatchOperationsBase:

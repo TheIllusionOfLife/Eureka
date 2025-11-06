@@ -301,7 +301,21 @@ Provide structured reasoning:
    - Internal conflicts?
    - Reality conflicts?
 
-Format as markdown with clear sections."""
+Format your response with these specific section headers:
+
+INFERENCE_CHAIN:
+- [Step 1]: [Reasoning]
+- [Step 2]: [Reasoning]
+...
+
+CONCLUSION: [Summary statement]
+
+CONFIDENCE: [0.0-1.0]
+
+SUGGESTIONS:
+- [Actionable suggestion 1]
+- [Actionable suggestion 2]
+..."""
 ```
 
 ### Response Parsing

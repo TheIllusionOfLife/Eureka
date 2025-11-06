@@ -188,10 +188,10 @@ from madspark.utils.logical_inference_engine import (
     LogicalInferenceEngine,
     InferenceType
 )
-from google import genai
+from madspark.agents.genai_client import get_genai_client
 
-# Initialize
-client = genai.Client()
+# Initialize client using the project's helper function
+client = get_genai_client()
 engine = LogicalInferenceEngine(client)
 
 # Run analysis
@@ -417,4 +417,4 @@ Potential improvements for future versions:
 ---
 
 **Last Updated**: 2025-11-06
-**Related**: See `ENHANCED_REASONING_API.md` for integration details
+**Related**: See `guides/ENHANCED_REASONING_API.md` for integration details

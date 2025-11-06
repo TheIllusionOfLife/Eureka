@@ -114,39 +114,6 @@ These validation tools are integrated into our CI/CD pipeline:
 2. **PR Validation**: GitHub Actions runs all checks
 3. **Post-merge Validation**: Ensures main branch stays healthy
 
-## Best Practices
-
-1. **Run Before PR**: Always run `./scripts/validate_pr.sh` before creating a PR
-2. **Fix Issues Early**: Address pre-commit hook failures immediately
-3. **Keep Dependencies Updated**: Regularly update lock files
-4. **Monitor CI Status**: Check GitHub Actions for any failures
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Python dependency conflicts**
-   ```bash
-   # Reset virtual environment
-   python -m venv venv --clear
-   source venv/bin/activate
-   pip install -r config/requirements.txt
-   ```
-
-2. **NPM lockfile out of sync**
-   ```bash
-   cd web/frontend
-   rm package-lock.json
-   npm install
-   ```
-
-3. **Pre-commit hook failures**
-   ```bash
-   # Update hooks
-   pre-commit autoupdate
-   pre-commit run --all-files
-   ```
-
 ## Adding New Validation
 
 To add new validation checks:

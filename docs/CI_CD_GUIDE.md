@@ -150,7 +150,7 @@ SIZE_LIMIT_OVERRIDE: Large refactoring required
 PYTHONPATH=src pytest tests/test_to_modify.py -v
 
 # 2. Verify in CI environment
-docker run -v $(pwd):/app python:3.10 bash -c "cd /app && pip install -r config/requirements-dev.txt && PYTHONPATH=src pytest tests/test_to_modify.py"
+docker run -v $(pwd):/app python:3.11.5-slim bash -c "cd /app && pip install -r config/requirements-dev.txt && PYTHONPATH=src pytest tests/test_to_modify.py"
 
 # 3. Update with clear commit message
 git commit -m "test: improve X test performance from 45s to 15s"
@@ -382,44 +382,30 @@ repos:
 **Symptom**: `ModuleNotFoundError`
 **Fix**: Ensure `PYTHONPATH=src` is set in workflow
 
-#### 2. Dependency Mismatches (33% of historical failures)
+#### 2. Dependency Mismatches
 **Symptom**: package.json and package-lock.json out of sync
 **Fix**: Use pre-commit hooks for automated validation
 ```bash
 ./scripts/verify_npm_deps.sh
 ```
 
-#### 3. Middleware/API Compatibility (74% of historical failures)
-**Symptom**: FastAPI MutableHeaders API changes
-**Fix**: Enhanced error logging and integration testing
-```python
-except Exception as e:
-    logging.error(
-        f"Middleware error: {type(e).__name__}: {e}\n"
-        f"Session ID: {session_id}\n"
-        f"Client IP: {client_ip}\n"
-        f"Request path: {request.url.path}",
-        exc_info=True
-    )
-```
-
-#### 4. Timeout Failures
+#### 3. Timeout Failures
 **Symptom**: Tests exceed 10-minute limit
 **Fix**: Add timeout handling or skip slow tests
 
-#### 5. Mock Mode Failures
+#### 4. Mock Mode Failures
 **Symptom**: Tests expect real API responses
 **Fix**: Add appropriate `@pytest.mark.skipif` decorators
 
-#### 6. Coverage Drops
+#### 5. Coverage Drops
 **Symptom**: Coverage below threshold
 **Fix**: Add tests for uncovered code paths
 
-#### 7. Docker Build Failures
+#### 6. Docker Build Failures
 **Symptom**: Container build errors
 **Fix**: Check Dockerfile syntax and dependencies
 
-#### 8. Deprecated GitHub Actions (Systematic failures)
+#### 7. Deprecated GitHub Actions (Systematic failures)
 **Symptom**: Using outdated action versions
 **Fix**: Dependabot for Actions, version pinning
 

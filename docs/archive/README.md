@@ -43,10 +43,9 @@ These documents were moved to the archive for one or more of the following reaso
 
 For current, actively maintained documentation, see:
 
-- `/docs/` - Main documentation directory
-- `/docs/guides/` - User and deployment guides
-- `/docs/development/` - Development documentation (once reorganized)
-- `README.md` - Main project README
+- [`/docs/`](../) - Main documentation directory
+- [`/docs/guides/`](../guides/) - User and deployment guides
+- [`README.md`](../../README.md) - Main project README
 
 ## Archive Policy
 

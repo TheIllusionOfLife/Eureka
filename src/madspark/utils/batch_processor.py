@@ -14,20 +14,22 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional
 import csv
 
+# Import core components using compat helper
+from .compat_imports import import_core_components
+
+_core_components = import_core_components()
+run_multistep_workflow = _core_components['run_multistep_workflow']
+AsyncCoordinator = _core_components['AsyncCoordinator']
+TemperatureManager = _core_components['TemperatureManager']
+CacheManager = _core_components['CacheManager']
+ExportManager = _core_components['ExportManager']
+DEFAULT_NUM_TOP_CANDIDATES = _core_components['DEFAULT_NUM_TOP_CANDIDATES']
+
+# Import CacheConfig separately (not in compat_imports)
 try:
-    from madspark.core.coordinator import run_multistep_workflow
-    from madspark.core.async_coordinator import AsyncCoordinator
-    from madspark.utils.temperature_control import TemperatureManager
-    from madspark.utils.cache_manager import CacheManager, CacheConfig
-    from madspark.utils.export_utils import ExportManager
-    from madspark.utils.constants import DEFAULT_NUM_TOP_CANDIDATES
+    from madspark.utils.cache_manager import CacheConfig
 except ImportError:
-    from ..core.coordinator import run_multistep_workflow
-    from ..core.async_coordinator import AsyncCoordinator
-    from .temperature_control import TemperatureManager
-    from .cache_manager import CacheManager, CacheConfig
-    from .export_utils import ExportManager
-    from .constants import DEFAULT_NUM_TOP_CANDIDATES
+    from .cache_manager import CacheConfig
 
 logger = logging.getLogger(__name__)
 

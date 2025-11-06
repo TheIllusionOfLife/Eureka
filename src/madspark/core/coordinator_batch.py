@@ -27,25 +27,20 @@ from madspark.utils.novelty_filter import NoveltyFilter
 from madspark.core.enhanced_reasoning import ReasoningEngine
 from madspark.utils.constants import DEFAULT_TIMEOUT_SECONDS
 
-# Import retry-wrapped versions of agent calls from shared module
-try:
-    from madspark.utils.agent_retry_wrappers import (
-        call_idea_generator_with_retry,
-        call_critic_with_retry
-    )
-    # Import batch functions
-    from madspark.agents.advocate import advocate_ideas_batch
-    from madspark.agents.skeptic import criticize_ideas_batch
-    from madspark.agents.idea_generator import improve_ideas_batch
-except ImportError:
-    from ..utils.agent_retry_wrappers import (
-        call_idea_generator_with_retry,
-        call_critic_with_retry
-    )
-    # Import batch functions with relative imports
-    from ..agents.advocate import advocate_ideas_batch
-    from ..agents.skeptic import criticize_ideas_batch
-    from ..agents.idea_generator import improve_ideas_batch
+# Import retry-wrapped versions and batch functions using compat helpers
+from madspark.utils.compat_imports import (
+    import_coordinator_batch_retry_wrappers,
+    import_batch_functions
+)
+
+_retry_wrappers = import_coordinator_batch_retry_wrappers()
+call_idea_generator_with_retry = _retry_wrappers['call_idea_generator_with_retry']
+call_critic_with_retry = _retry_wrappers['call_critic_with_retry']
+
+_batch_functions = import_batch_functions()
+advocate_ideas_batch = _batch_functions['advocate_ideas_batch']
+criticize_ideas_batch = _batch_functions['criticize_ideas_batch']
+improve_ideas_batch = _batch_functions['improve_ideas_batch']
 
 
 def run_multistep_workflow_batch(

@@ -4,6 +4,7 @@ This module provides common batch processing functionality to eliminate
 code duplication between async_coordinator.py and coordinator_batch.py.
 """
 import asyncio
+import atexit
 import logging
 from typing import List, Dict, Any
 from concurrent.futures import ThreadPoolExecutor
@@ -30,10 +31,11 @@ except ImportError as e:
 
 class BatchOperationsBase:
     """Base class providing common batch processing operations."""
-    
+
     def __init__(self):
         """Initialize batch operations with thread pool executor."""
         self.executor = ThreadPoolExecutor(max_workers=4)
+        atexit.register(self.executor.shutdown, wait=False)
     
     async def run_batch_with_timeout(
         self, 

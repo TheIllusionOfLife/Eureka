@@ -8,7 +8,7 @@ This test module verifies that BatchProcessor correctly handles event loop conte
 
 import pytest
 import asyncio
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 from src.madspark.utils.batch_processor import BatchProcessor, BatchItem
 
 

@@ -459,7 +459,7 @@ class BatchProcessor:
         # Event loop detection: Prevent misuse from async contexts
         # asyncio.get_running_loop() raises RuntimeError if no loop is running
         try:
-            loop = asyncio.get_running_loop()
+            asyncio.get_running_loop()
             # If we reach here, a loop IS running - that's an error for this method
             raise RuntimeError(
                 "BatchProcessor.process_batch() cannot be called from an async context "

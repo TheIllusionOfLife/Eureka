@@ -188,6 +188,68 @@ python cli.py --batch client_requests.json \
   --batch-export-dir client_results/$(date +%Y%m%d)/
 ```
 
+## Programmatic Usage
+
+### Asynchronous Batch Processing
+
+The BatchProcessor supports both synchronous and asynchronous usage. This is useful when integrating batch processing into async applications like web servers or async CLI tools.
+
+#### Synchronous Usage (CLI, Scripts)
+
+```python
+from madspark.utils.batch_processor import BatchProcessor, BatchItem
+
+# Create processor
+processor = BatchProcessor(use_async=True, verbose=False)
+
+# Create batch items
+batch_items = [
+    BatchItem(theme="AI in healthcare", constraints="Budget-friendly"),
+    BatchItem(theme="Sustainable farming", constraints="Urban environments")
+]
+
+# Process batch (synchronous entry point)
+summary = processor.process_batch(batch_items)
+print(f"Completed: {summary['completed']}/{summary['total_items']}")
+```
+
+#### Asynchronous Usage (Web Servers, Async Applications)
+
+```python
+import asyncio
+from madspark.utils.batch_processor import BatchProcessor, BatchItem
+
+async def process_batch_async_example():
+    # Create processor
+    processor = BatchProcessor(use_async=True, verbose=False)
+
+    # Create batch items
+    batch_items = [
+        BatchItem(theme="Green energy", constraints="Residential"),
+        BatchItem(theme="Smart automation", constraints="Privacy-focused")
+    ]
+
+    # Workflow options
+    workflow_options = {
+        "enable_novelty_filter": True,
+        "novelty_threshold": 0.8,
+        "verbose": False
+    }
+
+    # Use async API directly
+    summary = await processor.process_batch_async(batch_items, workflow_options)
+    print(f"Processed: {summary['completed']}/{summary['total_items']}")
+
+# Run from async context
+asyncio.run(process_batch_async_example())
+```
+
+**Important Notes:**
+- Use `process_batch()` for synchronous contexts (scripts, CLI)
+- Use `await process_batch_async()` for async contexts (web servers, async functions)
+- Calling `process_batch()` from an async context will raise a clear error with usage instructions
+- Both APIs share the same underlying implementation and provide identical results
+
 ## Tips & Tricks
 
 - Use `temperature_preset` for consistency across batch items
@@ -195,3 +257,4 @@ python cli.py --batch client_requests.json \
 - Set `num_candidates` lower (1-2) for faster processing
 - Use JSON format when you need different settings per item
 - Always backup your input files before large batches
+- For async applications, use `process_batch_async()` to avoid event loop conflicts

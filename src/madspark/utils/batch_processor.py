@@ -320,13 +320,39 @@ class BatchProcessor:
     async def process_batch_async(self, batch_items: List[BatchItem],
                                 workflow_options: Dict[str, Any]) -> Dict[str, Any]:
         """Process batch items asynchronously with concurrency control.
-        
+
+        This is the async version of batch processing. Use this method directly
+        when calling from async contexts (async functions, asyncio event loops).
+
         Args:
-            batch_items: List of BatchItem objects
-            workflow_options: Common workflow options
-            
+            batch_items: List of BatchItem objects to process
+            workflow_options: Common workflow configuration options
+
         Returns:
-            Batch processing summary
+            Dictionary containing:
+                - total_items: Number of items processed
+                - completed: Number of successfully completed items
+                - failed: Number of failed items
+                - items: List of item summaries with results
+
+        Examples:
+            From async context (web server, async CLI)::
+
+                async def handler():
+                    processor = BatchProcessor()
+                    summary = await processor.process_batch_async(
+                        batch_items,
+                        workflow_options
+                    )
+                    print(f"Processed: {summary['completed']}/{summary['total_items']}")
+
+            Run standalone async function::
+
+                asyncio.run(processor.process_batch_async(batch_items, options))
+
+        Note:
+            This method handles its own concurrency control via semaphore.
+            Max concurrent tasks determined by self.max_concurrent parameter.
         """
         # Initialize async components
         await self.initialize()
@@ -373,14 +399,55 @@ class BatchProcessor:
         
     def process_batch(self, batch_items: List[BatchItem],
                      workflow_options: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """Process a batch of items.
-        
+        """Process a batch of items (synchronous entry point).
+
+        This method should be called from synchronous contexts only (scripts, CLI).
+        For async contexts (web servers, async applications), use process_batch_async().
+
         Args:
-            batch_items: List of BatchItem objects
-            workflow_options: Optional workflow options
-            
+            batch_items: List of BatchItem objects to process
+            workflow_options: Optional workflow configuration. Defaults to:
+                {
+                    "enable_novelty_filter": True,
+                    "novelty_threshold": 0.8,
+                    "verbose": self.verbose
+                }
+
         Returns:
-            Batch processing summary
+            Dictionary containing:
+                - total_items: Number of items processed
+                - completed: Number of successfully completed items
+                - failed: Number of failed items
+                - items: List of item summaries with results
+                - total_processing_time: Total time in seconds
+
+        Raises:
+            RuntimeError: If called from an async context (event loop already running)
+
+        Examples:
+            Synchronous usage (scripts, CLI)::
+
+                processor = BatchProcessor()
+                batch_items = [
+                    BatchItem(theme="AI healthcare", constraints="Budget-friendly"),
+                    BatchItem(theme="Sustainable farming", constraints="Urban")
+                ]
+                summary = processor.process_batch(batch_items)
+                print(f"Completed: {summary['completed']}/{summary['total_items']}")
+
+            Async usage (use process_batch_async instead)::
+
+                async def main():
+                    processor = BatchProcessor()
+                    summary = await processor.process_batch_async(
+                        batch_items,
+                        workflow_options
+                    )
+
+        Note:
+            This method uses asyncio.run() internally when use_async=True, which
+            requires no event loop to be running. If you're in an async context,
+            call process_batch_async() directly instead.
         """
         if workflow_options is None:
             workflow_options = {
@@ -388,19 +455,55 @@ class BatchProcessor:
                 "novelty_threshold": 0.8,
                 "verbose": self.verbose
             }
-            
+
         start_time = datetime.now()
-        
-        # Process batch
+
+        # Event loop detection: Only check if using async mode
+        # When use_async=False, we use synchronous workflow which doesn't need asyncio.run()
         if self.use_async:
+            # Detect if we're in an async context (event loop already running)
+            is_async_context = False
+            try:
+                # asyncio.get_running_loop() raises RuntimeError if no loop is running
+                # If it returns a loop, we are in an async context
+                asyncio.get_running_loop()
+                is_async_context = True
+            except RuntimeError:
+                # This is the expected case for synchronous call: no event loop running
+                is_async_context = False
+
+            if is_async_context:
+                # Cannot use asyncio.run() from within an event loop
+                raise RuntimeError(
+                    "BatchProcessor.process_batch() cannot be called from an async context "
+                    "(event loop already running). "
+                    "\n\nUse the async version instead:"
+                    "\n  summary = await processor.process_batch_async(batch_items, workflow_options)"
+                    "\n\nOr force synchronous mode:"
+                    "\n  processor = BatchProcessor(use_async=False)"
+                    "\n  summary = processor.process_batch(batch_items)"
+                )
+
+            # Safe to proceed with async mode
+            logger.debug("No event loop detected - safe to use asyncio.run()")
+
+        # Process batch using appropriate method
+        if self.use_async:
+            logger.debug(f"Processing {len(batch_items)} items with async mode")
             summary = asyncio.run(self.process_batch_async(batch_items, workflow_options))
         else:
+            logger.debug(f"Processing {len(batch_items)} items with sync mode")
             summary = self.process_batch_sync(batch_items, workflow_options)
-            
-        # Calculate total time
+
+        # Calculate and add total time
         end_time = datetime.now()
         summary['total_processing_time'] = (end_time - start_time).total_seconds()
-        
+
+        logger.info(
+            f"Batch processing complete: {summary['completed']}/{summary['total_items']} "
+            f"succeeded in {summary['total_processing_time']:.2f}s"
+        )
+
         return summary
         
     def _create_summary(self, batch_items: List[BatchItem]) -> Dict[str, Any]:

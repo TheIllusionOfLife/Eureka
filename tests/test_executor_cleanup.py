@@ -3,8 +3,7 @@
 This module tests that the executor is properly cleaned up to prevent resource leaks.
 """
 import pytest
-import atexit
-from unittest.mock import Mock, patch, call
+from unittest.mock import patch
 from concurrent.futures import ThreadPoolExecutor
 
 from src.madspark.core.batch_operations_base import BatchOperationsBase
@@ -77,7 +76,7 @@ class TestExecutorCleanup:
         """Test that cleanup pattern matches the one in async_coordinator.py."""
         # This test verifies we're using the same pattern as the existing good example
         with patch('atexit.register') as mock_register:
-            batch_ops = BatchOperationsBase()
+            BatchOperationsBase()  # Create instance to trigger atexit registration
 
             # Should match: atexit.register(self.executor.shutdown, wait=False)
             call_args = mock_register.call_args
@@ -116,8 +115,6 @@ class TestExecutorCleanupIntegration:
 
     def test_executor_rejects_tasks_after_shutdown(self):
         """Test that executor rejects new tasks after shutdown."""
-        import concurrent.futures
-
         batch_ops = BatchOperationsBase()
         batch_ops.executor.shutdown(wait=False)
 

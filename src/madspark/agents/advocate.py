@@ -9,6 +9,7 @@ import logging
 from typing import List, Dict, Any, Tuple
 
 from madspark.utils.utils import parse_batch_json_with_fallback
+from madspark.utils.compat_imports import import_genai_and_constants
 
 # Set up logger
 logger = logging.getLogger(__name__)
@@ -30,8 +31,6 @@ except ImportError:
     from constants import ADVOCATE_EMPTY_RESPONSE, ADVOCATE_SYSTEM_INSTRUCTION, LANGUAGE_CONSISTENCY_INSTRUCTION
 
 # Import genai_client using compat helper
-from madspark.utils.compat_imports import import_genai_and_constants
-
 _genai_imports = import_genai_and_constants()
 get_genai_client = _genai_imports['get_genai_client']
 

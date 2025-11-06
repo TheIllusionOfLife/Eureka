@@ -27,15 +27,13 @@ from ..utils.constants import (
     DEFAULT_SKEPTICISM_TEMPERATURE,
     LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD
 )
+from ..utils.compat_imports import import_agent_retry_wrappers
 
 logger = logging.getLogger(__name__)
 
 # Type alias for progress callback
 ProgressCallback = Callable[[str, float], Awaitable[None]]
 
-
-# Import retry-wrapped versions of agent functions using compat helper
-from ..utils.compat_imports import import_agent_retry_wrappers
 
 _retry_wrappers = import_agent_retry_wrappers()
 generate_ideas_with_retry = _retry_wrappers['generate_ideas_with_retry']

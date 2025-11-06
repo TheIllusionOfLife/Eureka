@@ -4,9 +4,6 @@ This module tests the compat_imports utilities that provide fallback logic
 for both package and relative imports, supporting both installed and development modes.
 """
 import pytest
-import sys
-from unittest.mock import patch, MagicMock
-from importlib import import_module
 
 
 class TestAgentRetryWrappersImport:

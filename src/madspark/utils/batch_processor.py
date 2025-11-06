@@ -456,28 +456,36 @@ class BatchProcessor:
                 "verbose": self.verbose
             }
 
-        # Event loop detection: Prevent misuse from async contexts
-        # asyncio.get_running_loop() raises RuntimeError if no loop is running
-        try:
-            asyncio.get_running_loop()
-            # If we reach here, a loop IS running - that's an error for this method
-            raise RuntimeError(
-                "BatchProcessor.process_batch() cannot be called from an async context "
-                "(event loop already running). "
-                "\n\nUse the async version instead:"
-                "\n  summary = await processor.process_batch_async(batch_items, workflow_options)"
-                "\n\nOr force synchronous mode:"
-                "\n  processor = BatchProcessor(use_async=False)"
-                "\n  summary = processor.process_batch(batch_items)"
-            )
-        except RuntimeError as e:
-            # Check if this is OUR error message or the expected "no running loop"
-            if "cannot be called from an async context" in str(e):
-                raise  # Re-raise our descriptive error
-            # Otherwise: no running loop detected - safe to proceed
-            logger.debug("No event loop detected - safe to use asyncio.run()")
-
         start_time = datetime.now()
+
+        # Event loop detection: Only check if using async mode
+        # When use_async=False, we use synchronous workflow which doesn't need asyncio.run()
+        if self.use_async:
+            # Detect if we're in an async context (event loop already running)
+            is_async_context = False
+            try:
+                # asyncio.get_running_loop() raises RuntimeError if no loop is running
+                # If it returns a loop, we are in an async context
+                asyncio.get_running_loop()
+                is_async_context = True
+            except RuntimeError:
+                # This is the expected case for synchronous call: no event loop running
+                is_async_context = False
+
+            if is_async_context:
+                # Cannot use asyncio.run() from within an event loop
+                raise RuntimeError(
+                    "BatchProcessor.process_batch() cannot be called from an async context "
+                    "(event loop already running). "
+                    "\n\nUse the async version instead:"
+                    "\n  summary = await processor.process_batch_async(batch_items, workflow_options)"
+                    "\n\nOr force synchronous mode:"
+                    "\n  processor = BatchProcessor(use_async=False)"
+                    "\n  summary = processor.process_batch(batch_items)"
+                )
+
+            # Safe to proceed with async mode
+            logger.debug("No event loop detected - safe to use asyncio.run()")
 
         # Process batch using appropriate method
         if self.use_async:

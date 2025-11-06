@@ -8,7 +8,7 @@ This test module verifies that BatchProcessor correctly handles event loop conte
 
 import pytest
 import asyncio
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 from src.madspark.utils.batch_processor import BatchProcessor, BatchItem
 
 
@@ -24,7 +24,7 @@ class TestBatchProcessorEventLoop:
         with patch('src.madspark.utils.batch_processor.AsyncCoordinator') as mock_coordinator:
             # Setup mock to return valid results
             mock_instance = Mock()
-            mock_instance.run_workflow_internal = Mock(return_value={
+            mock_instance.run_workflow = AsyncMock(return_value={
                 'top_candidates': [{'text': 'Test idea', 'score': 8}],
                 'all_ideas': [{'text': 'Test idea', 'score': 8}]
             })
@@ -79,14 +79,14 @@ class TestBatchProcessorEventLoop:
             # Setup mock to return valid results
             mock_instance = Mock()
 
-            # Create async mock for run_workflow_internal
+            # Create async mock for run_workflow
             async def mock_workflow(*args, **kwargs):
                 return {
                     'top_candidates': [{'text': 'Test idea', 'score': 8}],
                     'all_ideas': [{'text': 'Test idea', 'score': 8}]
                 }
 
-            mock_instance.run_workflow_internal = mock_workflow
+            mock_instance.run_workflow = mock_workflow
             mock_coordinator.return_value = mock_instance
 
             processor = BatchProcessor(use_async=True)
@@ -178,7 +178,7 @@ class TestBatchProcessorIntegration:
         # Mock to avoid actual API calls
         with patch('src.madspark.utils.batch_processor.AsyncCoordinator') as mock_coordinator:
             mock_instance = Mock()
-            mock_instance.run_workflow_internal = Mock(return_value={
+            mock_instance.run_workflow = AsyncMock(return_value={
                 'top_candidates': [{'text': 'CLI test idea', 'score': 9}],
                 'all_ideas': [{'text': 'CLI test idea', 'score': 9}]
             })
@@ -223,7 +223,7 @@ class TestBatchProcessorIntegration:
                     'all_ideas': [{'text': 'Async test idea', 'score': 9}]
                 }
 
-            mock_instance.run_workflow_internal = mock_workflow
+            mock_instance.run_workflow = mock_workflow
             mock_coordinator.return_value = mock_instance
 
             # New async usage pattern (e.g., in web server)

@@ -281,43 +281,45 @@ class TestAsyncBatchOperations:
                 return [{"result": f"{call_type} result"}] * 5, 1000
         
         # Phase 3.2c: Patch orchestrator methods instead of BATCH_FUNCTIONS
-        async def mock_generate_ideas_async(topic, context, num_ideas):
+        from unittest.mock import AsyncMock
+
+        def mock_generate_side_effect(topic, context, num_ideas):
             api_calls["idea_generation"] += 1
             return [f"Idea {i}" for i in range(1, 6)], 1000
 
-        async def mock_evaluate_ideas_async(ideas, topic, context):
+        def mock_evaluate_side_effect(ideas, topic, context):
             api_calls["evaluation"] += 1
             return [{"idea": idea, "text": idea, "score": 0.7 + i*0.05, "critique": f"Critique {i}"}
                     for i, idea in enumerate(ideas)], 1000
 
-        async def mock_process_advocacy_async(candidates, topic, context):
+        def mock_advocacy_side_effect(candidates, topic, context):
             api_calls["advocacy"] += 1
             for candidate in candidates:
                 candidate["advocacy"] = "Mock advocacy"
             return candidates, 1000
 
-        async def mock_process_skepticism_async(candidates, topic, context):
+        def mock_skepticism_side_effect(candidates, topic, context):
             api_calls["skepticism"] += 1
             for candidate in candidates:
                 candidate["skepticism"] = "Mock skepticism"
             return candidates, 1000
 
-        async def mock_improve_ideas_async(candidates, topic, context):
+        def mock_improvement_side_effect(candidates, topic, context):
             api_calls["improvement"] += 1
             for candidate in candidates:
                 candidate["improved_idea"] = f"Improved: {candidate.get('text', '')}"
             return candidates, 1000
 
         with patch('madspark.core.workflow_orchestrator.WorkflowOrchestrator.generate_ideas_async',
-                   new=mock_generate_ideas_async), \
+                   new=AsyncMock(side_effect=mock_generate_side_effect)), \
              patch('madspark.core.workflow_orchestrator.WorkflowOrchestrator.evaluate_ideas_async',
-                   new=mock_evaluate_ideas_async), \
+                   new=AsyncMock(side_effect=mock_evaluate_side_effect)), \
              patch('madspark.core.workflow_orchestrator.WorkflowOrchestrator.process_advocacy_async',
-                   new=mock_process_advocacy_async), \
+                   new=AsyncMock(side_effect=mock_advocacy_side_effect)), \
              patch('madspark.core.workflow_orchestrator.WorkflowOrchestrator.process_skepticism_async',
-                   new=mock_process_skepticism_async), \
+                   new=AsyncMock(side_effect=mock_skepticism_side_effect)), \
              patch('madspark.core.workflow_orchestrator.WorkflowOrchestrator.improve_ideas_async',
-                   new=mock_improve_ideas_async):
+                   new=AsyncMock(side_effect=mock_improvement_side_effect)):
 
             # Run workflow with 5 ideas
             await async_coordinator.run_workflow(topic="test theme",

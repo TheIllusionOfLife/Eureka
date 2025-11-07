@@ -22,7 +22,6 @@ from madspark.config.workflow_constants import (
     STEP_SKEPTICISM,
     STEP_IMPROVEMENT,
     STEP_REEVALUATION,
-    STEP_MULTI_DIMENSIONAL_EVAL,
     STEP_BUILD_RESULTS,
 )
 from madspark.core.types_and_logging import (

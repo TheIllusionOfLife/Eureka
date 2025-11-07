@@ -4,8 +4,7 @@ This test suite validates the WorkflowOrchestrator class that centralizes
 workflow logic from coordinator.py, coordinator_batch.py, and async_coordinator.py.
 """
 import pytest
-from unittest.mock import Mock, patch, MagicMock
-from typing import List, Tuple, Dict, Any
+from unittest.mock import Mock, patch
 
 # Test will fail until we implement the orchestrator
 try:
@@ -19,7 +18,6 @@ try:
 except ImportError:
     pytest.skip("WorkflowOrchestrator not yet implemented", allow_module_level=True)
 
-from madspark.core.types_and_logging import EvaluatedIdea, CandidateData
 from madspark.utils.temperature_control import TemperatureManager
 
 

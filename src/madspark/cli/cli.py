@@ -941,10 +941,10 @@ def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
 
 def determine_num_candidates(args):
     """Determine the number of candidates to use, handling backward compatibility.
-    
+
     Args:
         args: Parsed command line arguments
-        
+
     Returns:
         int: Number of candidates to process
     """
@@ -954,349 +954,190 @@ def determine_num_candidates(args):
         logger.warning("--num-candidates is deprecated. Please use --top-ideas instead.")
         # Ensure it's within the valid range for top_ideas
         return min(max(args.num_candidates, 1), 5)
-    
+
     # If user explicitly set --top-ideas, use it
     if args.top_ideas is not None:
         return args.top_ideas
-    
+
     # Default value
     return 1
 
 
-def main():
-    """Main CLI entry point."""
-    parser = create_parser()
-    args = parser.parse_args()
-    
-    setup_logging(args.verbose)
-    
+def _validate_numeric_arguments(args: argparse.Namespace, parser: argparse.ArgumentParser) -> None:
+    """Validate numeric arguments (timeout and similarity threshold).
+
+    Args:
+        args: Parsed command-line arguments
+        parser: ArgumentParser instance for error reporting
+    """
     # Validate timeout value
     if hasattr(args, 'timeout'):
         if args.timeout < 1:
             parser.error("Timeout must be at least 1 second")
         elif args.timeout > 3600:  # 1 hour max
             parser.error("Timeout cannot exceed 3600 seconds (1 hour)")
-    
-    
+
     # Validate similarity threshold
     if hasattr(args, 'similarity_threshold') and args.similarity_threshold is not None:
         if args.similarity_threshold < 0.0:
             parser.error("Similarity threshold must be at least 0.0")
         elif args.similarity_threshold > 1.0:
             parser.error("Similarity threshold cannot exceed 1.0")
-    
-    # Handle --no-logs option OR simple/brief modes by suppressing logging
-    if (hasattr(args, 'no_logs') and args.no_logs) or \
-       (hasattr(args, 'output_mode') and args.output_mode in ['simple', 'brief']) or \
-       (hasattr(args, 'output_format') and args.output_format in ['simple', 'brief']):
-        # Suppress all logging except critical errors
+
+
+def _should_suppress_logs(args: argparse.Namespace) -> bool:
+    """Determine if logging should be suppressed.
+
+    Args:
+        args: Parsed command-line arguments
+
+    Returns:
+        True if logs should be suppressed
+    """
+    return ((hasattr(args, 'no_logs') and args.no_logs) or
+            (hasattr(args, 'output_mode') and args.output_mode in ['simple', 'brief']) or
+            (hasattr(args, 'output_format') and args.output_format in ['simple', 'brief']))
+
+
+def _handle_create_sample_batch(args: argparse.Namespace) -> None:
+    """Handle create sample batch file command.
+
+    Args:
+        args: Parsed command-line arguments
+    """
+    filename = f"sample_batch.{args.create_sample_batch}"
+    create_sample_batch_file(filename, args.create_sample_batch)
+    print(f"✅ Created sample batch file: {filename}")
+    print(f"You can now run: python {sys.argv[0]} --batch {filename}")
+
+
+def _handle_interactive_mode(args: argparse.Namespace) -> bool:
+    """Handle interactive mode and update args.
+
+    Args:
+        args: Parsed command-line arguments (modified in place)
+
+    Returns:
+        True if interactive mode succeeded, False if cancelled/failed
+    """
+    try:
+        session_data = run_interactive_mode()
+        # Update args with interactive session data
+        args.theme = session_data['topic']
+        args.constraints = session_data['context']
+
+        # Update args with config from interactive session
+        config = session_data['config']
+        for key, value in config.items():
+            if hasattr(args, key):
+                setattr(args, key, value)
+
+        return True
+
+    except KeyboardInterrupt:
+        print("\n\n❌ Interactive session cancelled.")
+        return False
+    except Exception as e:
+        print(f"\n❌ Error in interactive mode: {e}")
+        return False
+
+
+def main():
+    """Main CLI entry point with command routing."""
+    parser = create_parser()
+    args = parser.parse_args()
+
+    setup_logging(args.verbose)
+
+    # Validate numeric arguments
+    _validate_numeric_arguments(args, parser)
+
+    # Handle logging suppression
+    if _should_suppress_logs(args):
         logging.getLogger().setLevel(logging.CRITICAL)
-        # Also suppress progress messages in non-verbose modes
         os.environ["SUPPRESS_MODE_MESSAGE"] = "1"
-    
-    # Handle standalone commands
+
+    # Import command handlers
+    try:
+        from madspark.cli.commands import (
+            WorkflowValidator,
+            WorkflowExecutor,
+            BatchHandler,
+            BookmarkHandler,
+            ExportHandler
+        )
+    except ImportError:
+        from commands import (
+            WorkflowValidator,
+            WorkflowExecutor,
+            BatchHandler,
+            BookmarkHandler,
+            ExportHandler
+        )
+
+    # Get logger for handlers
+    logger = logging.getLogger(__name__)
+
+    # Handle standalone bookmark commands
     if args.list_bookmarks:
-        list_bookmarks_command(args)
+        BookmarkHandler.list_bookmarks(args)
         return
-    
+
     if args.search_bookmarks:
-        search_bookmarks_command(args)
+        BookmarkHandler.search_bookmarks(args)
         return
-    
+
     if args.remove_bookmark:
-        remove_bookmark_command(args)
+        BookmarkHandler.remove_bookmarks(args)
         return
-    
+
+    # Handle other standalone commands
     if hasattr(args, 'list_presets') and args.list_presets:
         print(TemperatureManager.describe_presets())
         return
-    
-    # Handle create sample batch file
+
     if args.create_sample_batch:
-        filename = f"sample_batch.{args.create_sample_batch}"
-        create_sample_batch_file(filename, args.create_sample_batch)
-        print(f"✅ Created sample batch file: {filename}")
-        print(f"You can now run: python {sys.argv[0]} --batch {filename}")
+        _handle_create_sample_batch(args)
         return
-    
+
     # Handle interactive mode
     if args.interactive:
-        try:
-            session_data = run_interactive_mode()
-            # Update args with interactive session data
-            args.theme = session_data['topic']
-            args.constraints = session_data['context']
-            
-            # Update args with config from interactive session
-            config = session_data['config']
-            for key, value in config.items():
-                if hasattr(args, key):
-                    setattr(args, key, value)
-                    
-            # Continue with normal workflow
-        except KeyboardInterrupt:
-            print("\n\n❌ Interactive session cancelled.")
-            return
-        except Exception as e:
-            print(f"\n❌ Error in interactive mode: {e}")
-            return
-    
-    # Handle batch processing
-    if args.batch:
-        try:
-            logger.info(f"Starting batch processing from: {args.batch}")
-            
-            # Create batch processor
-            processor = BatchProcessor(
-                max_concurrent=args.batch_concurrent,
-                use_async=hasattr(args, 'async') and getattr(args, 'async'),
-                enable_cache=args.enable_cache,
-                export_dir=args.batch_export_dir,
-                verbose=args.verbose
-            )
-            
-            # Load batch items
-            if args.batch.endswith('.csv'):
-                batch_items = processor.load_batch_from_csv(args.batch)
-            elif args.batch.endswith('.json'):
-                batch_items = processor.load_batch_from_json(args.batch)
-            else:
-                print("❌ Unsupported batch file format. Use .csv or .json")
-                sys.exit(1)
-                
-            print(f"📋 Loaded {len(batch_items)} items for batch processing")
-            
-            # Prepare workflow options
-            workflow_options = {
-                "enable_novelty_filter": not args.disable_novelty_filter,
-                "novelty_threshold": args.novelty_threshold,
-                "verbose": args.verbose,
-                "enhanced_reasoning": args.enhanced_reasoning,
-                "multi_dimensional_eval": True,  # Always enabled as a core feature
-                "logical_inference": args.logical_inference
-            }
-            
-            # Process batch
-            print("🚀 Starting batch processing...")
-            
-            summary = processor.process_batch(batch_items, workflow_options)
-            
-            # Export results
-            batch_id = datetime.now().strftime("%Y%m%d_%H%M%S")
-            exported_files = processor.export_batch_results(batch_items, batch_id)
-            report_path = processor.create_batch_report(batch_items, batch_id)
-            
-            # Print summary
-            print("\n✅ Batch processing completed!")
-            print(f"⏱️  Total time: {summary['total_processing_time']:.2f}s")
-            print(f"📊 Results: {summary['completed']} completed, {summary['failed']} failed")
-            print(f"📁 Exports saved to: {args.batch_export_dir}/")
-            print(f"📄 Report: {report_path}")
-            
-            return
-            
-        except FileNotFoundError:
-            print(f"❌ Batch file not found: {args.batch}")
-            sys.exit(1)
-        except Exception as e:
-            logger.error(f"Batch processing failed: {e}")
-            print(f"❌ Batch processing failed: {e}")
-            sys.exit(1)
-    
-    # Validate main workflow arguments
-    if not args.theme:
-        if args.remix:
-            # For remix mode, use a default theme if not provided
-            args.theme = "Creative Innovation"
-            args.constraints = args.constraints or "Generate novel ideas based on previous concepts"
-        else:
-            parser.error("Theme is required for idea generation")
-    
-    if not args.constraints:
-        args.constraints = "Generate practical and innovative ideas"
-    
-    # Setup temperature management
-    try:
-        temp_manager = create_temperature_manager_from_args(args)
-        logger.info(temp_manager.describe_settings())
-    except (ValueError, ValidationError) as e:
-        print(f"Error: {e}")
-        sys.exit(1)
-    
-    # Handle remix mode
-    if args.remix:
-        logger.info("Running in remix mode - incorporating bookmarked ideas")
-        try:
-            args.constraints = remix_with_bookmarks(
-                theme=args.theme,
-                additional_constraints=args.constraints,
-                bookmark_ids=args.remix_ids,
-                bookmark_tags=args.bookmark_tags,
-                bookmark_file=args.bookmark_file
-            )
-        except Exception as e:
-            logger.error(f"Failed to setup remix mode: {e}")
-            sys.exit(1)
-    
-    # Run the main workflow
-    logger.info(f"Running MadSpark workflow with theme: '{args.theme}'")
-    logger.info(f"Constraints: {args.constraints}")
-    
-    # Show progress message to user
-    if os.getenv("MADSPARK_MODE") != "mock":
-        print("\n🚀 Generating ideas with Google Gemini API...")
-        print("⏳ This may take 30-60 seconds for quality results...\n")
-    
-    try:
-        # Determine number of candidates and whether to use async mode
-        num_candidates = determine_num_candidates(args)
-        use_async = (hasattr(args, 'async') and getattr(args, 'async')) or (num_candidates > 1)
-        
-        # Extract common workflow arguments to avoid duplication
-        workflow_kwargs = {
-            "topic": args.theme,  # Map theme to topic for consistency
-            "context": args.constraints,  # Map constraints to context for consistency
-            "num_top_candidates": num_candidates,
-            "enable_novelty_filter": not args.disable_novelty_filter,
-            "novelty_threshold": args.similarity_threshold if args.similarity_threshold is not None else args.novelty_threshold,
-            "temperature_manager": temp_manager,
-            "verbose": args.verbose,
-            "enhanced_reasoning": args.enhanced_reasoning,
-            "multi_dimensional_eval": True,  # Always enabled as a core feature
-            "logical_inference": args.logical_inference,
-            "timeout": max(args.timeout, MIN_TIMEOUT_FOR_MULTIPLE_IDEAS_SECONDS) if num_candidates > 1 else args.timeout
-        }
+        if not _handle_interactive_mode(args):
+            return  # Interactive mode failed or was cancelled
 
-        if use_async:
-            # Use async execution (auto-enabled for multiple ideas or explicitly requested)
-            if num_candidates > 1:
-                logger.info(f"Auto-enabling async mode for {num_candidates} ideas (estimated time: up to 5 minutes)")
-                print(f"⚡ Processing {num_candidates} ideas in parallel for faster results...")
-            else:
-                logger.info("Using async execution for better performance")
-            
-            async def run_async():
-                # Initialize cache manager if enabled
-                cache_manager = None
-                if hasattr(args, 'enable_cache') and args.enable_cache:
-                    cache_config = CacheConfig(
-                        redis_url=os.getenv("REDIS_URL", "redis://localhost:6379/0"),
-                        ttl_seconds=int(os.getenv("CACHE_TTL", "3600"))
-                    )
-                    cache_manager = CacheManager(cache_config)
-                    await cache_manager.initialize()
-                    logger.info("Cache enabled for async execution")
-                
-                # Progress callback for user feedback during multiple ideas processing
-                async def progress_callback(message: str, progress: float):
-                    if num_candidates > 1:
-                        print(f"[{progress:.0%}] {message}")
-                
-                # Create async coordinator
-                async_coordinator = AsyncCoordinator(
-                    max_concurrent_agents=int(os.getenv("MAX_CONCURRENT_AGENTS", "10")),
-                    progress_callback=progress_callback if num_candidates > 1 else None,
-                    cache_manager=cache_manager
-                )
-                
-                try:
-                    return await async_coordinator.run_workflow(**workflow_kwargs)
-                finally:
-                    if cache_manager:
-                        await cache_manager.close()
-            
-            results = asyncio.run(run_async())
-        else:
-            # Use synchronous execution
-            results = run_multistep_workflow(**workflow_kwargs)
-        
-        if not results:
-            print("No ideas were generated. Check the logs for details.")
-            sys.exit(1)
-        
-        # Bookmark results by default (unless disabled)
-        if not args.no_bookmark:
-            logger.info(f"Bookmarking requested. Processing {len(results)} results...")
-            manager = BookmarkManager(args.bookmark_file)
-            bookmark_success = False
-            for result in results:
-                try:
-                    # Get the best version of the idea (improved if available, otherwise original)
-                    idea_text = result.get("improved_idea", "") or result.get("idea", "")
-                    if not idea_text:
-                        logger.warning("Cannot bookmark result: missing both 'improved_idea' and 'idea' fields")
-                        print("⚠️  Warning: Result missing idea text, skipping bookmark")
-                        continue
-                    
-                    # Use the best score (improved if available, otherwise initial)
-                    score = result.get("improved_score", result.get("initial_score", 0))
-                    
-                    # Use the best critique (improved if available, otherwise initial)
-                    critique = result.get("improved_critique", result.get("initial_critique", ""))
-                    
-                    # Use provided tags or empty list
-                    bookmark_tags = args.bookmark_tags or []
-                    
-                    bookmark_id = manager.bookmark_idea(
-                        idea_text=idea_text,
-                        topic=args.theme,
-                        context=args.constraints,
-                        score=score,
-                        critique=critique,
-                        advocacy=result.get("advocacy", ""),
-                        skepticism=result.get("skepticism", ""),
-                        tags=bookmark_tags
-                    )
-                    
-                    if bookmark_id:
-                        bookmark_success = True
-                        print(f"✅ Bookmarked result (ID: {bookmark_id})")
-                        if bookmark_tags:
-                            print(f"   Tags: {', '.join(bookmark_tags)}")
-                        logger.info(f"Bookmarked result as {bookmark_id}")
-                    else:
-                        logger.warning("Bookmark creation returned no ID")
-                        
-                except Exception as e:
-                    logger.error(f"Failed to bookmark result: {e}")
-                    print(f"❌ Error saving bookmark: {e}")
-                    
-            if not bookmark_success and not args.no_bookmark:
-                print("\n💡 Tip: To manually bookmark this result later, save the output to a file:")
-                print(f"   ms \"{args.theme}\" \"{args.constraints}\" --output-file result.txt")
-        
-        # Export results if requested (Phase 2.2)
-        if args.export:
-            try:
-                export_manager = ExportManager(args.export_dir)
-                metadata = create_metadata_from_args(args, results)
-                
-                if args.export == 'all':
-                    exported_files = export_manager.export_all_formats(
-                        results, metadata, args.export_filename
-                    )
-                    print("\n📁 Export Results:")
-                    for format_name, file_path in exported_files.items():
-                        print(f"  {format_name.upper()}: {file_path}")
-                else:
-                    # Single format export - using dictionary mapping for maintainability
-                    export_methods = {
-                        'json': export_manager.export_to_json,
-                        'csv': export_manager.export_to_csv,
-                        'markdown': export_manager.export_to_markdown,
-                        'pdf': export_manager.export_to_pdf,
-                    }
-                    
-                    export_method = export_methods.get(args.export)
-                    if export_method:
-                        file_path = export_method(results, metadata, args.export_filename)
-                        print(f"\n📄 Exported to {args.export.upper()}: {file_path}")
-                    else:
-                        logger.error(f"Unsupported export format: {args.export}")
-                    
-            except Exception as e:
-                logger.error(f"Export failed: {e}")
-                print(f"❌ Export failed: {e}")
+    # Handle batch processing mode
+    if args.batch:
+        handler = BatchHandler(args, logger)
+        result = handler.execute()
+        sys.exit(result.exit_code)
+    
+    # Main workflow mode
+    try:
+        # Step 1: Validate arguments
+        validator = WorkflowValidator(args, logger)
+        validation_result = validator.execute()
+        if not validation_result.success:
+            sys.exit(validation_result.exit_code)
+
+        temp_manager = validation_result.data['temp_manager']
+        logger.info(f"Running MadSpark workflow with theme: '{args.theme}'")
+        logger.info(f"Constraints: {args.constraints}")
+
+        # Step 2: Execute workflow
+        executor = WorkflowExecutor(args, logger, temp_manager)
+        workflow_result = executor.execute()
+        if not workflow_result.success:
+            sys.exit(workflow_result.exit_code)
+
+        results = workflow_result.data
+
+        # Step 3: Bookmark results
+        bookmark_handler = BookmarkHandler(args, logger)
+        bookmark_handler.execute(results)
+
+        # Step 4: Export results
+        export_handler = ExportHandler(args, logger)
+        export_handler.execute(results)
         
         # Determine output format (prioritize --output-format over mode flags)
         output_format = args.output_format if args.output_format else args.output_mode

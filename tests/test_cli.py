@@ -12,7 +12,7 @@ from madspark.cli.interactive_mode import InteractiveSession
 class TestCLIMain:
     """Test cases for CLI main functionality."""
     
-    @patch('madspark.cli.cli.run_multistep_workflow')
+    @patch('madspark.cli.commands.workflow_executor.run_multistep_workflow')
     def test_cli_basic_execution(self, mock_workflow):
         """Test basic CLI execution."""
         mock_workflow.return_value = [
@@ -41,7 +41,7 @@ class TestCLIMain:
                 # CLI might exit with 0 on success
                 assert e.code == 0
     
-    @patch('madspark.cli.cli.run_multistep_workflow')
+    @patch('madspark.cli.commands.workflow_executor.run_multistep_workflow')
     def test_cli_with_verbose_flag(self, mock_workflow):
         """Test CLI with verbose flag."""
         mock_workflow.return_value = [
@@ -70,7 +70,7 @@ class TestCLIMain:
             except SystemExit as e:
                 assert e.code == 0
     
-    @patch('madspark.cli.cli.run_multistep_workflow')
+    @patch('madspark.cli.commands.workflow_executor.run_multistep_workflow')
     def test_cli_with_temperature_settings(self, mock_workflow):
         """Test CLI with temperature settings."""
         mock_workflow.return_value = [
@@ -104,7 +104,7 @@ class TestCLIMain:
             except SystemExit as e:
                 assert e.code == 0
     
-    @patch('madspark.cli.cli.run_multistep_workflow')
+    @patch('madspark.cli.commands.workflow_executor.run_multistep_workflow')
     def test_cli_with_temperature_preset(self, mock_workflow):
         """Test CLI with temperature preset."""
         mock_workflow.return_value = [
@@ -136,7 +136,7 @@ class TestCLIMain:
             except SystemExit as e:
                 assert e.code == 0
     
-    @patch('madspark.cli.cli.run_multistep_workflow')
+    @patch('madspark.cli.commands.workflow_executor.run_multistep_workflow')
     def test_cli_with_timeout(self, mock_workflow):
         """Test CLI with timeout parameter."""
         mock_workflow.return_value = [
@@ -164,7 +164,7 @@ class TestCLIMain:
             except SystemExit as e:
                 assert e.code == 0
     
-    @patch('madspark.cli.cli.run_multistep_workflow')
+    @patch('madspark.cli.commands.workflow_executor.run_multistep_workflow')
     def test_cli_with_enhanced_reasoning(self, mock_workflow):
         """Test CLI with enhanced reasoning flag."""
         mock_workflow.return_value = [
@@ -214,7 +214,7 @@ class TestCLIMain:
                 cli_main()
             assert exc_info.value.code != 0
     
-    @patch('madspark.cli.cli.run_multistep_workflow')
+    @patch('madspark.cli.commands.workflow_executor.run_multistep_workflow')
     def test_cli_workflow_failure(self, mock_workflow):
         """Test CLI when workflow fails."""
         mock_workflow.return_value = None  # Simulate workflow failure
@@ -288,7 +288,7 @@ class TestInteractiveMode:
 class TestCLIIntegration:
     """Integration tests for CLI components."""
     
-    @patch('madspark.cli.cli.run_multistep_workflow')
+    @patch('madspark.cli.commands.workflow_executor.run_multistep_workflow')
     @pytest.mark.integration
     def test_cli_full_workflow_integration(self, mock_workflow):
         """Test full CLI workflow integration."""
@@ -347,7 +347,7 @@ class TestCLIIntegration:
                     # Should not raise unhandled exceptions
                     assert False, f"Unhandled exception: {e}"
     
-    @patch('madspark.cli.cli.run_multistep_workflow')
+    @patch('madspark.cli.commands.workflow_executor.run_multistep_workflow')
     def test_cli_output_formatting(self, mock_workflow):
         """Test CLI output formatting."""
         mock_workflow.return_value = [

@@ -32,7 +32,7 @@ class TestWorkflowOrchestratorInit:
 
         assert orchestrator is not None
         assert orchestrator.temperature_manager is not None
-        assert orchestrator.reasoning_engine is not None
+        # Reasoning engine is created on-demand, not at init
         assert orchestrator.verbose is False
 
     def test_init_with_custom_temperature_manager(self):
@@ -426,7 +426,9 @@ class TestWorkflowOrchestratorReevaluateIdeas:
         assert "improved_score" in updated_candidates[0]
         assert "improved_critique" in updated_candidates[0]
         assert updated_candidates[0]["improved_score"] == 9.0
-        assert "improved" in updated_candidates[0]["improved_critique"].lower()
+        # Check that critique contains meaningful content (not fallback)
+        assert len(updated_candidates[0]["improved_critique"]) > 10
+        assert "excellent" in updated_candidates[0]["improved_critique"].lower() or "improvement" in updated_candidates[0]["improved_critique"].lower()
 
     @patch('madspark.core.workflow_orchestrator.call_critic_with_retry')
     def test_reevaluate_uses_original_context(self, mock_critic, orchestrator, sample_candidates):

@@ -622,13 +622,13 @@ def _parse_structured_agent_data(agent_data: str, agent_type: str) -> Dict[str, 
         return {"formatted": fallback_text, "structured": {}}
 
 
-def format_results(results: List[Dict[str, Any]], format_type: str, args) -> str:
+def format_results(results: List[Dict[str, Any]], format_type: str, args=None) -> str:
     """Format results according to specified format using formatter strategy pattern.
 
     Args:
         results: List of workflow result dictionaries
         format_type: Output format ('brief', 'simple', 'detailed', 'summary', 'json', 'text')
-        args: Command-line arguments namespace
+        args: Command-line arguments namespace (optional, defaults to empty Namespace)
 
     Returns:
         Formatted string representation of results
@@ -640,6 +640,11 @@ def format_results(results: List[Dict[str, Any]], format_type: str, args) -> str
 
     # Create appropriate formatter using factory pattern
     formatter = FormatterFactory.create(format_type)
+
+    # Use empty Namespace if args not provided (for backward compatibility)
+    from argparse import Namespace
+    if args is None:
+        args = Namespace()
 
     # Format results using the selected formatter
     return formatter.format(results, args)

@@ -918,69 +918,31 @@ class AsyncCoordinator(BatchOperationsBase):
             candidates, topic, context, idea_temp
         )
         
-        # Step 4: Batch Re-evaluation
+        # Step 4: Batch Re-evaluation - Phase 3.2c: Using WorkflowOrchestrator
         await self._send_progress("Running batch re-evaluation...", 0.82)
-        
-        # Collect improved ideas for re-evaluation
-        improved_ideas = []
-        for candidate in candidates:
-            improved_idea = candidate.get("improved_idea", candidate["text"])
-            improved_ideas.append(improved_idea)
-        
-        improved_ideas_text = "\n\n".join(improved_ideas)
-        
+
         try:
-            # Single API call for all re-evaluations with original context
-            re_eval_output = await async_evaluate_ideas(
-                ideas=improved_ideas_text,
-                topic=topic,
-                context=context,  # Use original context to avoid bias
-                temperature=eval_temp,
-                use_structured_output=True
+            # Phase 3.2c: Use WorkflowOrchestrator for centralized workflow logic
+            from .workflow_orchestrator import WorkflowOrchestrator
+            orchestrator = WorkflowOrchestrator(
+                temperature_manager=None,  # Uses internal defaults
+                reasoning_engine=None,
+                verbose=False
             )
-            
-            # Parse re-evaluations based on structured output
-            import json
-            try:
-                # First try to parse as structured JSON
-                re_eval_json = json.loads(re_eval_output)
-                re_eval_results = []
-                
-                # Handle different response formats
-                if isinstance(re_eval_json, list):
-                    re_eval_results = re_eval_json
-                elif isinstance(re_eval_json, dict):
-                    if "evaluations" in re_eval_json:
-                        re_eval_results = re_eval_json["evaluations"]
-                    elif "results" in re_eval_json:
-                        re_eval_results = re_eval_json["results"]
-                    else:
-                        # Single evaluation wrapped in dict
-                        re_eval_results = [re_eval_json]
-                
-                # Validate we have correct number of evaluations
-                if len(re_eval_results) != len(candidates):
-                    logger.warning(f"Expected {len(candidates)} re-evaluations, got {len(re_eval_results)}")
-                    # Fall back to parse_json_with_fallback
-                    re_eval_results = parse_json_with_fallback(
-                        re_eval_output,
-                        expected_count=len(candidates)
-                    )
-            except json.JSONDecodeError:
-                # Fall back to parse_json_with_fallback for non-JSON responses
-                logger.warning("Re-evaluation response was not valid JSON, using fallback parser")
-                re_eval_results = parse_json_with_fallback(
-                    re_eval_output,
-                    expected_count=len(candidates)
-                )
-            
-            for i, parsed_eval in enumerate(re_eval_results):
+
+            # Delegate re-evaluation to orchestrator
+            updated_candidates, _ = await orchestrator.reevaluate_ideas_async(
+                candidates=candidates,
+                topic=topic,
+                context=context  # Use original context to avoid bias
+            )
+
+            # Update candidates with improved scores and critiques
+            for i, updated in enumerate(updated_candidates):
                 if i < len(candidates):
-                    # Use validate_evaluation_json for consistent field normalization
-                    eval_data = validate_evaluation_json(parsed_eval)
-                    candidates[i]["improved_score"] = eval_data["score"]
-                    candidates[i]["improved_critique"] = eval_data["comment"]
-                    
+                    candidates[i]["improved_score"] = updated.get("score", candidates[i]["score"])
+                    candidates[i]["improved_critique"] = updated.get("critique", "N/A")
+
         except Exception as e:
             logger.error(f"Batch re-evaluation failed: {e}")
             # Fallback: use original scores
@@ -988,61 +950,27 @@ class AsyncCoordinator(BatchOperationsBase):
                 candidate["improved_score"] = candidate["score"]
                 candidate["improved_critique"] = "Re-evaluation failed"
         
-        # Step 5: Build final candidate data
+        # Step 5: Build final candidate data - Phase 3.2c: Using WorkflowOrchestrator
         await self._send_progress("Building final results...", 0.88)
-        final_candidates: List[CandidateData] = []
-        
-        for candidate in candidates:
-            # Calculate score delta
-            initial_score = candidate["score"]
-            improved_score = candidate.get("improved_score", initial_score)
-            score_delta = improved_score - initial_score
-            
-            # Calculate similarity and meaningful improvement
-            from ..utils.text_similarity import is_meaningful_improvement
-            from ..utils.constants import (
-                MEANINGFUL_IMPROVEMENT_SIMILARITY_THRESHOLD,
-                MEANINGFUL_IMPROVEMENT_SCORE_DELTA
-            )
-            
-            original_idea = candidate["text"]
-            improved_idea = candidate.get("improved_idea", original_idea)
-            
-            is_meaningful, similarity_score = is_meaningful_improvement(
-                original_idea,
-                improved_idea,
-                score_delta,
-                similarity_threshold=MEANINGFUL_IMPROVEMENT_SIMILARITY_THRESHOLD,
-                score_delta_threshold=MEANINGFUL_IMPROVEMENT_SCORE_DELTA
-            )
-            
-            # Build candidate data
-            candidate_data = {
-                "idea": original_idea,
-                "initial_score": initial_score,
-                "initial_critique": candidate["critique"],
-                "advocacy": candidate.get("advocacy", "N/A"),
-                "skepticism": candidate.get("skepticism", "N/A"),
-                "improved_idea": improved_idea,
-                "improved_score": improved_score,
-                "improved_critique": candidate.get("improved_critique", "N/A"),
-                "score_delta": score_delta,
-                "is_meaningful_improvement": is_meaningful,
-                "similarity_score": similarity_score
-            }
-            
-            # Add multi-dimensional evaluation if available
-            if "multi_dimensional_evaluation" in candidate:
-                candidate_data["multi_dimensional_evaluation"] = candidate["multi_dimensional_evaluation"]
-            
-            # Add logical inference if available
-            if "logical_inference" in candidate:
-                candidate_data["logical_inference"] = candidate["logical_inference"]
-            
-            final_candidates.append(candidate_data)
-        
+
+        # Phase 3.2c: Use WorkflowOrchestrator for centralized results building
+        from .workflow_orchestrator import WorkflowOrchestrator
+        orchestrator = WorkflowOrchestrator(
+            temperature_manager=None,  # Uses internal defaults
+            reasoning_engine=None,
+            verbose=False
+        )
+
+        # Delegate results building to orchestrator
+        final_candidates = orchestrator.build_final_results(candidates)
+
+        # Preserve logical inference data if available (async-specific feature)
+        for i, candidate in enumerate(candidates):
+            if "logical_inference" in candidate and i < len(final_candidates):
+                final_candidates[i]["logical_inference"] = candidate["logical_inference"]
+
         await self._send_progress(f"Completed batch processing of {len(final_candidates)} candidates", 0.9)
-        
+
         return final_candidates
         
     async def _process_single_candidate(

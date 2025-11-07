@@ -181,18 +181,26 @@ class TestCoordinatorInformationFlow:
     
     @pytest.mark.asyncio
     async def test_async_coordinator_passes_context_to_improvement(self):
-        """Test that async coordinator passes context to improvement phase."""
+        """Test that async coordinator passes context to improvement via orchestrator (Phase 3.2c)."""
         from src.madspark.core.async_coordinator import AsyncCoordinator
-        
-        # Test directly with the batch operations to verify context flow
+        from unittest.mock import AsyncMock
+
         coordinator = AsyncCoordinator()
-        
-        # Mock the batch improvement function in BATCH_FUNCTIONS
-        with patch('src.madspark.core.batch_operations_base.BATCH_FUNCTIONS') as mock_batch_funcs:
-            mock_imp = Mock(return_value=([{"improved_idea": "Enhanced idea"}], 50))
-            mock_batch_funcs.__getitem__.return_value = mock_imp
-            mock_batch_funcs.get.return_value = mock_imp
-            
+
+        # Phase 3.2c: Mock orchestrator method to verify context passing
+        context_received = None
+
+        def mock_improvement_side_effect(candidates, topic, context):
+            nonlocal context_received
+            context_received = context
+            for candidate in candidates:
+                candidate["improved_idea"] = "Enhanced idea with clear implementation plan"
+            return (candidates, 50)
+
+        # Phase 3.2c: Patch orchestrator method instead of BATCH_FUNCTIONS
+        with patch('madspark.core.workflow_orchestrator.WorkflowOrchestrator.improve_ideas_async',
+                   new=AsyncMock(side_effect=mock_improvement_side_effect)):
+
             # Create test candidates
             test_candidates = [{
                 "text": TEST_IDEA,
@@ -200,20 +208,17 @@ class TestCoordinatorInformationFlow:
                 "advocacy": TEST_ADVOCACY,
                 "skepticism": TEST_SKEPTICISM
             }]
-            
+
             # Call the improvement method directly
             await coordinator._process_candidates_with_batch_improvement(
                 test_candidates,
                 TEST_TOPIC,  # Topic parameter
-                TEST_CONTEXT,  # Context parameter 
+                TEST_CONTEXT,  # Context parameter
                 0.9  # Temperature
             )
-            
-            # Verify improvement was called with context
-            mock_imp.assert_called()
-            call_args = mock_imp.call_args[0]
-            # Second argument should be the topic (used as context)
-            assert call_args[1] == TEST_TOPIC
+
+            # Verify context was passed to orchestrator
+            assert context_received == TEST_CONTEXT
     
 
 

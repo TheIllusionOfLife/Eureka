@@ -46,116 +46,95 @@ class TestCoordinatorArchitectureIntegration:
     
     @pytest.mark.asyncio
     async def test_async_coordinator_batch_advocacy_workflow(self):
-        """Test complete advocacy workflow in async coordinator using shared operations."""
+        """Test advocacy workflow delegating to WorkflowOrchestrator (Phase 3.2c)."""
         candidates = [
             {"text": "Solar energy", "critique": "High initial cost"},
             {"text": "Hydroelectric", "critique": "Environmental impact"}
         ]
-        
-        # Mock the batch advocacy function results - should be formatted dictionaries
-        mock_advocacy_results = [
-            {"formatted": "Strong advocacy: Solar energy provides long-term cost savings"},
-            {"formatted": "Strong advocacy: Modern hydroelectric minimizes environmental impact"}
-        ]
-        
-        with patch.object(self.async_coordinator, 'run_batch_with_timeout') as mock_batch:
-            # Batch functions return tuples (results, token_count)
-            mock_batch.return_value = (mock_advocacy_results, 1000)
-            
-            # This should use the shared batch operations
+
+        # Phase 3.2c: Mock orchestrator method instead of run_batch_with_timeout
+        def mock_advocacy_side_effect(candidates, topic, context):
+            for candidate in candidates:
+                candidate["advocacy"] = f"Strong advocacy for {candidate['text']}"
+            return (candidates, 1000)
+
+        with patch('madspark.core.workflow_orchestrator.WorkflowOrchestrator.process_advocacy_async',
+                   new=AsyncMock(side_effect=mock_advocacy_side_effect)):
+
             result = await self.async_coordinator._process_candidates_with_batch_advocacy(
                 candidates, "renewable energy", "sustainable solutions", 0.7
             )
-            
-            # Verify batch operation was called
-            mock_batch.assert_called_once_with(
-                'advocate_ideas_batch',
-                self.async_coordinator.prepare_advocacy_input_with_context(candidates),
-                "renewable energy",
-                "sustainable solutions",  # context parameter
-                0.7
-            )
-            
-            # Verify candidates were updated with formatted values
-            assert result[0]["advocacy"] == mock_advocacy_results[0]["formatted"]
-            assert result[1]["advocacy"] == mock_advocacy_results[1]["formatted"]
+
+            # Verify candidates were updated with advocacy
+            assert "advocacy" in result[0]
+            assert "advocacy" in result[1]
+            assert "Solar energy" in result[0]["advocacy"]
+            assert "Hydroelectric" in result[1]["advocacy"]
     
-    @pytest.mark.asyncio 
+    @pytest.mark.asyncio
     async def test_async_coordinator_batch_skepticism_workflow(self):
-        """Test complete skepticism workflow using shared operations."""
+        """Test skepticism workflow delegating to WorkflowOrchestrator (Phase 3.2c)."""
         candidates = [
             {
-                "text": "Electric vehicles", 
+                "text": "Electric vehicles",
                 "critique": "Battery technology limitations",
                 "advocacy": "Strong environmental benefits"
             },
             {
-                "text": "Hydrogen fuel cells", 
+                "text": "Hydrogen fuel cells",
                 "critique": "Infrastructure challenges",
                 "advocacy": "Zero emissions potential"
             }
         ]
-        
-        mock_skepticism_results = [
-            {"formatted": "Critical analysis: Battery disposal remains problematic"},
-            {"formatted": "Critical analysis: Hydrogen production still carbon-intensive"}
-        ]
-        
-        with patch.object(self.async_coordinator, 'run_batch_with_timeout') as mock_batch:
-            mock_batch.return_value = (mock_skepticism_results, 1000)
-            
+
+        # Phase 3.2c: Mock orchestrator method
+        def mock_skepticism_side_effect(candidates, topic, context):
+            for candidate in candidates:
+                candidate["skepticism"] = f"Critical analysis of {candidate['text']}"
+            return (candidates, 1000)
+
+        with patch('madspark.core.workflow_orchestrator.WorkflowOrchestrator.process_skepticism_async',
+                   new=AsyncMock(side_effect=mock_skepticism_side_effect)):
+
             result = await self.async_coordinator._process_candidates_with_batch_skepticism(
                 candidates, "clean transportation", "sustainable options", 0.8
             )
-            
-            # Verify correct input preparation
-            expected_input = self.async_coordinator.prepare_skepticism_input(candidates)
-            mock_batch.assert_called_once_with(
-                'criticize_ideas_batch',
-                expected_input,
-                "clean transportation",
-                "sustainable options", 
-                0.8
-            )
-            
+
             # Verify results
-            assert result[0]["skepticism"] == mock_skepticism_results[0]["formatted"]
-            assert result[1]["skepticism"] == mock_skepticism_results[1]["formatted"]
+            assert "skepticism" in result[0]
+            assert "skepticism" in result[1]
+            assert "Electric vehicles" in result[0]["skepticism"]
+            assert "Hydrogen fuel cells" in result[1]["skepticism"]
     
     @pytest.mark.asyncio
     async def test_async_coordinator_batch_improvement_workflow(self):
-        """Test complete improvement workflow using shared operations."""
+        """Test improvement workflow delegating to WorkflowOrchestrator (Phase 3.2c)."""
         candidates = [
             {
                 "text": "Smart grid technology",
                 "critique": "Complex implementation",
-                "advocacy": "Enables renewable integration", 
+                "advocacy": "Enables renewable integration",
                 "skepticism": "High cybersecurity risks"
             }
         ]
-        
-        mock_improvement_results = [
-            {"improved_idea": "Improved: Smart grid with enhanced security protocols and phased rollout"}
-        ]
-        
-        with patch.object(self.async_coordinator, 'run_batch_with_timeout') as mock_batch:
-            mock_batch.return_value = (mock_improvement_results, 2000)
-            
+
+        # Phase 3.2c: Mock orchestrator method
+        def mock_improvement_side_effect(candidates, topic, context):
+            for candidate in candidates:
+                candidate["improved_idea"] = f"Improved: {candidate['text']} with enhancements"
+            return (candidates, 2000)
+
+        with patch('madspark.core.workflow_orchestrator.WorkflowOrchestrator.improve_ideas_async',
+                   new=AsyncMock(side_effect=mock_improvement_side_effect)):
+
             result = await self.async_coordinator._process_candidates_with_batch_improvement(
                 candidates, "energy infrastructure", "test context", 0.75
             )
-            
-            # Verify proper input preparation
-            expected_input = self.async_coordinator.prepare_improvement_input_with_context(candidates)
-            mock_batch.assert_called_once_with(
-                'improve_ideas_batch',
-                expected_input,
-                "energy infrastructure",  # topic
-                "test context",  # context
-                0.75
-            )
-            
-            assert result[0]["improved_idea"] == mock_improvement_results[0]["improved_idea"]
+
+            # Verify results
+            assert "improved_idea" in result[0]
+            assert "Smart grid technology" in result[0]["improved_idea"]
+            assert "enhancements" in result[0]["improved_idea"]
     
     @pytest.mark.asyncio
     async def test_error_handling_consistency(self):

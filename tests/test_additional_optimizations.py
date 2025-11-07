@@ -6,7 +6,6 @@ This test suite ensures that:
 3. Multi-dimensional evaluation is batched for efficiency
 4. Dynamic idea generation count is implemented
 """
-import json
 import pytest
 from unittest.mock import Mock, patch
 
@@ -132,41 +131,42 @@ class TestDynamicIdeaGeneration:
     
     @pytest.mark.asyncio
     async def test_coordinator_uses_dynamic_idea_count(self):
-        """Test that coordinator actually uses dynamic idea count."""
+        """Test that coordinator uses dynamic idea count via orchestrator (Phase 3.2c)."""
         from src.madspark.core.async_coordinator import AsyncCoordinator
-        
+        from unittest.mock import AsyncMock
+
         coordinator = AsyncCoordinator()
-        
-        # Mock the API calls
-        with patch('src.madspark.agents.idea_generator.idea_generator_client') as mock_gen:
-            # We'll check what prompt is sent
-            captured_prompt = None
-            
-            def capture_prompt(*args, **kwargs):
-                nonlocal captured_prompt
-                captured_prompt = kwargs.get('contents', '')
-                # Return enough ideas
-                return Mock(text=json.dumps([
-                    {"idea_number": i, "description": f"Idea {i}"}
-                    for i in range(1, 13)  # 12 ideas
-                ]))
-            
-            mock_gen.models.generate_content.side_effect = capture_prompt
-            
-            # Request 10 top candidates
-            with patch('src.madspark.agents.critic.critic_client'):
-                await coordinator.run_workflow(
-                    topic="test",
-                    context="test",
-                    num_top_candidates=10,
-                    multi_dimensional_eval=False,
-                    enhanced_reasoning=False
-                )
-            
-            # Should request at least 12 ideas (10 + 2)
-            # This would need to be verified by checking the structured output schema
-            # or by counting the returned ideas
-            assert mock_gen.models.generate_content.called
+
+        # Phase 3.2c: Mock orchestrator methods instead of direct client access
+        num_ideas_requested = 0
+
+        def mock_generate_side_effect(topic, context, num_ideas):
+            nonlocal num_ideas_requested
+            num_ideas_requested = num_ideas
+            # Return the requested number of ideas
+            return ([f"Idea {i}" for i in range(1, num_ideas + 1)], 1000)
+
+        def mock_evaluate_side_effect(ideas, topic, context):
+            return ([{
+                "idea": idea, "text": idea, "score": 0.8, "critique": "Good"
+            } for idea in ideas], 800)
+
+        # Phase 3.2c: Patch orchestrator methods
+        with patch('madspark.core.workflow_orchestrator.WorkflowOrchestrator.generate_ideas_async',
+                   new=AsyncMock(side_effect=mock_generate_side_effect)), \
+             patch('madspark.core.workflow_orchestrator.WorkflowOrchestrator.evaluate_ideas_async',
+                   new=AsyncMock(side_effect=mock_evaluate_side_effect)):
+
+            await coordinator.run_workflow(
+                topic="test",
+                context="test",
+                num_top_candidates=10,
+                multi_dimensional_eval=False,
+                enhanced_reasoning=False
+            )
+
+            # Should request at least 12 ideas (10 + 20% buffer)
+            assert num_ideas_requested >= 12
 
 
 if __name__ == "__main__":

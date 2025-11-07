@@ -647,13 +647,14 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
 
 #### Session Learnings
 
-**Type Hint Testing Pattern** (From PR #176)
+##### From PR #176 (Phase 2.3: Type Hints)
+**Type Hint Testing Pattern**
 - **Discovery**: TDD approach works excellently for type hints - write validation tests BEFORE adding annotations
 - **Pattern**: Create test_[module]_type_hints.py with inspect-based validation and mypy integration tests
 - **Benefit**: Tests catch missing Optional, incorrect return types, and linting issues humans miss
 - **Implementation**: Use centralized types.py for shared TypedDict/Literal definitions
 
-**CI Lint Discipline** (From PR #176)
+**CI Lint Discipline**
 - **Discovery**: Ruff catches subtle issues (unused imports, f-strings without placeholders) that pass manual review
 - **Pattern**: Always run `ruff check` locally before pushing
 - **Impact**: Prevents CI failures and reduces round-trip time
@@ -679,7 +680,7 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
    - ✅ Float scores properly rounded without defaulting to 0
    - ⏸️ Web interface score display needs verification once enhanced reasoning is fixed
 
-#### Next Priority Tasks
+#### Detailed Refactoring Tasks
 
 **Next Refactoring Phases** (from refactoring_plan_20251106.md)
 
@@ -718,9 +719,7 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
    - **Estimate**: 12-16 hours for comprehensive migration (Option B scope from original plan)
    - **Trade-off**: Current isolated patterns are working; consolidation improves maintainability but adds migration risk
 
-#### Session Learnings
-
-**Phase 1 Refactoring - Executor Cleanup & Import Consolidation (PR #172)**:
+##### From PR #172 (Phase 1: Executor Cleanup & Import Consolidation)
 - **Reviewer Feedback Prioritization**: Systematic CRITICAL→HIGH→MEDIUM ranking prevents scope creep while ensuring critical issues are fixed
 - **Import Consolidation Pattern**: Centralized compat_imports.py with dictionary-returning helpers eliminates 10-15 lines per module (53+ total)
 - **ThreadPoolExecutor Cleanup**: Always register `atexit.register(self.executor.shutdown, wait=False)` to prevent resource leaks
@@ -728,13 +727,13 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
 - **Test-Heavy PR Exception**: PRs with >60% test files acceptable over 500-line limit when following TDD best practices
 - **GraphQL PR Review**: Single-query approach extracts ALL feedback faster than 3-source REST API approach
 
-**Bookmark & Interface Consistency Fixes (PR #164)**:
+##### From PR #164 (Bookmark & Interface Consistency)
 - **Default Timeout Configuration**: Long-running AI workflows need 20+ minute timeouts (increased from 600s to 1200s) to prevent premature termination
 - **Multi-Language Support**: Use LANGUAGE_CONSISTENCY_INSTRUCTION in all evaluation prompts for consistent language responses (Japanese, Chinese, etc.)
 - **Parameter Consistency**: Systematic parameter updates must include all data files (bookmarks.json) not just code files
 - **Mock-Production Field Parity**: Ensure logical inference fields are consistent between mock and production modes to prevent field mismatch errors
 
-**Parameter Standardization & Test Fixing (PR #162)**:
+##### From PR #162 (Parameter Standardization & Test Fixing)
 - **Systematic CI Test Fix Protocol**: 4-phase approach (categorize → fix by category → target correct mock paths → verify comprehensively) prevents missing test failures after major refactoring
 - **Mock Path Targeting**: Critical insight that mocks must target actual production code paths (`improve_ideas_batch`) not wrapper indirection layers (`improve_idea`)
 - **Re-evaluation Bias Prevention**: Tests must validate that original context is preserved during re-evaluation to prevent score inflation
@@ -742,18 +741,16 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
 - **Batch Function Compatibility**: Test mocks must match expected return format of batch functions (tuple with results and token count)
 - **Logical Inference Integration**: When adding parameters to functions, ensure they're properly integrated into prompts and structured output
 
-**Previous Session Patterns**:
-- **Batch Function Registry Pattern**: Module-level registry with try/except fallback prevents dynamic import overhead
-- **Systematic PR Review Protocol**: 4-phase discovery→extraction→verification→processing prevents missing reviewer feedback
-
-
-#### Session Learnings (PR #160 - Float Score Bug Fix)
-
+##### From PR #160 (Float Score Bug Fix)
 - **Type Validation Patterns**: Always consider float/int/string variations in API responses, not just expected types
 - **Python Rounding Behavior**: Python's `round()` uses banker's rounding (round to even) - adjust test expectations accordingly
 - **Japanese Language Testing**: System handles Japanese input/output correctly in both CLI and web interface
 - **Web Interface Limitations**: Enhanced features can cause backend failures - always test basic mode first
 - **TDD Value**: Comprehensive test suite (24 tests) caught edge cases and ensured robust fix
+
+##### General Patterns (Cross-PR)
+- **Batch Function Registry Pattern**: Module-level registry with try/except fallback prevents dynamic import overhead
+- **Systematic PR Review Protocol**: 4-phase discovery→extraction→verification→processing prevents missing reviewer feedback
 
 ##### Historical Context (Previous Sessions)
 

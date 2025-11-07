@@ -614,19 +614,19 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
 
 #### Next Priority Tasks
 
-**Continue Phase 1 Refactoring** (from refactoring_plan_20251106.md)
+**Next Refactoring Phases** (from refactoring_plan_20251106.md)
 
-1. **[HIGH] Task 1.4: Standardize Error Handling**
-   - **Source**: refactoring_plan_20251106.md - Phase 1, Task 1.4
+1. **[HIGH] Task 4.3: Improve Error Handling Consistency**
+   - **Source**: refactoring_plan_20251106.md - Phase 4, Task 4.3
    - **Context**: Inconsistent error handling patterns across codebase (ConfigurationError vs ValueError, logging inconsistencies)
-   - **Approach**: Create unified error hierarchy, standardize logging patterns, ensure consistent user-facing messages
-   - **Estimate**: 4-6 hours
+   - **Approach**: Create unified error hierarchy (src/madspark/utils/error_handling.py), standardize logging patterns, ensure consistent user-facing messages
+   - **Estimate**: 4 hours
 
-2. **[HIGH] Task 1.5: Configuration Management Consolidation**
-   - **Source**: refactoring_plan_20251106.md - Phase 1, Task 1.5
-   - **Context**: Configuration scattered across multiple files (constants.py, genai_client.py, cache_manager.py)
-   - **Approach**: Create centralized ConfigManager, validate on load, deprecate scattered configs
-   - **Estimate**: 5-7 hours
+2. **[HIGH] Task 3.4: Centralize Configuration Constants**
+   - **Source**: refactoring_plan_20251106.md - Phase 3, Task 3.4
+   - **Context**: Configuration scattered across multiple files - thread pool sizes (4 in multiple places), timeouts (60.0, 30.0, 45.0), output limits (5000 lines), regex limits (500 characters)
+   - **Approach**: Create src/madspark/config/execution_constants.py, migrate all hard-coded values via search/replace
+   - **Estimate**: 3 hours
 
 3. **[MEDIUM] Phase 2 Import Refinements**
    - **Source**: PR #172 reviewer feedback (gemini-code-assist suggestions)
@@ -651,10 +651,6 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
    - **Estimate**: 12-16 hours for comprehensive migration (Option B scope from original plan)
    - **Trade-off**: Current isolated patterns are working; consolidation improves maintainability but adds migration risk
 
-#### Known Issues / Blockers
-
-- **None currently**: All major CI issues resolved, all tests passing
-
 #### Session Learnings
 
 **Phase 1 Refactoring - Executor Cleanup & Import Consolidation (PR #172)**:
@@ -666,7 +662,6 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
 - **GraphQL PR Review**: Single-query approach extracts ALL feedback faster than 3-source REST API approach
 
 **Bookmark & Interface Consistency Fixes (PR #164)**:
-- **Thread Pool Resource Management**: Always add atexit cleanup handlers for ThreadPoolExecutor to prevent resource leaks on interpreter exit
 - **Default Timeout Configuration**: Long-running AI workflows need 20+ minute timeouts (increased from 600s to 1200s) to prevent premature termination
 - **Multi-Language Support**: Use LANGUAGE_CONSISTENCY_INSTRUCTION in all evaluation prompts for consistent language responses (Japanese, Chinese, etc.)
 - **Parameter Consistency**: Systematic parameter updates must include all data files (bookmarks.json) not just code files

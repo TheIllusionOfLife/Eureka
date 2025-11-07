@@ -4,7 +4,6 @@ Base formatter abstract class for result formatting.
 Provides shared utilities and defines the formatter interface.
 """
 
-import json
 from abc import ABC, abstractmethod
 from argparse import Namespace
 from typing import Any, Dict, List, Optional

@@ -13,6 +13,7 @@ Eureka features the MadSpark Multi-Agent System, a sophisticated AI-powered expe
 - **Operational Modes**: Mock (development), Direct API (production), ADK Framework (experimental)
 - **Logical Inference**: LLM-powered LogicalInferenceEngine replaces hardcoded templates for genuine reasoning
 - **Formatter Strategy Pattern**: CLI output formatting uses Strategy Pattern with pluggable formatters (brief, simple, detailed, summary, json)
+- **Type Hint Organization**: Centralized type definitions in `[module]/types.py` files (e.g., `cli/types.py` contains TypedDict, Literal types for all CLI components)
 
 ## Common Tasks
 - **Run Coordinator**: `PYTHONPATH=src python -m madspark.core.coordinator`

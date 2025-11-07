@@ -230,7 +230,6 @@ class TestOrchestratorPreservesAsyncFeatures:
                     topic="Test",
                     context="Test",
                     num_top_candidates=1,
-                    num_ideas_to_generate=1,
                     timeout=0.5  # Very short timeout
                 )
 
@@ -252,8 +251,7 @@ class TestOrchestratorPreservesAsyncFeatures:
             await async_coordinator.run_workflow(
                 topic="Test",
                 context="Test",
-                num_top_candidates=1,
-                num_ideas_to_generate=1
+                num_top_candidates=1
             )
 
             # Should have received progress updates

@@ -3,16 +3,17 @@ import argparse
 import json
 from pathlib import Path
 from datetime import datetime, timedelta
+from typing import List, Dict, Any, Optional
 
 from madspark.utils.batch_monitor import BatchMetrics
 from madspark.utils.constants import (
-    INDIVIDUAL_CALL_OVERHEAD_MULTIPLIER, 
+    INDIVIDUAL_CALL_OVERHEAD_MULTIPLIER,
     ORIGINAL_CALLS_PER_ITEM,
     PERCENTAGE_CONVERSION_FACTOR
 )
 
 
-def load_metrics_from_file(log_file: str = None) -> list:
+def load_metrics_from_file(log_file: Optional[str] = None) -> List[Dict[str, Any]]:
     """Load metrics from the batch monitoring log file."""
     if log_file is None:
         log_dir = Path.home() / ".madspark"
@@ -34,7 +35,7 @@ def load_metrics_from_file(log_file: str = None) -> list:
     return metrics
 
 
-def format_metrics_summary(metrics_data: list) -> str:
+def format_metrics_summary(metrics_data: List[Dict[str, Any]]) -> str:
     """Format metrics data into a human-readable summary."""
     if not metrics_data:
         return "No batch metrics found. Run some batch operations first."
@@ -90,7 +91,7 @@ def format_metrics_summary(metrics_data: list) -> str:
     return "\n".join(output)
 
 
-def _format_period_summary(metrics: list) -> str:
+def _format_period_summary(metrics: List[BatchMetrics]) -> str:
     """Format metrics for a specific time period."""
     if not metrics:
         return "  No data"
@@ -134,7 +135,7 @@ def _format_period_summary(metrics: list) -> str:
     return "\n".join(lines)
 
 
-def _format_cost_analysis(metrics: list) -> str:
+def _format_cost_analysis(metrics: List[BatchMetrics]) -> str:
     """Format cost effectiveness analysis."""
     successful = [m for m in metrics if m.success and not m.fallback_used]
     
@@ -212,7 +213,7 @@ def show_recent_metrics(limit: int = 10) -> str:
     return "\n".join(lines)
 
 
-def clear_metrics():
+def clear_metrics() -> None:
     """Clear the metrics log file."""
     log_dir = Path.home() / ".madspark"
     log_file = log_dir / "batch_metrics.jsonl"
@@ -224,7 +225,7 @@ def clear_metrics():
         print("ℹ️  No metrics file found")
 
 
-def main():
+def main() -> None:
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
         description="View batch API call metrics and cost analysis",

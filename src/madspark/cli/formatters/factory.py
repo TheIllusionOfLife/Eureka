@@ -2,7 +2,7 @@
 Factory for creating formatter instances.
 """
 
-from typing import Optional
+from typing import Optional, Type, List, Dict
 
 from .base import ResultFormatter
 from .brief import BriefFormatter
@@ -15,7 +15,7 @@ from .json_formatter import JsonFormatter
 class FormatterFactory:
     """Factory for creating result formatters based on format type."""
 
-    _formatters = {
+    _formatters: Dict[str, Type[ResultFormatter]] = {
         'brief': BriefFormatter,
         'simple': SimpleFormatter,
         'detailed': DetailedFormatter,
@@ -42,7 +42,7 @@ class FormatterFactory:
         return formatter_class()
 
     @classmethod
-    def register_formatter(cls, format_name: str, formatter_class: type) -> None:
+    def register_formatter(cls, format_name: str, formatter_class: Type[ResultFormatter]) -> None:
         """Register a custom formatter.
 
         Args:
@@ -52,7 +52,7 @@ class FormatterFactory:
         cls._formatters[format_name] = formatter_class
 
     @classmethod
-    def available_formats(cls) -> list:
+    def available_formats(cls) -> List[str]:
         """Get list of available format names.
 
         Returns:

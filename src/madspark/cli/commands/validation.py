@@ -1,5 +1,6 @@
 """Workflow validation command handler."""
 
+from typing import TYPE_CHECKING
 
 from .base import CommandHandler, CommandResult
 
@@ -8,10 +9,14 @@ try:
     from madspark.utils.temperature_control import create_temperature_manager_from_args
     from madspark.utils.bookmark_system import remix_with_bookmarks
     from madspark.utils.errors import ValidationError
+    if TYPE_CHECKING:
+        from madspark.utils.temperature_control import TemperatureManager
 except ImportError:
     from temperature_control import create_temperature_manager_from_args
     from bookmark_system import remix_with_bookmarks
     from errors import ValidationError
+    if TYPE_CHECKING:
+        from temperature_control import TemperatureManager
 
 
 class WorkflowValidator(CommandHandler):
@@ -82,7 +87,7 @@ class WorkflowValidator(CommandHandler):
             self.args.constraints = "Generate practical and innovative ideas"
             self.log_info("Using default constraints")
 
-    def _setup_temperature_manager(self):
+    def _setup_temperature_manager(self) -> "TemperatureManager":
         """Setup temperature manager from args.
 
         Returns:

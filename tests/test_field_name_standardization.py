@@ -1,3 +1,5 @@
+from argparse import Namespace
+
 """Test field name standardization between CLI and web interfaces.
 
 This test suite ensures that both CLI and web interfaces use consistent
@@ -89,8 +91,8 @@ class TestFieldNameStandardization:
         }
         
         # Format for different output modes
-        summary_output = format_results([result], 'summary')
-        detailed_output = format_results([result], 'detailed')
+        summary_output = format_results([result], 'summary', Namespace())
+        detailed_output = format_results([result], 'detailed', Namespace())
         
         # Verify that display functions handle standardized fields correctly
         assert 'idea' in str(summary_output) or 'Enhanced idea text' in str(summary_output)

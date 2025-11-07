@@ -1,3 +1,5 @@
+from argparse import Namespace
+
 """End-to-end test for structured output formatting fixes.
 
 This test verifies that all 10 formatting issues identified in the user request
@@ -36,7 +38,7 @@ class TestStructuredOutputEndToEnd:
         }]
         
         # Test detailed format output
-        output = format_results(mock_results, 'detailed')
+        output = format_results(mock_results, 'detailed', Namespace())
         
         # Fix 1: ✅ Remove redundant "Text:" prefix
         assert 'Text:' not in output
@@ -108,7 +110,7 @@ class TestStructuredOutputEndToEnd:
             'score_delta': 0.5
         }]
         
-        output = format_results(mock_results, 'detailed')
+        output = format_results(mock_results, 'detailed', Namespace())
         
         # Should not contain common meta-commentary phrases
         forbidden_phrases = [
@@ -135,7 +137,7 @@ class TestStructuredOutputEndToEnd:
             'score_delta': 1.0
         }]
         
-        output = format_results(mock_results, 'detailed')
+        output = format_results(mock_results, 'detailed', Namespace())
         
         # All bullet points should use consistent character
         assert '•' in output

@@ -1,3 +1,5 @@
+from argparse import Namespace
+
 """Test brief output formatting improvements."""
 import os
 import sys
@@ -21,7 +23,7 @@ class TestBriefOutputFormatting:
             'score_delta': 2.0
         }]
         
-        output = format_results(results, 'brief')
+        output = format_results(results, 'brief', Namespace())
         
         # Should have markdown headers
         assert '## ' in output or '### ' in output, "Brief output should have markdown headers"
@@ -36,7 +38,7 @@ class TestBriefOutputFormatting:
             'score_delta': 2.0
         }]
         
-        output = format_results(results, 'brief')
+        output = format_results(results, 'brief', Namespace())
         
         # The improved idea should be prominently featured
         assert 'Community solar panel installation program with financing options' in output
@@ -64,7 +66,7 @@ class TestBriefOutputFormatting:
             'improved_score': 8.5
         }]
         
-        output = format_results(results, 'brief')
+        output = format_results(results, 'brief', Namespace())
         
         # Should not have confusing technical terms
         assert 'Enhancements based on feedback:' not in output
@@ -79,6 +81,6 @@ class TestBriefOutputFormatting:
         # This will be tested by checking CLI argument parsing
         # For now, just ensure brief mode works properly
         results = [{'idea': 'Basic concept', 'improved_idea': 'Smart recycling system for urban areas', 'improved_score': 7.0}]
-        output = format_results(results, 'brief')
+        output = format_results(results, 'brief', Namespace())
         assert len(output) > 0
         assert 'Smart recycling system for urban areas' in output

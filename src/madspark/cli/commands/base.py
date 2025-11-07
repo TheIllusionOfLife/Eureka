@@ -41,8 +41,12 @@ class CommandHandler(ABC):
         self.logger = logger
 
     @abstractmethod
-    def execute(self) -> CommandResult:
+    def execute(self, *args, **kwargs) -> CommandResult:
         """Execute the command.
+
+        Args:
+            *args: Positional arguments for the command
+            **kwargs: Keyword arguments for the command
 
         Returns:
             CommandResult with success status and optional data

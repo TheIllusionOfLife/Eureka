@@ -1,8 +1,5 @@
 """Batch processing command handler."""
 
-import argparse
-import logging
-import sys
 from datetime import datetime
 from typing import List, Dict, Any
 
@@ -130,7 +127,7 @@ class BatchHandler(CommandHandler):
         batch_id = datetime.now().strftime("%Y%m%d_%H%M%S")
 
         # Export results
-        exported_files = processor.export_batch_results(batch_items, batch_id)
+        processor.export_batch_results(batch_items, batch_id)
 
         # Create report
         report_path = processor.create_batch_report(batch_items, batch_id)

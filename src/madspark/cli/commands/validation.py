@@ -1,8 +1,5 @@
 """Workflow validation command handler."""
 
-import argparse
-import logging
-from typing import Any, Dict
 
 from .base import CommandHandler, CommandResult
 

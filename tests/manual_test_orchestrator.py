@@ -7,7 +7,6 @@ Run with: PYTHONPATH=src python tests/manual_test_orchestrator.py
 import os
 import sys
 import logging
-from typing import List, Dict, Any
 
 # Set up logging
 logging.basicConfig(
@@ -16,11 +15,11 @@ logging.basicConfig(
 )
 
 # Ensure PYTHONPATH includes src
+# ruff: noqa: E402
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from madspark.core.workflow_orchestrator import WorkflowOrchestrator
-from madspark.utils.temperature_control import TemperatureManager
-from madspark.utils.novelty_filter import NoveltyFilter
+from madspark.core.workflow_orchestrator import WorkflowOrchestrator  # noqa: E402
+from madspark.utils.temperature_control import TemperatureManager  # noqa: E402
 
 
 def test_basic_workflow():

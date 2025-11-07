@@ -5,7 +5,6 @@ with all Phase 1 features including temperature control, novelty filtering,
 and bookmark management.
 """
 import argparse
-import asyncio
 import json
 import sys
 import os
@@ -17,52 +16,32 @@ from datetime import datetime
 
 # Import MadSpark components with fallback for local development
 try:
-    from madspark.core.coordinator import run_multistep_workflow
-    from madspark.core.async_coordinator import AsyncCoordinator
     from madspark.utils.temperature_control import (
-        TemperatureManager, 
-        add_temperature_arguments,
-        create_temperature_manager_from_args
-    )
-    from madspark.utils.constants import (
-        MIN_TIMEOUT_FOR_MULTIPLE_IDEAS_SECONDS
+        TemperatureManager,
+        add_temperature_arguments
     )
     from madspark.utils.bookmark_system import (
         BookmarkManager,
-        list_bookmarks_cli,
-        remix_with_bookmarks
+        list_bookmarks_cli
     )
-    from madspark.utils.export_utils import ExportManager, create_metadata_from_args
-    from madspark.utils.cache_manager import CacheManager, CacheConfig
-    from madspark.utils.errors import ValidationError
 except ImportError:
     # Fallback for local development/testing
-    from coordinator import run_multistep_workflow
-    from async_coordinator import AsyncCoordinator
     from temperature_control import (
-        TemperatureManager, 
-        add_temperature_arguments,
-        create_temperature_manager_from_args
-    )
-    from constants import (
-        MIN_TIMEOUT_FOR_MULTIPLE_IDEAS_SECONDS
+        TemperatureManager,
+        add_temperature_arguments
     )
     from bookmark_system import (
         BookmarkManager,
-        list_bookmarks_cli,
-        remix_with_bookmarks
+        list_bookmarks_cli
     )
-    from export_utils import ExportManager, create_metadata_from_args
-    from cache_manager import CacheManager, CacheConfig
-    from errors import ValidationError
 
 # Import interactive mode after the try/except blocks
 try:
     from madspark.cli.interactive_mode import run_interactive_mode
-    from madspark.utils.batch_processor import BatchProcessor, create_sample_batch_file
+    from madspark.utils.batch_processor import create_sample_batch_file
 except ImportError:
     from interactive_mode import run_interactive_mode
-    from batch_processor import BatchProcessor, create_sample_batch_file
+    from batch_processor import create_sample_batch_file
 
 logger = logging.getLogger(__name__)
 

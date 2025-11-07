@@ -5,13 +5,9 @@ to define the expected behavior of each command handler.
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock, AsyncMock, call
+from unittest.mock import Mock, patch
 import argparse
 import logging
-import sys
-import os
-from datetime import datetime
-from typing import List, Dict, Any
 
 
 # Test fixtures
@@ -138,7 +134,6 @@ class TestWorkflowValidator:
     def test_validates_theme_required(self, mock_logger):
         """Test that theme validation works - theme is required."""
         from madspark.cli.commands.validation import WorkflowValidator
-        from madspark.cli.commands.base import CommandResult
 
         # Create args without theme
         args = argparse.Namespace()

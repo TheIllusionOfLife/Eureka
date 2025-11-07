@@ -7,9 +7,13 @@ The WorkflowOrchestrator provides a unified set of workflow steps that can be
 called by both synchronous and asynchronous coordinators, reducing code
 duplication and improving maintainability.
 """
+import asyncio
 import logging
 import time
-from typing import List, Tuple, Dict, Any, Optional
+from typing import List, Tuple, Dict, Any, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from madspark.utils.batch_monitor import BatchMonitor
 
 from madspark.config.workflow_constants import (
     FALLBACK_ADVOCACY,
@@ -557,3 +561,518 @@ class WorkflowOrchestrator:
             final_results.append(result)
 
         return final_results
+
+    # ========================================================================
+    # MONITORING-INTEGRATED METHODS (Phase 3.2a)
+    # ========================================================================
+
+    def generate_ideas_with_monitoring(
+        self,
+        topic: str,
+        context: str,
+        num_ideas: int,
+        monitor: Optional['BatchMonitor'] = None
+    ) -> Tuple[List[str], int]:
+        """Generate ideas with batch monitoring integration.
+
+        Args:
+            topic: Main topic/theme for idea generation.
+            context: Context/constraints for the ideas.
+            num_ideas: Number of ideas to generate.
+            monitor: Optional BatchMonitor instance for tracking.
+
+        Returns:
+            Tuple of (list of idea strings, token count).
+        """
+        from madspark.utils.batch_monitor import batch_call_context, get_batch_monitor
+
+        if monitor is None:
+            monitor = get_batch_monitor()
+
+        with batch_call_context("idea_generation", num_ideas, monitor) as monitor_ctx:
+            try:
+                ideas, token_count = self.generate_ideas(topic, context, num_ideas)
+
+                # Set monitoring metadata
+                if token_count > 0:
+                    monitor_ctx.set_tokens_used(token_count)
+                monitor_ctx.set_model_name(self.model_name)
+
+                return ideas, token_count
+
+            except Exception as e:
+                logging.error(f"Idea generation with monitoring failed: {e}")
+                monitor_ctx.set_fallback_used(str(e))
+                raise
+
+    def evaluate_ideas_with_monitoring(
+        self,
+        ideas: List[str],
+        topic: str,
+        context: str,
+        monitor: Optional['BatchMonitor'] = None
+    ) -> Tuple[List[Dict[str, Any]], int]:
+        """Evaluate ideas with batch monitoring integration.
+
+        Args:
+            ideas: List of idea strings to evaluate.
+            topic: Topic/theme for context.
+            context: Context/constraints.
+            monitor: Optional BatchMonitor instance.
+
+        Returns:
+            Tuple of (evaluated ideas, token count).
+        """
+        from madspark.utils.batch_monitor import batch_call_context, get_batch_monitor
+
+        if monitor is None:
+            monitor = get_batch_monitor()
+
+        with batch_call_context("evaluation", len(ideas), monitor) as monitor_ctx:
+            try:
+                evaluated, token_count = self.evaluate_ideas(ideas, topic, context)
+
+                if token_count > 0:
+                    monitor_ctx.set_tokens_used(token_count)
+                monitor_ctx.set_model_name(self.model_name)
+
+                return evaluated, token_count
+
+            except Exception as e:
+                logging.error(f"Evaluation with monitoring failed: {e}")
+                monitor_ctx.set_fallback_used(str(e))
+                raise
+
+    def process_advocacy_with_monitoring(
+        self,
+        candidates: List[Dict[str, Any]],
+        topic: str,
+        context: str,
+        monitor: Optional['BatchMonitor'] = None
+    ) -> Tuple[List[Dict[str, Any]], int]:
+        """Process advocacy with batch monitoring integration.
+
+        Args:
+            candidates: List of candidate dictionaries.
+            topic: Topic/theme for context.
+            context: Context/constraints.
+            monitor: Optional BatchMonitor instance.
+
+        Returns:
+            Tuple of (updated candidates, token count).
+        """
+        from madspark.utils.batch_monitor import batch_call_context, get_batch_monitor
+
+        if monitor is None:
+            monitor = get_batch_monitor()
+
+        with batch_call_context("advocate", len(candidates), monitor) as monitor_ctx:
+            try:
+                updated, token_count = self.process_advocacy(candidates, topic, context)
+
+                if token_count > 0:
+                    monitor_ctx.set_tokens_used(token_count)
+                monitor_ctx.set_model_name(self.model_name)
+
+                return updated, token_count
+
+            except Exception as e:
+                logging.error(f"Advocacy with monitoring failed: {e}")
+                monitor_ctx.set_fallback_used(str(e))
+                # Return candidates with fallback values
+                for candidate in candidates:
+                    if "advocacy" not in candidate:
+                        candidate["advocacy"] = FALLBACK_ADVOCACY
+                return candidates, 0
+
+    def process_skepticism_with_monitoring(
+        self,
+        candidates: List[Dict[str, Any]],
+        topic: str,
+        context: str,
+        monitor: Optional['BatchMonitor'] = None
+    ) -> Tuple[List[Dict[str, Any]], int]:
+        """Process skepticism with batch monitoring integration.
+
+        Args:
+            candidates: List of candidate dictionaries.
+            topic: Topic/theme for context.
+            context: Context/constraints.
+            monitor: Optional BatchMonitor instance.
+
+        Returns:
+            Tuple of (updated candidates, token count).
+        """
+        from madspark.utils.batch_monitor import batch_call_context, get_batch_monitor
+
+        if monitor is None:
+            monitor = get_batch_monitor()
+
+        with batch_call_context("skeptic", len(candidates), monitor) as monitor_ctx:
+            try:
+                updated, token_count = self.process_skepticism(candidates, topic, context)
+
+                if token_count > 0:
+                    monitor_ctx.set_tokens_used(token_count)
+                monitor_ctx.set_model_name(self.model_name)
+
+                return updated, token_count
+
+            except Exception as e:
+                logging.error(f"Skepticism with monitoring failed: {e}")
+                monitor_ctx.set_fallback_used(str(e))
+                # Return candidates with fallback values
+                for candidate in candidates:
+                    if "skepticism" not in candidate:
+                        candidate["skepticism"] = FALLBACK_SKEPTICISM
+                return candidates, 0
+
+    def improve_ideas_with_monitoring(
+        self,
+        candidates: List[Dict[str, Any]],
+        topic: str,
+        context: str,
+        monitor: Optional['BatchMonitor'] = None
+    ) -> Tuple[List[Dict[str, Any]], int]:
+        """Improve ideas with batch monitoring integration.
+
+        Args:
+            candidates: List of candidate dictionaries.
+            topic: Topic/theme for context.
+            context: Context/constraints.
+            monitor: Optional BatchMonitor instance.
+
+        Returns:
+            Tuple of (updated candidates, token count).
+        """
+        from madspark.utils.batch_monitor import batch_call_context, get_batch_monitor
+
+        if monitor is None:
+            monitor = get_batch_monitor()
+
+        with batch_call_context("improve", len(candidates), monitor) as monitor_ctx:
+            try:
+                updated, token_count = self.improve_ideas(candidates, topic, context)
+
+                if token_count > 0:
+                    monitor_ctx.set_tokens_used(token_count)
+                monitor_ctx.set_model_name(self.model_name)
+
+                return updated, token_count
+
+            except Exception as e:
+                logging.error(f"Improvement with monitoring failed: {e}")
+                monitor_ctx.set_fallback_used(str(e))
+                # Return candidates with fallback (original ideas)
+                for candidate in candidates:
+                    if "improved_idea" not in candidate:
+                        candidate["improved_idea"] = candidate.get("idea", candidate.get("text", ""))
+                return candidates, 0
+
+    def reevaluate_ideas_with_monitoring(
+        self,
+        candidates: List[Dict[str, Any]],
+        topic: str,
+        context: str,
+        monitor: Optional['BatchMonitor'] = None
+    ) -> Tuple[List[Dict[str, Any]], int]:
+        """Re-evaluate ideas with batch monitoring integration.
+
+        Args:
+            candidates: List of candidate dictionaries.
+            topic: Topic/theme for context.
+            context: Context/constraints (original context, to prevent bias).
+            monitor: Optional BatchMonitor instance.
+
+        Returns:
+            Tuple of (updated candidates, token count).
+        """
+        from madspark.utils.batch_monitor import batch_call_context, get_batch_monitor
+
+        if monitor is None:
+            monitor = get_batch_monitor()
+
+        with batch_call_context("reevaluation", len(candidates), monitor) as monitor_ctx:
+            try:
+                updated, token_count = self.reevaluate_ideas(candidates, topic, context)
+
+                if token_count > 0:
+                    monitor_ctx.set_tokens_used(token_count)
+                monitor_ctx.set_model_name(self.model_name)
+
+                return updated, token_count
+
+            except Exception as e:
+                logging.error(f"Re-evaluation with monitoring failed: {e}")
+                monitor_ctx.set_fallback_used(str(e))
+                # Return candidates with fallback scores
+                for candidate in candidates:
+                    if "improved_score" not in candidate:
+                        candidate["improved_score"] = candidate.get("initial_score", FALLBACK_SCORE)
+                    if "improved_critique" not in candidate:
+                        candidate["improved_critique"] = FALLBACK_CRITIQUE
+                return candidates, 0
+
+    # ========================================================================
+    # ASYNC METHOD VARIANTS (Phase 3.2a)
+    # ========================================================================
+
+    async def generate_ideas_async(
+        self,
+        topic: str,
+        context: str,
+        num_ideas: int
+    ) -> Tuple[List[str], int]:
+        """Async variant of generate_ideas.
+
+        Args:
+            topic: Main topic/theme for idea generation.
+            context: Context/constraints for the ideas.
+            num_ideas: Number of ideas to generate.
+
+        Returns:
+            Tuple of (list of idea strings, token count).
+        """
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            None,
+            self.generate_ideas,
+            topic,
+            context,
+            num_ideas
+        )
+
+    async def evaluate_ideas_async(
+        self,
+        ideas: List[str],
+        topic: str,
+        context: str
+    ) -> Tuple[List[Dict[str, Any]], int]:
+        """Async variant of evaluate_ideas.
+
+        Args:
+            ideas: List of idea strings to evaluate.
+            topic: Topic/theme for context.
+            context: Context/constraints.
+
+        Returns:
+            Tuple of (evaluated ideas, token count).
+        """
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            None,
+            self.evaluate_ideas,
+            ideas,
+            topic,
+            context
+        )
+
+    async def process_advocacy_async(
+        self,
+        candidates: List[Dict[str, Any]],
+        topic: str,
+        context: str
+    ) -> Tuple[List[Dict[str, Any]], int]:
+        """Async variant of process_advocacy.
+
+        Args:
+            candidates: List of candidate dictionaries.
+            topic: Topic/theme for context.
+            context: Context/constraints.
+
+        Returns:
+            Tuple of (updated candidates, token count).
+        """
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            None,
+            self.process_advocacy,
+            candidates,
+            topic,
+            context
+        )
+
+    async def process_skepticism_async(
+        self,
+        candidates: List[Dict[str, Any]],
+        topic: str,
+        context: str
+    ) -> Tuple[List[Dict[str, Any]], int]:
+        """Async variant of process_skepticism.
+
+        Args:
+            candidates: List of candidate dictionaries.
+            topic: Topic/theme for context.
+            context: Context/constraints.
+
+        Returns:
+            Tuple of (updated candidates, token count).
+        """
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            None,
+            self.process_skepticism,
+            candidates,
+            topic,
+            context
+        )
+
+    async def improve_ideas_async(
+        self,
+        candidates: List[Dict[str, Any]],
+        topic: str,
+        context: str
+    ) -> Tuple[List[Dict[str, Any]], int]:
+        """Async variant of improve_ideas.
+
+        Args:
+            candidates: List of candidate dictionaries.
+            topic: Topic/theme for context.
+            context: Context/constraints.
+
+        Returns:
+            Tuple of (updated candidates, token count).
+        """
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            None,
+            self.improve_ideas,
+            candidates,
+            topic,
+            context
+        )
+
+    async def reevaluate_ideas_async(
+        self,
+        candidates: List[Dict[str, Any]],
+        topic: str,
+        context: str
+    ) -> Tuple[List[Dict[str, Any]], int]:
+        """Async variant of reevaluate_ideas.
+
+        Args:
+            candidates: List of candidate dictionaries.
+            topic: Topic/theme for context.
+            context: Context/constraints (original, to prevent bias).
+
+        Returns:
+            Tuple of (updated candidates, token count).
+        """
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            None,
+            self.reevaluate_ideas,
+            candidates,
+            topic,
+            context
+        )
+
+    # ========================================================================
+    # MULTI-DIMENSIONAL EVALUATION SUPPORT (Phase 3.2a)
+    # ========================================================================
+
+    def add_multi_dimensional_evaluation(
+        self,
+        candidates: List[Dict[str, Any]],
+        topic: str,
+        context: str
+    ) -> List[Dict[str, Any]]:
+        """Add multi-dimensional evaluation to candidates.
+
+        Args:
+            candidates: List of candidate dictionaries.
+            topic: Topic/theme for context.
+            context: Context/constraints.
+
+        Returns:
+            Updated candidates with multi_dimensional_evaluation field.
+        """
+        if not self.reasoning_engine:
+            logging.warning("ReasoningEngine not available, skipping multi-dimensional evaluation")
+            return candidates
+
+        if not hasattr(self.reasoning_engine, 'multi_evaluator') or not self.reasoning_engine.multi_evaluator:
+            logging.warning("Multi-evaluator not available, skipping multi-dimensional evaluation")
+            return candidates
+
+        try:
+            # Extract ideas for batch evaluation
+            ideas_for_eval = [candidate.get("text", candidate.get("idea", "")) for candidate in candidates]
+            eval_context = {"topic": topic, "context": context}
+
+            # Batch evaluate all dimensions for all ideas
+            multi_eval_results = self.reasoning_engine.multi_evaluator.evaluate_ideas_batch(
+                ideas_for_eval, eval_context
+            )
+
+            # Add results to candidates
+            for i, result in enumerate(multi_eval_results):
+                if i < len(candidates):
+                    candidates[i]["multi_dimensional_evaluation"] = result
+
+            logging.info(f"Added multi-dimensional evaluation to {len(candidates)} candidates")
+
+        except Exception as e:
+            logging.warning(f"Multi-dimensional evaluation failed: {e}")
+            # Don't crash, just leave multi_dimensional_evaluation as None
+
+        return candidates
+
+    def add_multi_dimensional_evaluation_with_monitoring(
+        self,
+        candidates: List[Dict[str, Any]],
+        topic: str,
+        context: str,
+        monitor: Optional['BatchMonitor'] = None
+    ) -> List[Dict[str, Any]]:
+        """Add multi-dimensional evaluation with monitoring.
+
+        Args:
+            candidates: List of candidate dictionaries.
+            topic: Topic/theme for context.
+            context: Context/constraints.
+            monitor: Optional BatchMonitor instance.
+
+        Returns:
+            Updated candidates with multi_dimensional_evaluation field.
+        """
+        from madspark.utils.batch_monitor import batch_call_context, get_batch_monitor
+
+        if monitor is None:
+            monitor = get_batch_monitor()
+
+        with batch_call_context("multi_dimensional", len(candidates), monitor) as monitor_ctx:
+            try:
+                updated = self.add_multi_dimensional_evaluation(candidates, topic, context)
+                monitor_ctx.set_model_name(self.model_name)
+                return updated
+
+            except Exception as e:
+                logging.error(f"Multi-dimensional evaluation with monitoring failed: {e}")
+                monitor_ctx.set_fallback_used(str(e))
+                return candidates
+
+    async def add_multi_dimensional_evaluation_async(
+        self,
+        candidates: List[Dict[str, Any]],
+        topic: str,
+        context: str
+    ) -> List[Dict[str, Any]]:
+        """Async variant of add_multi_dimensional_evaluation.
+
+        Args:
+            candidates: List of candidate dictionaries.
+            topic: Topic/theme for context.
+            context: Context/constraints.
+
+        Returns:
+            Updated candidates with multi_dimensional_evaluation field.
+        """
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            None,
+            self.add_multi_dimensional_evaluation,
+            candidates,
+            topic,
+            context
+        )

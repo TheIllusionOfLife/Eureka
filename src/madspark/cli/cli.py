@@ -622,12 +622,13 @@ def _parse_structured_agent_data(agent_data: str, agent_type: str) -> Dict[str, 
         return {"formatted": fallback_text, "structured": {}}
 
 
-def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
+def format_results(results: List[Dict[str, Any]], format_type: str, args) -> str:
     """Format results according to specified format using formatter strategy pattern.
 
     Args:
         results: List of workflow result dictionaries
         format_type: Output format ('brief', 'simple', 'detailed', 'summary', 'json', 'text')
+        args: Command-line arguments namespace
 
     Returns:
         Formatted string representation of results
@@ -641,9 +642,7 @@ def format_results(results: List[Dict[str, Any]], format_type: str) -> str:
     formatter = FormatterFactory.create(format_type)
 
     # Format results using the selected formatter
-    # Note: args parameter not needed for basic formatting, using empty Namespace
-    from argparse import Namespace
-    return formatter.format(results, Namespace())
+    return formatter.format(results, args)
 
 
 def determine_num_candidates(args):
@@ -856,7 +855,7 @@ def main():
         output_format = args.output_format if args.output_format else args.output_mode
         
         # Format and output results
-        formatted_output = format_results(results, output_format)
+        formatted_output = format_results(results, output_format, args)
         
         # Check if automatic output file is needed for long outputs
         num_ideas = args.top_ideas if args.top_ideas is not None else 1

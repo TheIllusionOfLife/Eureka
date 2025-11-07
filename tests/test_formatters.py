@@ -406,12 +406,14 @@ class TestDetailedFormatter:
 
     def test_detailed_score_delta_indicators(self, multiple_results):
         """Detailed format should show score delta with arrows."""
-        # Modify fixture to include negative and zero deltas
-        multiple_results[1]["score_delta"] = -0.5
-        multiple_results[2]["score_delta"] = 0.0
+        import copy
+        # Create a deep copy to avoid modifying the shared fixture
+        test_results = copy.deepcopy(multiple_results)
+        test_results[1]["score_delta"] = -0.5
+        test_results[2]["score_delta"] = 0.0
 
         formatter = DetailedFormatter()
-        output = formatter.format(multiple_results, Namespace())
+        output = formatter.format(test_results, Namespace())
 
         # Should have different indicators for positive, negative, zero
         assert "⬆️  Improvement:" in output or "⬇️  Change:" in output or "➡️  No significant change" in output

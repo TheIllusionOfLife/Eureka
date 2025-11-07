@@ -41,17 +41,17 @@ class SimpleFormatter(ResultFormatter):
                 improved_score = result.get('improved_score', 'N/A')
                 score_delta = result.get('score_delta', 0)
 
-                # Check if improvement is meaningful (determined by coordinator)
                 is_meaningful_improvement = result.get('is_meaningful_improvement', True)
+                idea_text = self._handle_structured_idea(improved_idea) if improved_idea else ""
 
-                if is_meaningful_improvement:
-                    lines.append(f"✨ Improved: {improved_idea}")
-                    lines.append(f"📈 Final Score: {improved_score}")
+                if is_meaningful_improvement and idea_text:
+                    lines.append(f"✨ Improved: {idea_text}")
+                    lines.append(f"📈 Final Score: {self._format_score(improved_score)}")
                     if score_delta > 0:
                         lines.append(f"⬆️  Improvement: +{score_delta:.1f}")
                 else:
                     # Show only final score, indicate no meaningful improvement
-                    lines.append(f"📈 Final Score: {improved_score}")
+                    lines.append(f"📈 Final Score: {self._format_score(improved_score)}")
                     lines.append("✅ Already well-developed - no significant improvements needed")
 
             # Add evaluation summary if available (clean format)

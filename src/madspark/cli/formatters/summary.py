@@ -29,18 +29,20 @@ class SummaryFormatter(ResultFormatter):
 
             # Get cleaned improved idea (already cleaned by clean_improved_ideas_in_results)
             # Fall back to original idea if no improved idea available
-            improved_idea = result.get('improved_idea')
-            if not improved_idea or improved_idea == 'No improved idea available':
-                improved_idea = result.get('idea', 'No idea available')
+            idea_source = result.get('improved_idea')
+            if not idea_source or idea_source == 'No improved idea available':
+                idea_source = self._get_final_idea(result)
 
-            if len(str(improved_idea)) > 500:
-                improved_idea = str(improved_idea)[:497] + "..."
-                lines.append(improved_idea)
+            idea_text = self._handle_structured_idea(idea_source) or 'No idea available'
+
+            if len(idea_text) > 500:
+                truncated = idea_text[:497] + "..."
+                lines.append(truncated)
                 lines.append("\n[Note: Full improved idea available in text or JSON format]")
             else:
-                lines.append(str(improved_idea))
+                lines.append(idea_text)
 
-            lines.append(f"\nImproved Score: {result.get('improved_score', 'N/A')}")
+            lines.append(f"\nImproved Score: {self._format_score(result.get('improved_score', 'N/A'))}")
 
             # Add multi-dimensional evaluation if available
             if 'multi_dimensional_evaluation' in result:

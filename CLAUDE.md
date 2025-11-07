@@ -184,7 +184,7 @@ See **[docs/ci-policy.md](docs/ci-policy.md)** for complete guidelines on:
 The CLI uses a **Strategy Pattern** for output formatting, enabling clean separation of concerns and easy extensibility.
 
 ### Formatter Package Structure
-```
+```text
 src/madspark/cli/formatters/
 ├── base.py              # Abstract ResultFormatter base class
 ├── brief.py             # BriefFormatter - solution-focused markdown output

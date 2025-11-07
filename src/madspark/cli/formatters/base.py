@@ -61,23 +61,23 @@ class ResultFormatter(ABC):
         except (ValueError, TypeError):
             return str(score)
 
-    def _get_final_idea(self, result: Dict[str, Any]) -> str:
+    def _get_final_idea(self, result: Dict[str, Any]) -> Any:
         """Get the final idea (improved or original).
 
         Args:
             result: Result dictionary
 
         Returns:
-            Final idea text
+            Final idea text or structured dict
         """
         improved = result.get('improved_idea')
-        original = result.get('idea')
-
-        # Handle None values
         if improved and improved != 'No improved idea available':
-            return improved if improved else 'No idea available'
+            return improved
+
+        original = result.get('idea')
         if original:
-            return original if original else 'No idea available'
+            return original
+
         return 'No idea available'
 
     def _get_final_score(self, result: Dict[str, Any]) -> Any:
@@ -102,8 +102,7 @@ class ResultFormatter(ABC):
         """
         if isinstance(idea, dict) and 'improved_title' in idea:
             parts = []
-            if 'improved_title' in idea:
-                parts.append(idea['improved_title'])
+            parts.append(idea['improved_title'])
             if 'improved_description' in idea:
                 parts.append("")
                 parts.append(idea['improved_description'])
@@ -137,6 +136,8 @@ class ResultFormatter(ABC):
 
         if score_delta > 0:
             lines.append(f"⬆️  Improvement: +{score_delta:.1f}")
+        elif score_delta < 0:
+            lines.append(f"⬇️  Change: {score_delta:.1f}")
         elif not is_meaningful:
             lines.append("✅ Already well-developed - no significant improvements needed")
 

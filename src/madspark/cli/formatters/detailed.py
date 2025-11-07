@@ -38,10 +38,7 @@ class DetailedFormatter(ResultFormatter):
             lines.append(idea_text)
 
             initial_score = result.get('initial_score', 'N/A')
-            if initial_score != 'N/A':
-                lines.append(f"Initial Score: {initial_score:.2f}")
-            else:
-                lines.append(f"Initial Score: {initial_score}")
+            lines.append(f"Initial Score: {self._format_score(initial_score)}")
             lines.append(f"Initial Critique: {result.get('initial_critique', 'No critique available')}")
 
             # Agent feedback with structured parsing
@@ -86,13 +83,11 @@ class DetailedFormatter(ResultFormatter):
 
                 # Show improved score if available
                 improved_score = result.get('improved_score', 'N/A')
-                if improved_score != 'N/A':
-                    lines.append(f"📈 Improved Score: {improved_score:.2f}")
-                elif 'improved_idea' not in result:
-                    # Don't show score line if there's no improved idea and no improved score
-                    pass
-                else:
-                    lines.append(f"📈 Improved Score: {improved_score}")
+                formatted_improved = self._format_score(improved_score)
+                if formatted_improved != 'N/A':
+                    lines.append(f"📈 Improved Score: {formatted_improved}")
+                elif 'improved_idea' in result:
+                    lines.append(f"📈 Improved Score: {formatted_improved}")
 
                 # Show score delta if available
                 if 'score_delta' in result:
@@ -167,42 +162,39 @@ class DetailedFormatter(ResultFormatter):
         if not agent_data:
             return {"formatted": f"No {agent_type} available", "structured": {}}
 
-        # Handle both string (JSON) and dict inputs
-        if isinstance(agent_data, str):
-            if not agent_data.strip():
-                return {"formatted": f"No {agent_type} available", "structured": {}}
-            agent_data_str = agent_data
-        else:
-            # Already a dict, convert to JSON string for processing
-            agent_data_str = json.dumps(agent_data)
+        structured_data = None
+        if isinstance(agent_data, dict):
+            structured_data = agent_data
+        elif isinstance(agent_data, str) and agent_data.strip():
+            try:
+                structured_data = json.loads(agent_data)
+            except json.JSONDecodeError:
+                # Not valid JSON, treat as plain text
+                return {"formatted": agent_data, "structured": {}}
+
+        if not structured_data:
+            return {"formatted": f"No {agent_type} available", "structured": {}}
 
         try:
-            # Try to parse as JSON first
-            if isinstance(agent_data, dict):
-                structured_data = agent_data
-            else:
-                structured_data = json.loads(agent_data_str)
-
             if agent_type == 'advocacy':
                 from madspark.utils.output_processor import format_advocacy_section
                 formatted = format_advocacy_section(structured_data)
                 return {"formatted": formatted, "structured": structured_data}
 
-            elif agent_type == 'skepticism':
+            if agent_type == 'skepticism':
                 from madspark.utils.output_processor import format_skepticism_section
                 formatted = format_skepticism_section(structured_data)
                 return {"formatted": formatted, "structured": structured_data}
 
-            elif agent_type == 'evaluation':
+            if agent_type == 'evaluation':
                 # Evaluation is handled differently - already parsed in coordinator
                 return {"formatted": agent_data, "structured": structured_data}
 
-            else:
-                # Unknown agent type - return structured data with default formatting
-                fallback_text = json.dumps(structured_data, indent=2) if structured_data else agent_data
-                return {"formatted": fallback_text, "structured": structured_data}
+            # Unknown agent type - return structured data with default formatting
+            fallback_text = json.dumps(structured_data, indent=2)
+            return {"formatted": fallback_text, "structured": structured_data}
 
-        except (json.JSONDecodeError, TypeError, ImportError):
-            # Fall back to text format for backward compatibility
-            fallback_text = agent_data if isinstance(agent_data, str) else str(agent_data)
-            return {"formatted": fallback_text, "structured": {}}
+        except ImportError:
+            # Fallback if output_processor is not available
+            fallback_text = json.dumps(structured_data, indent=2)
+            return {"formatted": fallback_text, "structured": structured_data}

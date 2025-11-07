@@ -1,13 +1,13 @@
 from argparse import Namespace
 
 """Test brief output formatting improvements."""
-import os
-import sys
+import os  # noqa: E402
+import sys  # noqa: E402
 
 # Add src to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from madspark.cli.cli import format_results
+from madspark.cli.cli import format_results  # noqa: E402
 
 
 class TestBriefOutputFormatting:

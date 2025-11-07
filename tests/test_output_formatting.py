@@ -1,11 +1,11 @@
 from argparse import Namespace
 
 """Tests for CLI output formatting with structured data."""
-import pytest
-from unittest.mock import patch
+import pytest  # noqa: E402
+from unittest.mock import patch  # noqa: E402
 
-from madspark.cli.cli import format_results
-from madspark.utils.output_processor import (
+from madspark.cli.cli import format_results  # noqa: E402
+from madspark.utils.output_processor import (  # noqa: E402
     convert_markdown_to_cli,
     smart_truncate_text
 )

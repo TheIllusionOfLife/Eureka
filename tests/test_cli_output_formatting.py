@@ -6,15 +6,15 @@ Test CLI Output Formatting Requirements
 This test file defines the expected behavior for CLI output formatting.
 These tests should FAIL initially and then pass after implementation.
 """
-import pytest
-from unittest.mock import patch
-import sys
-import os
+import pytest  # noqa: E402
+from unittest.mock import patch  # noqa: E402
+import sys  # noqa: E402
+import os  # noqa: E402
 
 # Add src to path for testing
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from madspark.cli.cli import format_results, main
+from madspark.cli.cli import format_results, main  # noqa: E402
 
 
 class TestOutputFormatting:

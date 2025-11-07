@@ -5,15 +5,15 @@ from argparse import Namespace
 This test verifies that all 10 formatting issues identified in the user request
 have been successfully resolved through structured output implementation.
 """
-from unittest.mock import patch
-import sys
-import os
+from unittest.mock import patch  # noqa: E402
+import sys  # noqa: E402
+import os  # noqa: E402
 
 # Add src to path for testing
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from madspark.cli.cli import format_results
-from madspark.core.coordinator_batch import run_multistep_workflow_batch
+from madspark.cli.cli import format_results  # noqa: E402
+from madspark.core.coordinator_batch import run_multistep_workflow_batch  # noqa: E402
 
 
 class TestStructuredOutputEndToEnd:

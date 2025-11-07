@@ -5,12 +5,12 @@ from argparse import Namespace
 This test ensures that logical inference results are properly displayed
 as a separate section when the --logical flag is used.
 """
-import pytest
-from unittest.mock import patch, Mock
-import json
+import pytest  # noqa: E402
+from unittest.mock import patch, Mock  # noqa: E402
+import json  # noqa: E402
 
-from madspark.cli.cli import format_results
-from madspark.utils.output_processor import format_logical_inference_results
+from madspark.cli.cli import format_results  # noqa: E402
+from madspark.utils.output_processor import format_logical_inference_results  # noqa: E402
 
 
 class TestLogicalInferenceDisplay:

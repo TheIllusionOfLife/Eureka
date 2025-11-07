@@ -6,15 +6,15 @@ This test suite ensures that both CLI and web interfaces use consistent
 field names for the same data, addressing the issue where field names
 differ between interfaces.
 """
-import os
-import sys
-import pytest
-from unittest.mock import Mock, patch
+import os  # noqa: E402
+import sys  # noqa: E402
+import pytest  # noqa: E402
+from unittest.mock import Mock, patch  # noqa: E402
 
 # Add src to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from madspark.core.coordinator import run_multistep_workflow
+from madspark.core.coordinator import run_multistep_workflow  # noqa: E402
 
 
 class TestFieldNameStandardization:

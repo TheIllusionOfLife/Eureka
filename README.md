@@ -454,6 +454,36 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
 
 ## Session Handover
 
+### Last Updated: November 07, 2025 09:36 PM JST
+
+### Recently Completed
+
+- ✅ **[PR #178](https://github.com/TheIllusionOfLife/Eureka/pull/178)**: Phase 3.1: Create WorkflowOrchestrator (November 7, 2025)
+  - **TDD Implementation**: Followed test-driven development - wrote 21 comprehensive tests BEFORE implementation
+  - **Core Achievement**: Created WorkflowOrchestrator (559 lines) centralizing workflow logic from 3 coordinator files
+  - **Configuration Module**: Extracted workflow constants to dedicated config package (workflow_constants.py)
+  - **Testing**: 21/21 tests passing with 100% coverage of workflow steps
+  - **Manual Testing Infrastructure**: Created manual_test_orchestrator.py for real API validation
+  - **Integration Pattern**: test_orchestrator_coordinator.py demonstrates usage in coordinators
+  - **CRITICAL Bug Fix**: Fixed missing topic parameter in improve_ideas_batch call (caught by chatgpt-codex-connector review)
+  - **Code Quality**: Imported constants from utils.constants, added TODO comments for token counting enhancement
+  - **PR Review Success**: Systematically addressed feedback from 5 reviewers using GraphQL extraction protocol
+  - **Files Created**: workflow_orchestrator.py (559 lines), workflow_constants.py (34 lines), test_workflow_orchestrator.py (607 lines), manual_test_orchestrator.py (175 lines), test_orchestrator_coordinator.py (130 lines), IMPLEMENTATION_SUMMARY.md (328 lines)
+  - **Total Impact**: +1,837 lines across 7 files
+  - **Design Patterns**: Strategy Pattern (workflow steps), Dependency Injection (temperature manager, reasoning engine), Fallback Pattern (error recovery), Builder Pattern (final results assembly)
+  - **Key Features**: Batch API optimization (O(1) calls), context preservation for re-evaluation, comprehensive error handling, lazy initialization
+  - **Scope**: Phase 3.1 COMPLETE - Phase 3.2 (coordinator integration) deferred
+
+- ✅ **[PR #176](https://github.com/TheIllusionOfLife/Eureka/pull/176)**: Phase 2.3: Add Comprehensive Type Hints to CLI Module (November 7, 2025)
+  - **Type Coverage**: Improved from ~60% to ~90%+ type hint coverage across CLI module
+  - **Type Organization**: Created centralized `src/madspark/cli/types.py` with TypedDict and Literal definitions
+  - **Files Updated**: batch_metrics.py, cli.py, interactive_mode.py, formatters/factory.py, commands/validation.py
+  - **Testing**: Added 7 comprehensive type validation tests (test_cli_type_hints.py)
+  - **Mypy Compliance**: Eliminated all CLI-specific mypy errors (0 errors with --ignore-missing-imports)
+  - **Pattern**: TDD for type hints - write validation tests BEFORE adding type annotations
+  - **CI Success**: Fixed ruff linting errors (unused imports, incorrect f-strings)
+  - **Phase Completion**: Phase 2 (CLI Refactoring) now 100% complete (2.1, 2.2, 2.3)
+
 #### Next Priority Tasks
 
 1. **[Phase 3.2] Coordinator Integration - Use WorkflowOrchestrator**
@@ -500,351 +530,153 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
 
 #### Session Learnings
 
-##### From PR #176 (Phase 2.3: Type Hints)
-**Type Hint Testing Pattern**
-- **Discovery**: TDD approach works excellently for type hints - write validation tests BEFORE adding annotations
-- **Pattern**: Create test_[module]_type_hints.py with inspect-based validation and mypy integration tests
-- **Benefit**: Tests catch missing Optional, incorrect return types, and linting issues humans miss
-- **Implementation**: Use centralized types.py for shared TypedDict/Literal definitions
-
-**CI Lint Discipline**
-- **Discovery**: Ruff catches subtle issues (unused imports, f-strings without placeholders) that pass manual review
-- **Pattern**: Always run `ruff check` locally before pushing
-- **Impact**: Prevents CI failures and reduces round-trip time
-
-**Phase Completion Documentation**
-- **Discovery**: Phase 2 (CLI Refactoring) completed in 3 PRs across single session
-- **Achievement**: 100% of planned Phase 2 work (2.1 Command Handlers, 2.2 Formatter Pattern, 2.3 Type Hints)
-- **Efficiency**: Systematic refactoring plan enables focused execution
-
-#### Incomplete Testing Tasks (from PR #160)
-
-1. **Web Interface Testing** (Partially Complete)
-   - ✅ Verified Japanese input handling
-   - ✅ Discovered enhanced reasoning bug
-   - ⏸️ Check all collapsible sections in results
-   - ⏸️ Bookmark all generated ideas
-   - ⏸️ Check bookmark list display
-   - ⏸️ Test remix functionality with bookmarks
-   - **Blocker**: Enhanced reasoning bug prevents full testing
-
-2. **Score Display Verification** 
-   - ✅ CLI shows proper scores (6/10, 8/10) with Japanese input
-   - ✅ Float scores properly rounded without defaulting to 0
-   - ⏸️ Web interface score display needs verification once enhanced reasoning is fixed
-
-#### Detailed Refactoring Tasks
-
-**Next Refactoring Phases** (from refactoring_plan_20251106.md)
-
-1. **[HIGH] Task 4.3: Improve Error Handling Consistency**
-   - **Source**: refactoring_plan_20251106.md - Phase 4, Task 4.3
-   - **Context**: Inconsistent error handling patterns across codebase (ConfigurationError vs ValueError, logging inconsistencies)
-   - **Approach**: Create unified error hierarchy (src/madspark/utils/error_handling.py), standardize logging patterns, ensure consistent user-facing messages
-   - **Estimate**: 4 hours
-
-2. **[HIGH] Task 3.4: Centralize Configuration Constants**
-   - **Source**: refactoring_plan_20251106.md - Phase 3, Task 3.4
-   - **Context**: Configuration scattered across multiple files - thread pool sizes (4 in multiple places), timeouts (60.0, 30.0, 45.0), output limits (5000 lines), regex limits (500 characters)
-   - **Approach**: Create src/madspark/config/execution_constants.py, migrate all hard-coded values via search/replace
-   - **Estimate**: 3 hours
-
-3. **[MEDIUM] Phase 2 Import Refinements**
-   - **Source**: PR #172 reviewer feedback (gemini-code-assist suggestions)
-   - **Context**: Additional DRY opportunities identified during review
-   - **Tasks**:
-     - Add `CacheConfig` to `import_core_components()` helper
-     - Create `import_advocate_dependencies()` for advocate.py specific imports
-     - Update batch_processor.py to use consolidated CacheConfig import
-   - **Estimate**: 2-3 hours
-
-4. **[LOW] Performance Benchmarking**
-   - **Source**: Multiple optimization PRs completed (60-70% improvements achieved)
-   - **Context**: Document comprehensive performance improvements and establish baselines
-   - **Approach**: Create performance benchmarking suite and generate report
-
-5. **[FUTURE - Phase 4] Complete Import Consolidation**
-   - **Source**: Task 1.3 Option A - Partial completion in PR #172
-   - **Context**: 19 files (out of 23 total) still use individual try/except import patterns (~200 lines)
-   - **Files Include**: critic.py, evaluator.py, idea_generator.py, improver.py, skeptic.py, and 14 others
-   - **Decision Point**: Evaluate if further consolidation provides value vs. current working state
-   - **Approach**: If pursued, create specialized helpers for remaining patterns or migrate to existing compat_imports.py
-   - **Estimate**: 12-16 hours for comprehensive migration (Option B scope from original plan)
-   - **Trade-off**: Current isolated patterns are working; consolidation improves maintainability but adds migration risk
-
-##### From PR #172 (Phase 1: Executor Cleanup & Import Consolidation)
-- **Reviewer Feedback Prioritization**: Systematic CRITICAL→HIGH→MEDIUM ranking prevents scope creep while ensuring critical issues are fixed
-- **Import Consolidation Pattern**: Centralized compat_imports.py with dictionary-returning helpers eliminates 10-15 lines per module (53+ total)
-- **ThreadPoolExecutor Cleanup**: Always register `atexit.register(self.executor.shutdown, wait=False)` to prevent resource leaks
-- **Fallback Import Correctness**: Use relative imports (`..utils.constants`) in except blocks, never top-level modules
-- **Test-Heavy PR Exception**: PRs with >60% test files acceptable over 500-line limit when following TDD best practices
-- **GraphQL PR Review**: Single-query approach extracts ALL feedback faster than 3-source REST API approach
-
-##### From PR #164 (Bookmark & Interface Consistency)
-- **Default Timeout Configuration**: Long-running AI workflows need 20+ minute timeouts (increased from 600s to 1200s) to prevent premature termination
-- **Multi-Language Support**: Use LANGUAGE_CONSISTENCY_INSTRUCTION in all evaluation prompts for consistent language responses (Japanese, Chinese, etc.)
-- **Parameter Consistency**: Systematic parameter updates must include all data files (bookmarks.json) not just code files
-- **Mock-Production Field Parity**: Ensure logical inference fields are consistent between mock and production modes to prevent field mismatch errors
-
-##### From PR #162 (Parameter Standardization & Test Fixing)
-- **Systematic CI Test Fix Protocol**: 4-phase approach (categorize → fix by category → target correct mock paths → verify comprehensively) prevents missing test failures after major refactoring
-- **Mock Path Targeting**: Critical insight that mocks must target actual production code paths (`improve_ideas_batch`) not wrapper indirection layers (`improve_idea`)
-- **Re-evaluation Bias Prevention**: Tests must validate that original context is preserved during re-evaluation to prevent score inflation
-- **Parameter Migration Pattern**: Comprehensive codebase standardization requires backward compatibility, systematic call site updates, and dedicated test coverage
-- **Batch Function Compatibility**: Test mocks must match expected return format of batch functions (tuple with results and token count)
-- **Logical Inference Integration**: When adding parameters to functions, ensure they're properly integrated into prompts and structured output
-
-##### From PR #160 (Float Score Bug Fix)
-- **Type Validation Patterns**: Always consider float/int/string variations in API responses, not just expected types
-- **Python Rounding Behavior**: Python's `round()` uses banker's rounding (round to even) - adjust test expectations accordingly
-- **Japanese Language Testing**: System handles Japanese input/output correctly in both CLI and web interface
-- **Web Interface Limitations**: Enhanced features can cause backend failures - always test basic mode first
-- **TDD Value**: Comprehensive test suite (24 tests) caught edge cases and ensured robust fix
-
-##### General Patterns (Cross-PR)
-- **Batch Function Registry Pattern**: Module-level registry with try/except fallback prevents dynamic import overhead
-- **Systematic PR Review Protocol**: 4-phase discovery→extraction→verification→processing prevents missing reviewer feedback
-
-##### Historical Context (Previous Sessions)
-
-**Major Infrastructure Completed**:
-- ✅ **Performance Optimization Foundation**: Batch API processing, Redis caching, multi-dimensional evaluation
-- ✅ **Testing Infrastructure**: Comprehensive test suite with 90%+ coverage across all modules  
-- ✅ **Logical Inference Engine**: LLM-powered reasoning with 5 analysis types (FULL, CAUSAL, CONSTRAINTS, CONTRADICTION, IMPLICATIONS)
-- ✅ **Web Interface**: React frontend with TypeScript, real-time WebSocket updates, error handling
-- ✅ **CI/CD Pipeline**: Optimized 2-4 minute execution with parallel testing and smart caching
-
-**Technical Architecture Established**:
-- Standard `src/madspark/` package structure with agents, core, utils, cli modules
-- Mock-first development enabling API-free testing and development
-- Try/except fallback patterns for multi-environment compatibility  
-- Structured output support using Google Gemini API with backward compatibility
-
-## License
-
-GPL-3.0 License - see [LICENSE](LICENSE) file for details.
-
-## Support
-
-- **Issues**: [GitHub Issues](https://github.com/TheIllusionOfLife/Eureka/issues)
-- **Documentation**: `docs/` directory for comprehensive guides
-## Session Handover
-
-### Last Updated: November 07, 2025 09:36 PM JST
-
-#### Recently Completed
-
-- ✅ **[PR #178](https://github.com/TheIllusionOfLife/Eureka/pull/178)**: Phase 3.1: Create WorkflowOrchestrator (November 7, 2025)
-  - **TDD Implementation**: Followed test-driven development - wrote 21 comprehensive tests BEFORE implementation
-  - **Core Achievement**: Created WorkflowOrchestrator (559 lines) centralizing workflow logic from 3 coordinator files
-  - **Configuration Module**: Extracted workflow constants to dedicated config package (workflow_constants.py)
-  - **Testing**: 21/21 tests passing with 100% coverage of workflow steps
-  - **Manual Testing Infrastructure**: Created manual_test_orchestrator.py for real API validation
-  - **Integration Pattern**: test_orchestrator_coordinator.py demonstrates usage in coordinators
-  - **CRITICAL Bug Fix**: Fixed missing topic parameter in improve_ideas_batch call (caught by chatgpt-codex-connector review)
-  - **Code Quality**: Imported constants from utils.constants, added TODO comments for token counting enhancement
-  - **PR Review Success**: Systematically addressed feedback from 5 reviewers using GraphQL extraction protocol
-  - **Files Created**: workflow_orchestrator.py (559 lines), workflow_constants.py (34 lines), test_workflow_orchestrator.py (607 lines), manual_test_orchestrator.py (175 lines), test_orchestrator_coordinator.py (130 lines), IMPLEMENTATION_SUMMARY.md (328 lines)
-  - **Total Impact**: +1,837 lines across 7 files
-  - **Design Patterns**: Strategy Pattern (workflow steps), Dependency Injection (temperature manager, reasoning engine), Fallback Pattern (error recovery), Builder Pattern (final results assembly)
-  - **Key Features**: Batch API optimization (O(1) calls), context preservation for re-evaluation, comprehensive error handling, lazy initialization
-  - **Scope**: Phase 3.1 COMPLETE - Phase 3.2 (coordinator integration) deferred
-
-- ✅ **[PR #176](https://github.com/TheIllusionOfLife/Eureka/pull/176)**: Phase 2.3: Add Comprehensive Type Hints to CLI Module (November 7, 2025)
-  - **Type Coverage**: Improved from ~60% to ~90%+ type hint coverage across CLI module
-  - **Type Organization**: Created centralized `src/madspark/cli/types.py` with TypedDict and Literal definitions
-  - **Files Updated**: batch_metrics.py, cli.py, interactive_mode.py, formatters/factory.py, commands/validation.py
-  - **Testing**: Added 7 comprehensive type validation tests (test_cli_type_hints.py)
-  - **Mypy Compliance**: Eliminated all CLI-specific mypy errors (0 errors with --ignore-missing-imports)
-  - **Pattern**: TDD for type hints - write validation tests BEFORE adding type annotations
-  - **CI Success**: Fixed ruff linting errors (unused imports, incorrect f-strings)
-  - **Phase Completion**: Phase 2 (CLI Refactoring) now 100% complete (2.1, 2.2, 2.3)
-
-#### Next Priority Tasks
-
-1. **[Phase 3] Architecture Consolidation - WorkflowOrchestrator**
-   - **Source**: [refactoring_plan_20251106.md](refactoring_plan_20251106.md) Phase 3.1
-   - **Context**: Centralize workflow logic from 3 coordinator files into unified WorkflowOrchestrator
-   - **Approach**: Create workflow_orchestrator.py with strategy pattern for sync/async execution
-   - **Estimate**: 10 hours (Medium-High risk)
-   - **Dependencies**: Phase 2 complete ✅
-
-2. **[Phase 3] Core Module Type Hints**
-   - **Source**: refactoring_plan_20251106.md Phase 3.2
-   - **Context**: Add type hints to core modules (coordinator.py, async_coordinator.py, enhanced_reasoning.py)
-   - **Approach**: Similar to PR #176 - TDD with test_[module]_type_hints.py
-   - **Estimate**: 6 hours
-
-3. **[Phase 4] Complete Import Consolidation**
-   - **Source**: PR #172 - Partial completion
-   - **Completed**: 4 of 23 files migrated (async_coordinator, batch_processor, coordinator_batch, advocate)
-   - **Remaining**: 19 files with import fallbacks (~200 lines)
-   - **Decision Point**: Evaluate if comprehensive migration provides value vs. current working state
-   - **Estimate**: 5 hours for full migration
-
-4. **Fix Web Interface Enhanced Reasoning Bug**
-   - **Source**: Discovered during PR #160 testing
-   - **Issue**: JSON parsing errors when enhanced reasoning enabled in web UI
-   - **Impact**: Results stuck at 40% progress
-   - **Approach**: Debug batch advocate JSON response handling, add error recovery
-   - **Estimate**: 3-4 hours
-
-#### Known Issues / Blockers
-
-**Web Interface Enhanced Reasoning Bug** (Discovered during PR #160 testing)
-- **Issue**: Enabling enhanced reasoning in web UI causes JSON parsing errors
-- **Error**: `Batch advocate API call failed: Invalid JSON response from API: Expecting ',' delimiter`
-- **Impact**: Results stuck at 40% progress when enhanced reasoning is enabled
-- **Workaround**: Use web interface without enhanced reasoning features
-- **Root Cause**: Malformed JSON response from Gemini API during batch advocate operations
-
-#### Session Learnings
-
-##### From PR #176 (Phase 2.3: Type Hints)
-**Type Hint Testing Pattern**
-- **Discovery**: TDD approach works excellently for type hints - write validation tests BEFORE adding annotations
-- **Pattern**: Create test_[module]_type_hints.py with inspect-based validation and mypy integration tests
-- **Benefit**: Tests catch missing Optional, incorrect return types, and linting issues humans miss
-- **Implementation**: Use centralized types.py for shared TypedDict/Literal definitions
-
-**CI Lint Discipline**
-- **Discovery**: Ruff catches subtle issues (unused imports, f-strings without placeholders) that pass manual review
-- **Pattern**: Always run `ruff check` locally before pushing
-- **Impact**: Prevents CI failures and reduces round-trip time
-
-**Phase Completion Documentation**
-- **Discovery**: Phase 2 (CLI Refactoring) completed in 3 PRs across single session
-- **Achievement**: 100% of planned Phase 2 work (2.1 Command Handlers, 2.2 Formatter Pattern, 2.3 Type Hints)
-- **Efficiency**: Systematic refactoring plan enables focused execution
-
-#### Incomplete Testing Tasks (from PR #160)
-
-1. **Web Interface Testing** (Partially Complete)
-   - ✅ Verified Japanese input handling
-   - ✅ Discovered enhanced reasoning bug
-   - ⏸️ Check all collapsible sections in results
-   - ⏸️ Bookmark all generated ideas
-   - ⏸️ Check bookmark list display
-   - ⏸️ Test remix functionality with bookmarks
-   - **Blocker**: Enhanced reasoning bug prevents full testing
-
-2. **Score Display Verification** 
-   - ✅ CLI shows proper scores (6/10, 8/10) with Japanese input
-   - ✅ Float scores properly rounded without defaulting to 0
-   - ⏸️ Web interface score display needs verification once enhanced reasoning is fixed
-
-#### Detailed Refactoring Tasks
-
-**Next Refactoring Phases** (from refactoring_plan_20251106.md)
-
-1. **[HIGH] Task 4.3: Improve Error Handling Consistency**
-   - **Source**: refactoring_plan_20251106.md - Phase 4, Task 4.3
-   - **Context**: Inconsistent error handling patterns across codebase (ConfigurationError vs ValueError, logging inconsistencies)
-   - **Approach**: Create unified error hierarchy (src/madspark/utils/error_handling.py), standardize logging patterns, ensure consistent user-facing messages
-   - **Estimate**: 4 hours
-
-2. **[HIGH] Task 3.4: Centralize Configuration Constants**
-   - **Source**: refactoring_plan_20251106.md - Phase 3, Task 3.4
-   - **Context**: Configuration scattered across multiple files - thread pool sizes (4 in multiple places), timeouts (60.0, 30.0, 45.0), output limits (5000 lines), regex limits (500 characters)
-   - **Approach**: Create src/madspark/config/execution_constants.py, migrate all hard-coded values via search/replace
-   - **Estimate**: 3 hours
-
-3. **[MEDIUM] Phase 2 Import Refinements**
-   - **Source**: PR #172 reviewer feedback (gemini-code-assist suggestions)
-   - **Context**: Additional DRY opportunities identified during review
-   - **Tasks**:
-     - Add `CacheConfig` to `import_core_components()` helper
-     - Create `import_advocate_dependencies()` for advocate.py specific imports
-     - Update batch_processor.py to use consolidated CacheConfig import
-   - **Estimate**: 2-3 hours
-
-4. **[LOW] Performance Benchmarking**
-   - **Source**: Multiple optimization PRs completed (60-70% improvements achieved)
-   - **Context**: Document comprehensive performance improvements and establish baselines
-   - **Approach**: Create performance benchmarking suite and generate report
-
-5. **[FUTURE - Phase 4] Complete Import Consolidation**
-   - **Source**: Task 1.3 Option A - Partial completion in PR #172
-   - **Context**: 19 files (out of 23 total) still use individual try/except import patterns (~200 lines)
-   - **Files Include**: critic.py, evaluator.py, idea_generator.py, improver.py, skeptic.py, and 14 others
-   - **Decision Point**: Evaluate if further consolidation provides value vs. current working state
-   - **Approach**: If pursued, create specialized helpers for remaining patterns or migrate to existing compat_imports.py
-   - **Estimate**: 12-16 hours for comprehensive migration (Option B scope from original plan)
-   - **Trade-off**: Current isolated patterns are working; consolidation improves maintainability but adds migration risk
-
-##### From PR #172 (Phase 1: Executor Cleanup & Import Consolidation)
-- **Reviewer Feedback Prioritization**: Systematic CRITICAL→HIGH→MEDIUM ranking prevents scope creep while ensuring critical issues are fixed
-- **Import Consolidation Pattern**: Centralized compat_imports.py with dictionary-returning helpers eliminates 10-15 lines per module (53+ total)
-- **ThreadPoolExecutor Cleanup**: Always register `atexit.register(self.executor.shutdown, wait=False)` to prevent resource leaks
-- **Fallback Import Correctness**: Use relative imports (`..utils.constants`) in except blocks, never top-level modules
-- **Test-Heavy PR Exception**: PRs with >60% test files acceptable over 500-line limit when following TDD best practices
-- **GraphQL PR Review**: Single-query approach extracts ALL feedback faster than 3-source REST API approach
-
-##### From PR #164 (Bookmark & Interface Consistency)
-- **Default Timeout Configuration**: Long-running AI workflows need 20+ minute timeouts (increased from 600s to 1200s) to prevent premature termination
-- **Multi-Language Support**: Use LANGUAGE_CONSISTENCY_INSTRUCTION in all evaluation prompts for consistent language responses (Japanese, Chinese, etc.)
-- **Parameter Consistency**: Systematic parameter updates must include all data files (bookmarks.json) not just code files
-- **Mock-Production Field Parity**: Ensure logical inference fields are consistent between mock and production modes to prevent field mismatch errors
-
-##### From PR #162 (Parameter Standardization & Test Fixing)
-- **Systematic CI Test Fix Protocol**: 4-phase approach (categorize → fix by category → target correct mock paths → verify comprehensively) prevents missing test failures after major refactoring
-- **Mock Path Targeting**: Critical insight that mocks must target actual production code paths (`improve_ideas_batch`) not wrapper indirection layers (`improve_idea`)
-- **Re-evaluation Bias Prevention**: Tests must validate that original context is preserved during re-evaluation to prevent score inflation
-- **Parameter Migration Pattern**: Comprehensive codebase standardization requires backward compatibility, systematic call site updates, and dedicated test coverage
-- **Batch Function Compatibility**: Test mocks must match expected return format of batch functions (tuple with results and token count)
-- **Logical Inference Integration**: When adding parameters to functions, ensure they're properly integrated into prompts and structured output
-
-##### From PR #160 (Float Score Bug Fix)
-- **Type Validation Patterns**: Always consider float/int/string variations in API responses, not just expected types
-- **Python Rounding Behavior**: Python's `round()` uses banker's rounding (round to even) - adjust test expectations accordingly
-- **Japanese Language Testing**: System handles Japanese input/output correctly in both CLI and web interface
-- **Web Interface Limitations**: Enhanced features can cause backend failures - always test basic mode first
-- **TDD Value**: Comprehensive test suite (24 tests) caught edge cases and ensured robust fix
-
-##### General Patterns (Cross-PR)
-- **Batch Function Registry Pattern**: Module-level registry with try/except fallback prevents dynamic import overhead
-- **Systematic PR Review Protocol**: 4-phase discovery→extraction→verification→processing prevents missing reviewer feedback
-
-##### Historical Context (Previous Sessions)
-
-**Major Infrastructure Completed**:
-- ✅ **Performance Optimization Foundation**: Batch API processing, Redis caching, multi-dimensional evaluation
-- ✅ **Testing Infrastructure**: Comprehensive test suite with 90%+ coverage across all modules  
-- ✅ **Logical Inference Engine**: LLM-powered reasoning with 5 analysis types (FULL, CAUSAL, CONSTRAINTS, CONTRADICTION, IMPLICATIONS)
-- ✅ **Web Interface**: React frontend with TypeScript, real-time WebSocket updates, error handling
-- ✅ **CI/CD Pipeline**: Optimized 2-4 minute execution with parallel testing and smart caching
-
-**Technical Architecture Established**:
-- Standard `src/madspark/` package structure with agents, core, utils, cli modules
-- Mock-first development enabling API-free testing and development
-- Try/except fallback patterns for multi-environment compatibility  
-- Structured output support using Google Gemini API with backward compatibility
-
-## License
-
-GPL-3.0 License - see [LICENSE](LICENSE) file for details.
-
-## Support
-
-- **Issues**: [GitHub Issues](https://github.com/TheIllusionOfLife/Eureka/issues)
-- **Documentation**: `docs/` directory for comprehensive guides
-
 ##### From PR #178 (Phase 3.1: WorkflowOrchestrator)
-**Function Parameter Verification in Refactoring**
+
+###### Function Parameter Verification in Refactoring
 - **Discovery**: CRITICAL bug caught by chatgpt-codex-connector - missing `topic` parameter in `improve_ideas_batch` call
 - **Impact**: Parameters were shifted causing `context` to be used as `topic` and `temperature` as `context`
 - **Prevention**: Always verify function signatures when refactoring, use "Go to Definition", check docstrings, run tests
 - **Pattern**: Parameter order mistakes pass syntax checks but cause runtime behavior bugs
 
-**Systematic PR Review with GraphQL**
+###### Systematic PR Review with GraphQL
 - **Success**: Applied 4-phase protocol to systematically address feedback from 5 reviewers
 - **Coverage**: Extracted issue comments, review summaries, AND line comments for every reviewer
 - **Critical**: Never skip line comment extraction even if review body looks like "just a summary"
 - **Result**: Fixed 1 CRITICAL bug, implemented 4 quality improvements, made 3 informed scope decisions
 
-**TDD for Infrastructure Code**
+###### TDD for Infrastructure Code
 - **Pattern**: TDD methodology works excellently for infrastructure modules like orchestrators
 - **Workflow**: Write 21 tests first → verify failure → implement → all tests pass
 - **Benefit**: Tests catch parameter mismatches, ensure error handling, validate integration patterns
 - **Coverage**: Achieved 100% workflow step coverage with comprehensive error scenario testing
+
+##### From PR #176 (Phase 2.3: Type Hints)
+
+###### Type Hint Testing Pattern
+- **Discovery**: TDD approach works excellently for type hints - write validation tests BEFORE adding annotations
+- **Pattern**: Create test_[module]_type_hints.py with inspect-based validation and mypy integration tests
+- **Benefit**: Tests catch missing Optional, incorrect return types, and linting issues humans miss
+- **Implementation**: Use centralized types.py for shared TypedDict/Literal definitions
+
+###### CI Lint Discipline
+- **Discovery**: Ruff catches subtle issues (unused imports, f-strings without placeholders) that pass manual review
+- **Pattern**: Always run `ruff check` locally before pushing
+- **Impact**: Prevents CI failures and reduces round-trip time
+
+###### Phase Completion Documentation
+- **Discovery**: Phase 2 (CLI Refactoring) completed in 3 PRs across single session
+- **Achievement**: 100% of planned Phase 2 work (2.1 Command Handlers, 2.2 Formatter Pattern, 2.3 Type Hints)
+- **Efficiency**: Systematic refactoring plan enables focused execution
+
+#### Incomplete Testing Tasks (from PR #160)
+
+1. **Web Interface Testing** (Partially Complete)
+   - ✅ Verified Japanese input handling
+   - ✅ Discovered enhanced reasoning bug
+   - ⏸️ Check all collapsible sections in results
+   - ⏸️ Bookmark all generated ideas
+   - ⏸️ Check bookmark list display
+   - ⏸️ Test remix functionality with bookmarks
+   - **Blocker**: Enhanced reasoning bug prevents full testing
+
+2. **Score Display Verification** 
+   - ✅ CLI shows proper scores (6/10, 8/10) with Japanese input
+   - ✅ Float scores properly rounded without defaulting to 0
+   - ⏸️ Web interface score display needs verification once enhanced reasoning is fixed
+
+#### Detailed Refactoring Tasks
+
+**Next Refactoring Phases** (from refactoring_plan_20251106.md)
+
+1. **[HIGH] Task 4.3: Improve Error Handling Consistency**
+   - **Source**: refactoring_plan_20251106.md - Phase 4, Task 4.3
+   - **Context**: Inconsistent error handling patterns across codebase (ConfigurationError vs ValueError, logging inconsistencies)
+   - **Approach**: Create unified error hierarchy (src/madspark/utils/error_handling.py), standardize logging patterns, ensure consistent user-facing messages
+   - **Estimate**: 4 hours
+
+2. **[HIGH] Task 3.4: Centralize Configuration Constants**
+   - **Source**: refactoring_plan_20251106.md - Phase 3, Task 3.4
+   - **Context**: Configuration scattered across multiple files - thread pool sizes (4 in multiple places), timeouts (60.0, 30.0, 45.0), output limits (5000 lines), regex limits (500 characters)
+   - **Approach**: Create src/madspark/config/execution_constants.py, migrate all hard-coded values via search/replace
+   - **Estimate**: 3 hours
+
+3. **[MEDIUM] Phase 2 Import Refinements**
+   - **Source**: PR #172 reviewer feedback (gemini-code-assist suggestions)
+   - **Context**: Additional DRY opportunities identified during review
+   - **Tasks**:
+     - Add `CacheConfig` to `import_core_components()` helper
+     - Create `import_advocate_dependencies()` for advocate.py specific imports
+     - Update batch_processor.py to use consolidated CacheConfig import
+   - **Estimate**: 2-3 hours
+
+4. **[LOW] Performance Benchmarking**
+   - **Source**: Multiple optimization PRs completed (60-70% improvements achieved)
+   - **Context**: Document comprehensive performance improvements and establish baselines
+   - **Approach**: Create performance benchmarking suite and generate report
+
+5. **[FUTURE - Phase 4] Complete Import Consolidation**
+   - **Source**: Task 1.3 Option A - Partial completion in PR #172
+   - **Context**: 19 files (out of 23 total) still use individual try/except import patterns (~200 lines)
+   - **Files Include**: critic.py, evaluator.py, idea_generator.py, improver.py, skeptic.py, and 14 others
+   - **Decision Point**: Evaluate if further consolidation provides value vs. current working state
+   - **Approach**: If pursued, create specialized helpers for remaining patterns or migrate to existing compat_imports.py
+   - **Estimate**: 12-16 hours for comprehensive migration (Option B scope from original plan)
+   - **Trade-off**: Current isolated patterns are working; consolidation improves maintainability but adds migration risk
+
+##### From PR #172 (Phase 1: Executor Cleanup & Import Consolidation)
+- **Reviewer Feedback Prioritization**: Systematic CRITICAL→HIGH→MEDIUM ranking prevents scope creep while ensuring critical issues are fixed
+- **Import Consolidation Pattern**: Centralized compat_imports.py with dictionary-returning helpers eliminates 10-15 lines per module (53+ total)
+- **ThreadPoolExecutor Cleanup**: Always register `atexit.register(self.executor.shutdown, wait=False)` to prevent resource leaks
+- **Fallback Import Correctness**: Use relative imports (`..utils.constants`) in except blocks, never top-level modules
+- **Test-Heavy PR Exception**: PRs with >60% test files acceptable over 500-line limit when following TDD best practices
+- **GraphQL PR Review**: Single-query approach extracts ALL feedback faster than 3-source REST API approach
+
+##### From PR #164 (Bookmark & Interface Consistency)
+- **Default Timeout Configuration**: Long-running AI workflows need 20+ minute timeouts (increased from 600s to 1200s) to prevent premature termination
+- **Multi-Language Support**: Use LANGUAGE_CONSISTENCY_INSTRUCTION in all evaluation prompts for consistent language responses (Japanese, Chinese, etc.)
+- **Parameter Consistency**: Systematic parameter updates must include all data files (bookmarks.json) not just code files
+- **Mock-Production Field Parity**: Ensure logical inference fields are consistent between mock and production modes to prevent field mismatch errors
+
+##### From PR #162 (Parameter Standardization & Test Fixing)
+- **Systematic CI Test Fix Protocol**: 4-phase approach (categorize → fix by category → target correct mock paths → verify comprehensively) prevents missing test failures after major refactoring
+- **Mock Path Targeting**: Critical insight that mocks must target actual production code paths (`improve_ideas_batch`) not wrapper indirection layers (`improve_idea`)
+- **Re-evaluation Bias Prevention**: Tests must validate that original context is preserved during re-evaluation to prevent score inflation
+- **Parameter Migration Pattern**: Comprehensive codebase standardization requires backward compatibility, systematic call site updates, and dedicated test coverage
+- **Batch Function Compatibility**: Test mocks must match expected return format of batch functions (tuple with results and token count)
+- **Logical Inference Integration**: When adding parameters to functions, ensure they're properly integrated into prompts and structured output
+
+##### From PR #160 (Float Score Bug Fix)
+- **Type Validation Patterns**: Always consider float/int/string variations in API responses, not just expected types
+- **Python Rounding Behavior**: Python's `round()` uses banker's rounding (round to even) - adjust test expectations accordingly
+- **Japanese Language Testing**: System handles Japanese input/output correctly in both CLI and web interface
+- **Web Interface Limitations**: Enhanced features can cause backend failures - always test basic mode first
+- **TDD Value**: Comprehensive test suite (24 tests) caught edge cases and ensured robust fix
+
+##### General Patterns (Cross-PR)
+- **Batch Function Registry Pattern**: Module-level registry with try/except fallback prevents dynamic import overhead
+- **Systematic PR Review Protocol**: 4-phase discovery→extraction→verification→processing prevents missing reviewer feedback
+
+##### Historical Context (Previous Sessions)
+
+**Major Infrastructure Completed**:
+- ✅ **Performance Optimization Foundation**: Batch API processing, Redis caching, multi-dimensional evaluation
+- ✅ **Testing Infrastructure**: Comprehensive test suite with 90%+ coverage across all modules  
+- ✅ **Logical Inference Engine**: LLM-powered reasoning with 5 analysis types (FULL, CAUSAL, CONSTRAINTS, CONTRADICTION, IMPLICATIONS)
+- ✅ **Web Interface**: React frontend with TypeScript, real-time WebSocket updates, error handling
+- ✅ **CI/CD Pipeline**: Optimized 2-4 minute execution with parallel testing and smart caching
+
+**Technical Architecture Established**:
+- Standard `src/madspark/` package structure with agents, core, utils, cli modules
+- Mock-first development enabling API-free testing and development
+- Try/except fallback patterns for multi-environment compatibility  
+- Structured output support using Google Gemini API with backward compatibility
+
+## License
+
+GPL-3.0 License - see [LICENSE](LICENSE) file for details.
+
+## Support
+
+- **Issues**: [GitHub Issues](https://github.com/TheIllusionOfLife/Eureka/issues)
+- **Documentation**: `docs/` directory for comprehensive guides
 

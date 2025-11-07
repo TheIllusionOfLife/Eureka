@@ -14,6 +14,7 @@ from .coordinator import (
     CandidateData
 )
 from .batch_operations_base import BatchOperationsBase
+from .workflow_orchestrator import WorkflowOrchestrator
 from ..utils.utils import parse_json_with_fallback, validate_evaluation_json
 from ..utils.novelty_filter import NoveltyFilter
 from ..utils.temperature_control import TemperatureManager
@@ -211,8 +212,34 @@ class AsyncCoordinator(BatchOperationsBase):
         """Run a coroutine with semaphore limiting concurrency."""
         async with self.semaphore:
             return await coro
-    
-    
+
+    @staticmethod
+    def _normalize_candidate_fields(candidates: List[dict]) -> List[dict]:
+        """Normalize field names for compatibility between orchestrator and async_coordinator.
+
+        WorkflowOrchestrator uses "idea" field, AsyncCoordinator uses "text" field.
+        This ensures both fields exist for compatibility during gradual migration.
+
+        Pattern from Phase 3.2b (coordinator_batch.py:205-218).
+        """
+        for candidate in candidates:
+            # Ensure both "text" and "idea" fields exist
+            if "idea" in candidate and "text" not in candidate:
+                candidate["text"] = candidate["idea"]
+            elif "text" in candidate and "idea" not in candidate:
+                candidate["idea"] = candidate["text"]
+
+            # Add both "score" and "initial_score" if score exists
+            if "score" in candidate and "initial_score" not in candidate:
+                candidate["initial_score"] = candidate["score"]
+
+            # Add both "critique" and "initial_critique" if critique exists
+            if "critique" in candidate and "initial_critique" not in candidate:
+                candidate["initial_critique"] = candidate["critique"]
+
+        return candidates
+
+
     async def _process_candidates_with_batch_advocacy(
         self, candidates: List[EvaluatedIdea], topic: str, context: str, temperature: float
     ) -> List[EvaluatedIdea]:

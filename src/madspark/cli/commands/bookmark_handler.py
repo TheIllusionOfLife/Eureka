@@ -125,7 +125,7 @@ class BookmarkHandler(CommandHandler):
         """
         try:
             manager = BookmarkManager(args.bookmark_file)
-            bookmarks = manager.list_all()
+            bookmarks = manager.list_bookmarks()
 
             if not bookmarks:
                 print("No bookmarks found.")
@@ -133,11 +133,11 @@ class BookmarkHandler(CommandHandler):
 
             print(f"\n📚 Found {len(bookmarks)} bookmark(s):\n")
             for bm in bookmarks:
-                print(f"ID: {bm['id']}")
-                print(f"Idea: {bm['idea'][:100]}..." if len(bm['idea']) > 100 else f"Idea: {bm['idea']}")
-                print(f"Score: {bm.get('score', 'N/A')}")
-                if bm.get('tags'):
-                    print(f"Tags: {', '.join(bm['tags'])}")
+                print(f"ID: {bm.id}")
+                print(f"Idea: {bm.text[:100]}..." if len(bm.text) > 100 else f"Idea: {bm.text}")
+                print(f"Score: {bm.score}")
+                if bm.tags:
+                    print(f"Tags: {', '.join(bm.tags)}")
                 print()
 
             return CommandResult(success=True)
@@ -158,7 +158,7 @@ class BookmarkHandler(CommandHandler):
         """
         try:
             manager = BookmarkManager(args.bookmark_file)
-            results = manager.search(args.search_bookmarks)
+            results = manager.search_bookmarks(args.search_bookmarks)
 
             if not results:
                 print(f"No bookmarks found matching '{args.search_bookmarks}'")
@@ -166,11 +166,11 @@ class BookmarkHandler(CommandHandler):
 
             print(f"\n🔍 Found {len(results)} matching bookmark(s):\n")
             for bm in results:
-                print(f"ID: {bm['id']}")
-                print(f"Idea: {bm['idea'][:100]}..." if len(bm['idea']) > 100 else f"Idea: {bm['idea']}")
-                print(f"Score: {bm.get('score', 'N/A')}")
-                if bm.get('tags'):
-                    print(f"Tags: {', '.join(bm['tags'])}")
+                print(f"ID: {bm.id}")
+                print(f"Idea: {bm.text[:100]}..." if len(bm.text) > 100 else f"Idea: {bm.text}")
+                print(f"Score: {bm.score}")
+                if bm.tags:
+                    print(f"Tags: {', '.join(bm.tags)}")
                 print()
 
             return CommandResult(success=True)
@@ -192,11 +192,23 @@ class BookmarkHandler(CommandHandler):
         try:
             manager = BookmarkManager(args.bookmark_file)
 
-            if manager.remove_bookmark(args.remove_bookmark):
-                print(f"✅ Removed bookmark: {args.remove_bookmark}")
+            # Support comma-separated IDs
+            bookmark_ids = [id.strip() for id in args.remove_bookmark.split(",") if id.strip()]
+
+            removed_count = 0
+            not_found = []
+
+            for bookmark_id in bookmark_ids:
+                if manager.remove_bookmark(bookmark_id):
+                    print(f"✅ Removed bookmark: {bookmark_id}")
+                    removed_count += 1
+                else:
+                    print(f"❌ Bookmark not found: {bookmark_id}")
+                    not_found.append(bookmark_id)
+
+            if removed_count > 0:
                 return CommandResult(success=True)
             else:
-                print(f"❌ Bookmark not found: {args.remove_bookmark}")
                 return CommandResult(success=False, exit_code=1)
 
         except Exception as e:

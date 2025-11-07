@@ -108,7 +108,11 @@ class BatchHandler(CommandHandler):
         """
         return {
             "enable_novelty_filter": not self.args.disable_novelty_filter,
-            "novelty_threshold": self.args.novelty_threshold,
+            "novelty_threshold": (
+                self.args.similarity_threshold
+                if getattr(self.args, "similarity_threshold", None) is not None
+                else self.args.novelty_threshold
+            ),
             "verbose": self.args.verbose,
             "enhanced_reasoning": self.args.enhanced_reasoning,
             "multi_dimensional_eval": True,  # Always enabled as a core feature

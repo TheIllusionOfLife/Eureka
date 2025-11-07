@@ -973,9 +973,15 @@ def _should_suppress_logs(args: argparse.Namespace) -> bool:
     Returns:
         True if logs should be suppressed
     """
-    return ((hasattr(args, 'no_logs') and args.no_logs) or
-            (hasattr(args, 'output_mode') and args.output_mode in ['simple', 'brief']) or
-            (hasattr(args, 'output_format') and args.output_format in ['simple', 'brief']))
+    # Respect explicit verbose flag - never suppress when user requests verbose output
+    if getattr(args, 'verbose', False):
+        return False
+
+    return (
+        getattr(args, 'no_logs', False) or
+        getattr(args, 'output_mode', None) in ['simple', 'brief'] or
+        getattr(args, 'output_format', None) in ['simple', 'brief']
+    )
 
 
 def _handle_create_sample_batch(args: argparse.Namespace) -> None:

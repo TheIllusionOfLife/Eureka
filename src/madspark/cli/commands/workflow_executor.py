@@ -13,13 +13,11 @@ try:
     from madspark.core.coordinator import run_multistep_workflow
     from madspark.core.async_coordinator import AsyncCoordinator
     from madspark.utils.cache_manager import CacheManager, CacheConfig
-    from madspark.utils.constants import MIN_TIMEOUT_FOR_MULTIPLE_IDEAS_SECONDS
     from madspark.cli.cli import determine_num_candidates
 except ImportError:
     from coordinator import run_multistep_workflow
     from async_coordinator import AsyncCoordinator
     from cache_manager import CacheManager, CacheConfig
-    from constants import MIN_TIMEOUT_FOR_MULTIPLE_IDEAS_SECONDS
     from cli import determine_num_candidates
 
 
@@ -180,5 +178,5 @@ class WorkflowExecutor(CommandHandler):
             "enhanced_reasoning": self.args.enhanced_reasoning,
             "multi_dimensional_eval": True,  # Always enabled as a core feature
             "logical_inference": self.args.logical_inference,
-            "timeout": max(self.args.timeout, MIN_TIMEOUT_FOR_MULTIPLE_IDEAS_SECONDS) if num_candidates > 1 else self.args.timeout
+            "timeout": self.args.timeout
         }

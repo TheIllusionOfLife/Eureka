@@ -10,7 +10,10 @@ duplication and improving maintainability.
 import asyncio
 import logging
 import time
-from typing import List, Tuple, Dict, Any, Optional
+from typing import List, Tuple, Dict, Any, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from madspark.utils.batch_monitor import BatchMonitor
 
 from madspark.config.workflow_constants import (
     FALLBACK_ADVOCACY,

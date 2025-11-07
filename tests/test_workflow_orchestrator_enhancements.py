@@ -9,16 +9,10 @@ Following TDD: These tests are written BEFORE implementation and should fail ini
 """
 import pytest
 import asyncio
-from unittest.mock import Mock, patch, AsyncMock, MagicMock
+from unittest.mock import Mock, patch
 from madspark.core.workflow_orchestrator import WorkflowOrchestrator
-from madspark.utils.temperature_control import TemperatureManager
 from madspark.utils.batch_monitor import BatchMonitor
-from madspark.config.workflow_constants import (
-    FALLBACK_ADVOCACY,
-    FALLBACK_SKEPTICISM,
-    FALLBACK_CRITIQUE,
-    FALLBACK_SCORE
-)
+from madspark.config.workflow_constants import FALLBACK_ADVOCACY
 
 
 class TestWorkflowOrchestratorMonitoring:

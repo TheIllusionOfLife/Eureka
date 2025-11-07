@@ -210,7 +210,7 @@ class TestCLIOptions:
         """Test that --verbose option is available."""
         # Test that the option can be parsed without error
         with patch('sys.argv', ['mad_spark', 'test topic', '--verbose']):
-            with patch('madspark.cli.cli.run_multistep_workflow') as mock_workflow:
+            with patch('madspark.cli.commands.workflow_executor.run_multistep_workflow') as mock_workflow:
                 mock_workflow.return_value = []
                 try:
                     main()
@@ -221,7 +221,7 @@ class TestCLIOptions:
     def test_brief_option_exists(self):
         """Test that --brief option is available."""
         with patch('sys.argv', ['mad_spark', 'test topic', '--brief']):
-            with patch('madspark.cli.cli.run_multistep_workflow') as mock_workflow:
+            with patch('madspark.cli.commands.workflow_executor.run_multistep_workflow') as mock_workflow:
                 mock_workflow.return_value = []
                 try:
                     main()
@@ -232,7 +232,7 @@ class TestCLIOptions:
     def test_top_ideas_option_exists(self):
         """Test that --top-ideas option is available."""
         with patch('sys.argv', ['mad_spark', 'test topic', '--top-ideas', '3']):
-            with patch('madspark.cli.cli.run_multistep_workflow') as mock_workflow:
+            with patch('madspark.cli.commands.workflow_executor.run_multistep_workflow') as mock_workflow:
                 mock_workflow.return_value = []
                 try:
                     main()

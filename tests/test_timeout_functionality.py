@@ -128,7 +128,7 @@ class TestCoordinatorTimeoutImplementation:
 class TestCLITimeoutIntegration:
     """Test end-to-end timeout integration from CLI to coordinator."""
     
-    @patch('madspark.cli.cli.run_multistep_workflow')
+    @patch('madspark.cli.commands.workflow_executor.run_multistep_workflow')
     def test_cli_passes_timeout_to_coordinator(self, mock_workflow):
         """Test that CLI passes timeout to run_multistep_workflow()"""
         # Setup mock

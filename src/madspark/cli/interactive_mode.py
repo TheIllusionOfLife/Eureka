@@ -224,8 +224,8 @@ class InteractiveSession:
     def configure_workflow_options(self) -> Dict[str, Any]:
         """Configure workflow options."""
         self.print_section("Step 3: Configure Workflow Options")
-        
-        config = {}
+
+        config: Dict[str, Any] = {}
         
         # Number of top candidates
         print("🎯 How many top ideas should be fully analyzed?")
@@ -279,8 +279,8 @@ class InteractiveSession:
     def configure_output_options(self) -> Dict[str, Any]:
         """Configure output and export options."""
         self.print_section("Step 4: Output & Export Options")
-        
-        config = {}
+
+        config: Dict[str, Any] = {}
         
         # Output format
         formats = [

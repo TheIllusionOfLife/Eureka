@@ -357,19 +357,19 @@ class TestTimeoutFunctionality:
         import time
         
         # Mock slow operations to simulate timeout - patch functions as imported in coordinator_batch
-        with patch('madspark.core.coordinator_batch.call_idea_generator_with_retry') as mock_generate:
-            with patch('madspark.core.coordinator_batch.advocate_ideas_batch') as mock_advocate:
-                with patch('madspark.core.coordinator_batch.criticize_ideas_batch') as mock_skeptic:
-                    with patch('madspark.core.coordinator_batch.improve_ideas_batch') as mock_improve:
+        with patch('madspark.core.workflow_orchestrator.call_idea_generator_with_retry') as mock_generate:
+            with patch('madspark.core.workflow_orchestrator.advocate_ideas_batch') as mock_advocate:
+                with patch('madspark.core.workflow_orchestrator.criticize_ideas_batch') as mock_skeptic:
+                    with patch('madspark.core.workflow_orchestrator.improve_ideas_batch') as mock_improve:
                         def slow_generate(*args, **kwargs):
                             time.sleep(2)  # Sleep for 2 seconds
                             return "Test Idea 1\nTest Idea 2"
-                        
+
                         mock_generate.side_effect = slow_generate
                         mock_advocate.return_value = ([], 0)  # Empty results, no tokens
                         mock_skeptic.return_value = ([], 0)
                         mock_improve.return_value = ([], 0)
-                        
+
                         # Should raise timeout error
                         with pytest.raises(TimeoutError):
                             run_multistep_workflow_batch(
@@ -468,21 +468,21 @@ class TestTimeoutFunctionality:
     def test_sync_workflow_completes_within_timeout(self):
         """Test that sync workflow completes successfully when within timeout."""
         from madspark.core.coordinator_batch import run_multistep_workflow_batch
-        
-        # Mock fast operations - patch functions as imported in coordinator_batch
-        with patch('madspark.core.coordinator_batch.call_idea_generator_with_retry') as mock_generate:
-            with patch('madspark.core.coordinator_batch.call_critic_with_retry') as mock_evaluate:
-                with patch('madspark.core.coordinator_batch.advocate_ideas_batch') as mock_advocate:
-                    with patch('madspark.core.coordinator_batch.criticize_ideas_batch') as mock_skeptic:
-                        with patch('madspark.core.coordinator_batch.improve_ideas_batch') as mock_improve:
+
+        # Mock fast operations - patch functions as imported in workflow_orchestrator
+        with patch('madspark.core.workflow_orchestrator.call_idea_generator_with_retry') as mock_generate:
+            with patch('madspark.core.workflow_orchestrator.call_critic_with_retry') as mock_evaluate:
+                with patch('madspark.core.workflow_orchestrator.advocate_ideas_batch') as mock_advocate:
+                    with patch('madspark.core.workflow_orchestrator.criticize_ideas_batch') as mock_skeptic:
+                        with patch('madspark.core.workflow_orchestrator.improve_ideas_batch') as mock_improve:
                             mock_generate.return_value = "Test Idea 1"
-                            mock_evaluate.return_value = '[{"score": 8, "comment": "Good"}]'
-                            
+                            mock_evaluate.side_effect = ['{"score": 8, "comment": "Good"}', '{"score": 9, "comment": "Better"}']
+
                             # Mock batch functions to return expected format
-                            mock_advocate.return_value = ([{"formatted": "Strong advocacy"}], 100)
-                            mock_skeptic.return_value = ([{"formatted": "Valid concerns"}], 100)
-                            mock_improve.return_value = ([{"improved_idea": "Enhanced Test Idea 1"}], 100)
-                            
+                            mock_advocate.return_value = ([{"idea_index": 0, "formatted": "Strong advocacy"}], 100)
+                            mock_skeptic.return_value = ([{"idea_index": 0, "formatted": "Valid concerns"}], 100)
+                            mock_improve.return_value = ([{"idea_index": 0, "improved_idea": "Enhanced Test Idea 1"}], 100)
+
                             # Should complete successfully within a realistic timeout
                             # Use non-default timeout to trigger ThreadPoolExecutor path
                             results = run_multistep_workflow_batch(
@@ -491,7 +491,7 @@ class TestTimeoutFunctionality:
                                 num_top_candidates=1,
                                 timeout=30  # 30 second timeout - realistic and triggers timeout logic
                             )
-                            
+
                             assert len(results) > 0
                             # Should return the mocked idea
                             assert results[0]["idea"] == "Test Idea 1"

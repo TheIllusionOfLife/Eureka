@@ -5,18 +5,15 @@ to significantly reduce the number of API calls from O(N) to O(1) for
 advocate, skeptic, and improvement processing.
 """
 import logging
-import time
 from typing import List, Optional
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 
-from madspark.utils.batch_monitor import batch_call_context, get_batch_monitor
+from madspark.utils.batch_monitor import get_batch_monitor
 from madspark.utils.errors import ValidationError
-from madspark.agents.genai_client import get_model_name
 
 from madspark.core.types_and_logging import (
-    CandidateData, log_verbose_step, log_agent_completion
+    CandidateData, log_verbose_step
 )
-from madspark.utils.utils import parse_json_with_fallback
 from madspark.utils.text_similarity import is_meaningful_improvement
 from madspark.utils.constants import (
     MEANINGFUL_IMPROVEMENT_SIMILARITY_THRESHOLD,
@@ -26,6 +23,7 @@ from madspark.utils.temperature_control import TemperatureManager
 from madspark.utils.novelty_filter import NoveltyFilter
 from madspark.core.enhanced_reasoning import ReasoningEngine
 from madspark.utils.constants import DEFAULT_TIMEOUT_SECONDS
+from madspark.core.workflow_orchestrator import WorkflowOrchestrator
 
 # Import retry-wrapped versions and batch functions using compat helpers
 from madspark.utils.compat_imports import (
@@ -112,8 +110,8 @@ def run_multistep_workflow_batch(
 
 
 def _run_workflow_internal(
-    topic: str, 
-    context: str, 
+    topic: str,
+    context: str,
     num_top_candidates: int = 2,
     enable_reasoning: bool = True,
     multi_dimensional_eval: bool = False,
@@ -122,25 +120,18 @@ def _run_workflow_internal(
     verbose: bool = False,
     reasoning_engine: Optional[ReasoningEngine] = None
 ) -> List[CandidateData]:
-    """Internal workflow implementation without timeout wrapper."""
+    """Internal workflow implementation using WorkflowOrchestrator.
+
+    This function uses WorkflowOrchestrator for all workflow steps while
+    preserving batch-specific features like novelty filtering.
+    """
     final_candidates_data: List[CandidateData] = []
-    
-    # Extract temperatures from temperature manager
-    if temperature_manager:
-        idea_temp = temperature_manager.get_temperature_for_stage('idea_generation')
-        eval_temp = temperature_manager.get_temperature_for_stage('evaluation')
-        advocacy_temp = temperature_manager.get_temperature_for_stage('advocacy')
-        skepticism_temp = temperature_manager.get_temperature_for_stage('skepticism')
-    else:
-        # Create default TemperatureManager to ensure consistent behavior
-        default_temp_manager = TemperatureManager.from_base_temperature(0.7)
-        idea_temp = default_temp_manager.get_temperature_for_stage('idea_generation')
-        eval_temp = default_temp_manager.get_temperature_for_stage('evaluation')
-        advocacy_temp = default_temp_manager.get_temperature_for_stage('advocacy')
-        skepticism_temp = default_temp_manager.get_temperature_for_stage('skepticism')
-    
+
+    # Initialize temperature manager
+    if not temperature_manager:
+        temperature_manager = TemperatureManager.from_base_temperature(0.7)
+
     # Initialize enhanced reasoning if needed
-    # Always use provided reasoning_engine for backward compatibility
     engine = reasoning_engine
     if (enable_reasoning or multi_dimensional_eval) and engine is None:
         try:
@@ -148,36 +139,30 @@ def _run_workflow_internal(
             genai_client = get_genai_client()
             engine = ReasoningEngine(genai_client=genai_client)
         except (ImportError, AttributeError, RuntimeError):
-            # Fallback to basic initialization if genai_client unavailable
             engine = ReasoningEngine()
-    
-    # Get model name for monitoring
-    model_name = get_model_name()
-    
-    # Step 1: Idea Generation with verbose logging
-    log_verbose_step("STEP 1: Idea Generation", 
-                    f"🧠 Generating ideas for topic: {topic[:50]}...\n🌡️ Temperature: {idea_temp}", 
-                    verbose)
-    
-    start_time = time.time()
-    ideas_text = call_idea_generator_with_retry(
-        topic=topic, 
-        context=context, 
-        temperature=idea_temp,
-        use_structured_output=True
+
+    # Create WorkflowOrchestrator instance
+    orchestrator = WorkflowOrchestrator(
+        temperature_manager=temperature_manager,
+        reasoning_engine=engine,
+        verbose=verbose
     )
-    
-    idea_gen_duration = time.time() - start_time
-    log_agent_completion("IdeaGenerator", ideas_text, f"{topic[:20]}...", idea_gen_duration, verbose)
-    
-    # Parse ideas using shared utility
-    from madspark.utils.json_parsers import parse_idea_generator_response
-    parsed_ideas = parse_idea_generator_response(ideas_text)
-    
+
+    # Get batch monitor for monitoring
+    monitor = get_batch_monitor()
+
+    # Step 1: Idea Generation using orchestrator
+    parsed_ideas, _ = orchestrator.generate_ideas_with_monitoring(
+        topic=topic,
+        context=context,
+        num_ideas=10,  # Generate 10 ideas initially
+        monitor=monitor
+    )
+
     if not parsed_ideas:
         logging.warning("No ideas were generated.")
         return []
-    
+
     logging.info(f"Generated {len(parsed_ideas)} ideas")
     
     # Apply novelty filtering if enabled
@@ -207,294 +192,118 @@ def _run_workflow_internal(
             logging.warning("All ideas were filtered out as non-novel.")
             return []
     
-    # Step 2: Evaluate Ideas (already batched)
-    log_verbose_step("STEP 2: Idea Evaluation", 
-                    f"📊 Evaluating {len(parsed_ideas)} ideas\n🌡️ Temperature: {eval_temp}", 
-                    verbose)
-    
+    # Step 2: Evaluate Ideas using orchestrator
     try:
-        evaluation_output = call_critic_with_retry(
-            ideas=ideas_text,
+        evaluated_ideas_data, _ = orchestrator.evaluate_ideas_with_monitoring(
+            ideas=parsed_ideas,
             topic=topic,
             context=context,
-            temperature=eval_temp,
-            use_structured_output=True
+            monitor=monitor
         )
-        
-        # Parse evaluations
-        evaluation_results = parse_json_with_fallback(
-            evaluation_output,
-            expected_count=len(parsed_ideas)
-        )
-                
-        # Create evaluated ideas
-        evaluated_ideas_data = []
-        for i, idea in enumerate(parsed_ideas):
-            if i < len(evaluation_results):
-                eval_data = evaluation_results[i]
-                score = eval_data.get("score", 0)
-                critique = eval_data.get("comment", "No critique available")
-                
-                evaluated_idea = {
-                    "text": idea,
-                    "score": score,
-                    "critique": critique,
-                    "context": context  # Add context for information flow
-                }
-                
-                # Multi-dimensional evaluation will be added in batch later if enabled
-                
-                evaluated_ideas_data.append(evaluated_idea)
-        
+
+        # Add field normalization for compatibility with rest of workflow
+        # TODO: Technical debt - field normalization creates redundant fields
+        # This compatibility layer maintains both "text"/"idea", "score"/"initial_score",
+        # and "critique"/"initial_critique" pairs during gradual migration.
+        # Future work: Unify data model to use single canonical field names.
+        # Reference: gemini-code-assist review comment (PR #181)
+        for idea_data in evaluated_ideas_data:
+            # Ensure both "text" and "idea" fields exist
+            idea_data["idea"] = idea_data.get("text", "")
+            # Add both "score" and "initial_score"
+            idea_data["initial_score"] = idea_data["score"]
+            # Add both "critique" and "initial_critique"
+            idea_data["initial_critique"] = idea_data["critique"]
+            # Add context for information flow (re-evaluation bias prevention)
+            idea_data["context"] = context
+
         # Sort and select top candidates
         evaluated_ideas_data.sort(key=lambda x: x["score"], reverse=True)
         top_candidates = evaluated_ideas_data[:num_top_candidates]
-        
+
         logging.info(f"Selected {len(top_candidates)} top candidates for further processing.")
-        
+
     except ValidationError:
-        # Re-raise validation errors immediately
         raise
     except Exception as e:
-        logging.error(f"CriticAgent failed: {e}")
+        logging.error(f"Evaluation failed: {e}")
         # Fallback handling
         top_candidates = [
-            {"text": idea, "critique": "N/A (CriticAgent failed)", "score": 0}
+            {"text": idea, "idea": idea, "critique": "N/A (Evaluation failed)",
+             "initial_critique": "N/A", "score": 0, "initial_score": 0, "context": context}
             for idea in parsed_ideas[:num_top_candidates]
         ]
-    
+
     if not top_candidates:
         logging.info("No candidates selected for processing.")
         return []
     
-    # Step 3: Batch Multi-Dimensional Evaluation (if enabled)
-    if multi_dimensional_eval and engine and engine.multi_evaluator:
-        log_verbose_step("STEP 2.5: Multi-Dimensional Evaluation (Batch)", 
-                        f"🎯 Evaluating {len(top_candidates)} candidates across 7 dimensions", 
-                        verbose)
-        
-        with batch_call_context("multi_dimensional", len(top_candidates)) as monitor_ctx:
-            try:
-                # Extract ideas for batch evaluation
-                ideas_for_eval = [candidate["text"] for candidate in top_candidates]
-                eval_context = {"topic": topic, "context": context}
-                
-                # Batch evaluate all dimensions for all ideas
-                multi_eval_results = engine.multi_evaluator.evaluate_ideas_batch(
-                    ideas_for_eval, eval_context
-                )
-                
-                # Add results to candidates
-                for i, result in enumerate(multi_eval_results):
-                    if i < len(top_candidates):
-                        top_candidates[i]["multi_dimensional_evaluation"] = result
-                
-                # Set model name for monitoring
-                monitor_ctx.set_model_name(model_name)
-                        
-            except Exception as e:
-                logging.warning(f"Multi-dimensional batch evaluation failed: {e}")
-                monitor_ctx.set_fallback_used(str(e))
-    
-    # Step 4: Batch Advocate Processing
-    log_verbose_step("STEP 3: Batch Advocate Processing", 
-                    f"👥 Processing {len(top_candidates)} candidates\n🌡️ Temperature: {advocacy_temp}", 
-                    verbose)
-    
-    # Prepare batch input for advocate
-    advocate_input = []
-    for candidate in top_candidates:
-        advocate_input.append({
-            "idea": candidate["text"],
-            "evaluation": candidate["critique"]
-        })
-    
-    with batch_call_context("advocate", len(top_candidates)) as monitor_ctx:
-        try:
-            # Single API call for all advocacies
-            advocacy_results, token_usage = advocate_ideas_batch(
-                advocate_input, 
-                topic,
-                context, 
-                advocacy_temp
-            )
-            
-            # Set token usage and model name for monitoring
-            if token_usage > 0:
-                monitor_ctx.set_tokens_used(token_usage)
-            monitor_ctx.set_model_name(model_name)
-            
-            # Map results back to candidates
-            for i, advocacy in enumerate(advocacy_results):
-                if i < len(top_candidates):
-                    top_candidates[i]["advocacy"] = advocacy.get("formatted", "N/A")
-                    
-        except Exception as e:
-            logging.error(f"Batch advocate failed: {e}")
-            monitor_ctx.set_fallback_used(str(e))
-            # Fallback: mark all as N/A
-            for candidate in top_candidates:
-                candidate["advocacy"] = "N/A (Batch advocate failed)"
-    
-    # Step 5: Batch Skeptic Processing
-    log_verbose_step("STEP 4: Batch Skeptic Processing", 
-                    f"🔍 Processing {len(top_candidates)} candidates\n🌡️ Temperature: {skepticism_temp}", 
-                    verbose)
-    
-    # Prepare batch input for skeptic
-    skeptic_input = []
-    for candidate in top_candidates:
-        skeptic_input.append({
-            "idea": candidate["text"],
-            "advocacy": candidate.get("advocacy", "N/A")
-        })
-    
-    with batch_call_context("skeptic", len(top_candidates)) as monitor_ctx:
-        try:
-            # Single API call for all skepticisms
-            skepticism_results, token_usage = criticize_ideas_batch(
-                skeptic_input,
-                topic,
-                context,
-                skepticism_temp
-            )
-            
-            # Set token usage and model name for monitoring
-            if token_usage > 0:
-                monitor_ctx.set_tokens_used(token_usage)
-            monitor_ctx.set_model_name(model_name)
-            
-            # Map results back to candidates
-            for i, skepticism in enumerate(skepticism_results):
-                if i < len(top_candidates):
-                    top_candidates[i]["skepticism"] = skepticism.get("formatted", "N/A")
-                    
-        except Exception as e:
-            logging.error(f"Batch skeptic failed: {e}")
-            monitor_ctx.set_fallback_used(str(e))
-            # Fallback: mark all as N/A
-            for candidate in top_candidates:
-                candidate["skepticism"] = "N/A (Batch skeptic failed)"
-    
-    # Step 6: Batch Improvement Processing
-    log_verbose_step("STEP 5: Batch Idea Improvement", 
-                    f"💡 Improving {len(top_candidates)} candidates\n🌡️ Temperature: {idea_temp}", 
-                    verbose)
-    
-    # Prepare batch input for improvement
-    improve_input = []
-    for candidate in top_candidates:
-        improve_input.append({
-            "idea": candidate["text"],
-            "critique": candidate["critique"],
-            "advocacy": candidate.get("advocacy", "N/A"),
-            "skepticism": candidate.get("skepticism", "N/A")
-        })
-    
-    with batch_call_context("improve", len(top_candidates)) as monitor_ctx:
-        try:
-            # Single API call for all improvements
-            improvement_results, token_usage = improve_ideas_batch(
-                improve_input,
-                context,
-                idea_temp
-            )
-            
-            # Set token usage and model name for monitoring
-            if token_usage > 0:
-                monitor_ctx.set_tokens_used(token_usage)
-            monitor_ctx.set_model_name(model_name)
-            
-            # Map results back to candidates
-            for i, improvement in enumerate(improvement_results):
-                if i < len(top_candidates):
-                    top_candidates[i]["improved_idea"] = improvement.get(
-                        "improved_idea", 
-                        top_candidates[i]["text"]  # Fallback to original
-                    )
-                    
-        except Exception as e:
-            logging.error(f"Batch improvement failed: {e}")
-            monitor_ctx.set_fallback_used(str(e))
-            # Fallback: use original ideas
-            for candidate in top_candidates:
-                candidate["improved_idea"] = candidate["text"]
-    
-    # Step 7: Batch Re-evaluation
-    log_verbose_step("STEP 6: Batch Re-evaluation", 
-                    f"📊 Re-evaluating {len(top_candidates)} improved ideas", 
-                    verbose)
-    
-    # Collect improved ideas for re-evaluation
-    improved_ideas_text = "\n".join([
-        candidate.get("improved_idea", candidate["text"]) 
-        for candidate in top_candidates
-    ])
-    
-    try:
-        # Single API call for all re-evaluations using original context
-        re_eval_output = call_critic_with_retry(
-            ideas=improved_ideas_text,
+    # Step 2.5: Multi-Dimensional Evaluation using orchestrator
+    if multi_dimensional_eval and orchestrator.reasoning_engine:
+        top_candidates = orchestrator.add_multi_dimensional_evaluation_with_monitoring(
+            candidates=top_candidates,
             topic=topic,
-            context=context,  # Use original context to avoid bias
-            temperature=eval_temp,
-            use_structured_output=True
+            context=context,
+            monitor=monitor
         )
-        
-        # Parse re-evaluations
-        re_eval_results = parse_json_with_fallback(
-            re_eval_output,
-            expected_count=len(top_candidates)
-        )
-        
-        for i, parsed_eval in enumerate(re_eval_results):
-            if i < len(top_candidates):
-                top_candidates[i]["improved_score"] = parsed_eval.get("score", 0)
-                top_candidates[i]["improved_critique"] = parsed_eval.get(
-                    "comment", 
-                    "No critique available"
-                )
-                
-    except Exception as e:
-        logging.error(f"Batch re-evaluation failed: {e}")
-        # Fallback: use original scores
-        for candidate in top_candidates:
-            candidate["improved_score"] = candidate["score"]
-            candidate["improved_critique"] = "Re-evaluation failed"
     
-    # Step 8: Batch Multi-Dimensional Re-evaluation (if enabled)
-    if multi_dimensional_eval and engine and engine.multi_evaluator:
-        log_verbose_step("STEP 6.5: Multi-Dimensional Re-evaluation (Batch)", 
-                        f"🎯 Re-evaluating {len(top_candidates)} improved ideas", 
-                        verbose)
-        
-        with batch_call_context("multi_dimensional_improved", len(top_candidates)) as monitor_ctx:
-            try:
-                # Extract improved ideas for batch evaluation
-                improved_ideas = [
-                    candidate.get("improved_idea", candidate["text"]) 
-                    for candidate in top_candidates
-                ]
-                
-                # Define context for multi-dimensional evaluation
-                eval_context = {"topic": topic, "context": context}
-                
-                # Batch evaluate all dimensions for all improved ideas
-                improved_multi_eval_results = engine.multi_evaluator.evaluate_ideas_batch(
-                    improved_ideas, eval_context
-                )
-                
-                # Add results to candidates
-                for i, result in enumerate(improved_multi_eval_results):
-                    if i < len(top_candidates):
-                        top_candidates[i]["improved_multi_dimensional_evaluation"] = result
-                
-                # Set model name for monitoring
-                monitor_ctx.set_model_name(model_name)
-                        
-            except Exception as e:
-                logging.warning(f"Multi-dimensional re-evaluation failed: {e}")
-                monitor_ctx.set_fallback_used(str(e))
+    # Step 3: Advocacy Processing using orchestrator
+    top_candidates, _ = orchestrator.process_advocacy_with_monitoring(
+        candidates=top_candidates,
+        topic=topic,
+        context=context,
+        monitor=monitor
+    )
+
+    # Step 4: Skepticism Processing using orchestrator
+    top_candidates, _ = orchestrator.process_skepticism_with_monitoring(
+        candidates=top_candidates,
+        topic=topic,
+        context=context,
+        monitor=monitor
+    )
+    
+    # Step 5: Improvement Processing using orchestrator
+    top_candidates, _ = orchestrator.improve_ideas_with_monitoring(
+        candidates=top_candidates,
+        topic=topic,
+        context=context,
+        monitor=monitor
+    )
+    
+    # Step 6: Re-evaluation using orchestrator
+    top_candidates, _ = orchestrator.reevaluate_ideas_with_monitoring(
+        candidates=top_candidates,
+        topic=topic,
+        context=context,  # Use original context to avoid bias
+        monitor=monitor
+    )
+
+    # Step 6.5: Multi-Dimensional Re-evaluation using orchestrator (if enabled)
+    if multi_dimensional_eval and orchestrator.reasoning_engine:
+        # Temporarily swap fields to evaluate improved_idea instead of text
+        for candidate in top_candidates:
+            candidate["_original_text"] = candidate.get("text", candidate.get("idea", ""))
+            candidate["text"] = candidate.get("improved_idea", candidate["_original_text"])
+
+        top_candidates = orchestrator.add_multi_dimensional_evaluation_with_monitoring(
+            candidates=top_candidates,
+            topic=topic,
+            context=context,
+            monitor=monitor
+        )
+
+        # TODO: Technical debt - field swapping pattern adds complexity
+        # This pattern temporarily mutates candidate["text"] to evaluate improved ideas,
+        # then restores the original and stores improved eval separately.
+        # Future work: Enhance orchestrator method with evaluation_field parameter
+        # to support evaluating arbitrary fields without temporary mutation.
+        # Reference: gemini-code-assist review comment (PR #181)
+        # Restore original text and move multi-dimensional eval to improved field
+        for candidate in top_candidates:
+            candidate["text"] = candidate["_original_text"]
+            candidate["improved_multi_dimensional_evaluation"] = candidate.pop("multi_dimensional_evaluation", None)
+            del candidate["_original_text"]
     
     # Step 9: Build final results
     log_verbose_step("STEP 7: Building Final Results", 

@@ -938,10 +938,17 @@ class AsyncCoordinator(BatchOperationsBase):
             )
 
             # Update candidates with improved scores and critiques
+            # Note: orchestrator returns "improved_score" and "improved_critique" fields
             for i, updated in enumerate(updated_candidates):
                 if i < len(candidates):
-                    candidates[i]["improved_score"] = updated.get("score", candidates[i]["score"])
-                    candidates[i]["improved_critique"] = updated.get("critique", "N/A")
+                    candidates[i]["improved_score"] = updated.get(
+                        "improved_score",
+                        updated.get("score", candidates[i]["score"])
+                    )
+                    candidates[i]["improved_critique"] = updated.get(
+                        "improved_critique",
+                        updated.get("critique", "N/A")
+                    )
 
         except Exception as e:
             logger.error(f"Batch re-evaluation failed: {e}")

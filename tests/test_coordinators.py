@@ -456,10 +456,10 @@ class TestTimeoutFunctionality:
         # Mock slow async operation
         async def slow_async_generate(*args, **kwargs):
             await asyncio.sleep(2)  # Sleep for 2 seconds
-            return "Test Idea"
-        
-        # Patch the function as it's used in async_coordinator
-        with patch('madspark.core.async_coordinator.async_generate_ideas', side_effect=slow_async_generate):
+            return (["Test Idea"], 100)  # Return tuple (ideas, tokens)
+
+        # Phase 3.2c: Patch orchestrator method since async_coordinator delegates to it
+        with patch('madspark.core.workflow_orchestrator.WorkflowOrchestrator.generate_ideas_async', side_effect=slow_async_generate):
             # Should timeout
             with pytest.raises(asyncio.TimeoutError):
                 await coordinator.run_workflow(

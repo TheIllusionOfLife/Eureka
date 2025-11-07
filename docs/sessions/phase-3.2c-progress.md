@@ -155,14 +155,16 @@ uv run ruff check src/madspark/core/async_coordinator.py
 
 ### For Full Phase 3.2c Completion (164 lines to target)
 
-**Option 1: Refactor Single Candidate Processing (Recommended)**
+#### Option 1: Refactor Single Candidate Processing (Recommended)
+
 - Location: Lines 976-1353 (377 lines)
 - Complexity: High (detailed error handling per stage)
 - Potential: Could achieve ~100-150 line reduction
 - Approach: Wrap single candidates in list, call batch methods
 - Risk: Must preserve intricate error handling and fallbacks
 
-**Option 2: Refactor Parallel Execution Methods**
+#### Option 2: Refactor Parallel Execution Methods
+
 - Location: Lines 345-451 (106 lines)
 - Complexity: Medium (must preserve asyncio.gather pattern)
 - Potential: ~30-50 line reduction

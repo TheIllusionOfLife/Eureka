@@ -6,10 +6,9 @@ for workflow orchestration while preserving async-specific optimizations.
 """
 import asyncio
 import pytest
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import patch, AsyncMock
 
 from madspark.core.async_coordinator import AsyncCoordinator
-from madspark.core.workflow_orchestrator import WorkflowOrchestrator
 
 
 class TestAsyncOrchestratorIntegration:
@@ -75,8 +74,6 @@ class TestAsyncOrchestratorIntegration:
     @pytest.mark.asyncio
     async def test_advocacy_uses_orchestrator(self, async_coordinator, sample_candidates):
         """Test that advocacy processing delegates to orchestrator.process_advocacy_async()."""
-        mock_result = [(sample_candidates.copy(), 600)]
-
         with patch('madspark.core.workflow_orchestrator.WorkflowOrchestrator.process_advocacy_async',
                    new=AsyncMock(return_value=(sample_candidates, 600))):
 
@@ -115,7 +112,7 @@ class TestAsyncOrchestratorIntegration:
             start_time = asyncio.get_event_loop().time()
 
             # This should run advocacy and skepticism in parallel
-            result = await async_coordinator.process_candidates_parallel_advocacy_skepticism(
+            await async_coordinator.process_candidates_parallel_advocacy_skepticism(
                 sample_candidates.copy(),
                 "Test Theme",
                 "Test Constraints",
@@ -171,13 +168,13 @@ class TestAsyncOrchestratorIntegration:
             from madspark.core.workflow_orchestrator import WorkflowOrchestrator
             orchestrator = WorkflowOrchestrator(None, None, False)
 
-            result, tokens = await orchestrator.reevaluate_ideas_async(
+            reevaluated_candidates, tokens = await orchestrator.reevaluate_ideas_async(
                 sample_candidates.copy(),
                 "Test Theme",
                 "Test Constraints"
             )
 
-            assert result is not None
+            assert reevaluated_candidates is not None
             assert tokens == 450
 
     @pytest.mark.asyncio

@@ -680,32 +680,33 @@ class AsyncCoordinator(BatchOperationsBase):
                         # Fallback to creating without genai_client
                         config = {"use_logical_inference": logical_inference} if logical_inference else None
                         engine = ReasoningEngine(config=config)
-                
-            # Step 1: Generate Ideas (async)
+
+            # Phase 3.2c: Initialize WorkflowOrchestrator for centralized workflow logic
+            orchestrator = WorkflowOrchestrator(
+                temperature_manager=temperature_manager,
+                reasoning_engine=engine,
+                verbose=verbose
+            )
+
+            # Step 1: Generate Ideas (async) - Phase 3.2c: Using WorkflowOrchestrator
             await self._send_progress("Generating ideas...", 0.1)
             try:
                 # Add timeout to idea generation to prevent hanging
-                raw_generated_ideas = await asyncio.wait_for(
-                    async_generate_ideas(
+                parsed_ideas, _ = await asyncio.wait_for(
+                    orchestrator.generate_ideas_async(
                         topic=topic,
                         context=context,
-                        temperature=idea_temp,
-                        cache_manager=self.cache_manager,
-                        use_structured_output=True
+                        num_ideas=10  # Default number of ideas to generate
                     ),
                     timeout=60.0  # 60 second timeout for initial idea generation
                 )
-                
-                # Parse ideas using shared utility
-                from madspark.utils.json_parsers import parse_idea_generator_response
-                parsed_ideas = parse_idea_generator_response(raw_generated_ideas)
-                
+
                 if not parsed_ideas:
                     logger.warning("No ideas were generated")
                     return []
-                    
+
                 await self._send_progress(f"Generated {len(parsed_ideas)} ideas", 0.3)
-                
+
             except asyncio.TimeoutError:
                 logger.error("Idea generation timed out after 60 seconds")
                 await self._send_progress("Idea generation timed out. Please try again.", 0.0)
@@ -723,119 +724,43 @@ class AsyncCoordinator(BatchOperationsBase):
                     logger.info(f"Novelty filter removed {len(parsed_ideas) - len(filtered_ideas)} duplicates")
                 parsed_ideas = filtered_ideas
                 
-            # Step 2: Evaluate Ideas (async)
+            # Step 2: Evaluate Ideas (async) - Phase 3.2c: Using WorkflowOrchestrator
             await self._send_progress("Evaluating ideas...", 0.4)
             try:
-                ideas_for_critic = "\n".join(parsed_ideas)
-                raw_evaluations = await async_evaluate_ideas(
-                    ideas=ideas_for_critic,
-                    topic=topic,
-                    context=context,
-                    temperature=eval_temp,
-                    use_structured_output=True
+                # Delegate evaluation to orchestrator
+                evaluated_ideas_data, _ = await asyncio.wait_for(
+                    orchestrator.evaluate_ideas_async(
+                        ideas=parsed_ideas,
+                        topic=topic,
+                        context=context
+                    ),
+                    timeout=30.0  # 30 second timeout for evaluation
                 )
-                
-                # Parse evaluations based on format
-                try:
-                    # Try to parse as JSON first (structured output)
-                    import json
-                    evaluations_json = json.loads(raw_evaluations)
-                    
-                    # Extract evaluations from structured format
-                    parsed_evaluations = []
-                    
-                    # Handle different response formats
-                    if isinstance(evaluations_json, list):
-                        # Array of evaluation objects
-                        for eval_obj in evaluations_json:
-                            if isinstance(eval_obj, dict):
-                                parsed_evaluations.append({
-                                    "score": eval_obj.get("score", 0),
-                                    "comment": eval_obj.get("comment", eval_obj.get("critique", "No comment available"))
-                                })
-                            else:
-                                # Fallback for unexpected format
-                                parsed_evaluations.append({
-                                    "score": 0,
-                                    "comment": str(eval_obj)
-                                })
-                    elif isinstance(evaluations_json, dict):
-                        # Single evaluation object - wrap in array
-                        parsed_evaluations.append({
-                            "score": evaluations_json.get("score", 0),
-                            "comment": evaluations_json.get("comment", evaluations_json.get("critique", "No comment available"))
-                        })
-                    else:
-                        # Unexpected format - convert to string
-                        parsed_evaluations.append({
-                            "score": 0,
-                            "comment": str(evaluations_json)
-                        })
-                        
-                except (json.JSONDecodeError, TypeError, KeyError, AttributeError):
-                    # Fall back to legacy parsing for backward compatibility
-                    parsed_evaluations = parse_json_with_fallback(
-                        raw_evaluations,
-                        expected_count=len(parsed_ideas)
+
+                # Normalize fields for compatibility (orchestrator uses "idea", async_coordinator uses "text")
+                evaluated_ideas_data = self._normalize_candidate_fields(evaluated_ideas_data)
+
+                # Add multi-dimensional evaluation if enabled
+                if multi_dimensional_eval:
+                    evaluated_ideas_data = await asyncio.wait_for(
+                        orchestrator.add_multi_dimensional_evaluation_async(
+                            candidates=evaluated_ideas_data,
+                            topic=topic,
+                            context=context
+                        ),
+                        timeout=45.0  # 45 second timeout for multi-dimensional eval
                     )
-                
-                # Build evaluated ideas list
-                evaluated_ideas_data: List[EvaluatedIdea] = []
-                for i, idea_text in enumerate(parsed_ideas):
-                    if i < len(parsed_evaluations):
-                        eval_data = validate_evaluation_json(parsed_evaluations[i])
-                        score = eval_data["score"]
-                        critique = eval_data["comment"]
-                    else:
-                        score = 0
-                        critique = "Evaluation missing"
-                        
-                    # Enhanced reasoning: Apply multi-dimensional evaluation if enabled
-                    multi_eval_data = None
-                    if multi_dimensional_eval and engine:
-                        try:
-                            multi_eval_result = engine.multi_evaluator.evaluate_idea(
-                                idea=idea_text,
-                                context={"topic": topic, "context": context}
-                            )
-                            
-                            # Store the multi-dimensional evaluation data
-                            multi_eval_data = multi_eval_result
-                            
-                            # Use multi-dimensional score instead of simple score
-                            score = multi_eval_result['weighted_score']
-                            
-                            # Enhance critique with multi-dimensional insights
-                            critique = f"{critique}\n\n📊 Multi-dimensional Analysis:\n{multi_eval_result['evaluation_summary']}"
-                            
-                        except (AttributeError, KeyError, TypeError, ValueError) as e:
-                            logger.warning(f"Multi-dimensional evaluation failed for idea {i}: {e}")
-                            # Fall back to standard evaluation
-                    
-                    # Note: Logical inference moved to batch processing after evaluation loop
-                    
-                    # Build the evaluated idea data
-                    evaluated_idea = {
-                        "text": idea_text,
-                        "score": score,
-                        "critique": critique,
-                        "context": context  # Add context for information flow
-                    }
-                    
-                    # Add multi-dimensional evaluation data if available
-                    if multi_eval_data:
-                        evaluated_idea["multi_dimensional_evaluation"] = multi_eval_data
-                    
-                    # Note: Logical inference data will be added after batch processing
-                    
-                    evaluated_ideas_data.append(evaluated_idea)
-                    
+
                 # Sort and select top candidates
                 evaluated_ideas_data.sort(key=lambda x: x["score"], reverse=True)
                 top_candidates = evaluated_ideas_data[:num_top_candidates]
-                
+
                 await self._send_progress(f"Selected {len(top_candidates)} top candidates", 0.6)
-                
+
+            except asyncio.TimeoutError:
+                logger.error("Evaluation timed out")
+                await self._send_progress("Evaluation timed out. Please try again.", 0.0)
+                raise
             except Exception as e:
                 logger.error(f"Evaluation failed: {e}")
                 raise

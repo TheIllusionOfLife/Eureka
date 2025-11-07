@@ -54,7 +54,7 @@ class TestCoordinatorArchitectureIntegration:
         ]
 
         # Phase 3.2c: Mock orchestrator method instead of run_batch_with_timeout
-        def mock_advocacy_side_effect(_self, candidates, topic, context):
+        def mock_advocacy_side_effect(candidates, topic, context):
             for candidate in candidates:
                 candidate["advocacy"] = f"Strong advocacy for {candidate['text']}"
             return (candidates, 1000)
@@ -92,7 +92,7 @@ class TestCoordinatorArchitectureIntegration:
         ]
 
         # Phase 3.2c: Mock orchestrator method
-        def mock_skepticism_side_effect(_self, candidates, topic, context):
+        def mock_skepticism_side_effect(candidates, topic, context):
             for candidate in candidates:
                 candidate["skepticism"] = f"Critical analysis of {candidate['text']}"
             return (candidates, 1000)
@@ -126,7 +126,7 @@ class TestCoordinatorArchitectureIntegration:
         ]
 
         # Phase 3.2c: Mock orchestrator method
-        def mock_improvement_side_effect(_self, candidates, topic, context):
+        def mock_improvement_side_effect(candidates, topic, context):
             for candidate in candidates:
                 candidate["improved_idea"] = (
                     f"Improved: {candidate['text']} with enhancements"

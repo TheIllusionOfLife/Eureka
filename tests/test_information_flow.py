@@ -211,7 +211,7 @@ class TestCoordinatorInformationFlow:
         # Phase 3.2c: Mock orchestrator method to verify context passing
         context_received = None
 
-        def mock_improvement_side_effect(_self, candidates, topic, context):
+        def mock_improvement_side_effect(candidates, topic, context):
             nonlocal context_received
             context_received = context
             for candidate in candidates:

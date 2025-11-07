@@ -160,13 +160,13 @@ class TestDynamicIdeaGeneration:
         # Phase 3.2c: Mock orchestrator methods instead of direct client access
         num_ideas_requested = 0
 
-        def mock_generate_side_effect(_self, topic, context, num_ideas):
+        def mock_generate_side_effect(topic, context, num_ideas):
             nonlocal num_ideas_requested
             num_ideas_requested = num_ideas
             # Return the requested number of ideas
             return ([f"Idea {i}" for i in range(1, num_ideas + 1)], 1000)
 
-        def mock_evaluate_side_effect(_self, ideas, topic, context):
+        def mock_evaluate_side_effect(ideas, topic, context):
             return (
                 [
                     {"idea": idea, "text": idea, "score": 0.8, "critique": "Good"}

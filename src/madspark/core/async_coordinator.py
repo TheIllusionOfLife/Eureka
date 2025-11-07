@@ -27,6 +27,7 @@ from ..utils.constants import (
     DEFAULT_SKEPTICISM_TEMPERATURE,
     LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD
 )
+from ..utils.compat_imports import import_agent_retry_wrappers
 
 logger = logging.getLogger(__name__)
 
@@ -34,23 +35,12 @@ logger = logging.getLogger(__name__)
 ProgressCallback = Callable[[str, float], Awaitable[None]]
 
 
-# Import retry-wrapped versions of agent functions from shared module
-try:
-    from madspark.utils.agent_retry_wrappers import (
-        generate_ideas_with_retry,
-        evaluate_ideas_with_retry,
-        advocate_idea_with_retry,
-        criticize_idea_with_retry,
-        improve_idea_with_retry
-    )
-except ImportError:
-    from ..utils.agent_retry_wrappers import (
-        generate_ideas_with_retry,
-        evaluate_ideas_with_retry,
-        advocate_idea_with_retry,
-        criticize_idea_with_retry,
-        improve_idea_with_retry
-    )
+_retry_wrappers = import_agent_retry_wrappers()
+generate_ideas_with_retry = _retry_wrappers['generate_ideas_with_retry']
+evaluate_ideas_with_retry = _retry_wrappers['evaluate_ideas_with_retry']
+advocate_idea_with_retry = _retry_wrappers['advocate_idea_with_retry']
+criticize_idea_with_retry = _retry_wrappers['criticize_idea_with_retry']
+improve_idea_with_retry = _retry_wrappers['improve_idea_with_retry']
 
 # Create a shared thread pool executor for all async functions
 # This avoids the overhead of creating/destroying executors repeatedly

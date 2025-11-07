@@ -1,17 +1,19 @@
+from argparse import Namespace
+
 """End-to-end test for structured output formatting fixes.
 
 This test verifies that all 10 formatting issues identified in the user request
 have been successfully resolved through structured output implementation.
 """
-from unittest.mock import patch
-import sys
-import os
+from unittest.mock import patch  # noqa: E402
+import sys  # noqa: E402
+import os  # noqa: E402
 
 # Add src to path for testing
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from madspark.cli.cli import format_results
-from madspark.core.coordinator_batch import run_multistep_workflow_batch
+from madspark.cli.cli import format_results  # noqa: E402
+from madspark.core.coordinator_batch import run_multistep_workflow_batch  # noqa: E402
 
 
 class TestStructuredOutputEndToEnd:
@@ -36,7 +38,7 @@ class TestStructuredOutputEndToEnd:
         }]
         
         # Test detailed format output
-        output = format_results(mock_results, 'detailed')
+        output = format_results(mock_results, 'detailed', Namespace())
         
         # Fix 1: ✅ Remove redundant "Text:" prefix
         assert 'Text:' not in output
@@ -108,7 +110,7 @@ class TestStructuredOutputEndToEnd:
             'score_delta': 0.5
         }]
         
-        output = format_results(mock_results, 'detailed')
+        output = format_results(mock_results, 'detailed', Namespace())
         
         # Should not contain common meta-commentary phrases
         forbidden_phrases = [
@@ -135,7 +137,7 @@ class TestStructuredOutputEndToEnd:
             'score_delta': 1.0
         }]
         
-        output = format_results(mock_results, 'detailed')
+        output = format_results(mock_results, 'detailed', Namespace())
         
         # All bullet points should use consistent character
         assert '•' in output

@@ -1,18 +1,20 @@
+from argparse import Namespace
+
 """Test field name standardization between CLI and web interfaces.
 
 This test suite ensures that both CLI and web interfaces use consistent
 field names for the same data, addressing the issue where field names
 differ between interfaces.
 """
-import os
-import sys
-import pytest
-from unittest.mock import Mock, patch
+import os  # noqa: E402
+import sys  # noqa: E402
+import pytest  # noqa: E402
+from unittest.mock import Mock, patch  # noqa: E402
 
 # Add src to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from madspark.core.coordinator import run_multistep_workflow
+from madspark.core.coordinator import run_multistep_workflow  # noqa: E402
 
 
 class TestFieldNameStandardization:
@@ -89,8 +91,8 @@ class TestFieldNameStandardization:
         }
         
         # Format for different output modes
-        summary_output = format_results([result], 'summary')
-        detailed_output = format_results([result], 'detailed')
+        summary_output = format_results([result], 'summary', Namespace())
+        detailed_output = format_results([result], 'detailed', Namespace())
         
         # Verify that display functions handle standardized fields correctly
         assert 'idea' in str(summary_output) or 'Enhanced idea text' in str(summary_output)

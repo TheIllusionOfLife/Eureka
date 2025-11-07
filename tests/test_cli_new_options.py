@@ -4,6 +4,7 @@ Test New CLI Options Requirements
 Tests for new CLI options that should match web interface functionality.
 These tests should FAIL initially and pass after implementation.
 """
+from argparse import Namespace
 import pytest
 import sys
 import os
@@ -251,7 +252,7 @@ class TestOutputModeIntegration:
         from madspark.cli.cli import format_results
         
         # Should not fail and should produce clean output
-        output = format_results(mock_results, 'simple')
+        output = format_results(mock_results, 'simple', Namespace())
         assert isinstance(output, str), "Should return string output"
         assert len(output) > 0, "Should produce non-empty output"
     
@@ -268,7 +269,7 @@ class TestOutputModeIntegration:
         
         from madspark.cli.cli import format_results
         
-        output = format_results(mock_results, 'brief')
+        output = format_results(mock_results, 'brief', Namespace())
         
         # Should contain the idea text (cleaner may simplify it) but not agent feedback
         assert 'test idea' in output.lower()
@@ -288,7 +289,7 @@ class TestOutputModeIntegration:
         
         from madspark.cli.cli import format_results
         
-        output = format_results(mock_results, 'detailed')
+        output = format_results(mock_results, 'detailed', Namespace())
         
         # Should contain all information
         assert 'Test idea' in output

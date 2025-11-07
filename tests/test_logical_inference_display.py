@@ -1,14 +1,16 @@
+from argparse import Namespace
+
 """Test logical inference display in CLI output.
 
 This test ensures that logical inference results are properly displayed
 as a separate section when the --logical flag is used.
 """
-import pytest
-from unittest.mock import patch, Mock
-import json
+import pytest  # noqa: E402
+from unittest.mock import patch, Mock  # noqa: E402
+import json  # noqa: E402
 
-from madspark.cli.cli import format_results
-from madspark.utils.output_processor import format_logical_inference_results
+from madspark.cli.cli import format_results  # noqa: E402
+from madspark.utils.output_processor import format_logical_inference_results  # noqa: E402
 
 
 class TestLogicalInferenceDisplay:
@@ -75,7 +77,7 @@ class TestLogicalInferenceDisplay:
         }]
         
         # Format in detailed mode
-        output = format_results(results, 'detailed')
+        output = format_results(results, 'detailed', Namespace())
         
         # Verify logical inference section appears
         assert "🔍 Logical Inference Analysis:" in output
@@ -115,15 +117,15 @@ class TestLogicalInferenceDisplay:
         }]
         
         # Detailed mode should show full logical inference
-        detailed_output = format_results(results, 'detailed')
+        detailed_output = format_results(results, 'detailed', Namespace())
         assert "🔍 Logical Inference Analysis:" in detailed_output
         
         # Brief mode should not show logical inference
-        brief_output = format_results(results, 'brief')
+        brief_output = format_results(results, 'brief', Namespace())
         assert "🔍 Logical Inference Analysis:" not in brief_output
         
         # Simple mode should not show logical inference  
-        simple_output = format_results(results, 'simple')
+        simple_output = format_results(results, 'simple', Namespace())
         assert "🔍 Logical Inference Analysis:" not in simple_output
 
 

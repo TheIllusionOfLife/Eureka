@@ -1,9 +1,11 @@
-"""Tests for CLI output formatting with structured data."""
-import pytest
-from unittest.mock import patch
+from argparse import Namespace
 
-from madspark.cli.cli import format_results
-from madspark.utils.output_processor import (
+"""Tests for CLI output formatting with structured data."""
+import pytest  # noqa: E402
+from unittest.mock import patch  # noqa: E402
+
+from madspark.cli.cli import format_results  # noqa: E402
+from madspark.utils.output_processor import (  # noqa: E402
     convert_markdown_to_cli,
     smart_truncate_text
 )
@@ -22,7 +24,7 @@ class TestOutputFormatting:
         
         # Test all format types
         for format_type in ['brief', 'simple', 'detailed', 'summary']:
-            output = format_results(results, format_type)
+            output = format_results(results, format_type, Namespace())
             assert 'Text:' not in output
             assert 'AI-Powered Learning Assistant' in output
     
@@ -52,7 +54,7 @@ class TestOutputFormatting:
             }
         }]
         
-        output = format_results(results, 'detailed')
+        output = format_results(results, 'detailed', Namespace())
         
         # Should show multi-dimensional scores clearly
         assert '📊 Multi-Dimensional Evaluation:' in output
@@ -91,7 +93,7 @@ class TestOutputFormatting:
             }
         }]
         
-        output = format_results(results, 'detailed')
+        output = format_results(results, 'detailed', Namespace())
         
         # Check formatting
         assert '🔷 Advocacy:' in output
@@ -113,7 +115,7 @@ class TestOutputFormatting:
             'score_delta': 2.3
         }]
         
-        output = format_results(results, 'detailed')
+        output = format_results(results, 'detailed', Namespace())
         
         # Should show proper improvement without confusing signs
         assert '⬆️  Improvement: +2.3' in output
@@ -139,7 +141,7 @@ class TestOutputFormatting:
             }
         }]
         
-        output = format_results(results, 'detailed')
+        output = format_results(results, 'detailed', Namespace())
         
         # Check proper formatting
         assert '✨ Improved Idea:' in output
@@ -274,7 +276,7 @@ class TestIntegrationFormatting:
         
         # Format for different output types
         for format_type in ['brief', 'detailed']:
-            output = format_results(structured_results, format_type)
+            output = format_results(structured_results, format_type, Namespace())
             
             # Verify key elements are present and properly formatted
             assert 'Community Smart Garden Network' in output  # Improved idea should always be present

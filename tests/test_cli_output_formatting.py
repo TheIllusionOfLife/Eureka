@@ -1,18 +1,20 @@
+from argparse import Namespace
+
 """
 Test CLI Output Formatting Requirements
 
 This test file defines the expected behavior for CLI output formatting.
 These tests should FAIL initially and then pass after implementation.
 """
-import pytest
-from unittest.mock import patch
-import sys
-import os
+import pytest  # noqa: E402
+from unittest.mock import patch  # noqa: E402
+import sys  # noqa: E402
+import os  # noqa: E402
 
 # Add src to path for testing
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from madspark.cli.cli import format_results, main
+from madspark.cli.cli import format_results, main  # noqa: E402
 
 
 class TestOutputFormatting:
@@ -37,7 +39,7 @@ class TestOutputFormatting:
         }]
         
         # Test simple format (should be default)
-        output = format_results(mock_results, 'simple')
+        output = format_results(mock_results, 'simple', Namespace())
         
         # Should NOT contain debugging info
         assert 'Enhanced Analysis' not in output
@@ -84,7 +86,7 @@ class TestOutputFormatting:
             'improved_score': 8.5
         }]
         
-        output = format_results(mock_results, 'text')
+        output = format_results(mock_results, 'text', Namespace())
         
         # Should contain full content, not truncated
         assert long_idea in output, "Should not truncate main idea"
@@ -101,7 +103,7 @@ class TestOutputFormatting:
             'improved_score': 8.0
         }]
         
-        output = format_results(mock_results, 'text')
+        output = format_results(mock_results, 'text', Namespace())
         
         # Check for duplicate content
         unique_phrases = ['Unique idea content', 'Unique critique', 'Unique improved content']
@@ -119,7 +121,7 @@ class TestOutputFormatting:
             'improved_score': 8.0
         }]
         
-        output = format_results(mock_results, 'text')
+        output = format_results(mock_results, 'text', Namespace())
         
         # Should handle markdown gracefully (either render or clean)
         # At minimum, should not break formatting
@@ -139,7 +141,7 @@ class TestOutputFormatting:
         }]
         
         # Brief mode should exist and work
-        output = format_results(mock_results, 'brief')
+        output = format_results(mock_results, 'brief', Namespace())
         
         # Should contain final result
         assert 'Final idea' in output
@@ -170,7 +172,7 @@ class TestOutputFormatting:
             }
         }]
         
-        output = format_results(mock_coordinator_result, 'text')
+        output = format_results(mock_coordinator_result, 'text', Namespace())
         
         # Should be structured and readable
         assert 'Community resilience hub' in output

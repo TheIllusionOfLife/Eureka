@@ -246,13 +246,13 @@ class WorkflowOrchestrator:
             # Return ideas with fallback values
             evaluated_ideas_data = []
             for idea in ideas:
-                evaluated_idea: EvaluatedIdea = {
+                fallback_idea: EvaluatedIdea = {
                     "text": idea,
                     "score": FALLBACK_SCORE,
                     "critique": f"{FALLBACK_CRITIQUE}: {str(e)}",
                     "multi_dimensional_evaluation": None
                 }
-                evaluated_ideas_data.append(evaluated_idea)
+                evaluated_ideas_data.append(fallback_idea)
             return evaluated_ideas_data, 0
 
     def process_advocacy(

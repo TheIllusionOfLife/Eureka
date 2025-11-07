@@ -41,12 +41,12 @@ class InteractiveSession:
         self.current_preset = None  # Track current preset
         self.bookmark_manager = BookmarkManager()
         
-    def clear_screen(self):
+    def clear_screen(self) -> None:
         """Clear the terminal screen."""
         # Use ANSI escape sequences for safer screen clearing
         print('\033[2J\033[H', end='')
-        
-    def print_header(self):
+
+    def print_header(self) -> None:
         """Print the MadSpark header."""
         self.clear_screen()
         print("=" * 80)
@@ -55,7 +55,7 @@ class InteractiveSession:
         print("Welcome! I'll guide you through generating AI-powered ideas step by step.")
         print()
         
-    def print_section(self, title: str):
+    def print_section(self, title: str) -> None:
         """Print a section header."""
         print(f"\n{'─' * 40}")
         print(f"📌 {title}")
@@ -459,7 +459,7 @@ class InteractiveSession:
         }
 
 
-def run_interactive_mode():
+def run_interactive_mode() -> Dict[str, Any]:
     """Entry point for interactive mode."""
     session = InteractiveSession()
     return session.run()

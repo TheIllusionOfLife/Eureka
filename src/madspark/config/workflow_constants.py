@@ -4,8 +4,6 @@ This module contains constants specific to the WorkflowOrchestrator,
 including fallback values for error handling and operation-specific timeouts.
 """
 
-# Re-export commonly used constants from utils.constants
-
 # Fallback values for error handling
 # These are used when agent calls fail to ensure workflow can continue
 FALLBACK_ADVOCACY = "N/A (Batch advocate failed)"

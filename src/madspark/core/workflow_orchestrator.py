@@ -24,6 +24,10 @@ from madspark.config.workflow_constants import (
     STEP_REEVALUATION,
     STEP_BUILD_RESULTS,
 )
+from madspark.utils.constants import (
+    MEANINGFUL_IMPROVEMENT_SIMILARITY_THRESHOLD,
+    MEANINGFUL_IMPROVEMENT_SCORE_DELTA,
+)
 from madspark.core.types_and_logging import (
     EvaluatedIdea,
     CandidateData,
@@ -169,8 +173,8 @@ class WorkflowOrchestrator:
 
         logging.info(f"Generated {len(parsed_ideas)} ideas")
 
-        # Estimate token count (rough estimate based on text length)
-        # In practice, this would be tracked from API response
+        # TODO: Replace with actual API token counts from response metadata
+        # Currently using rough estimation based on text length (characters / 4)
         token_count = len(ideas_text) // 4  # Rough tokens-to-chars ratio
 
         return parsed_ideas, token_count
@@ -236,8 +240,8 @@ class WorkflowOrchestrator:
                 }
                 evaluated_ideas_data.append(evaluated_idea)
 
-            # Estimate token count
-            token_count = len(evaluation_output) // 4
+            # TODO: Replace with actual API token counts from response metadata
+            token_count = len(evaluation_output) // 4  # Rough estimation
 
             return evaluated_ideas_data, token_count
 
@@ -403,6 +407,7 @@ class WorkflowOrchestrator:
             # Single API call for all improvements
             improvement_results, token_usage = improve_ideas_batch(
                 improve_input,
+                topic,
                 context,
                 idea_temp
             )
@@ -482,8 +487,8 @@ class WorkflowOrchestrator:
                     candidate["improved_score"] = float(candidate.get("initial_score", FALLBACK_SCORE))
                     candidate["improved_critique"] = FALLBACK_CRITIQUE
 
-            # Estimate token count
-            token_count = len(evaluation_output) // 4
+            # TODO: Replace with actual API token counts from response metadata
+            token_count = len(evaluation_output) // 4  # Rough estimation
 
             return candidates, token_count
 
@@ -529,8 +534,8 @@ class WorkflowOrchestrator:
                 original_idea,
                 improved_idea,
                 score_delta,
-                similarity_threshold=0.9,  # From constants
-                score_delta_threshold=0.3   # From constants
+                similarity_threshold=MEANINGFUL_IMPROVEMENT_SIMILARITY_THRESHOLD,
+                score_delta_threshold=MEANINGFUL_IMPROVEMENT_SCORE_DELTA
             )
 
             # Build final candidate data

@@ -6,7 +6,6 @@ and that mypy can verify them without errors.
 """
 
 import subprocess
-import sys
 from pathlib import Path
 
 
@@ -23,7 +22,7 @@ def test_mypy_cli_module_passes():
     # Check for CLI-specific errors (ignore errors in other modules)
     cli_errors = [line for line in result.stdout.split('\n') if 'src/madspark/cli/' in line]
 
-    assert len(cli_errors) == 0, f"mypy CLI errors:\n" + "\n".join(cli_errors)
+    assert len(cli_errors) == 0, "mypy CLI errors:\n" + "\n".join(cli_errors)
 
 
 def test_batch_metrics_has_proper_optional_type():

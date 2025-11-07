@@ -5,18 +5,15 @@ to significantly reduce the number of API calls from O(N) to O(1) for
 advocate, skeptic, and improvement processing.
 """
 import logging
-import time
 from typing import List, Optional
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 
-from madspark.utils.batch_monitor import batch_call_context, get_batch_monitor
+from madspark.utils.batch_monitor import get_batch_monitor
 from madspark.utils.errors import ValidationError
-from madspark.agents.genai_client import get_model_name
 
 from madspark.core.types_and_logging import (
-    CandidateData, log_verbose_step, log_agent_completion
+    CandidateData, log_verbose_step
 )
-from madspark.utils.utils import parse_json_with_fallback
 from madspark.utils.text_similarity import is_meaningful_improvement
 from madspark.utils.constants import (
     MEANINGFUL_IMPROVEMENT_SIMILARITY_THRESHOLD,
@@ -151,8 +148,7 @@ def _run_workflow_internal(
         verbose=verbose
     )
 
-    # Get model name and batch monitor for monitoring
-    model_name = get_model_name()
+    # Get batch monitor for monitoring
     monitor = get_batch_monitor()
 
     # Step 1: Idea Generation using orchestrator

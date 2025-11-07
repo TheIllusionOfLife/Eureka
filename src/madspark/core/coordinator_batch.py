@@ -202,6 +202,11 @@ def _run_workflow_internal(
         )
 
         # Add field normalization for compatibility with rest of workflow
+        # TODO: Technical debt - field normalization creates redundant fields
+        # This compatibility layer maintains both "text"/"idea", "score"/"initial_score",
+        # and "critique"/"initial_critique" pairs during gradual migration.
+        # Future work: Unify data model to use single canonical field names.
+        # Reference: gemini-code-assist review comment (PR #181)
         for idea_data in evaluated_ideas_data:
             # Ensure both "text" and "idea" fields exist
             idea_data["idea"] = idea_data.get("text", "")
@@ -288,6 +293,12 @@ def _run_workflow_internal(
             monitor=monitor
         )
 
+        # TODO: Technical debt - field swapping pattern adds complexity
+        # This pattern temporarily mutates candidate["text"] to evaluate improved ideas,
+        # then restores the original and stores improved eval separately.
+        # Future work: Enhance orchestrator method with evaluation_field parameter
+        # to support evaluating arbitrary fields without temporary mutation.
+        # Reference: gemini-code-assist review comment (PR #181)
         # Restore original text and move multi-dimensional eval to improved field
         for candidate in top_candidates:
             candidate["text"] = candidate["_original_text"]

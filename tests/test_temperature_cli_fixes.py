@@ -127,7 +127,7 @@ class TestCLIIntegration:
     def mock_cli_environment(self):
         """Fixture to set up common CLI test environment."""
         with patch('madspark.cli.cli.os.getenv') as mock_getenv, \
-             patch('madspark.cli.cli.run_multistep_workflow') as mock_workflow:
+             patch('madspark.cli.commands.workflow_executor.run_multistep_workflow') as mock_workflow:
             mock_getenv.return_value = "test_api_key"
             mock_workflow.return_value = [{"idea": "test", "score": 8.0}]
             yield mock_getenv, mock_workflow

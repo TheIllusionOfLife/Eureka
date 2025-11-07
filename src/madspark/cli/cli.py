@@ -503,7 +503,7 @@ def truncate_text_intelligently(text: str, max_length: int = 300) -> str:
     return f"{truncated}..."
 
 
-def list_bookmarks_command(args: argparse.Namespace):
+def list_bookmarks_command(args: argparse.Namespace) -> None:
     """Handle the list bookmarks command."""
     bookmarks = list_bookmarks_cli(args.bookmark_file)
     
@@ -524,7 +524,7 @@ def list_bookmarks_command(args: argparse.Namespace):
         print("-" * 60)
 
 
-def search_bookmarks_command(args: argparse.Namespace):
+def search_bookmarks_command(args: argparse.Namespace) -> None:
     """Handle the search bookmarks command."""
     manager = BookmarkManager(args.bookmark_file)
     matches = manager.search_bookmarks(args.search_bookmarks)
@@ -543,7 +543,7 @@ def search_bookmarks_command(args: argparse.Namespace):
         print("-" * 60)
 
 
-def remove_bookmark_command(args: argparse.Namespace):
+def remove_bookmark_command(args: argparse.Namespace) -> None:
     """Handle the remove bookmark command."""
     manager = BookmarkManager(args.bookmark_file)
     
@@ -650,7 +650,7 @@ def format_results(results: List[Dict[str, Any]], format_type: str, args=None) -
     return formatter.format(results, args)
 
 
-def determine_num_candidates(args):
+def determine_num_candidates(args) -> int:
     """Determine the number of candidates to use, handling backward compatibility.
 
     Args:
@@ -759,7 +759,7 @@ def _handle_interactive_mode(args: argparse.Namespace) -> bool:
         return False
 
 
-def main():
+def main() -> None:
     """Main CLI entry point with command routing."""
     parser = create_parser()
     args = parser.parse_args()

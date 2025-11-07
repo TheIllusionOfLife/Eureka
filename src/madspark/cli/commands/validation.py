@@ -82,7 +82,7 @@ class WorkflowValidator(CommandHandler):
             self.args.constraints = "Generate practical and innovative ideas"
             self.log_info("Using default constraints")
 
-    def _setup_temperature_manager(self):
+    def _setup_temperature_manager(self) -> "TemperatureManager":
         """Setup temperature manager from args.
 
         Returns:

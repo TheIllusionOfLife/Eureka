@@ -599,20 +599,31 @@ class TestBookmarkHandler:
     def test_list_bookmarks_static(self, basic_args, mock_logger):
         """Test static list bookmarks method."""
         from madspark.cli.commands.bookmark_handler import BookmarkHandler
+        from madspark.utils.models import BookmarkedIdea
 
         basic_args.list_bookmarks = True
 
+        # Create mock BookmarkedIdea objects
+        mock_bookmark1 = Mock(spec=BookmarkedIdea)
+        mock_bookmark1.id = "BM1"
+        mock_bookmark1.text = "Idea 1"
+        mock_bookmark1.score = 85
+        mock_bookmark1.tags = []
+
+        mock_bookmark2 = Mock(spec=BookmarkedIdea)
+        mock_bookmark2.id = "BM2"
+        mock_bookmark2.text = "Idea 2"
+        mock_bookmark2.score = 90
+        mock_bookmark2.tags = []
+
         mock_manager = Mock()
-        mock_manager.list_all.return_value = [
-            {"id": "BM1", "idea": "Idea 1"},
-            {"id": "BM2", "idea": "Idea 2"}
-        ]
+        mock_manager.list_bookmarks.return_value = [mock_bookmark1, mock_bookmark2]
 
         with patch('madspark.cli.commands.bookmark_handler.BookmarkManager', return_value=mock_manager):
             result = BookmarkHandler.list_bookmarks(basic_args)
 
             assert result.success is True
-            mock_manager.list_all.assert_called_once()
+            mock_manager.list_bookmarks.assert_called_once()
 
 
 # Tests for ExportHandler

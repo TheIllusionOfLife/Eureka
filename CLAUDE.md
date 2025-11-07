@@ -167,6 +167,8 @@ See **[docs/ci-policy.md](docs/ci-policy.md)** for complete guidelines on:
 - **Parallel Execution**: Use pytest-xdist for faster test runs
 - **Coverage Strategy**: Upload coverage only from single Python version to avoid duplication
 - **PR Size Intelligence**: Extended limits for CI/infrastructure/documentation PRs (70% threshold)
+- **Test-Heavy PR Exception**: PRs with >60% test files acceptable over 500-line limit (follows TDD best practices)
+  - Example: PR #172 had 693 changes (67% test files) - acceptable for comprehensive test coverage
 
 ## Dependencies
 - **Python**: 3.10+ required for TypedDict and modern features

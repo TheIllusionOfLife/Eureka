@@ -244,30 +244,35 @@ class AsyncCoordinator(BatchOperationsBase):
         self, candidates: List[EvaluatedIdea], topic: str, context: str, temperature: float
     ) -> List[EvaluatedIdea]:
         """Process all candidates with batch advocacy in a single API call.
-        
+
+        Phase 3.2c: Delegates to WorkflowOrchestrator.process_advocacy_async()
+
         Args:
             candidates: List of evaluated ideas
             topic: Overall topic for the ideas
             context: Additional constraints or criteria
-            temperature: Generation temperature
-            
+            temperature: Generation temperature (unused, orchestrator manages temperatures)
+
         Returns:
             Updated candidates with advocacy data
         """
         try:
-            # Prepare batch input using shared base class method with context
-            advocacy_input = self.prepare_advocacy_input_with_context(candidates)
-            
-            # Single API call for all advocacies using shared base class method
-            advocacy_results, token_usage = await self.run_batch_with_timeout(
-                'advocate_ideas_batch', advocacy_input, topic, context, temperature
+            # Phase 3.2c: Use WorkflowOrchestrator for centralized workflow logic
+            from .workflow_orchestrator import WorkflowOrchestrator
+            orchestrator = WorkflowOrchestrator(
+                temperature_manager=None,  # Uses internal defaults
+                reasoning_engine=None,
+                verbose=False
             )
-            
-            # Update candidates using shared base class method
-            return self.update_candidates_with_formatted_batch_results(
-                candidates, advocacy_results, 'advocacy'
+
+            updated_candidates, _ = await orchestrator.process_advocacy_async(
+                candidates=candidates,
+                topic=topic,
+                context=context
             )
-                    
+
+            return updated_candidates
+
         except Exception as e:
             logger.error(f"Batch advocate failed: {e}")
             # Fallback: mark all as N/A
@@ -278,21 +283,27 @@ class AsyncCoordinator(BatchOperationsBase):
     async def _process_candidates_with_batch_skepticism(
         self, candidates: List[EvaluatedIdea], topic: str, context: str, temperature: float
     ) -> List[EvaluatedIdea]:
-        """Process all candidates with batch skepticism in a single API call."""
+        """Process all candidates with batch skepticism in a single API call.
+
+        Phase 3.2c: Delegates to WorkflowOrchestrator.process_skepticism_async()
+        """
         try:
-            # Prepare batch input using shared base class method
-            skeptic_input = self.prepare_skepticism_input(candidates)
-            
-            # Single API call for all skepticisms using shared base class method
-            skepticism_results, token_usage = await self.run_batch_with_timeout(
-                'criticize_ideas_batch', skeptic_input, topic, context, temperature
+            # Phase 3.2c: Use WorkflowOrchestrator for centralized workflow logic
+            from .workflow_orchestrator import WorkflowOrchestrator
+            orchestrator = WorkflowOrchestrator(
+                temperature_manager=None,  # Uses internal defaults
+                reasoning_engine=None,
+                verbose=False
             )
-            
-            # Update candidates using shared base class method
-            return self.update_candidates_with_formatted_batch_results(
-                candidates, skepticism_results, 'skepticism'
+
+            updated_candidates, _ = await orchestrator.process_skepticism_async(
+                candidates=candidates,
+                topic=topic,
+                context=context
             )
-                    
+
+            return updated_candidates
+
         except Exception as e:
             logger.error(f"Batch skeptic failed: {e}")
             # Fallback: mark all as N/A
@@ -303,21 +314,27 @@ class AsyncCoordinator(BatchOperationsBase):
     async def _process_candidates_with_batch_improvement(
         self, candidates: List[EvaluatedIdea], topic: str, context: str, temperature: float
     ) -> List[EvaluatedIdea]:
-        """Process all candidates with batch improvement in a single API call."""
+        """Process all candidates with batch improvement in a single API call.
+
+        Phase 3.2c: Delegates to WorkflowOrchestrator.improve_ideas_async()
+        """
         try:
-            # Prepare batch input using shared base class method with full context
-            improve_input = self.prepare_improvement_input_with_context(candidates)
-            
-            # Single API call for all improvements using shared base class method
-            improvement_results, token_usage = await self.run_batch_with_timeout(
-                'improve_ideas_batch', improve_input, topic, context, temperature
+            # Phase 3.2c: Use WorkflowOrchestrator for centralized workflow logic
+            from .workflow_orchestrator import WorkflowOrchestrator
+            orchestrator = WorkflowOrchestrator(
+                temperature_manager=None,  # Uses internal defaults
+                reasoning_engine=None,
+                verbose=False
             )
-            
-            # Update candidates using shared base class method
-            return self.update_candidates_with_improvement_results(
-                candidates, improvement_results
+
+            updated_candidates, _ = await orchestrator.improve_ideas_async(
+                candidates=candidates,
+                topic=topic,
+                context=context
             )
-                    
+
+            return updated_candidates
+
         except Exception as e:
             logger.error(f"Batch improvement failed: {e}")
             # Fallback: use original ideas

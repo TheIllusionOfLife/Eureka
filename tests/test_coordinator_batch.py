@@ -13,14 +13,14 @@ except ImportError:
 class TestCoordinatorBatchProcessing:
     """Test coordinator uses batch API calls efficiently."""
     
-    @patch('madspark.core.coordinator_batch.call_idea_generator_with_retry')
-    @patch('madspark.core.coordinator_batch.call_critic_with_retry')
-    @patch('madspark.core.coordinator_batch.advocate_ideas_batch')
-    @patch('madspark.core.coordinator_batch.criticize_ideas_batch')
-    @patch('madspark.core.coordinator_batch.improve_ideas_batch')
+    @patch('madspark.core.workflow_orchestrator.call_idea_generator_with_retry')
+    @patch('madspark.core.workflow_orchestrator.call_critic_with_retry')
+    @patch('madspark.core.workflow_orchestrator.advocate_ideas_batch')
+    @patch('madspark.core.workflow_orchestrator.criticize_ideas_batch')
+    @patch('madspark.core.workflow_orchestrator.improve_ideas_batch')
     def test_coordinator_uses_batch_processing_single_candidate(
-        self, 
-        mock_improve_batch, 
+        self,
+        mock_improve_batch,
         mock_criticize_batch,
         mock_advocate_batch,
         mock_evaluate,
@@ -88,14 +88,14 @@ class TestCoordinatorBatchProcessing:
             assert mock_generate.call_count == 1
             assert mock_evaluate.call_count == 2  # Initial + re-eval after improvement
     
-    @patch('madspark.core.coordinator_batch.call_idea_generator_with_retry')
-    @patch('madspark.core.coordinator_batch.call_critic_with_retry')
-    @patch('madspark.core.coordinator_batch.advocate_ideas_batch')
-    @patch('madspark.core.coordinator_batch.criticize_ideas_batch')
-    @patch('madspark.core.coordinator_batch.improve_ideas_batch')
+    @patch('madspark.core.workflow_orchestrator.call_idea_generator_with_retry')
+    @patch('madspark.core.workflow_orchestrator.call_critic_with_retry')
+    @patch('madspark.core.workflow_orchestrator.advocate_ideas_batch')
+    @patch('madspark.core.workflow_orchestrator.criticize_ideas_batch')
+    @patch('madspark.core.workflow_orchestrator.improve_ideas_batch')
     def test_coordinator_uses_batch_processing_multiple_candidates(
-        self, 
-        mock_improve_batch, 
+        self,
+        mock_improve_batch,
         mock_criticize_batch,
         mock_advocate_batch,
         mock_evaluate,

@@ -12,6 +12,7 @@ Eureka features the MadSpark Multi-Agent System, a sophisticated AI-powered expe
 - **Mock-First Development**: All functionality must work in mock mode without API keys
 - **Operational Modes**: Mock (development), Direct API (production), ADK Framework (experimental)
 - **Logical Inference**: LLM-powered LogicalInferenceEngine replaces hardcoded templates for genuine reasoning
+- **Formatter Strategy Pattern**: CLI output formatting uses Strategy Pattern with pluggable formatters (brief, simple, detailed, summary, json)
 
 ## Common Tasks
 - **Run Coordinator**: `PYTHONPATH=src python -m madspark.core.coordinator`
@@ -177,6 +178,45 @@ See **[docs/ci-policy.md](docs/ci-policy.md)** for complete guidelines on:
 - **Caching**: redis (available but optional)
 - **Optional**: ruff for linting, mypy for type checking
 - **Web**: FastAPI, React 18.2, TypeScript, Docker (in `web/` directory)
+
+## CLI Output Formatting Architecture
+
+The CLI uses a **Strategy Pattern** for output formatting, enabling clean separation of concerns and easy extensibility.
+
+### Formatter Package Structure
+```
+src/madspark/cli/formatters/
+├── base.py              # Abstract ResultFormatter base class
+├── brief.py             # BriefFormatter - solution-focused markdown output
+├── simple.py            # SimpleFormatter - user-friendly with emojis
+├── detailed.py          # DetailedFormatter - comprehensive with all agent interactions
+├── summary.py           # SummaryFormatter - improved ideas with evaluations
+├── json_formatter.py    # JsonFormatter - machine-readable JSON
+└── factory.py           # FormatterFactory - creates formatter instances
+```
+
+### Usage Pattern
+```python
+from madspark.cli.formatters import FormatterFactory
+
+# Create formatter
+formatter = FormatterFactory.create('brief')  # or 'simple', 'detailed', 'summary', 'json'
+
+# Format results
+output = formatter.format(results, args)
+```
+
+### Adding New Formatters
+1. Create new formatter class extending `ResultFormatter`
+2. Implement `format(results, args) -> str` method
+3. Register in `FormatterFactory._formatters` dict
+4. Add comprehensive tests in `tests/test_formatters.py`
+
+### Benefits
+- **Modularity**: Each formatter <150 lines, testable in isolation
+- **Extensibility**: Easy to add new output formats
+- **Maintainability**: Clear separation of concerns
+- **Type Safety**: Complete type hints for better IDE support
 
 ## Google GenAI API Usage Pattern
 When using Google's GenAI SDK, always use the nested API structure:

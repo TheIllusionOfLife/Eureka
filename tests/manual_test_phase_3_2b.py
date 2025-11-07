@@ -180,7 +180,7 @@ def test_batch_efficiency():
 
         print("\n📊 API Efficiency Check:")
         print(f"  Total API calls: {summary['total_calls']}")
-        print(f"  Batch operations: {len([m for m in monitor.metrics_history if 'batch' in m.batch_type.lower()])}")
+        print(f"  Batch operations: {len(monitor.metrics_history)}")
 
         # Verify batch efficiency
         # Expected: 1 generation + 1 eval + 1 advocacy + 1 skepticism + 1 improvement + 1 re-eval = 6 calls

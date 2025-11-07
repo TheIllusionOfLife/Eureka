@@ -454,9 +454,25 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
 
 ## Session Handover
 
-### Last Updated: November 07, 2025 07:56 PM JST
+### Last Updated: November 07, 2025 09:36 PM JST
 
-#### Recently Completed
+### Recently Completed
+
+- ✅ **[PR #178](https://github.com/TheIllusionOfLife/Eureka/pull/178)**: Phase 3.1: Create WorkflowOrchestrator (November 7, 2025)
+  - **TDD Implementation**: Followed test-driven development - wrote 21 comprehensive tests BEFORE implementation
+  - **Core Achievement**: Created WorkflowOrchestrator (559 lines) centralizing workflow logic from 3 coordinator files
+  - **Configuration Module**: Extracted workflow constants to dedicated config package (workflow_constants.py)
+  - **Testing**: 21/21 tests passing with 100% coverage of workflow steps
+  - **Manual Testing Infrastructure**: Created manual_test_orchestrator.py for real API validation
+  - **Integration Pattern**: test_orchestrator_coordinator.py demonstrates usage in coordinators
+  - **CRITICAL Bug Fix**: Fixed missing topic parameter in improve_ideas_batch call (caught by chatgpt-codex-connector review)
+  - **Code Quality**: Imported constants from utils.constants, added TODO comments for token counting enhancement
+  - **PR Review Success**: Systematically addressed feedback from 5 reviewers using GraphQL extraction protocol
+  - **Files Created**: workflow_orchestrator.py (559 lines), workflow_constants.py (34 lines), test_workflow_orchestrator.py (607 lines), manual_test_orchestrator.py (175 lines), test_orchestrator_coordinator.py (130 lines), IMPLEMENTATION_SUMMARY.md (328 lines)
+  - **Total Impact**: +1,837 lines across 7 files
+  - **Design Patterns**: Strategy Pattern (workflow steps), Dependency Injection (temperature manager, reasoning engine), Fallback Pattern (error recovery), Builder Pattern (final results assembly)
+  - **Key Features**: Batch API optimization (O(1) calls), context preservation for re-evaluation, comprehensive error handling, lazy initialization
+  - **Scope**: Phase 3.1 COMPLETE - Phase 3.2 (coordinator integration) deferred
 
 - ✅ **[PR #176](https://github.com/TheIllusionOfLife/Eureka/pull/176)**: Phase 2.3: Add Comprehensive Type Hints to CLI Module (November 7, 2025)
   - **Type Coverage**: Improved from ~60% to ~90%+ type hint coverage across CLI module
@@ -468,156 +484,23 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
   - **CI Success**: Fixed ruff linting errors (unused imports, incorrect f-strings)
   - **Phase Completion**: Phase 2 (CLI Refactoring) now 100% complete (2.1, 2.2, 2.3)
 
-- ✅ **[PR #175](https://github.com/TheIllusionOfLife/Eureka/pull/175)**: Phase 2.2: Implement Formatter Strategy Pattern (November 7, 2025)
-  - **Architecture**: Extracted 295-line format_results() into Strategy Pattern with 6 formatter classes
-  - **Code Reduction**: format_results() reduced from 295 lines to ~10 lines
-  - **Modularity**: Each formatter <150 lines, independently testable
-  - **Testing**: 72 comprehensive tests covering all formatters and edge cases
-
-- ✅ **[PR #174](https://github.com/TheIllusionOfLife/Eureka/pull/174)**: Phase 2.1: Extract CLI Command Handlers (November 7, 2025)
-  - **Refactoring**: Extracted 379-line main() into 5 command handler classes
-  - **Structure**: Created cli/commands/ package with workflow_executor, batch_handler, etc.
-  - **Testing**: Added 28 tests for command handlers
-
-- ✅ **[PR #172](https://github.com/TheIllusionOfLife/Eureka/pull/172)**: Phase 1 Refactoring - Executor Cleanup & Import Consolidation (November 7, 2025)
-  - **ThreadPoolExecutor Cleanup**: Added `atexit.register()` to `BatchOperationsBase` to prevent resource leaks on interpreter exit
-  - **Import Consolidation (Partial - Option A)**: Targeted consolidation of highest-impact imports
-    - Migrated **4 of 23 files** with most duplicate patterns (async_coordinator.py, batch_processor.py, coordinator_batch.py, advocate.py)
-    - Created `compat_imports.py` with 5 helper functions
-    - Eliminated 53 lines of duplicate try/except blocks from migrated files
-    - **Remaining**: 19 files still have import fallbacks (200+ lines) - deferred to Phase 4 (lower priority, isolated patterns)
-  - **Code Architecture**: Centralized import logic for high-impact modules improves maintainability (DRY principle)
-  - **Test Coverage**: Added 27 comprehensive tests (test_executor_cleanup.py, test_compat_imports.py)
-  - **Critical Bug Fix**: Corrected fallback import path in advocate.py that broke development mode
-  - **PR Review Success**: Addressed feedback from 2 AI reviewers using systematic prioritization (CRITICAL→HIGH→MEDIUM)
-  - **Pattern**: Non-blocking shutdown (`wait=False`) prevents hang on exit
-
-- ✅ **[PR #171](https://github.com/TheIllusionOfLife/Eureka/pull/171)**: Event Loop Detection in BatchProcessor (November 6, 2025)
-  - Fixed RuntimeError when BatchProcessor used in async contexts
-  - Added event loop detection to prevent conflicts
-
-- ✅ **[PR #170](https://github.com/TheIllusionOfLife/Eureka/pull/170)**: Documentation Consolidation (November 6, 2025)
-  - Organized and consolidated project documentation structure
-
-- ✅ **[PR #164](https://github.com/TheIllusionOfLife/Eureka/pull/164)**: Fix bookmark parameters and interface consistency issues (August 7, 2025)
-  - **Language Consistency**: Fixed multi-dimensional evaluation to respond in user's language (Japanese, Chinese, etc.)
-  - **Thread Pool Management**: Added proper atexit cleanup handler to prevent resource leaks
-  - **Timeout Configuration**: Permanently increased default timeout from 600s (10 min) to 1200s (20 min) for long-running workflows
-  - **Parameter Consistency**: Fixed all bookmark entries from `theme/constraints` to `topic/context`
-  - **Mock-Production Parity**: Ensured logical inference field consistency between modes
-  - **CI Test Fixes**: Resolved all 13 CI checks including `ruff` linting, import order, and test expectations
-
-- ✅ **[PR #162](https://github.com/TheIllusionOfLife/Eureka/pull/162)**: Complete MadSpark Workflow Improvements - Parameter Standardization & Test Fixing (August 6, 2025)
-  - **Major Achievement**: Successfully completed all 9 priority workflow improvements from TODO_20250806.md
-  - **Parameter Standardization**: Unified parameter naming across entire codebase (62 files) from `theme/constraints/criteria` to `topic/context`
-  - **Comprehensive Test Fixing**: Applied systematic 4-phase CI test fix protocol to resolve 34 test failures across 6 test modules
-  - **Re-evaluation Bias Prevention**: Fixed tests to validate that original context is preserved during re-evaluation (prevents inflated scores)
-  - **Mock Test Reliability**: Critical insight that mocks must target actual production code paths, not wrapper indirection layers
-  - **Logical Inference Integration**: Successfully integrated logical_inference parameter into structured output prompts
-  - **Test Coverage**: Added 3 new comprehensive test modules (test_parameter_standardization.py, test_reevaluation_bias.py, test_information_flow.py)
-  - **Batch Function Compatibility**: Ensured all test mocks match expected return format of batch functions (tuple with results and token count)
-  - **Architecture Documentation**: Added comprehensive ARCHITECTURE.md (954 lines) documenting the entire system
-
-- ✅ **[PR #161](https://github.com/TheIllusionOfLife/Eureka/pull/161)**: Web Interface Enhanced Reasoning Checkbox Independence & Batch Advocate Reliability (August 6, 2025)
-  - **Critical Bug Fix**: Fixed enhanced reasoning checkbox dependency that prevented idea generation without logical inference
-  - **Frontend Independence**: Enhanced reasoning checkbox now works independently of logical inference checkbox
-  - **Batch Advocate Fix**: Resolved JSON parsing errors in batch advocate operations causing web interface failures
-  - **User Experience**: Restored ability to use enhanced reasoning alone or in combination with other features
-
-- ✅ **[PR #160](https://github.com/TheIllusionOfLife/Eureka/pull/160)**: Float Score Bug Fix - Gemini API Compatibility (August 4, 2025)
-  - **Critical Bug Fix**: Fixed evaluation scores showing as 0 when Gemini API returns float values
-  - **Root Cause**: `validate_evaluation_json()` was rejecting float type scores (e.g., 7.8) and defaulting to 0
-  - **Implementation**: Updated validation to accept float, int, and string score types with proper rounding
-  - **TDD Approach**: Created comprehensive test suite with 24 tests covering all score validation scenarios
-  - **Web Interface Testing**: Discovered issues with enhanced reasoning causing JSON parsing errors
-  - **Japanese Language Support**: Verified full compatibility with Japanese input/output
-  - **Known Issues**: Web interface enhanced reasoning feature causes batch advocate API errors (needs fix)
-
-- ✅ **[PR #158](https://github.com/TheIllusionOfLife/Eureka/pull/158)**: Phase 2 Architecture Optimization - Coordinator Unification & Batch Logical Inference (August 4, 2025)
-  - **Major Achievement**: Completed both high-priority Phase 2 objectives with comprehensive TDD approach
-  - **Task 1 - Coordinator Architecture Unification**: Created `BatchOperationsBase` shared module eliminating ~180 lines of duplicate code from `AsyncCoordinator`
-  - **Task 2 - Batch Logical Inference**: Fixed `AsyncCoordinator` method signature and optimized from O(N) to O(1) API calls
-  - **Test Coverage**: Added 437 lines of comprehensive tests across 3 new test files (batch_logical_inference_async.py, batch_operations_base.py, coordinator_architecture_integration.py)
-  - **Real API Verification**: Integration tests confirm batch operations work correctly with actual Google GenAI API
-  - **Technical Innovation**: Shared base class pattern provides standardized batch processing interfaces
-  - **Performance Impact**: Significant API call reduction (5 ideas: 5 calls → 1 call) and execution time improvements
-  - **Review Success**: Addressed all feedback from 5 AI reviewers systematically using 4-phase protocol
-
-- ✅ **[PR #156](https://github.com/TheIllusionOfLife/Eureka/pull/156)**: Async Coordinator Batch Optimization - Fix 10-minute Timeouts (August 4, 2025)
-  - **Critical Fix**: Resolved timeout issue where complex queries (5+ ideas) were timing out at 10 minutes
-  - **Root Cause**: Async coordinator was making O(N) individual API calls instead of O(1) batch calls
-  - **Implementation**: Ported batch operations from coordinator_batch.py to async_coordinator.py
-  - **Performance**: Reduced execution time from 10+ minutes (timeout) to 7:36 for complex queries
-  - **API Efficiency**: Reduced API calls from 50+ to 42 for 5-idea enhanced+logical workflow
-  - **TDD Approach**: Comprehensive test suite with 13 tests covering all batch operations
-  - **Session Fixes**: Applied 4-phase review protocol, fixed duplicate method definitions, data-loss bugs, and unsafe attribute access
-  - **PR Review Success**: Addressed feedback from 5 AI reviewers (claude[bot], coderabbitai[bot], cursor[bot], gemini-code-assist[bot], github-actions[bot])
-
-- ✅ **[PR #154](https://github.com/TheIllusionOfLife/Eureka/pull/154)**: Comprehensive Performance Optimization - 60-70% Execution Time Reduction (August 4, 2025)
-  - **Major Performance Achievement**: Reduced complex query execution time from 9-10 minutes to 2-3 minutes
-  - **Systematic PR Review Success**: Applied 4-phase protocol to address feedback from 5 AI reviewers
-  - **Critical Bug Fixes**: Fixed skeptic agent input bug (used evaluation_detail instead of advocacy_output)
-  - **API Optimization**: Implemented batch logical inference (80% API call reduction)
-  - **Code Quality**: Eliminated DRY violations with reusable helper methods
-  - **Error Handling**: Consolidated duplicate error handling patterns across codebase
-  
-- ✅ **[PR #150](https://github.com/TheIllusionOfLife/Eureka/pull/150)**: Web Interface Logical Inference Display (August 3, 2025)
-  - Fixed broken JSON display for Advocacy/Skepticism sections
-  - Added missing logical inference display functionality
-  - Fixed conditional rendering based on Enhanced Reasoning flag
-  - Improved type safety with proper TypeScript interfaces
-  - Extracted rendering logic to reusable utilities (~40% code reduction)
-  
-- ✅ **[PR #146](https://github.com/TheIllusionOfLife/Eureka/pull/146)**: LLM-powered logical inference engine (August 2, 2025)
-  - **Feature Implementation**: Replaced hardcoded templates with genuine LLM-based logical reasoning
-  - **5 Analysis Types**: FULL, CAUSAL, CONSTRAINTS, CONTRADICTION, IMPLICATIONS
-  - **Integration**: Seamlessly integrated with enhanced reasoning system and async coordinator
-  - **CLI Support**: `--logical` flag enables inference with confidence threshold filtering
-  - **Comprehensive Testing**: Full test coverage including error handling and integration tests
-  - **API Pattern Discovery**: Documented correct Google GenAI SDK usage pattern
-- ✅ **[PR #145](https://github.com/TheIllusionOfLife/Eureka/pull/145)**: Updated session handover with accurate task status (August 2, 2025)
-- ✅ **[PR #144](https://github.com/TheIllusionOfLife/Eureka/pull/144)**: Documentation update - session handover and learnings (August 2, 2025)
-  - Updated Session Handover section with PR #143 completion details
-  - Documented timeout functionality and command aliases implementation
-  - Added technical learnings about test module patching and system configuration
-
-- ✅ **[PR #143](https://github.com/TheIllusionOfLife/Eureka/pull/143)**: TDD Implementation - Timeout Functionality & Command Aliases (August 2, 2025)
-  - **Timeout Implementation**: ThreadPoolExecutor-based timeout enforcement with proper cancellation
-  - **Command Aliases**: Fully implemented mad_spark/madspark/ms commands with comprehensive tests
-  - **Critical Fixes**: Temperature handling regression, reasoning engine initialization
-  - **Test Infrastructure**: Enhanced timeout tests with proper module patching
-
-- ✅ **[PR #141](https://github.com/TheIllusionOfLife/Eureka/pull/141)**: Batch API Optimization - 50% Fewer API Calls & Cost Savings (August 1, 2025)
-  - **Performance**: Reduced API calls from O(N) to O(1) through intelligent batching
-  - **Cost Savings**: 45% reduction in token usage for advocate/skeptic operations
-  - **Comprehensive Testing**: Added extensive test suite for batch operations
-  - **Error Handling**: Custom exception hierarchy (BatchAPIError, BatchParsingError) for robust error management
-  - **Mock Support**: Full mock response generation with language detection
-  - **CI Fixes**: Resolved all test failures including None response handling
-
-- ✅ **[PR #139](https://github.com/TheIllusionOfLife/Eureka/pull/139)**: Refactored structured output code quality - DRY improvements (August 1, 2025)
-  - **DRY Compliance**: Extracted duplicate response creation into `_create_success_response()` helper
-  - **Test Quality**: Replaced redundant `pytest.skip()` calls with decorator-only approach
-  - **Documentation**: Enhanced helper function docstrings with detailed parameter descriptions
-  - **Code Safety**: Improved attribute checking with `getattr()` pattern
-
-- ✅ **[PR #138](https://github.com/TheIllusionOfLife/Eureka/pull/138)**: Implemented frontend structured JSON support with backend integration (August 1, 2025)
-  - **Feature**: Structured output detection prevents AI meta-commentary in responses
-  - **Fix**: Mock mode cache bug preventing structured output detection
-  - **Frontend Integration**: Added structured output flag to API responses
-  - **Cleaning Logic**: Skip idea cleaning when structured output is detected
-
 #### Next Priority Tasks
 
-1. **[Phase 3] Architecture Consolidation - WorkflowOrchestrator**
-   - **Source**: [refactoring_plan_20251106.md](refactoring_plan_20251106.md) Phase 3.1
-   - **Context**: Centralize workflow logic from 3 coordinator files into unified WorkflowOrchestrator
-   - **Approach**: Create workflow_orchestrator.py with strategy pattern for sync/async execution
-   - **Estimate**: 10 hours (Medium-High risk)
-   - **Dependencies**: Phase 2 complete ✅
+1. **[Phase 3.2] Coordinator Integration - Use WorkflowOrchestrator**
+   - **Source**: [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) Phase 3.2 section
+   - **Context**: Integrate WorkflowOrchestrator into coordinator_batch.py and async_coordinator.py
+   - **Completed**: Phase 3.1 - WorkflowOrchestrator created (PR #178) ✅
+   - **Remaining**: 
+     - Update coordinator_batch.py to replace `_run_workflow_internal` (4-6 hours)
+     - Update async_coordinator.py, remove 333-line legacy `_process_single_candidate` (6-8 hours)
+     - Full integration testing with real API (4-6 hours)
+     - Add multi-dimensional evaluation support to orchestrator
+     - Add logical inference support to orchestrator
+   - **Estimate**: 14-20 hours (High priority - completes refactoring initiative)
+   - **Expected Impact**: ~600 line reduction, centralized workflow logic, easier testing
 
 2. **[Phase 3] Core Module Type Hints**
-   - **Source**: refactoring_plan_20251106.md Phase 3.2
+   - **Source**: refactoring_plan_20251106.md Phase 3.3
    - **Context**: Add type hints to core modules (coordinator.py, async_coordinator.py, enhanced_reasoning.py)
    - **Approach**: Similar to PR #176 - TDD with test_[module]_type_hints.py
    - **Estimate**: 6 hours
@@ -647,19 +530,40 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
 
 #### Session Learnings
 
+##### From PR #178 (Phase 3.1: WorkflowOrchestrator)
+
+###### Function Parameter Verification in Refactoring
+- **Discovery**: CRITICAL bug caught by chatgpt-codex-connector - missing `topic` parameter in `improve_ideas_batch` call
+- **Impact**: Parameters were shifted causing `context` to be used as `topic` and `temperature` as `context`
+- **Prevention**: Always verify function signatures when refactoring, use "Go to Definition", check docstrings, run tests
+- **Pattern**: Parameter order mistakes pass syntax checks but cause runtime behavior bugs
+
+###### Systematic PR Review with GraphQL
+- **Success**: Applied 4-phase protocol to systematically address feedback from 5 reviewers
+- **Coverage**: Extracted issue comments, review summaries, AND line comments for every reviewer
+- **Critical**: Never skip line comment extraction even if review body looks like "just a summary"
+- **Result**: Fixed 1 CRITICAL bug, implemented 4 quality improvements, made 3 informed scope decisions
+
+###### TDD for Infrastructure Code
+- **Pattern**: TDD methodology works excellently for infrastructure modules like orchestrators
+- **Workflow**: Write 21 tests first → verify failure → implement → all tests pass
+- **Benefit**: Tests catch parameter mismatches, ensure error handling, validate integration patterns
+- **Coverage**: Achieved 100% workflow step coverage with comprehensive error scenario testing
+
 ##### From PR #176 (Phase 2.3: Type Hints)
-**Type Hint Testing Pattern**
+
+###### Type Hint Testing Pattern
 - **Discovery**: TDD approach works excellently for type hints - write validation tests BEFORE adding annotations
 - **Pattern**: Create test_[module]_type_hints.py with inspect-based validation and mypy integration tests
 - **Benefit**: Tests catch missing Optional, incorrect return types, and linting issues humans miss
 - **Implementation**: Use centralized types.py for shared TypedDict/Literal definitions
 
-**CI Lint Discipline**
+###### CI Lint Discipline
 - **Discovery**: Ruff catches subtle issues (unused imports, f-strings without placeholders) that pass manual review
 - **Pattern**: Always run `ruff check` locally before pushing
 - **Impact**: Prevents CI failures and reduces round-trip time
 
-**Phase Completion Documentation**
+###### Phase Completion Documentation
 - **Discovery**: Phase 2 (CLI Refactoring) completed in 3 PRs across single session
 - **Achievement**: 100% of planned Phase 2 work (2.1 Command Handlers, 2.2 Formatter Pattern, 2.3 Type Hints)
 - **Efficiency**: Systematic refactoring plan enables focused execution
@@ -775,3 +679,4 @@ GPL-3.0 License - see [LICENSE](LICENSE) file for details.
 
 - **Issues**: [GitHub Issues](https://github.com/TheIllusionOfLife/Eureka/issues)
 - **Documentation**: `docs/` directory for comprehensive guides
+

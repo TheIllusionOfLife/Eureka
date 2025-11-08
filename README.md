@@ -549,7 +549,9 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
 - **Discovery**: Batch methods need flexibility for both production (stateful orchestrator) and testing (injected mock)
 - **Pattern**: Accept optional `orchestrator` parameter with lazy instantiation fallback when both parameter and `self.orchestrator` are None
 - **Benefit**: Enables test flexibility (inject mocks) while maintaining production pattern (use self.orchestrator) and backward compatibility (lazy fallback)
-- **Implementation**: `orch = orchestrator if orchestrator is not None else self.orchestrator; if orch is None: orch = WorkflowOrchestrator(...)`
+- **Implementation**:
+  - `orch = orchestrator if orchestrator is not None else self.orchestrator`
+  - `if orch is None: orch = WorkflowOrchestrator(...)`
 
 ###### Test Pattern Preservation Over Mass Updates
 - **Discovery**: Restoring lazy instantiation fixed 11 failing tests across 4 modules without updating any test code

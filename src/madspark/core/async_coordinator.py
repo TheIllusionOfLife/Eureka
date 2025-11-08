@@ -476,6 +476,7 @@ class AsyncCoordinator(BatchOperationsBase):
         context: str,
         idea_temp: float,
         eval_temp: float,
+        orchestrator: Optional["WorkflowOrchestrator"] = None,
     ) -> List[EvaluatedIdea]:
         """Process improvement and re-evaluation with proper dependencies.
 
@@ -488,13 +489,14 @@ class AsyncCoordinator(BatchOperationsBase):
             context: Constraints/criteria
             idea_temp: Temperature for improvement
             eval_temp: Temperature for evaluation
+            orchestrator: WorkflowOrchestrator instance to use
 
         Returns:
             Updated candidates with improvements and re-evaluation scores
         """
         # Step 1: Improvement (depends on advocacy/skepticism being complete)
         candidates = await self._process_candidates_with_batch_improvement(
-            candidates, topic, context, idea_temp
+            candidates, topic, context, idea_temp, orchestrator
         )
 
         # Step 2: Re-evaluation (depends on improvement being complete)

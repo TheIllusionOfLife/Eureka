@@ -19,8 +19,12 @@ class TestParallelAdvocacySkepticism:
     async def test_advocacy_and_skepticism_run_concurrently(self):
         """Test that advocacy and skepticism batch operations run at the same time."""
         from src.madspark.core.async_coordinator import AsyncCoordinator
+        from src.madspark.core.workflow_orchestrator import WorkflowOrchestrator
 
         coordinator = AsyncCoordinator()
+        orchestrator = WorkflowOrchestrator(
+            temperature_manager=None, reasoning_engine=None, verbose=False
+        )
 
         # Create test candidates
         test_candidates = [
@@ -52,36 +56,34 @@ class TestParallelAdvocacySkepticism:
                 candidate["skepticism"] = f"Skepticism {i + 1}"
             return candidates, 100
 
-        with patch(
-            "madspark.core.workflow_orchestrator.WorkflowOrchestrator.process_advocacy_async",
-            new=AsyncMock(side_effect=mock_advocacy)
-        ), patch(
-            "madspark.core.workflow_orchestrator.WorkflowOrchestrator.process_skepticism_async",
-            new=AsyncMock(side_effect=mock_skepticism)
-        ):
-            # Process candidates with parallel advocacy and skepticism
-            await coordinator.process_candidates_parallel_advocacy_skepticism(
-                test_candidates,
-                "test topic",
-                "test context",
-                0.5,
-                0.5
-            )
+        # Patch the orchestrator instance methods directly
+        orchestrator.process_advocacy_async = AsyncMock(side_effect=mock_advocacy)
+        orchestrator.process_skepticism_async = AsyncMock(side_effect=mock_skepticism)
 
-            # Verify both operations ran
-            assert advocacy_start is not None
-            assert skepticism_start is not None
+        # Process candidates with parallel advocacy and skepticism
+        await coordinator.process_candidates_parallel_advocacy_skepticism(
+            test_candidates,
+            "test topic",
+            "test context",
+            0.5,
+            0.5,
+            orchestrator=orchestrator
+        )
 
-            # Verify they overlapped (ran concurrently)
-            # If sequential: advocacy_end would be before skepticism_start
-            # If parallel: skepticism_start would be before advocacy_end
-            assert skepticism_start < advocacy_end, "Skepticism should start before advocacy finishes"
+        # Verify both operations ran
+        assert advocacy_start is not None
+        assert skepticism_start is not None
 
-            # Verify results were properly assigned
-            assert test_candidates[0]["advocacy"] == "Advocacy 1"
-            assert test_candidates[0]["skepticism"] == "Skepticism 1"
-            assert test_candidates[1]["advocacy"] == "Advocacy 2"
-            assert test_candidates[1]["skepticism"] == "Skepticism 2"
+        # Verify they overlapped (ran concurrently)
+        # If sequential: advocacy_end would be before skepticism_start
+        # If parallel: skepticism_start would be before advocacy_end
+        assert skepticism_start < advocacy_end, "Skepticism should start before advocacy finishes"
+
+        # Verify results were properly assigned
+        assert test_candidates[0]["advocacy"] == "Advocacy 1"
+        assert test_candidates[0]["skepticism"] == "Skepticism 1"
+        assert test_candidates[1]["advocacy"] == "Advocacy 2"
+        assert test_candidates[1]["skepticism"] == "Skepticism 2"
 
 
 class TestParallelEvaluationImprovement:
@@ -91,8 +93,12 @@ class TestParallelEvaluationImprovement:
     async def test_evaluation_and_improvement_dependencies(self):
         """Test that improvement waits for advocacy and skepticism before starting."""
         from src.madspark.core.async_coordinator import AsyncCoordinator
+        from src.madspark.core.workflow_orchestrator import WorkflowOrchestrator
 
         coordinator = AsyncCoordinator()
+        orchestrator = WorkflowOrchestrator(
+            temperature_manager=None, reasoning_engine=None, verbose=False
+        )
 
         # Create test candidates with advocacy and skepticism
         test_candidates = [
@@ -119,17 +125,18 @@ class TestParallelEvaluationImprovement:
             operation_order.append("evaluation")
             return '[{"score": 9, "comment": "Much better"}]'
 
-        with patch(
-            "madspark.core.workflow_orchestrator.WorkflowOrchestrator.improve_ideas_async",
-            new=AsyncMock(side_effect=mock_improvement)
-        ), patch('src.madspark.core.async_coordinator.async_evaluate_ideas', mock_evaluation):
+        # Patch the orchestrator instance method directly
+        orchestrator.improve_ideas_async = AsyncMock(side_effect=mock_improvement)
+
+        with patch('src.madspark.core.async_coordinator.async_evaluate_ideas', mock_evaluation):
             # Process improvement and re-evaluation
             await coordinator.process_candidates_parallel_improvement_evaluation(
                 test_candidates,
                 "test topic",
                 "test context",
                 0.9,
-                0.7
+                0.7,
+                orchestrator=orchestrator
             )
 
             # Verify improvement ran before evaluation
@@ -147,8 +154,12 @@ class TestTimeoutHandling:
     async def test_parallel_operations_respect_timeout(self):
         """Test that parallel operations are cancelled if they exceed timeout."""
         from src.madspark.core.async_coordinator import AsyncCoordinator
+        from src.madspark.core.workflow_orchestrator import WorkflowOrchestrator
 
         coordinator = AsyncCoordinator()
+        orchestrator = WorkflowOrchestrator(
+            temperature_manager=None, reasoning_engine=None, verbose=False
+        )
 
         test_candidates = [{"text": "Idea", "critique": "Good", "context": "test"}]
 
@@ -156,23 +167,21 @@ class TestTimeoutHandling:
             await asyncio.sleep(2)  # Longer than timeout
             return candidates, 100
 
-        with patch(
-            "madspark.core.workflow_orchestrator.WorkflowOrchestrator.process_advocacy_async",
-            new=AsyncMock(side_effect=slow_operation)
-        ), patch(
-            "madspark.core.workflow_orchestrator.WorkflowOrchestrator.process_skepticism_async",
-            new=AsyncMock(side_effect=slow_operation)
-        ):
-            # Process with short timeout
-            with pytest.raises(asyncio.TimeoutError):
-                await coordinator.process_candidates_parallel_advocacy_skepticism(
-                    test_candidates,
-                    "test topic",
-                    "test context",
-                    0.5,
-                    0.5,
-                    timeout=0.1
-                )
+        # Patch the orchestrator instance methods directly
+        orchestrator.process_advocacy_async = AsyncMock(side_effect=slow_operation)
+        orchestrator.process_skepticism_async = AsyncMock(side_effect=slow_operation)
+
+        # Process with short timeout
+        with pytest.raises(asyncio.TimeoutError):
+            await coordinator.process_candidates_parallel_advocacy_skepticism(
+                test_candidates,
+                "test topic",
+                "test context",
+                0.5,
+                0.5,
+                timeout=0.1,
+                orchestrator=orchestrator
+            )
 
 
 class TestDataIntegrity:
@@ -233,8 +242,12 @@ class TestPerformanceImprovement:
     async def test_parallel_faster_than_sequential(self):
         """Test that parallel processing is faster than sequential."""
         from src.madspark.core.async_coordinator import AsyncCoordinator
+        from src.madspark.core.workflow_orchestrator import WorkflowOrchestrator
 
         coordinator = AsyncCoordinator()
+        orchestrator = WorkflowOrchestrator(
+            temperature_manager=None, reasoning_engine=None, verbose=False
+        )
 
         test_candidates = [{"text": "Idea", "critique": "Good", "context": "test"}]
 
@@ -246,28 +259,26 @@ class TestPerformanceImprovement:
                 candidate["skepticism"] = "Result"
             return candidates, 100
 
-        with patch(
-            "madspark.core.workflow_orchestrator.WorkflowOrchestrator.process_advocacy_async",
-            new=AsyncMock(side_effect=timed_operation)
-        ), patch(
-            "madspark.core.workflow_orchestrator.WorkflowOrchestrator.process_skepticism_async",
-            new=AsyncMock(side_effect=timed_operation)
-        ):
-            # Measure parallel execution time
-            start = time.time()
-            await coordinator.process_candidates_parallel_advocacy_skepticism(
-                test_candidates,
-                "test topic",
-                "test context",
-                0.5,
-                0.5
-            )
-            parallel_time = time.time() - start
+        # Patch the orchestrator instance methods directly
+        orchestrator.process_advocacy_async = AsyncMock(side_effect=timed_operation)
+        orchestrator.process_skepticism_async = AsyncMock(side_effect=timed_operation)
 
-            # If operations ran in parallel, should take ~0.1s
-            # If sequential, would take ~0.2s
-            # Allow some overhead
-            assert parallel_time < 0.15, f"Parallel execution took {parallel_time}s, should be < 0.15s"
+        # Measure parallel execution time
+        start = time.time()
+        await coordinator.process_candidates_parallel_advocacy_skepticism(
+            test_candidates,
+            "test topic",
+            "test context",
+            0.5,
+            0.5,
+            orchestrator=orchestrator
+        )
+        parallel_time = time.time() - start
+
+        # If operations ran in parallel, should take ~0.1s
+        # If sequential, would take ~0.2s
+        # Allow some overhead
+        assert parallel_time < 0.15, f"Parallel execution took {parallel_time}s, should be < 0.15s"
 
 
 class TestErrorHandlingInParallel:
@@ -277,8 +288,12 @@ class TestErrorHandlingInParallel:
     async def test_one_operation_fails_other_continues(self):
         """Test that if one parallel operation fails, the other still completes."""
         from src.madspark.core.async_coordinator import AsyncCoordinator
+        from src.madspark.core.workflow_orchestrator import WorkflowOrchestrator
 
         coordinator = AsyncCoordinator()
+        orchestrator = WorkflowOrchestrator(
+            temperature_manager=None, reasoning_engine=None, verbose=False
+        )
 
         test_candidates = [{"text": "Idea", "critique": "Good", "context": "test"}]
 
@@ -290,28 +305,26 @@ class TestErrorHandlingInParallel:
                 candidate["skepticism"] = "Success"
             return candidates, 100
 
-        with patch(
-            "madspark.core.workflow_orchestrator.WorkflowOrchestrator.process_advocacy_async",
-            new=AsyncMock(side_effect=failing_operation)
-        ), patch(
-            "madspark.core.workflow_orchestrator.WorkflowOrchestrator.process_skepticism_async",
-            new=AsyncMock(side_effect=successful_operation)
-        ):
-            # Process should continue despite one failure
-            await coordinator.process_candidates_parallel_advocacy_skepticism(
-                test_candidates,
-                "test topic",
-                "test context",
-                0.5,
-                0.5
-            )
+        # Patch the orchestrator instance methods directly
+        orchestrator.process_advocacy_async = AsyncMock(side_effect=failing_operation)
+        orchestrator.process_skepticism_async = AsyncMock(side_effect=successful_operation)
 
-            # Verify the successful operation completed
-            assert test_candidates[0]["skepticism"] == "Success"
+        # Process should continue despite one failure
+        await coordinator.process_candidates_parallel_advocacy_skepticism(
+            test_candidates,
+            "test topic",
+            "test context",
+            0.5,
+            0.5,
+            orchestrator=orchestrator
+        )
 
-            # Verify the failed operation has fallback
-            assert "advocacy" in test_candidates[0]
-            assert "failed" in test_candidates[0]["advocacy"].lower()
+        # Verify the successful operation completed
+        assert test_candidates[0]["skepticism"] == "Success"
+
+        # Verify the failed operation has fallback
+        assert "advocacy" in test_candidates[0]
+        assert "failed" in test_candidates[0]["advocacy"].lower()
 
 
 if __name__ == "__main__":

@@ -292,12 +292,15 @@ class AsyncCoordinator(BatchOperationsBase):
             RuntimeError: If orchestrator is None and self.orchestrator is not initialized
         """
         try:
-            # Phase 3.2c: Use provided orchestrator or self.orchestrator
+            # Phase 3.2c: Use provided orchestrator or self.orchestrator, or create one
             orch = orchestrator if orchestrator is not None else self.orchestrator
             if orch is None:
-                raise RuntimeError(
-                    "WorkflowOrchestrator not initialized. "
-                    "Call run_workflow_async first or provide orchestrator parameter."
+                # Lazy instantiation fallback for tests and standalone use
+                from .workflow_orchestrator import WorkflowOrchestrator
+                orch = WorkflowOrchestrator(
+                    temperature_manager=None,
+                    reasoning_engine=None,
+                    verbose=False,
                 )
 
             updated_candidates, _ = await orch.process_advocacy_async(
@@ -326,12 +329,15 @@ class AsyncCoordinator(BatchOperationsBase):
         Phase 3.2c: Delegates to WorkflowOrchestrator.process_skepticism_async()
         """
         try:
-            # Phase 3.2c: Use provided orchestrator or self.orchestrator
+            # Phase 3.2c: Use provided orchestrator or self.orchestrator, or create one
             orch = orchestrator if orchestrator is not None else self.orchestrator
             if orch is None:
-                raise RuntimeError(
-                    "WorkflowOrchestrator not initialized. "
-                    "Call run_workflow_async first or provide orchestrator parameter."
+                # Lazy instantiation fallback for tests and standalone use
+                from .workflow_orchestrator import WorkflowOrchestrator
+                orch = WorkflowOrchestrator(
+                    temperature_manager=None,
+                    reasoning_engine=None,
+                    verbose=False,
                 )
 
             updated_candidates, _ = await orch.process_skepticism_async(
@@ -360,12 +366,15 @@ class AsyncCoordinator(BatchOperationsBase):
         Phase 3.2c: Delegates to WorkflowOrchestrator.improve_ideas_async()
         """
         try:
-            # Phase 3.2c: Use provided orchestrator or self.orchestrator
+            # Phase 3.2c: Use provided orchestrator or self.orchestrator, or create one
             orch = orchestrator if orchestrator is not None else self.orchestrator
             if orch is None:
-                raise RuntimeError(
-                    "WorkflowOrchestrator not initialized. "
-                    "Call run_workflow_async first or provide orchestrator parameter."
+                # Lazy instantiation fallback for tests and standalone use
+                from .workflow_orchestrator import WorkflowOrchestrator
+                orch = WorkflowOrchestrator(
+                    temperature_manager=None,
+                    reasoning_engine=None,
+                    verbose=False,
                 )
 
             updated_candidates, _ = await orch.improve_ideas_async(

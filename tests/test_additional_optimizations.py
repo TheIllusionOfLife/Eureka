@@ -169,9 +169,12 @@ class TestDynamicIdeaGeneration:
             # This function is called from generate_ideas() which expects a string response
             # Set num_ideas_requested to track what would have been requested
             num_ideas_requested = 12  # Set this to match the expected value
-            # Return JSON string with 12 ideas
+            # Return JSON string with 12 ideas in structured format
             import json
-            ideas_list = [f"Idea {i}" for i in range(1, num_ideas_requested + 1)]
+            ideas_list = [
+                {"idea_number": i, "title": f"Idea {i}", "description": f"Description for idea {i}"}
+                for i in range(1, num_ideas_requested + 1)
+            ]
             return json.dumps(ideas_list)
 
         def mock_evaluate_batch(ideas, topic, context):

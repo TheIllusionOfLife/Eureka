@@ -121,7 +121,7 @@ class TestCoordinatorParameterStandardization:
         context_received = None
 
         def mock_generate(topic, context, temperature, use_structured_output=True):
-            return json.dumps(["Test idea 1"])
+            return json.dumps([{"idea_number": 1, "title": "Test idea", "description": "Test description"}])
 
         def mock_evaluate(ideas, topic, context, temperature, use_structured_output=True):
             nonlocal context_received

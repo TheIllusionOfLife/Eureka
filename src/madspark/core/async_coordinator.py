@@ -732,22 +732,24 @@ class AsyncCoordinator(BatchOperationsBase):
             await self._send_progress("Starting multi-agent workflow", 0.0)
 
             # Extract temperatures
-            if temperature_manager:
-                idea_temp = temperature_manager.get_temperature_for_stage(
-                    "idea_generation"
+            # If no manager provided, create one with historic defaults to preserve
+            # temperature parity with synchronous coordinator (Codex P1 review feedback)
+            if not temperature_manager:
+                from madspark.utils.temperature_control import TemperatureConfig
+
+                config = TemperatureConfig(
+                    base_temperature=0.7,  # Standard base
+                    idea_generation=DEFAULT_IDEA_TEMPERATURE,  # 0.9
+                    evaluation=DEFAULT_EVALUATION_TEMPERATURE,  # 0.3
+                    advocacy=DEFAULT_ADVOCACY_TEMPERATURE,  # 0.5
+                    skepticism=DEFAULT_SKEPTICISM_TEMPERATURE,  # 0.5
                 )
-                eval_temp = temperature_manager.get_temperature_for_stage("evaluation")
-                advocacy_temp = temperature_manager.get_temperature_for_stage(
-                    "advocacy"
-                )
-                skepticism_temp = temperature_manager.get_temperature_for_stage(
-                    "skepticism"
-                )
-            else:
-                idea_temp = DEFAULT_IDEA_TEMPERATURE
-                eval_temp = DEFAULT_EVALUATION_TEMPERATURE
-                advocacy_temp = DEFAULT_ADVOCACY_TEMPERATURE
-                skepticism_temp = DEFAULT_SKEPTICISM_TEMPERATURE
+                temperature_manager = TemperatureManager(config=config)
+
+            idea_temp = temperature_manager.get_temperature_for_stage("idea_generation")
+            eval_temp = temperature_manager.get_temperature_for_stage("evaluation")
+            advocacy_temp = temperature_manager.get_temperature_for_stage("advocacy")
+            skepticism_temp = temperature_manager.get_temperature_for_stage("skepticism")
 
             # Initialize enhanced reasoning if needed
             engine = None

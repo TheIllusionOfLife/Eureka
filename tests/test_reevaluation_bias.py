@@ -35,7 +35,6 @@ class TestReEvaluationContext:
         
         # Mock the evaluation function to capture the prompt
         import src.madspark.core.workflow_orchestrator
-        from unittest.mock import AsyncMock
 
         captured_prompt = None
         captured_context = None

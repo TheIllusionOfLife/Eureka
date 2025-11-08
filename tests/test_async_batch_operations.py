@@ -65,7 +65,7 @@ class TestAsyncBatchOperations:
         # Mock the orchestrator's async advocacy method
         from unittest.mock import AsyncMock
 
-        def mock_advocacy_side_effect(candidates, topic, context):
+        async def mock_advocacy_side_effect(candidates, topic, context):
             nonlocal api_call_count
             api_call_count += 1
             # Return updated candidates with advocacy field
@@ -101,7 +101,7 @@ class TestAsyncBatchOperations:
         # Mock the orchestrator's async skepticism method
         from unittest.mock import AsyncMock
 
-        def mock_skepticism_side_effect(candidates, topic, context):
+        async def mock_skepticism_side_effect(candidates, topic, context):
             nonlocal api_call_count
             api_call_count += 1
             # Return updated candidates with skepticism field
@@ -139,7 +139,7 @@ class TestAsyncBatchOperations:
         # Mock the orchestrator's async improvement method
         from unittest.mock import AsyncMock
 
-        def mock_improvement_side_effect(candidates, topic, context):
+        async def mock_improvement_side_effect(candidates, topic, context):
             nonlocal api_call_count
             api_call_count += 1
             # Return updated candidates with improved_idea field
@@ -351,19 +351,19 @@ class TestAsyncBatchOperations:
                 for i, idea in enumerate(ideas)
             ], 1000
 
-        def mock_advocacy_side_effect(candidates, topic, context):
+        async def mock_advocacy_side_effect(candidates, topic, context):
             api_calls["advocacy"] += 1
             for candidate in candidates:
                 candidate["advocacy"] = "Mock advocacy"
             return candidates, 1000
 
-        def mock_skepticism_side_effect(candidates, topic, context):
+        async def mock_skepticism_side_effect(candidates, topic, context):
             api_calls["skepticism"] += 1
             for candidate in candidates:
                 candidate["skepticism"] = "Mock skepticism"
             return candidates, 1000
 
-        def mock_improvement_side_effect(candidates, topic, context):
+        async def mock_improvement_side_effect(candidates, topic, context):
             api_calls["improvement"] += 1
             for candidate in candidates:
                 candidate["improved_idea"] = f"Improved: {candidate.get('text', '')}"
@@ -655,19 +655,19 @@ class TestAsyncCoordinatorIntegration:
                 800,
             )
 
-        def mock_advocacy_side_effect(candidates, topic, context):
+        async def mock_advocacy_side_effect(candidates, topic, context):
             api_calls.append("advocate_batch")
             for candidate in candidates:
                 candidate["advocacy"] = "Strong points"
             return (candidates, 1000)
 
-        def mock_skepticism_side_effect(candidates, topic, context):
+        async def mock_skepticism_side_effect(candidates, topic, context):
             api_calls.append("skeptic_batch")
             for candidate in candidates:
                 candidate["skepticism"] = "Concerns"
             return (candidates, 1000)
 
-        def mock_improvement_side_effect(candidates, topic, context):
+        async def mock_improvement_side_effect(candidates, topic, context):
             api_calls.append("improve_batch")
             for candidate in candidates:
                 candidate["improved_idea"] = f"Better: {candidate.get('text', '')}"
@@ -779,7 +779,7 @@ class TestAsyncCoordinatorIntegration:
             )
 
         # Mock failing advocacy - orchestrator method raises error
-        def mock_advocacy_side_effect(candidates, topic, context):
+        async def mock_advocacy_side_effect(candidates, topic, context):
             raise RuntimeError("API Error during advocacy")
 
         # Phase 3.2c: Patch orchestrator methods

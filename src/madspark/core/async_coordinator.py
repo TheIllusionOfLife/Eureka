@@ -1012,6 +1012,14 @@ class AsyncCoordinator(BatchOperationsBase):
         This method uses batch API calls to process all candidates at once,
         significantly reducing API calls and execution time.
         """
+        # Phase 3.2c: Use provided orchestrator or self.orchestrator
+        orch = orchestrator if orchestrator is not None else self.orchestrator
+        if orch is None:
+            raise RuntimeError(
+                "WorkflowOrchestrator not initialized. "
+                "Call run_workflow_async first or provide orchestrator parameter."
+            )
+
         await self._send_progress("Processing candidates with batch operations...", 0.7)
 
         # Step 1: Parallel Batch Advocacy and Skepticism Processing (only if enhanced_reasoning is enabled)
@@ -1020,7 +1028,7 @@ class AsyncCoordinator(BatchOperationsBase):
                 "Running parallel advocacy and skepticism analysis...", 0.72
             )
             candidates = await self.process_candidates_parallel_advocacy_skepticism(
-                candidates, topic, context, advocacy_temp, skepticism_temp, orchestrator
+                candidates, topic, context, advocacy_temp, skepticism_temp, orch
             )
         else:
             # Don't include advocacy/skepticism fields when enhanced reasoning is disabled
@@ -1030,7 +1038,7 @@ class AsyncCoordinator(BatchOperationsBase):
         # Step 2: Batch Improvement Processing (depends on advocacy/skepticism)
         await self._send_progress("Running batch idea improvement...", 0.78)
         candidates = await self._process_candidates_with_batch_improvement(
-            candidates, topic, context, idea_temp, orchestrator
+            candidates, topic, context, idea_temp, orch
         )
 
         # Step 4: Batch Re-evaluation - Phase 3.2c: Using WorkflowOrchestrator
@@ -1039,7 +1047,7 @@ class AsyncCoordinator(BatchOperationsBase):
         try:
             # Phase 3.2c: Use provided WorkflowOrchestrator instance
             # Delegate re-evaluation to orchestrator
-            updated_candidates, _ = await orchestrator.reevaluate_ideas_async(
+            updated_candidates, _ = await orch.reevaluate_ideas_async(
                 candidates=candidates,
                 topic=topic,
                 context=context,  # Use original context to avoid bias
@@ -1068,7 +1076,10 @@ class AsyncCoordinator(BatchOperationsBase):
 
         # Phase 3.2c: Use provided WorkflowOrchestrator instance
         # Delegate results building to orchestrator
-        final_candidates = orchestrator.build_final_results(candidates)
+        final_candidates = orch.build_final_results(candidates)
+
+        # Normalize field names for compatibility (ensure both "text" and "idea" exist)
+        final_candidates = self._normalize_candidate_fields(final_candidates)
 
         # Preserve logical inference data if available (async-specific feature)
         for i, candidate in enumerate(candidates):

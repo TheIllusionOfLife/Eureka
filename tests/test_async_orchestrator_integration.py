@@ -37,9 +37,15 @@ class TestAsyncOrchestratorIntegration:
         """Test that idea generation delegates to orchestrator.generate_ideas_async()."""
         # Mock the orchestrator's generate_ideas_async method
         mock_ideas = ["Idea 1: Generated idea", "Idea 2: Another idea"]
+        mock_evaluated = [
+            {"idea": "Idea 1: Generated idea", "text": "Idea 1: Generated idea", "score": 8, "critique": "Good"},
+            {"idea": "Idea 2: Another idea", "text": "Idea 2: Another idea", "score": 7, "critique": "Fair"}
+        ]
 
         with patch('madspark.core.workflow_orchestrator.WorkflowOrchestrator.generate_ideas_async',
-                   new=AsyncMock(return_value=(mock_ideas, 500))):
+                   new=AsyncMock(return_value=(mock_ideas, 500))), \
+             patch('madspark.core.workflow_orchestrator.WorkflowOrchestrator.evaluate_ideas_async',
+                   new=AsyncMock(return_value=(mock_evaluated, 400))):
 
             results = await async_coordinator.run_workflow(
                 topic="Test Theme",
@@ -207,7 +213,8 @@ class TestAsyncOrchestratorIntegration:
             assert results is not None
             if len(results) > 0:
                 # Field normalization should ensure both fields exist
-                assert "text" in results[0] or "idea" in results[0]
+                assert "text" in results[0], "Missing 'text' field"
+                assert "idea" in results[0], "Missing 'idea' field"
 
 
 class TestOrchestratorPreservesAsyncFeatures:

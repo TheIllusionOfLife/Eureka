@@ -245,16 +245,19 @@ class TestAsyncCoordinator:
             )
     
     @pytest.mark.asyncio
-    @patch('madspark.core.async_coordinator.async_generate_ideas')
+    @patch('madspark.core.workflow_orchestrator.WorkflowOrchestrator.generate_ideas_async')
     @pytest.mark.integration
     async def test_async_workflow_with_exception(self, mock_generate, coordinator):
-        """Test async workflow exception handling."""
+        """Test async workflow exception handling.
+
+        Phase 3.2c: Updated to patch orchestrator method instead of coordinator method.
+        """
         mock_generate.side_effect = Exception("Async error")
-        
+
         # Create a temperature manager for the exception test
         from madspark.utils.temperature_control import TemperatureManager
         temp_manager = TemperatureManager.from_preset("balanced")
-        
+
         # The async coordinator raises exceptions rather than returning error results
         with pytest.raises(Exception) as exc_info:
             await coordinator.run_workflow(
@@ -262,7 +265,7 @@ class TestAsyncCoordinator:
                 context="Cost-effective",
                 temperature_manager=temp_manager
             )
-        
+
         assert "Async error" in str(exc_info.value)
 
 
@@ -453,10 +456,10 @@ class TestTimeoutFunctionality:
         # Mock slow async operation
         async def slow_async_generate(*args, **kwargs):
             await asyncio.sleep(2)  # Sleep for 2 seconds
-            return "Test Idea"
-        
-        # Patch the function as it's used in async_coordinator
-        with patch('madspark.core.async_coordinator.async_generate_ideas', side_effect=slow_async_generate):
+            return (["Test Idea"], 100)  # Return tuple (ideas, tokens)
+
+        # Phase 3.2c: Patch orchestrator method since async_coordinator delegates to it
+        with patch('madspark.core.workflow_orchestrator.WorkflowOrchestrator.generate_ideas_async', side_effect=slow_async_generate):
             # Should timeout
             with pytest.raises(asyncio.TimeoutError):
                 await coordinator.run_workflow(

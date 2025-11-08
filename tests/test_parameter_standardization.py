@@ -106,31 +106,45 @@ class TestCoordinatorParameterStandardization:
             assert call_args['topic'] == TEST_TOPIC
             assert call_args['context'] == TEST_CONTEXT
     
-    @pytest.mark.asyncio 
+    @pytest.mark.asyncio
     async def test_coordinator_passes_context_as_criteria_to_evaluator(self):
         """Test that coordinator passes context as criteria to the evaluator."""
         from src.madspark.core.async_coordinator import AsyncCoordinator
-        
+        import src.madspark.core.workflow_orchestrator
+
         coordinator = AsyncCoordinator()
-        
-        with patch('src.madspark.core.async_coordinator.async_evaluate_ideas') as mock_eval:
-            mock_eval.return_value = json.dumps([{"score": 8, "comment": "Good"}])
-            
-            with patch('src.madspark.core.async_coordinator.async_generate_ideas') as mock_gen:
-                mock_gen.return_value = json.dumps([{"idea_number": 1, "description": "Test idea"}])
-                
-                await coordinator.run_workflow(
-                    topic=TEST_TOPIC,
-                    context=TEST_CONTEXT,
-                    num_top_candidates=1
-                )
-                
-                # Verify evaluator was called with topic and context
-                # Check the first call (initial evaluation, not re-evaluation)
-                assert mock_eval.call_count >= 1
-                first_call_args = mock_eval.call_args_list[0][1]
-                assert first_call_args['topic'] == TEST_TOPIC
-                assert first_call_args['context'] == TEST_CONTEXT
+
+        # Save originals
+        original_generate = src.madspark.core.workflow_orchestrator.call_idea_generator_with_retry
+        original_evaluate = src.madspark.core.workflow_orchestrator.call_critic_with_retry
+
+        context_received = None
+
+        def mock_generate(topic, context, temperature, use_structured_output=True):
+            return json.dumps([{"idea_number": 1, "title": "Test idea", "description": "Test description"}])
+
+        def mock_evaluate(ideas, topic, context, temperature, use_structured_output=True):
+            nonlocal context_received
+            context_received = context
+            return json.dumps([{"score": 8, "comment": "Good"}])
+
+        try:
+            # Patch WorkflowOrchestrator batch functions
+            src.madspark.core.workflow_orchestrator.call_idea_generator_with_retry = mock_generate
+            src.madspark.core.workflow_orchestrator.call_critic_with_retry = mock_evaluate
+
+            await coordinator.run_workflow(
+                topic=TEST_TOPIC,
+                context=TEST_CONTEXT,
+                num_top_candidates=1
+            )
+
+            # Verify evaluator was called with context
+            assert context_received == TEST_CONTEXT
+        finally:
+            # Restore originals
+            src.madspark.core.workflow_orchestrator.call_idea_generator_with_retry = original_generate
+            src.madspark.core.workflow_orchestrator.call_critic_with_retry = original_evaluate
 
 
 class TestAgentParameterStandardization:

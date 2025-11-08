@@ -3,17 +3,16 @@
 This module provides async execution capabilities for concurrent agent processing,
 improving performance by running multiple agent calls in parallel.
 """
+
 import asyncio
 import atexit
 import concurrent.futures
 import logging
 from typing import List, Optional, Callable, Awaitable
 
-from .coordinator import (
-    EvaluatedIdea,
-    CandidateData
-)
+from .coordinator import EvaluatedIdea, CandidateData, calculate_ideas_to_generate
 from .batch_operations_base import BatchOperationsBase
+from .workflow_orchestrator import WorkflowOrchestrator
 from ..utils.utils import parse_json_with_fallback, validate_evaluation_json
 from ..utils.novelty_filter import NoveltyFilter
 from ..utils.temperature_control import TemperatureManager
@@ -25,7 +24,7 @@ from ..utils.constants import (
     DEFAULT_EVALUATION_TEMPERATURE,
     DEFAULT_ADVOCACY_TEMPERATURE,
     DEFAULT_SKEPTICISM_TEMPERATURE,
-    LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD
+    LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD,
 )
 from ..utils.compat_imports import import_agent_retry_wrappers
 
@@ -36,36 +35,44 @@ ProgressCallback = Callable[[str, float], Awaitable[None]]
 
 
 _retry_wrappers = import_agent_retry_wrappers()
-generate_ideas_with_retry = _retry_wrappers['generate_ideas_with_retry']
-evaluate_ideas_with_retry = _retry_wrappers['evaluate_ideas_with_retry']
-advocate_idea_with_retry = _retry_wrappers['advocate_idea_with_retry']
-criticize_idea_with_retry = _retry_wrappers['criticize_idea_with_retry']
-improve_idea_with_retry = _retry_wrappers['improve_idea_with_retry']
+generate_ideas_with_retry = _retry_wrappers["generate_ideas_with_retry"]
+evaluate_ideas_with_retry = _retry_wrappers["evaluate_ideas_with_retry"]
+advocate_idea_with_retry = _retry_wrappers["advocate_idea_with_retry"]
+criticize_idea_with_retry = _retry_wrappers["criticize_idea_with_retry"]
+improve_idea_with_retry = _retry_wrappers["improve_idea_with_retry"]
 
 # Create a shared thread pool executor for all async functions
 # This avoids the overhead of creating/destroying executors repeatedly
 _SHARED_EXECUTOR = concurrent.futures.ThreadPoolExecutor(max_workers=4)
 
+
 # Ensure threads are cleaned up on interpreter exit
 def _shutdown_shared_executor():
     _SHARED_EXECUTOR.shutdown(wait=False)
 
+
 atexit.register(_shutdown_shared_executor)
 
 
-async def async_generate_ideas(topic: str, context: str, temperature: float = 0.9, cache_manager: Optional[CacheManager] = None, use_structured_output: bool = True) -> str:
+async def async_generate_ideas(
+    topic: str,
+    context: str,
+    temperature: float = 0.9,
+    cache_manager: Optional[CacheManager] = None,
+    use_structured_output: bool = True,
+) -> str:
     """Async wrapper for idea generation with retry logic.
-    
+
     Runs the synchronous generate_ideas function in a thread pool to avoid blocking.
     Includes exponential backoff retry for resilience.
-    
+
     Args:
         topic: The main topic for idea generation
         context: Context or constraints for the ideas
         temperature: Controls randomness (0.0-1.0)
         cache_manager: Optional cache manager for result caching
         use_structured_output: Whether to use structured JSON output (default: True)
-    
+
     Returns:
         Generated ideas as JSON string (if structured) or newline-separated text
     """
@@ -76,29 +83,35 @@ async def async_generate_ideas(topic: str, context: str, temperature: float = 0.
         if cached:
             logger.debug("Using cached idea generation response")
             return cached
-    
+
     loop = asyncio.get_running_loop()
     # Use shared executor to avoid hanging issues in some environments
     result = await loop.run_in_executor(
-        _SHARED_EXECUTOR, 
+        _SHARED_EXECUTOR,
         generate_ideas_with_retry,
         topic,
         context,
         temperature,
-        use_structured_output
+        use_structured_output,
     )
-    
+
     # Cache the result
     if cache_manager:
         prompt = f"Topic: {topic}\nContext: {context}"
         await cache_manager.cache_agent_response("idea_generator", prompt, result)
-    
+
     return result
 
 
-async def async_evaluate_ideas(ideas: str, topic: str, context: str, temperature: float = 0.3, use_structured_output: bool = True) -> str:
+async def async_evaluate_ideas(
+    ideas: str,
+    topic: str,
+    context: str,
+    temperature: float = 0.3,
+    use_structured_output: bool = True,
+) -> str:
     """Async wrapper for idea evaluation with retry logic.
-    
+
     Runs the synchronous evaluate_ideas function in a thread pool to avoid blocking.
     Includes exponential backoff retry for resilience.
     """
@@ -110,13 +123,20 @@ async def async_evaluate_ideas(ideas: str, topic: str, context: str, temperature
         topic,
         context,
         temperature,
-        use_structured_output
+        use_structured_output,
     )
 
 
-async def async_advocate_idea(idea: str, evaluation: str, topic: str, context: str, temperature: float = 0.5, use_structured_output: bool = True) -> str:
+async def async_advocate_idea(
+    idea: str,
+    evaluation: str,
+    topic: str,
+    context: str,
+    temperature: float = 0.5,
+    use_structured_output: bool = True,
+) -> str:
     """Async wrapper for idea advocacy with retry logic.
-    
+
     Runs the synchronous advocate_idea function in a thread pool to avoid blocking.
     Includes exponential backoff retry for resilience.
     """
@@ -129,13 +149,20 @@ async def async_advocate_idea(idea: str, evaluation: str, topic: str, context: s
         topic,
         context,
         temperature,
-        use_structured_output
+        use_structured_output,
     )
 
 
-async def async_criticize_idea(idea: str, advocacy: str, topic: str, context: str, temperature: float = 0.5, use_structured_output: bool = True) -> str:
+async def async_criticize_idea(
+    idea: str,
+    advocacy: str,
+    topic: str,
+    context: str,
+    temperature: float = 0.5,
+    use_structured_output: bool = True,
+) -> str:
     """Async wrapper for idea criticism/skepticism with retry logic.
-    
+
     Runs the synchronous criticize_idea function in a thread pool to avoid blocking.
     Includes exponential backoff retry for resilience.
     """
@@ -148,21 +175,21 @@ async def async_criticize_idea(idea: str, advocacy: str, topic: str, context: st
         topic,
         context,
         temperature,
-        use_structured_output
+        use_structured_output,
     )
 
 
 async def async_improve_idea(
-    original_idea: str, 
-    critique: str, 
-    advocacy_points: str, 
-    skeptic_points: str, 
+    original_idea: str,
+    critique: str,
+    advocacy_points: str,
+    skeptic_points: str,
     topic: str,
     context: str,
-    temperature: float = 0.9
+    temperature: float = 0.9,
 ) -> str:
     """Async wrapper for idea improvement with retry logic.
-    
+
     Runs the synchronous improve_idea function in a thread pool to avoid blocking.
     Includes exponential backoff retry for resilience.
     """
@@ -176,21 +203,21 @@ async def async_improve_idea(
         skeptic_points,
         topic,
         context,
-        temperature
+        temperature,
     )
 
 
 class AsyncCoordinator(BatchOperationsBase):
     """Async coordinator for managing concurrent agent execution."""
-    
+
     def __init__(
         self,
         max_concurrent_agents: int = 10,
         progress_callback: Optional[ProgressCallback] = None,
-        cache_manager: Optional[CacheManager] = None
+        cache_manager: Optional[CacheManager] = None,
     ):
         """Initialize the async coordinator.
-        
+
         Args:
             max_concurrent_agents: Maximum number of concurrent agent calls
             progress_callback: Optional async callback for progress updates
@@ -201,103 +228,168 @@ class AsyncCoordinator(BatchOperationsBase):
         self.progress_callback = progress_callback
         self.semaphore = asyncio.Semaphore(max_concurrent_agents)
         self.cache_manager = cache_manager
-        
+        self.orchestrator: Optional[WorkflowOrchestrator] = None  # Initialized in run_workflow_async
+
     async def _send_progress(self, message: str, progress: float):
         """Send progress update if callback is configured."""
         if self.progress_callback:
             await self.progress_callback(message, progress)
-            
+
     async def _run_with_semaphore(self, coro):
         """Run a coroutine with semaphore limiting concurrency."""
         async with self.semaphore:
             return await coro
-    
-    
+
+    @staticmethod
+    def _normalize_candidate_fields(candidates: List[dict]) -> List[dict]:
+        """Normalize field names for compatibility between orchestrator and async_coordinator.
+
+        WorkflowOrchestrator uses "idea" field, AsyncCoordinator uses "text" field.
+        This ensures both fields exist for compatibility during gradual migration.
+
+        Pattern from Phase 3.2b (coordinator_batch.py:205-218).
+        """
+        for candidate in candidates:
+            # Ensure both "text" and "idea" fields exist
+            if "idea" in candidate and "text" not in candidate:
+                candidate["text"] = candidate["idea"]
+            elif "text" in candidate and "idea" not in candidate:
+                candidate["idea"] = candidate["text"]
+
+            # Add both "score" and "initial_score" if score exists
+            if "score" in candidate and "initial_score" not in candidate:
+                candidate["initial_score"] = candidate["score"]
+
+            # Add both "critique" and "initial_critique" if critique exists
+            if "critique" in candidate and "initial_critique" not in candidate:
+                candidate["initial_critique"] = candidate["critique"]
+
+        return candidates
+
     async def _process_candidates_with_batch_advocacy(
-        self, candidates: List[EvaluatedIdea], topic: str, context: str, temperature: float
+        self,
+        candidates: List[EvaluatedIdea],
+        topic: str,
+        context: str,
+        temperature: float,
+        orchestrator: Optional["WorkflowOrchestrator"] = None,
     ) -> List[EvaluatedIdea]:
         """Process all candidates with batch advocacy in a single API call.
-        
+
+        Phase 3.2c: Delegates to WorkflowOrchestrator.process_advocacy_async()
+
         Args:
             candidates: List of evaluated ideas
             topic: Overall topic for the ideas
             context: Additional constraints or criteria
-            temperature: Generation temperature
-            
+            temperature: Generation temperature (unused, orchestrator manages temperatures)
+            orchestrator: WorkflowOrchestrator instance to use (defaults to self.orchestrator)
+
         Returns:
             Updated candidates with advocacy data
+
+        Raises:
+            RuntimeError: If orchestrator is None and self.orchestrator is not initialized
         """
         try:
-            # Prepare batch input using shared base class method with context
-            advocacy_input = self.prepare_advocacy_input_with_context(candidates)
-            
-            # Single API call for all advocacies using shared base class method
-            advocacy_results, token_usage = await self.run_batch_with_timeout(
-                'advocate_ideas_batch', advocacy_input, topic, context, temperature
+            # Phase 3.2c: Use provided orchestrator or self.orchestrator, or create one
+            orch = orchestrator if orchestrator is not None else self.orchestrator
+            if orch is None:
+                # Lazy instantiation fallback for tests and standalone use
+                from .workflow_orchestrator import WorkflowOrchestrator
+                orch = WorkflowOrchestrator(
+                    temperature_manager=None,
+                    reasoning_engine=None,
+                    verbose=False,
+                )
+
+            updated_candidates, _ = await orch.process_advocacy_async(
+                candidates=candidates, topic=topic, context=context
             )
-            
-            # Update candidates using shared base class method
-            return self.update_candidates_with_formatted_batch_results(
-                candidates, advocacy_results, 'advocacy'
-            )
-                    
+
+            return updated_candidates
+
         except Exception as e:
             logger.error(f"Batch advocate failed: {e}")
             # Fallback: mark all as N/A
             for candidate in candidates:
                 candidate["advocacy"] = "N/A (Batch advocate failed)"
             return candidates
-    
+
     async def _process_candidates_with_batch_skepticism(
-        self, candidates: List[EvaluatedIdea], topic: str, context: str, temperature: float
+        self,
+        candidates: List[EvaluatedIdea],
+        topic: str,
+        context: str,
+        temperature: float,
+        orchestrator: Optional["WorkflowOrchestrator"] = None,
     ) -> List[EvaluatedIdea]:
-        """Process all candidates with batch skepticism in a single API call."""
+        """Process all candidates with batch skepticism in a single API call.
+
+        Phase 3.2c: Delegates to WorkflowOrchestrator.process_skepticism_async()
+        """
         try:
-            # Prepare batch input using shared base class method
-            skeptic_input = self.prepare_skepticism_input(candidates)
-            
-            # Single API call for all skepticisms using shared base class method
-            skepticism_results, token_usage = await self.run_batch_with_timeout(
-                'criticize_ideas_batch', skeptic_input, topic, context, temperature
+            # Phase 3.2c: Use provided orchestrator or self.orchestrator, or create one
+            orch = orchestrator if orchestrator is not None else self.orchestrator
+            if orch is None:
+                # Lazy instantiation fallback for tests and standalone use
+                from .workflow_orchestrator import WorkflowOrchestrator
+                orch = WorkflowOrchestrator(
+                    temperature_manager=None,
+                    reasoning_engine=None,
+                    verbose=False,
+                )
+
+            updated_candidates, _ = await orch.process_skepticism_async(
+                candidates=candidates, topic=topic, context=context
             )
-            
-            # Update candidates using shared base class method
-            return self.update_candidates_with_formatted_batch_results(
-                candidates, skepticism_results, 'skepticism'
-            )
-                    
+
+            return updated_candidates
+
         except Exception as e:
             logger.error(f"Batch skeptic failed: {e}")
             # Fallback: mark all as N/A
             for candidate in candidates:
                 candidate["skepticism"] = "N/A (Batch skeptic failed)"
             return candidates
-    
+
     async def _process_candidates_with_batch_improvement(
-        self, candidates: List[EvaluatedIdea], topic: str, context: str, temperature: float
+        self,
+        candidates: List[EvaluatedIdea],
+        topic: str,
+        context: str,
+        temperature: float,
+        orchestrator: Optional["WorkflowOrchestrator"] = None,
     ) -> List[EvaluatedIdea]:
-        """Process all candidates with batch improvement in a single API call."""
+        """Process all candidates with batch improvement in a single API call.
+
+        Phase 3.2c: Delegates to WorkflowOrchestrator.improve_ideas_async()
+        """
         try:
-            # Prepare batch input using shared base class method with full context
-            improve_input = self.prepare_improvement_input_with_context(candidates)
-            
-            # Single API call for all improvements using shared base class method
-            improvement_results, token_usage = await self.run_batch_with_timeout(
-                'improve_ideas_batch', improve_input, topic, context, temperature
+            # Phase 3.2c: Use provided orchestrator or self.orchestrator, or create one
+            orch = orchestrator if orchestrator is not None else self.orchestrator
+            if orch is None:
+                # Lazy instantiation fallback for tests and standalone use
+                from .workflow_orchestrator import WorkflowOrchestrator
+                orch = WorkflowOrchestrator(
+                    temperature_manager=None,
+                    reasoning_engine=None,
+                    verbose=False,
+                )
+
+            updated_candidates, _ = await orch.improve_ideas_async(
+                candidates=candidates, topic=topic, context=context
             )
-            
-            # Update candidates using shared base class method
-            return self.update_candidates_with_improvement_results(
-                candidates, improvement_results
-            )
-                    
+
+            return updated_candidates
+
         except Exception as e:
             logger.error(f"Batch improvement failed: {e}")
             # Fallback: use original ideas
             for candidate in candidates:
                 candidate["improved_idea"] = candidate["text"]
             return candidates
-    
+
     async def process_candidates_parallel_advocacy_skepticism(
         self,
         candidates: List[EvaluatedIdea],
@@ -305,18 +397,20 @@ class AsyncCoordinator(BatchOperationsBase):
         context: str,
         advocacy_temp: float,
         skepticism_temp: float,
-        timeout: float = 60
+        orchestrator: Optional["WorkflowOrchestrator"] = None,
+        timeout: float = 60,
     ) -> List[EvaluatedIdea]:
         """Process advocacy and skepticism in parallel for better performance.
-        
+
         Args:
             candidates: List of evaluated ideas
             topic: Overall topic for the ideas
             context: Additional constraints or criteria
             advocacy_temp: Temperature for advocacy
             skepticism_temp: Temperature for skepticism
+            orchestrator: WorkflowOrchestrator instance to use
             timeout: Timeout for parallel operations
-            
+
         Returns:
             Updated candidates with advocacy and skepticism data
         """
@@ -326,26 +420,28 @@ class AsyncCoordinator(BatchOperationsBase):
                 candidates.copy(),  # Copy to avoid race conditions
                 topic,
                 context,
-                advocacy_temp
+                advocacy_temp,
+                orchestrator,
             )
         )
-        
+
         skepticism_task = asyncio.create_task(
             self._process_candidates_with_batch_skepticism(
                 candidates.copy(),  # Copy to avoid race conditions
                 topic,
                 context,
-                skepticism_temp
+                skepticism_temp,
+                orchestrator,
             )
         )
-        
+
         try:
             # Wait for both tasks with timeout
             advocacy_results, skepticism_results = await asyncio.wait_for(
                 asyncio.gather(advocacy_task, skepticism_task, return_exceptions=True),
-                timeout=timeout
+                timeout=timeout,
             )
-            
+
             # Handle advocacy results
             if isinstance(advocacy_results, Exception):
                 logger.error(f"Advocacy task failed: {advocacy_results}")
@@ -356,8 +452,10 @@ class AsyncCoordinator(BatchOperationsBase):
                 # Copy advocacy results to main candidates
                 for i, candidate in enumerate(candidates):
                     if i < len(advocacy_results):
-                        candidate["advocacy"] = advocacy_results[i].get("advocacy", "N/A")
-            
+                        candidate["advocacy"] = advocacy_results[i].get(
+                            "advocacy", "N/A"
+                        )
+
             # Handle skepticism results
             if isinstance(skepticism_results, Exception):
                 logger.error(f"Skepticism task failed: {skepticism_results}")
@@ -368,54 +466,58 @@ class AsyncCoordinator(BatchOperationsBase):
                 # Copy skepticism results to main candidates
                 for i, candidate in enumerate(candidates):
                     if i < len(skepticism_results):
-                        candidate["skepticism"] = skepticism_results[i].get("skepticism", "N/A")
-            
+                        candidate["skepticism"] = skepticism_results[i].get(
+                            "skepticism", "N/A"
+                        )
+
             return candidates
-            
+
         except asyncio.TimeoutError:
             logger.error(f"Parallel operations timed out after {timeout} seconds")
             # Cancel pending tasks
             advocacy_task.cancel()
             skepticism_task.cancel()
             raise
-    
+
     async def process_candidates_parallel_improvement_evaluation(
         self,
         candidates: List[EvaluatedIdea],
         topic: str,
         context: str,
         idea_temp: float,
-        eval_temp: float
+        eval_temp: float,
+        orchestrator: Optional["WorkflowOrchestrator"] = None,
     ) -> List[EvaluatedIdea]:
         """Process improvement and re-evaluation with proper dependencies.
-        
+
         Improvement must complete before re-evaluation starts, but both
         can leverage batch processing for efficiency.
-        
+
         Args:
             candidates: List of candidates with advocacy and skepticism
             topic: Overall topic
-            context: Constraints/criteria  
+            context: Constraints/criteria
             idea_temp: Temperature for improvement
             eval_temp: Temperature for evaluation
-            
+            orchestrator: WorkflowOrchestrator instance to use
+
         Returns:
             Updated candidates with improvements and re-evaluation scores
         """
         # Step 1: Improvement (depends on advocacy/skepticism being complete)
         candidates = await self._process_candidates_with_batch_improvement(
-            candidates, topic, context, idea_temp
+            candidates, topic, context, idea_temp, orchestrator
         )
-        
+
         # Step 2: Re-evaluation (depends on improvement being complete)
         # Collect improved ideas for re-evaluation
         improved_ideas = []
         for candidate in candidates:
             improved_idea = candidate.get("improved_idea", candidate["text"])
             improved_ideas.append(improved_idea)
-        
+
         improved_ideas_text = "\n\n".join(improved_ideas)
-        
+
         try:
             # Single API call for all re-evaluations with original context
             re_eval_output = await async_evaluate_ideas(
@@ -423,13 +525,14 @@ class AsyncCoordinator(BatchOperationsBase):
                 topic=topic,
                 context=context,  # Use original context to avoid bias
                 temperature=eval_temp,
-                use_structured_output=True
+                use_structured_output=True,
             )
-            
+
             # Parse re-evaluations
             import json
+
             re_eval_results = json.loads(re_eval_output)
-            
+
             # Update candidates with re-evaluation scores
             for i, candidate in enumerate(candidates):
                 if i < len(re_eval_results):
@@ -440,18 +543,22 @@ class AsyncCoordinator(BatchOperationsBase):
                 else:
                     candidate["improved_score"] = candidate["score"]
                     candidate["improved_critique"] = "Re-evaluation unavailable"
-                    
+
         except Exception as e:
             logger.error(f"Re-evaluation failed: {e}")
             # Fallback: use original scores
             for candidate in candidates:
                 candidate["improved_score"] = candidate["score"]
                 candidate["improved_critique"] = "Re-evaluation failed"
-        
+
         return candidates
-    
+
     async def _process_candidates_with_batch_advocacy_safe(
-        self, candidates: List[EvaluatedIdea], topic: str, context: str, temperature: float
+        self,
+        candidates: List[EvaluatedIdea],
+        topic: str,
+        context: str,
+        temperature: float,
     ) -> List[EvaluatedIdea]:
         """Process candidates with batch advocacy, with fallback on error."""
         try:
@@ -468,49 +575,58 @@ class AsyncCoordinator(BatchOperationsBase):
                     f"and alignment with {context}."
                 )
             return candidates
-    
+
     async def _run_batch_advocacy(
-        self, candidates: List[EvaluatedIdea], topic: str, context: str, temperature: float
+        self,
+        candidates: List[EvaluatedIdea],
+        topic: str,
+        context: str,
+        temperature: float,
     ):
         """Run batch advocacy operation."""
         return await self._process_candidates_with_batch_advocacy(
             candidates, topic, context, temperature
         )
-    
+
     async def _run_batch_logical_inference(
-        self, 
-        ideas: List[str], 
-        topic: str, 
+        self,
+        ideas: List[str],
+        topic: str,
         context: str,
-        analysis_type: InferenceType = InferenceType.FULL
+        analysis_type: InferenceType = InferenceType.FULL,
     ):
         """
         Run batch logical inference operation using the actual inference engine.
-        
+
         This method reduces API calls from O(N) to O(1) by processing all ideas
         in a single batch request to the logical inference engine.
-        
+
         Args:
             ideas: List of idea strings to analyze
             topic: Original topic
             context: Constraints and requirements
             analysis_type: Type of logical analysis to perform
-            
+
         Returns:
             List of InferenceResult objects with confidence scores and analysis
         """
         if not ideas:
             return []
-        
+
         # Check if reasoning engine is available
-        if not hasattr(self, 'reasoning_engine') or not self.reasoning_engine:
+        if not hasattr(self, "reasoning_engine") or not self.reasoning_engine:
             logger.warning("No reasoning engine available for batch logical inference")
             return []
-        
-        if not hasattr(self.reasoning_engine, 'logical_inference_engine') or not self.reasoning_engine.logical_inference_engine:
-            logger.warning("Logical inference engine not available, returning empty results")
+
+        if (
+            not hasattr(self.reasoning_engine, "logical_inference_engine")
+            or not self.reasoning_engine.logical_inference_engine
+        ):
+            logger.warning(
+                "Logical inference engine not available, returning empty results"
+            )
             return []
-        
+
         try:
             # Run batch logical inference - this is the key optimization
             # Single API call processes all ideas at once
@@ -519,16 +635,15 @@ class AsyncCoordinator(BatchOperationsBase):
                 ideas,
                 topic,
                 context,
-                analysis_type
+                analysis_type,
             )
-            
+
             return inference_results
-            
+
         except Exception as e:
             logger.error(f"Batch logical inference failed: {e}")
             return []
-    
-            
+
     async def run_workflow(
         self,
         topic: str,
@@ -542,20 +657,20 @@ class AsyncCoordinator(BatchOperationsBase):
         multi_dimensional_eval: bool = False,
         logical_inference: bool = False,
         reasoning_engine: Optional[ReasoningEngine] = None,
-        timeout: int = 1200
+        timeout: int = 1200,
     ) -> List[CandidateData]:
         """Run the complete async workflow with timeout support.
-        
+
         This is the async equivalent of run_multistep_workflow from coordinator.py
         with added timeout functionality.
-        
+
         Args:
             ... (same as run_multistep_workflow)
             timeout: Maximum time allowed for the entire workflow in seconds
-            
+
         Returns:
             List of CandidateData containing processed ideas with evaluations
-            
+
         Raises:
             asyncio.TimeoutError: If the workflow exceeds the specified timeout
         """
@@ -573,15 +688,17 @@ class AsyncCoordinator(BatchOperationsBase):
                     enhanced_reasoning=enhanced_reasoning,
                     multi_dimensional_eval=multi_dimensional_eval,
                     logical_inference=logical_inference,
-                    reasoning_engine=reasoning_engine
+                    reasoning_engine=reasoning_engine,
                 ),
-                timeout=timeout
+                timeout=timeout,
             )
         except asyncio.TimeoutError:
             logger.error(f"Workflow timed out after {timeout} seconds")
-            await self._send_progress(f"Workflow timed out after {timeout} seconds", 0.0)
+            await self._send_progress(
+                f"Workflow timed out after {timeout} seconds", 0.0
+            )
             raise
-            
+
     async def _run_workflow_internal(
         self,
         topic: str,
@@ -594,7 +711,7 @@ class AsyncCoordinator(BatchOperationsBase):
         enhanced_reasoning: bool = False,
         multi_dimensional_eval: bool = False,
         logical_inference: bool = False,
-        reasoning_engine: Optional[ReasoningEngine] = None
+        reasoning_engine: Optional[ReasoningEngine] = None,
     ) -> List[CandidateData]:
         """Internal workflow implementation without timeout wrapper."""
         # Define cache options upfront to avoid potential NameError
@@ -605,37 +722,47 @@ class AsyncCoordinator(BatchOperationsBase):
             "enhanced_reasoning": enhanced_reasoning,
             "multi_dimensional_eval": multi_dimensional_eval,
             "logical_inference": logical_inference,
-            "temperature": temperature_manager.get_overall_temperature() if temperature_manager else DEFAULT_IDEA_TEMPERATURE
+            "temperature": temperature_manager.get_overall_temperature()
+            if temperature_manager
+            else DEFAULT_IDEA_TEMPERATURE,
         }
-        
+
         # Check cache first if enabled
         if self.cache_manager:
             cached_result = await self.cache_manager.get_cached_workflow(
                 topic, context, cache_options
             )
-            
+
             if cached_result:
                 await self._send_progress("Retrieved from cache", 1.0)
                 return cached_result.get("candidates", [])
-        
+
         # Track all tasks for cleanup in case of cancellation
         active_tasks = []
-        
+
         try:
             await self._send_progress("Starting multi-agent workflow", 0.0)
-            
+
             # Extract temperatures
-            if temperature_manager:
-                idea_temp = temperature_manager.get_temperature_for_stage('idea_generation')
-                eval_temp = temperature_manager.get_temperature_for_stage('evaluation')
-                advocacy_temp = temperature_manager.get_temperature_for_stage('advocacy')
-                skepticism_temp = temperature_manager.get_temperature_for_stage('skepticism')
-            else:
-                idea_temp = DEFAULT_IDEA_TEMPERATURE
-                eval_temp = DEFAULT_EVALUATION_TEMPERATURE
-                advocacy_temp = DEFAULT_ADVOCACY_TEMPERATURE
-                skepticism_temp = DEFAULT_SKEPTICISM_TEMPERATURE
-                
+            # If no manager provided, create one with historic defaults to preserve
+            # temperature parity with synchronous coordinator (Codex P1 review feedback)
+            if not temperature_manager:
+                from madspark.utils.temperature_control import TemperatureConfig
+
+                config = TemperatureConfig(
+                    base_temperature=0.7,  # Standard base
+                    idea_generation=DEFAULT_IDEA_TEMPERATURE,  # 0.9
+                    evaluation=DEFAULT_EVALUATION_TEMPERATURE,  # 0.3
+                    advocacy=DEFAULT_ADVOCACY_TEMPERATURE,  # 0.5
+                    skepticism=DEFAULT_SKEPTICISM_TEMPERATURE,  # 0.5
+                )
+                temperature_manager = TemperatureManager(config=config)
+
+            idea_temp = temperature_manager.get_temperature_for_stage("idea_generation")
+            eval_temp = temperature_manager.get_temperature_for_stage("evaluation")
+            advocacy_temp = temperature_manager.get_temperature_for_stage("advocacy")
+            skepticism_temp = temperature_manager.get_temperature_for_stage("skepticism")
+
             # Initialize enhanced reasoning if needed
             engine = None
             if enhanced_reasoning or multi_dimensional_eval or logical_inference:
@@ -645,218 +772,182 @@ class AsyncCoordinator(BatchOperationsBase):
                     # Create ReasoningEngine with proper config and GenAI client
                     try:
                         from madspark.agents.genai_client import get_genai_client
+
                         genai_client = get_genai_client()
-                        config = {"use_logical_inference": logical_inference} if logical_inference else None
-                        engine = ReasoningEngine(config=config, genai_client=genai_client)
-                        logger.info(f"Created ReasoningEngine with logical_inference={logical_inference}")
+                        config = (
+                            {"use_logical_inference": logical_inference}
+                            if logical_inference
+                            else None
+                        )
+                        engine = ReasoningEngine(
+                            config=config, genai_client=genai_client
+                        )
+                        logger.info(
+                            f"Created ReasoningEngine with logical_inference={logical_inference}"
+                        )
                     except (ImportError, AttributeError, RuntimeError):
                         # Fallback to creating without genai_client
-                        config = {"use_logical_inference": logical_inference} if logical_inference else None
+                        config = (
+                            {"use_logical_inference": logical_inference}
+                            if logical_inference
+                            else None
+                        )
                         engine = ReasoningEngine(config=config)
-                
-            # Step 1: Generate Ideas (async)
+
+            # Phase 3.2c: Initialize WorkflowOrchestrator for centralized workflow logic
+            # Store on self for stateful access across batch methods
+            self.orchestrator = WorkflowOrchestrator(
+                temperature_manager=temperature_manager,
+                reasoning_engine=engine,
+                verbose=verbose,
+            )
+            orchestrator = self.orchestrator  # Keep local variable for backward compatibility
+
+            # Step 1: Generate Ideas (async) - Phase 3.2c: Using WorkflowOrchestrator
             await self._send_progress("Generating ideas...", 0.1)
             try:
                 # Add timeout to idea generation to prevent hanging
-                raw_generated_ideas = await asyncio.wait_for(
-                    async_generate_ideas(
+                parsed_ideas, _ = await asyncio.wait_for(
+                    orchestrator.generate_ideas_async(
                         topic=topic,
                         context=context,
-                        temperature=idea_temp,
-                        cache_manager=self.cache_manager,
-                        use_structured_output=True
+                        num_ideas=calculate_ideas_to_generate(num_top_candidates),
                     ),
-                    timeout=60.0  # 60 second timeout for initial idea generation
+                    timeout=60.0,  # 60 second timeout for initial idea generation
                 )
-                
-                # Parse ideas using shared utility
-                from madspark.utils.json_parsers import parse_idea_generator_response
-                parsed_ideas = parse_idea_generator_response(raw_generated_ideas)
-                
+
                 if not parsed_ideas:
                     logger.warning("No ideas were generated")
                     return []
-                    
+
                 await self._send_progress(f"Generated {len(parsed_ideas)} ideas", 0.3)
-                
+
             except asyncio.TimeoutError:
                 logger.error("Idea generation timed out after 60 seconds")
-                await self._send_progress("Idea generation timed out. Please try again.", 0.0)
-                raise asyncio.TimeoutError("Idea generation timed out - please check your API configuration")
+                await self._send_progress(
+                    "Idea generation timed out. Please try again.", 0.0
+                )
+                raise asyncio.TimeoutError(
+                    "Idea generation timed out - please check your API configuration"
+                )
             except Exception as e:
                 logger.error(f"Idea generation failed: {e}")
                 await self._send_progress(f"Idea generation failed: {str(e)}", 0.0)
                 raise
-                
+
             # Step 1.5: Apply novelty filter if enabled
             if enable_novelty_filter:
                 novelty_filter = NoveltyFilter(similarity_threshold=novelty_threshold)
                 filtered_ideas = novelty_filter.get_novel_ideas(parsed_ideas)
                 if len(filtered_ideas) < len(parsed_ideas):
-                    logger.info(f"Novelty filter removed {len(parsed_ideas) - len(filtered_ideas)} duplicates")
+                    logger.info(
+                        f"Novelty filter removed {len(parsed_ideas) - len(filtered_ideas)} duplicates"
+                    )
                 parsed_ideas = filtered_ideas
-                
-            # Step 2: Evaluate Ideas (async)
+
+            # Step 2: Evaluate Ideas (async) - Phase 3.2c: Using WorkflowOrchestrator
             await self._send_progress("Evaluating ideas...", 0.4)
             try:
-                ideas_for_critic = "\n".join(parsed_ideas)
-                raw_evaluations = await async_evaluate_ideas(
-                    ideas=ideas_for_critic,
-                    topic=topic,
-                    context=context,
-                    temperature=eval_temp,
-                    use_structured_output=True
+                # Delegate evaluation to orchestrator
+                evaluated_ideas_data, _ = await asyncio.wait_for(
+                    orchestrator.evaluate_ideas_async(
+                        ideas=parsed_ideas, topic=topic, context=context
+                    ),
+                    timeout=30.0,  # 30 second timeout for evaluation
                 )
-                
-                # Parse evaluations based on format
-                try:
-                    # Try to parse as JSON first (structured output)
-                    import json
-                    evaluations_json = json.loads(raw_evaluations)
-                    
-                    # Extract evaluations from structured format
-                    parsed_evaluations = []
-                    
-                    # Handle different response formats
-                    if isinstance(evaluations_json, list):
-                        # Array of evaluation objects
-                        for eval_obj in evaluations_json:
-                            if isinstance(eval_obj, dict):
-                                parsed_evaluations.append({
-                                    "score": eval_obj.get("score", 0),
-                                    "comment": eval_obj.get("comment", eval_obj.get("critique", "No comment available"))
-                                })
-                            else:
-                                # Fallback for unexpected format
-                                parsed_evaluations.append({
-                                    "score": 0,
-                                    "comment": str(eval_obj)
-                                })
-                    elif isinstance(evaluations_json, dict):
-                        # Single evaluation object - wrap in array
-                        parsed_evaluations.append({
-                            "score": evaluations_json.get("score", 0),
-                            "comment": evaluations_json.get("comment", evaluations_json.get("critique", "No comment available"))
-                        })
-                    else:
-                        # Unexpected format - convert to string
-                        parsed_evaluations.append({
-                            "score": 0,
-                            "comment": str(evaluations_json)
-                        })
-                        
-                except (json.JSONDecodeError, TypeError, KeyError, AttributeError):
-                    # Fall back to legacy parsing for backward compatibility
-                    parsed_evaluations = parse_json_with_fallback(
-                        raw_evaluations,
-                        expected_count=len(parsed_ideas)
+
+                # Normalize fields for compatibility (orchestrator uses "idea", async_coordinator uses "text")
+                evaluated_ideas_data = self._normalize_candidate_fields(
+                    evaluated_ideas_data
+                )
+
+                # Add multi-dimensional evaluation if enabled
+                if multi_dimensional_eval:
+                    evaluated_ideas_data = await asyncio.wait_for(
+                        orchestrator.add_multi_dimensional_evaluation_async(
+                            candidates=evaluated_ideas_data,
+                            topic=topic,
+                            context=context,
+                        ),
+                        timeout=45.0,  # 45 second timeout for multi-dimensional eval
                     )
-                
-                # Build evaluated ideas list
-                evaluated_ideas_data: List[EvaluatedIdea] = []
-                for i, idea_text in enumerate(parsed_ideas):
-                    if i < len(parsed_evaluations):
-                        eval_data = validate_evaluation_json(parsed_evaluations[i])
-                        score = eval_data["score"]
-                        critique = eval_data["comment"]
-                    else:
-                        score = 0
-                        critique = "Evaluation missing"
-                        
-                    # Enhanced reasoning: Apply multi-dimensional evaluation if enabled
-                    multi_eval_data = None
-                    if multi_dimensional_eval and engine:
-                        try:
-                            multi_eval_result = engine.multi_evaluator.evaluate_idea(
-                                idea=idea_text,
-                                context={"topic": topic, "context": context}
-                            )
-                            
-                            # Store the multi-dimensional evaluation data
-                            multi_eval_data = multi_eval_result
-                            
-                            # Use multi-dimensional score instead of simple score
-                            score = multi_eval_result['weighted_score']
-                            
-                            # Enhance critique with multi-dimensional insights
-                            critique = f"{critique}\n\n📊 Multi-dimensional Analysis:\n{multi_eval_result['evaluation_summary']}"
-                            
-                        except (AttributeError, KeyError, TypeError, ValueError) as e:
-                            logger.warning(f"Multi-dimensional evaluation failed for idea {i}: {e}")
-                            # Fall back to standard evaluation
-                    
-                    # Note: Logical inference moved to batch processing after evaluation loop
-                    
-                    # Build the evaluated idea data
-                    evaluated_idea = {
-                        "text": idea_text,
-                        "score": score,
-                        "critique": critique,
-                        "context": context  # Add context for information flow
-                    }
-                    
-                    # Add multi-dimensional evaluation data if available
-                    if multi_eval_data:
-                        evaluated_idea["multi_dimensional_evaluation"] = multi_eval_data
-                    
-                    # Note: Logical inference data will be added after batch processing
-                    
-                    evaluated_ideas_data.append(evaluated_idea)
-                    
+
                 # Sort and select top candidates
                 evaluated_ideas_data.sort(key=lambda x: x["score"], reverse=True)
                 top_candidates = evaluated_ideas_data[:num_top_candidates]
-                
-                await self._send_progress(f"Selected {len(top_candidates)} top candidates", 0.6)
-                
+
+                await self._send_progress(
+                    f"Selected {len(top_candidates)} top candidates", 0.6
+                )
+
+            except asyncio.TimeoutError:
+                logger.error("Evaluation timed out")
+                await self._send_progress(
+                    "Evaluation timed out. Please try again.", 0.0
+                )
+                raise
             except Exception as e:
                 logger.error(f"Evaluation failed: {e}")
                 raise
-            
+
             # Step 2.5: Batch Logical Inference Processing (if enabled)
             if logical_inference and engine and engine.logical_inference_engine:
                 try:
-                    await self._send_progress("Performing batch logical inference analysis...", 0.65)
-                    logger.info(f"Starting batch logical inference for {len(top_candidates)} candidates")
-                    
+                    await self._send_progress(
+                        "Performing batch logical inference analysis...", 0.65
+                    )
+                    logger.info(
+                        f"Starting batch logical inference for {len(top_candidates)} candidates"
+                    )
+
                     # Store engine in self for _run_batch_logical_inference to access
                     self.reasoning_engine = engine
-                    
+
                     # Extract ideas from candidates for batch processing
-                    ideas_for_inference = [candidate["text"] for candidate in top_candidates]
-                    
+                    ideas_for_inference = [
+                        candidate["text"] for candidate in top_candidates
+                    ]
+
                     # Use the batch logical inference method - key optimization: O(N) → O(1) API calls
                     batch_results = await self._run_batch_logical_inference(
-                        ideas_for_inference,
-                        topic,
-                        context,
-                        InferenceType.FULL
+                        ideas_for_inference, topic, context, InferenceType.FULL
                     )
-                    
+
                     # Add logical inference data to candidates
-                    for i, (candidate, inference_result) in enumerate(zip(top_candidates, batch_results)):
-                        if inference_result and hasattr(inference_result, 'confidence'):
-                            confidence = getattr(inference_result, 'confidence', 0.0)
+                    for i, (candidate, inference_result) in enumerate(
+                        zip(top_candidates, batch_results)
+                    ):
+                        if inference_result and hasattr(inference_result, "confidence"):
+                            confidence = getattr(inference_result, "confidence", 0.0)
                             if confidence > LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD:
                                 # Convert InferenceResult to dictionary for storage
                                 candidate["logical_inference"] = {
                                     "confidence": inference_result.confidence,
                                     "inference": inference_result.conclusion,
                                     "inference_chain": inference_result.inference_chain,
-                                    "improvements": inference_result.improvements
+                                    "improvements": inference_result.improvements,
                                 }
-                                logger.info(f"Added logical inference data to candidate {i+1} with confidence {confidence}")
+                                logger.info(
+                                    f"Added logical inference data to candidate {i + 1} with confidence {confidence}"
+                                )
                             else:
-                                logger.info(f"Skipped logical inference for candidate {i+1} due to low confidence ({confidence})")
-                    
-                    logger.info(f"Batch logical inference completed for {len(top_candidates)} candidates")
-                    
+                                logger.info(
+                                    f"Skipped logical inference for candidate {i + 1} due to low confidence ({confidence})"
+                                )
+
+                    logger.info(
+                        f"Batch logical inference completed for {len(top_candidates)} candidates"
+                    )
+
                 except Exception as e:
                     logger.warning(f"Batch logical inference failed: {e}")
                     # Continue without logical inference
-                
+
             # Step 3: Process top candidates with complete feedback loop
-            await self._send_progress(f"Processing {len(top_candidates)} candidates with complete feedback loop...", 0.7)
+            await self._send_progress(
+                f"Processing {len(top_candidates)} candidates with complete feedback loop...",
+                0.7,
+            )
             final_candidates = await self.process_top_candidates(
                 top_candidates,
                 topic,
@@ -868,23 +959,21 @@ class AsyncCoordinator(BatchOperationsBase):
                 active_tasks,
                 multi_dimensional_eval,
                 engine,
-                enhanced_reasoning
+                enhanced_reasoning,
+                orchestrator,
             )
-            
+
             await self._send_progress("Workflow completed successfully!", 1.0)
-            
+
             # Cache the result if cache manager is available
             if self.cache_manager:
                 # Reuse the cache_options from the beginning of the method
                 await self.cache_manager.cache_workflow_result(
-                    topic,
-                    context,
-                    cache_options,
-                    {"candidates": final_candidates}
+                    topic, context, cache_options, {"candidates": final_candidates}
                 )
-            
+
             return final_candidates
-            
+
         except asyncio.CancelledError:
             # Clean up any pending tasks
             logger.info("Workflow cancelled, cleaning up pending tasks...")
@@ -902,15 +991,16 @@ class AsyncCoordinator(BatchOperationsBase):
         except Exception as e:
             # Log the error with full details for debugging
             import traceback
+
             error_details = {
                 "error": str(e),
                 "type": type(e).__name__,
-                "traceback": traceback.format_exc()
+                "traceback": traceback.format_exc(),
             }
             logger.error(f"Workflow failed with error: {error_details}")
             await self._send_progress(f"Workflow failed: {str(e)}", 0.0)
             raise
-        
+
     async def process_top_candidates(
         self,
         candidates: List[EvaluatedIdea],
@@ -922,160 +1012,97 @@ class AsyncCoordinator(BatchOperationsBase):
         eval_temp: float = DEFAULT_EVALUATION_TEMPERATURE,
         active_tasks: Optional[List[asyncio.Task]] = None,
         multi_dimensional_eval: bool = False,
-        reasoning_engine = None,
-        enhanced_reasoning: bool = False
+        reasoning_engine=None,
+        enhanced_reasoning: bool = False,
+        orchestrator: Optional["WorkflowOrchestrator"] = None,
     ) -> List[CandidateData]:
         """Process top candidates with batch operations for efficiency.
-        
+
         This method uses batch API calls to process all candidates at once,
         significantly reducing API calls and execution time.
         """
+        # Phase 3.2c: Use provided orchestrator or self.orchestrator
+        orch = orchestrator if orchestrator is not None else self.orchestrator
+        if orch is None:
+            raise RuntimeError(
+                "WorkflowOrchestrator not initialized. "
+                "Call run_workflow_async first or provide orchestrator parameter."
+            )
+
         await self._send_progress("Processing candidates with batch operations...", 0.7)
-        
+
         # Step 1: Parallel Batch Advocacy and Skepticism Processing (only if enhanced_reasoning is enabled)
         if enhanced_reasoning:
-            await self._send_progress("Running parallel advocacy and skepticism analysis...", 0.72)
+            await self._send_progress(
+                "Running parallel advocacy and skepticism analysis...", 0.72
+            )
             candidates = await self.process_candidates_parallel_advocacy_skepticism(
-                candidates, topic, context, advocacy_temp, skepticism_temp
+                candidates, topic, context, advocacy_temp, skepticism_temp, orch
             )
         else:
             # Don't include advocacy/skepticism fields when enhanced reasoning is disabled
             # This ensures the frontend won't show empty sections
             pass
-        
+
         # Step 2: Batch Improvement Processing (depends on advocacy/skepticism)
         await self._send_progress("Running batch idea improvement...", 0.78)
         candidates = await self._process_candidates_with_batch_improvement(
-            candidates, topic, context, idea_temp
+            candidates, topic, context, idea_temp, orch
         )
-        
-        # Step 4: Batch Re-evaluation
+
+        # Step 4: Batch Re-evaluation - Phase 3.2c: Using WorkflowOrchestrator
         await self._send_progress("Running batch re-evaluation...", 0.82)
-        
-        # Collect improved ideas for re-evaluation
-        improved_ideas = []
-        for candidate in candidates:
-            improved_idea = candidate.get("improved_idea", candidate["text"])
-            improved_ideas.append(improved_idea)
-        
-        improved_ideas_text = "\n\n".join(improved_ideas)
-        
+
         try:
-            # Single API call for all re-evaluations with original context
-            re_eval_output = await async_evaluate_ideas(
-                ideas=improved_ideas_text,
+            # Phase 3.2c: Use provided WorkflowOrchestrator instance
+            # Delegate re-evaluation to orchestrator
+            updated_candidates, _ = await orch.reevaluate_ideas_async(
+                candidates=candidates,
                 topic=topic,
                 context=context,  # Use original context to avoid bias
-                temperature=eval_temp,
-                use_structured_output=True
             )
-            
-            # Parse re-evaluations based on structured output
-            import json
-            try:
-                # First try to parse as structured JSON
-                re_eval_json = json.loads(re_eval_output)
-                re_eval_results = []
-                
-                # Handle different response formats
-                if isinstance(re_eval_json, list):
-                    re_eval_results = re_eval_json
-                elif isinstance(re_eval_json, dict):
-                    if "evaluations" in re_eval_json:
-                        re_eval_results = re_eval_json["evaluations"]
-                    elif "results" in re_eval_json:
-                        re_eval_results = re_eval_json["results"]
-                    else:
-                        # Single evaluation wrapped in dict
-                        re_eval_results = [re_eval_json]
-                
-                # Validate we have correct number of evaluations
-                if len(re_eval_results) != len(candidates):
-                    logger.warning(f"Expected {len(candidates)} re-evaluations, got {len(re_eval_results)}")
-                    # Fall back to parse_json_with_fallback
-                    re_eval_results = parse_json_with_fallback(
-                        re_eval_output,
-                        expected_count=len(candidates)
-                    )
-            except json.JSONDecodeError:
-                # Fall back to parse_json_with_fallback for non-JSON responses
-                logger.warning("Re-evaluation response was not valid JSON, using fallback parser")
-                re_eval_results = parse_json_with_fallback(
-                    re_eval_output,
-                    expected_count=len(candidates)
-                )
-            
-            for i, parsed_eval in enumerate(re_eval_results):
+
+            # Update candidates with improved scores and critiques
+            # Note: orchestrator returns "improved_score" and "improved_critique" fields
+            for i, updated in enumerate(updated_candidates):
                 if i < len(candidates):
-                    # Use validate_evaluation_json for consistent field normalization
-                    eval_data = validate_evaluation_json(parsed_eval)
-                    candidates[i]["improved_score"] = eval_data["score"]
-                    candidates[i]["improved_critique"] = eval_data["comment"]
-                    
+                    candidates[i]["improved_score"] = updated.get(
+                        "improved_score", updated.get("score", candidates[i]["score"])
+                    )
+                    candidates[i]["improved_critique"] = updated.get(
+                        "improved_critique", updated.get("critique", "N/A")
+                    )
+
         except Exception as e:
             logger.error(f"Batch re-evaluation failed: {e}")
             # Fallback: use original scores
             for candidate in candidates:
                 candidate["improved_score"] = candidate["score"]
                 candidate["improved_critique"] = "Re-evaluation failed"
-        
-        # Step 5: Build final candidate data
+
+        # Step 5: Build final candidate data - Phase 3.2c: Using WorkflowOrchestrator
         await self._send_progress("Building final results...", 0.88)
-        final_candidates: List[CandidateData] = []
-        
-        for candidate in candidates:
-            # Calculate score delta
-            initial_score = candidate["score"]
-            improved_score = candidate.get("improved_score", initial_score)
-            score_delta = improved_score - initial_score
-            
-            # Calculate similarity and meaningful improvement
-            from ..utils.text_similarity import is_meaningful_improvement
-            from ..utils.constants import (
-                MEANINGFUL_IMPROVEMENT_SIMILARITY_THRESHOLD,
-                MEANINGFUL_IMPROVEMENT_SCORE_DELTA
-            )
-            
-            original_idea = candidate["text"]
-            improved_idea = candidate.get("improved_idea", original_idea)
-            
-            is_meaningful, similarity_score = is_meaningful_improvement(
-                original_idea,
-                improved_idea,
-                score_delta,
-                similarity_threshold=MEANINGFUL_IMPROVEMENT_SIMILARITY_THRESHOLD,
-                score_delta_threshold=MEANINGFUL_IMPROVEMENT_SCORE_DELTA
-            )
-            
-            # Build candidate data
-            candidate_data = {
-                "idea": original_idea,
-                "initial_score": initial_score,
-                "initial_critique": candidate["critique"],
-                "advocacy": candidate.get("advocacy", "N/A"),
-                "skepticism": candidate.get("skepticism", "N/A"),
-                "improved_idea": improved_idea,
-                "improved_score": improved_score,
-                "improved_critique": candidate.get("improved_critique", "N/A"),
-                "score_delta": score_delta,
-                "is_meaningful_improvement": is_meaningful,
-                "similarity_score": similarity_score
-            }
-            
-            # Add multi-dimensional evaluation if available
-            if "multi_dimensional_evaluation" in candidate:
-                candidate_data["multi_dimensional_evaluation"] = candidate["multi_dimensional_evaluation"]
-            
-            # Add logical inference if available
-            if "logical_inference" in candidate:
-                candidate_data["logical_inference"] = candidate["logical_inference"]
-            
-            final_candidates.append(candidate_data)
-        
-        await self._send_progress(f"Completed batch processing of {len(final_candidates)} candidates", 0.9)
-        
+
+        # Phase 3.2c: Use provided WorkflowOrchestrator instance
+        # Delegate results building to orchestrator
+        final_candidates = orch.build_final_results(candidates)
+
+        # Normalize field names for compatibility (ensure both "text" and "idea" exist)
+        final_candidates = self._normalize_candidate_fields(final_candidates)
+
+        # Preserve logical inference data if available (async-specific feature)
+        for i, candidate in enumerate(candidates):
+            if "logical_inference" in candidate and i < len(final_candidates):
+                final_candidates[i]["logical_inference"] = candidate[
+                    "logical_inference"
+                ]
+
+        await self._send_progress(
+            f"Completed batch processing of {len(final_candidates)} candidates", 0.9
+        )
+
         return final_candidates
-        
+
     async def _process_single_candidate(
         self,
         candidate: EvaluatedIdea,
@@ -1086,13 +1113,13 @@ class AsyncCoordinator(BatchOperationsBase):
         eval_temp: float = 0.3,
         context: str = "",
         multi_dimensional_eval: bool = False,
-        reasoning_engine = None
+        reasoning_engine=None,
     ) -> Optional[CandidateData]:
         """Process a single candidate with complete feedback loop: advocacy → skepticism → improvement → re-evaluation."""
         idea_text = candidate["text"]
         evaluation_detail = candidate["critique"]
         partial_failures = []
-        
+
         # Steps 1 & 2: Run advocacy and skepticism in parallel
         # Both depend only on the original idea, so they can run concurrently
         advocacy_task = asyncio.create_task(
@@ -1104,13 +1131,13 @@ class AsyncCoordinator(BatchOperationsBase):
                         topic=topic,
                         context=context,
                         temperature=advocacy_temp,
-                        use_structured_output=True
+                        use_structured_output=True,
                     )
                 ),
-                timeout=30.0
+                timeout=30.0,
             )
         )
-        
+
         skepticism_task = asyncio.create_task(
             asyncio.wait_for(
                 self._run_with_semaphore(
@@ -1120,13 +1147,13 @@ class AsyncCoordinator(BatchOperationsBase):
                         topic=topic,
                         context=context,
                         temperature=skepticism_temp,
-                        use_structured_output=True
+                        use_structured_output=True,
                     )
                 ),
-                timeout=30.0
+                timeout=30.0,
             )
         )
-        
+
         # Wait for both to complete in parallel
         try:
             advocacy_output, skepticism_output = await asyncio.gather(
@@ -1136,50 +1163,66 @@ class AsyncCoordinator(BatchOperationsBase):
             logger.warning(f"Parallel advocacy/skepticism failed: {e}")
             advocacy_output = Exception("Parallel processing failed")
             skepticism_output = Exception("Parallel processing failed")
-        
+
         # Handle advocacy result
         if isinstance(advocacy_output, asyncio.TimeoutError):
-            logger.warning(f"Advocacy timed out for idea '{idea_text[:50]}...'. Using fallback.")
+            logger.warning(
+                f"Advocacy timed out for idea '{idea_text[:50]}...'. Using fallback."
+            )
             advocacy_output = f"This idea shows strong potential in addressing {topic}. Key strengths include practical implementation approach and alignment with constraints."
-            partial_failures.append({
-                "stage": "advocacy",
-                "error": "Timeout after 30 seconds",
-                "error_type": "TimeoutError"
-            })
+            partial_failures.append(
+                {
+                    "stage": "advocacy",
+                    "error": "Timeout after 30 seconds",
+                    "error_type": "TimeoutError",
+                }
+            )
         elif isinstance(advocacy_output, Exception):
-            logger.warning(f"Advocacy failed for idea '{idea_text[:50]}...': {advocacy_output}")
+            logger.warning(
+                f"Advocacy failed for idea '{idea_text[:50]}...': {advocacy_output}"
+            )
             advocacy_fallback = "Advocacy not available due to error"
-            partial_failures.append({
-                "stage": "advocacy",
-                "error": str(advocacy_output),
-                "error_type": type(advocacy_output).__name__
-            })
+            partial_failures.append(
+                {
+                    "stage": "advocacy",
+                    "error": str(advocacy_output),
+                    "error_type": type(advocacy_output).__name__,
+                }
+            )
             advocacy_output = advocacy_fallback
-        
-        # Handle skepticism result  
+
+        # Handle skepticism result
         if isinstance(skepticism_output, asyncio.TimeoutError):
-            logger.warning(f"Skepticism timed out for idea '{idea_text[:50]}...'. Using fallback.")
+            logger.warning(
+                f"Skepticism timed out for idea '{idea_text[:50]}...'. Using fallback."
+            )
             skepticism_output = "Key concerns to consider: implementation complexity, resource requirements, and scalability challenges. Further analysis needed for practical deployment."
-            partial_failures.append({
-                "stage": "skepticism",
-                "error": "Timeout after 30 seconds",
-                "error_type": "TimeoutError"
-            })
+            partial_failures.append(
+                {
+                    "stage": "skepticism",
+                    "error": "Timeout after 30 seconds",
+                    "error_type": "TimeoutError",
+                }
+            )
         elif isinstance(skepticism_output, Exception):
-            logger.warning(f"Skepticism failed for idea '{idea_text[:50]}...': {skepticism_output}")
+            logger.warning(
+                f"Skepticism failed for idea '{idea_text[:50]}...': {skepticism_output}"
+            )
             skepticism_fallback = "Skepticism not available due to error"
-            partial_failures.append({
-                "stage": "skepticism",
-                "error": str(skepticism_output),
-                "error_type": type(skepticism_output).__name__
-            })
+            partial_failures.append(
+                {
+                    "stage": "skepticism",
+                    "error": str(skepticism_output),
+                    "error_type": type(skepticism_output).__name__,
+                }
+            )
             skepticism_output = skepticism_fallback
 
         # Step 3: Generate Improved Idea
         improved_idea_text = ""
         improved_score = 0.0
         improved_critique = ""
-        
+
         try:
             logger.info(f"Improving idea based on feedback: '{idea_text[:50]}...'")
             improved_idea_text = await asyncio.wait_for(
@@ -1191,33 +1234,39 @@ class AsyncCoordinator(BatchOperationsBase):
                         skeptic_points=skepticism_output,
                         topic=topic,
                         context=context,
-                        temperature=idea_temp
+                        temperature=idea_temp,
                     )
                 ),
-                timeout=45.0  # 45 second timeout for improvement (longer due to complexity)
+                timeout=45.0,  # 45 second timeout for improvement (longer due to complexity)
             )
         except asyncio.TimeoutError:
-            logger.warning(f"Idea improvement timed out for '{idea_text[:50]}...'. Using fallback improvement.")
+            logger.warning(
+                f"Idea improvement timed out for '{idea_text[:50]}...'. Using fallback improvement."
+            )
             improved_idea_text = f"Enhanced: {idea_text}\n\nOptimizations based on feedback:\n- Improved feasibility and implementation approach\n- Better resource utilization\n- Enhanced scalability and user experience"
-            partial_failures.append({
-                "stage": "improvement",
-                "error": "Timeout after 45 seconds",
-                "error_type": "TimeoutError"
-            })
+            partial_failures.append(
+                {
+                    "stage": "improvement",
+                    "error": "Timeout after 45 seconds",
+                    "error_type": "TimeoutError",
+                }
+            )
         except Exception as e:
             logger.warning(f"Idea improvement failed for '{idea_text[:50]}...': {e}")
             improved_idea_text = idea_text  # Fallback to original
-            partial_failures.append({
-                "stage": "improvement",
-                "error": str(e),
-                "error_type": type(e).__name__
-            })
+            partial_failures.append(
+                {
+                    "stage": "improvement",
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                }
+            )
 
         # Step 4: Re-evaluate Improved Idea
         if improved_idea_text and improved_idea_text != idea_text:
             try:
                 # Call critic with improved idea using original context
-                
+
                 # Create parallel tasks for standard and multi-dimensional evaluation
                 standard_eval_task = asyncio.create_task(
                     asyncio.wait_for(
@@ -1227,98 +1276,122 @@ class AsyncCoordinator(BatchOperationsBase):
                                 topic=topic,
                                 context=context,  # Use original context to avoid bias
                                 temperature=eval_temp,
-                                use_structured_output=True
+                                use_structured_output=True,
                             )
                         ),
-                        timeout=30.0  # 30 second timeout for re-evaluation
+                        timeout=30.0,  # 30 second timeout for re-evaluation
                     )
                 )
-                
+
                 multi_eval_task = None
                 if multi_dimensional_eval and reasoning_engine:
                     multi_eval_task = asyncio.create_task(
                         asyncio.wait_for(
                             reasoning_engine.multi_evaluator.evaluate_idea(
                                 idea=improved_idea_text,
-                                context={"topic": topic, "context": context}
+                                context={"topic": topic, "context": context},
                             ),
-                            timeout=30.0  # 30 second timeout for multi-dimensional evaluation
+                            timeout=30.0,  # 30 second timeout for multi-dimensional evaluation
                         )
                     )
-                
+
                 # Wait for evaluations to complete in parallel
                 if multi_eval_task:
-                    improved_raw_eval, improved_multi_eval_result = await asyncio.gather(
+                    (
+                        improved_raw_eval,
+                        improved_multi_eval_result,
+                    ) = await asyncio.gather(
                         standard_eval_task, multi_eval_task, return_exceptions=True
                     )
                 else:
                     improved_raw_eval = await standard_eval_task
                     improved_multi_eval_result = None
-                
+
                 # Parse the evaluation based on format
                 try:
                     # Try to parse as JSON first (structured output)
                     import json
+
                     improved_evaluations_json = json.loads(improved_raw_eval)
-                    
+
                     # Extract evaluations from structured format
                     improved_evaluations = []
-                    
+
                     # Handle different response formats (same logic as above)
                     if isinstance(improved_evaluations_json, list):
                         # Array of evaluation objects
                         for eval_obj in improved_evaluations_json:
                             if isinstance(eval_obj, dict):
-                                improved_evaluations.append({
-                                    "score": eval_obj.get("score", 0),
-                                    "comment": eval_obj.get("comment", eval_obj.get("critique", "No comment available"))
-                                })
+                                improved_evaluations.append(
+                                    {
+                                        "score": eval_obj.get("score", 0),
+                                        "comment": eval_obj.get(
+                                            "comment",
+                                            eval_obj.get(
+                                                "critique", "No comment available"
+                                            ),
+                                        ),
+                                    }
+                                )
                             else:
                                 # Fallback for unexpected format
-                                improved_evaluations.append({
-                                    "score": 0,
-                                    "comment": str(eval_obj)
-                                })
+                                improved_evaluations.append(
+                                    {"score": 0, "comment": str(eval_obj)}
+                                )
                     elif isinstance(improved_evaluations_json, dict):
                         # Single evaluation object - wrap in array
-                        improved_evaluations.append({
-                            "score": improved_evaluations_json.get("score", 0),
-                            "comment": improved_evaluations_json.get("comment", improved_evaluations_json.get("critique", "No comment available"))
-                        })
+                        improved_evaluations.append(
+                            {
+                                "score": improved_evaluations_json.get("score", 0),
+                                "comment": improved_evaluations_json.get(
+                                    "comment",
+                                    improved_evaluations_json.get(
+                                        "critique", "No comment available"
+                                    ),
+                                ),
+                            }
+                        )
                     else:
                         # Unexpected format - convert to string
-                        improved_evaluations.append({
-                            "score": 0,
-                            "comment": str(improved_evaluations_json)
-                        })
-                        
+                        improved_evaluations.append(
+                            {"score": 0, "comment": str(improved_evaluations_json)}
+                        )
+
                 except (json.JSONDecodeError, TypeError, KeyError, AttributeError):
                     # Fall back to legacy parsing for backward compatibility
-                    improved_evaluations = parse_json_with_fallback(improved_raw_eval, expected_count=1)
-                
+                    improved_evaluations = parse_json_with_fallback(
+                        improved_raw_eval, expected_count=1
+                    )
+
                 improved_multi_eval_data = None
-                
+
                 # Handle parallel evaluation results
                 if isinstance(improved_raw_eval, Exception):
-                    logger.warning(f"Standard re-evaluation failed: {improved_raw_eval}")
+                    logger.warning(
+                        f"Standard re-evaluation failed: {improved_raw_eval}"
+                    )
                     improved_raw_eval = '{"evaluations": [{"score": 5.0, "comment": "Re-evaluation failed - using fallback score"}]}'
-                
-                if multi_eval_task and isinstance(improved_multi_eval_result, Exception):
-                    logger.warning(f"Multi-dimensional re-evaluation failed: {improved_multi_eval_result}")
+
+                if multi_eval_task and isinstance(
+                    improved_multi_eval_result, Exception
+                ):
+                    logger.warning(
+                        f"Multi-dimensional re-evaluation failed: {improved_multi_eval_result}"
+                    )
                     improved_multi_eval_result = None
                 elif improved_multi_eval_result:
                     improved_multi_eval_data = improved_multi_eval_result
-                
+
                 if improved_evaluations:
                     eval_data = validate_evaluation_json(improved_evaluations[0])
                     improved_score = float(eval_data["score"])
                     improved_critique = eval_data["comment"]
-                    
+
                     # Use multi-dimensional score if available (parallel result)
                     if improved_multi_eval_data:
-                        improved_score = improved_multi_eval_data['weighted_score']
+                        improved_score = improved_multi_eval_data["weighted_score"]
                         improved_critique = f"{improved_critique}\n\n📊 Multi-dimensional Analysis:\n{improved_multi_eval_data['evaluation_summary']}"
-                    
+
                     # Safeguard: If score decreased significantly, log warning
                     if improved_score < candidate["score"] - 1.0:
                         logger.warning(
@@ -1328,28 +1401,48 @@ class AsyncCoordinator(BatchOperationsBase):
                         improved_critique += f"\n\n⚠️ Note: Score decreased from {candidate['score']} to {improved_score}. The improvement may have overcorrected or lost key strengths."
                 else:
                     # Fallback if parsing fails - estimate improvement
-                    improved_score = min(float(candidate["score"]) + 0.5, 10.0)  # Small improvement
-                    improved_critique = "Re-evaluation parsing failed - estimated improvement applied"
-                    logger.warning("Re-evaluation parsing failed, using estimated improvement")
-                    
+                    improved_score = min(
+                        float(candidate["score"]) + 0.5, 10.0
+                    )  # Small improvement
+                    improved_critique = (
+                        "Re-evaluation parsing failed - estimated improvement applied"
+                    )
+                    logger.warning(
+                        "Re-evaluation parsing failed, using estimated improvement"
+                    )
+
             except asyncio.TimeoutError:
-                logger.warning(f"Re-evaluation timed out for improved idea '{idea_text[:50]}...'. Using estimated score.")
-                improved_score = min(float(candidate["score"]) + 0.3, 10.0)  # Conservative improvement
+                logger.warning(
+                    f"Re-evaluation timed out for improved idea '{idea_text[:50]}...'. Using estimated score."
+                )
+                improved_score = min(
+                    float(candidate["score"]) + 0.3, 10.0
+                )  # Conservative improvement
                 improved_critique = "Re-evaluation timed out - estimated improvement based on feedback integration"
-                partial_failures.append({
-                    "stage": "re-evaluation",
-                    "error": "Timeout after 30 seconds",
-                    "error_type": "TimeoutError"
-                })
+                partial_failures.append(
+                    {
+                        "stage": "re-evaluation",
+                        "error": "Timeout after 30 seconds",
+                        "error_type": "TimeoutError",
+                    }
+                )
             except Exception as e:
-                logger.warning(f"Re-evaluation failed for improved idea '{idea_text[:50]}...': {e}")
-                improved_score = min(float(candidate["score"]) + 0.2, 10.0)  # Minimal improvement
-                improved_critique = "Re-evaluation failed - estimated improvement based on feedback"
-                partial_failures.append({
-                    "stage": "re-evaluation",
-                    "error": str(e),
-                    "error_type": type(e).__name__
-                })
+                logger.warning(
+                    f"Re-evaluation failed for improved idea '{idea_text[:50]}...': {e}"
+                )
+                improved_score = min(
+                    float(candidate["score"]) + 0.2, 10.0
+                )  # Minimal improvement
+                improved_critique = (
+                    "Re-evaluation failed - estimated improvement based on feedback"
+                )
+                partial_failures.append(
+                    {
+                        "stage": "re-evaluation",
+                        "error": str(e),
+                        "error_type": type(e).__name__,
+                    }
+                )
         else:
             # No improvement generated, use original values
             improved_idea_text = idea_text
@@ -1358,26 +1451,28 @@ class AsyncCoordinator(BatchOperationsBase):
 
         # Calculate score delta
         score_delta = improved_score - candidate["score"]
-        
+
         # Determine if improvement is meaningful
         from ..utils.text_similarity import is_meaningful_improvement
         from ..utils.constants import (
             MEANINGFUL_IMPROVEMENT_SIMILARITY_THRESHOLD,
-            MEANINGFUL_IMPROVEMENT_SCORE_DELTA
+            MEANINGFUL_IMPROVEMENT_SCORE_DELTA,
         )
-        
+
         is_meaningful, similarity_score = is_meaningful_improvement(
             idea_text,
             improved_idea_text,
             score_delta,
             similarity_threshold=MEANINGFUL_IMPROVEMENT_SIMILARITY_THRESHOLD,
-            score_delta_threshold=MEANINGFUL_IMPROVEMENT_SCORE_DELTA
+            score_delta_threshold=MEANINGFUL_IMPROVEMENT_SCORE_DELTA,
         )
-        
+
         logger.info(f"Finished processing for: {idea_text[:50]}...")
         if improved_idea_text != idea_text:
-            logger.info(f"Score change: {candidate['score']}/10 → {improved_score}/10 (Δ{score_delta:+.1f})")
-            
+            logger.info(
+                f"Score change: {candidate['score']}/10 → {improved_score}/10 (Δ{score_delta:+.1f})"
+            )
+
         # Build the final candidate data with complete feedback loop
         result = {
             "idea": idea_text,
@@ -1390,25 +1485,27 @@ class AsyncCoordinator(BatchOperationsBase):
             "improved_critique": improved_critique,
             "score_delta": score_delta,
             "is_meaningful_improvement": is_meaningful,
-            "similarity_score": similarity_score
+            "similarity_score": similarity_score,
         }
-        
+
         # Add multi-dimensional evaluation if present
         if "multi_dimensional_evaluation" in candidate:
-            result["multi_dimensional_evaluation"] = candidate["multi_dimensional_evaluation"]
-            
+            result["multi_dimensional_evaluation"] = candidate[
+                "multi_dimensional_evaluation"
+            ]
+
         # Add improved multi-dimensional evaluation if available
-        if 'improved_multi_eval_data' in locals() and improved_multi_eval_data:
+        if "improved_multi_eval_data" in locals() and improved_multi_eval_data:
             result["improved_multi_dimensional_evaluation"] = improved_multi_eval_data
-        
+
         # Add logical inference data if present
         if "logical_inference" in candidate:
             result["logical_inference"] = candidate["logical_inference"]
-        
+
         # Only include partial_failures if there were any
         if partial_failures:
             result["partial_failures"] = partial_failures
-            
+
         return result
 
 
@@ -1425,18 +1522,17 @@ async def run_async_workflow(
     logical_inference: bool = False,
     reasoning_engine: Optional[ReasoningEngine] = None,
     progress_callback: Optional[ProgressCallback] = None,
-    max_concurrent_agents: int = 10
+    max_concurrent_agents: int = 10,
 ) -> List[CandidateData]:
     """Convenience function to run the async workflow.
-    
+
     This is the main entry point for async execution, equivalent to
     run_multistep_workflow but with async/parallel execution.
     """
     coordinator = AsyncCoordinator(
-        max_concurrent_agents=max_concurrent_agents,
-        progress_callback=progress_callback
+        max_concurrent_agents=max_concurrent_agents, progress_callback=progress_callback
     )
-    
+
     return await coordinator.run_workflow(
         topic=topic,
         context=context,
@@ -1448,30 +1544,31 @@ async def run_async_workflow(
         enhanced_reasoning=enhanced_reasoning,
         multi_dimensional_eval=multi_dimensional_eval,
         logical_inference=logical_inference,
-        reasoning_engine=reasoning_engine
+        reasoning_engine=reasoning_engine,
     )
 
 
 # Example usage
 if __name__ == "__main__":
+
     async def main():
         """Example async workflow execution."""
         logging.basicConfig(level=logging.INFO)
-        
+
         # Example progress callback
         async def progress_callback(message: str, progress: float):
             print(f"[{progress:.0%}] {message}")
-            
+
         results = await run_async_workflow(
             topic="Sustainable Urban Living",
             context="Budget-friendly and community-focused",
             num_top_candidates=2,
-            progress_callback=progress_callback
+            progress_callback=progress_callback,
         )
-        
+
         print("\nResults:")
         for i, result in enumerate(results, 1):
             print(f"\n{i}. {result['idea']}")
             print(f"   Score: {result['initial_score']}/10")
-            
+
     asyncio.run(main())

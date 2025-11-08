@@ -34,21 +34,28 @@ class TestReEvaluationContext:
         ]
         
         # Mock the evaluation function to capture the prompt
+        import src.madspark.core.workflow_orchestrator
+
         captured_prompt = None
         captured_context = None
-        
-        async def mock_evaluate(*args, **kwargs):
+
+        # Save originals
+        original_improve = src.madspark.core.workflow_orchestrator.improve_ideas_batch
+
+        def mock_improve(*args, **kwargs):
+            return ([{"improved_idea": "Enhanced idea with clear implementation plan", "key_improvements": ["improvement 1"]}], 100)
+
+        async def mock_evaluate(ideas, topic, context, temperature, use_structured_output=True):
             nonlocal captured_prompt, captured_context
-            captured_prompt = kwargs.get('ideas', '')
-            captured_context = kwargs.get('context', '')
+            captured_prompt = ideas
+            captured_context = context
             return json.dumps([{"score": 8, "comment": "Much better with improvements"}])
-        
-        # Also mock the improvement process
-        with patch('src.madspark.core.batch_operations_base.BATCH_FUNCTIONS', {
-            'improve_ideas_batch': lambda *args, **kwargs: (
-                [{"improved_idea": "Enhanced idea with clear implementation plan"}], 100
-            )
-        }):
+
+        try:
+            # Patch WorkflowOrchestrator improve function
+            src.madspark.core.workflow_orchestrator.improve_ideas_batch = mock_improve
+
+            # Patch async_evaluate_ideas which is called by process_candidates_parallel_improvement_evaluation
             with patch('src.madspark.core.async_coordinator.async_evaluate_ideas', mock_evaluate):
                 # Process re-evaluation
                 await coordinator.process_candidates_parallel_improvement_evaluation(
@@ -58,13 +65,16 @@ class TestReEvaluationContext:
                     0.9,
                     0.3
                 )
-            
-            # Verify the prompt includes improvement context
-            assert "Enhanced idea with clear implementation plan" in captured_prompt
-            
-            # Verify context remains original (bias prevention)
-            assert captured_context is not None
-            assert captured_context == "test criteria"  # Original context preserved to avoid bias
+
+                # Verify the prompt includes improvement context
+                assert "Enhanced idea with clear implementation plan" in captured_prompt
+
+                # Verify context remains original (bias prevention)
+                assert captured_context is not None
+                assert captured_context == "test criteria"  # Original context preserved to avoid bias
+        finally:
+            # Restore originals
+            src.madspark.core.workflow_orchestrator.improve_ideas_batch = original_improve
     
     @pytest.mark.asyncio
     async def test_reevaluation_context_mentions_original_score(self):
@@ -213,19 +223,25 @@ class TestBiasReduction:
             }
         ]
         
-        async def mock_evaluate(*args, **kwargs):
-            ideas = kwargs.get('ideas', '')
+        import src.madspark.core.workflow_orchestrator
+
+        # Save originals
+        original_improve = src.madspark.core.workflow_orchestrator.improve_ideas_batch
+
+        def mock_improve(*args, **kwargs):
+            return ([{"improved_idea": "Good original idea with minor tweak", "key_improvements": ["minor change"]}], 100)
+
+        async def mock_evaluate(ideas, topic, context, temperature, use_structured_output=True):
             # If improvement is minimal, score shouldn't increase much
             if "minor tweak" in ideas:
                 return json.dumps([{"score": 8, "comment": "No significant improvement"}])
             return json.dumps([{"score": 9, "comment": "Better"}])
-        
-        # Mock the improvement process to return minimal change
-        with patch('src.madspark.core.batch_operations_base.BATCH_FUNCTIONS', {
-            'improve_ideas_batch': lambda *args, **kwargs: (
-                [{"improved_idea": "Good original idea with minor tweak"}], 100
-            )
-        }):
+
+        try:
+            # Patch WorkflowOrchestrator improve function
+            src.madspark.core.workflow_orchestrator.improve_ideas_batch = mock_improve
+
+            # Patch async_evaluate_ideas which is called by process_candidates_parallel_improvement_evaluation
             with patch('src.madspark.core.async_coordinator.async_evaluate_ideas', mock_evaluate):
                 await coordinator.process_candidates_parallel_improvement_evaluation(
                     test_candidates,
@@ -234,9 +250,12 @@ class TestBiasReduction:
                     0.9,
                     0.3
                 )
-                
+
                 # Score should not increase for minimal improvements
                 assert test_candidates[0]["improved_score"] == 8
+        finally:
+            # Restore originals
+            src.madspark.core.workflow_orchestrator.improve_ideas_batch = original_improve
 
 
 class TestReEvaluationPromptStructure:
@@ -260,19 +279,26 @@ class TestReEvaluationPromptStructure:
             }
         ]
         
+        import src.madspark.core.workflow_orchestrator
+
         captured_ideas_text = None
-        
-        async def mock_evaluate(*args, **kwargs):
+
+        # Save originals
+        original_improve = src.madspark.core.workflow_orchestrator.improve_ideas_batch
+
+        def mock_improve(*args, **kwargs):
+            return ([{"improved_idea": "Much better version", "key_improvements": ["improvement 1"]}], 100)
+
+        async def mock_evaluate(ideas, topic, context, temperature, use_structured_output=True):
             nonlocal captured_ideas_text
-            captured_ideas_text = kwargs.get('ideas', '')
+            captured_ideas_text = ideas
             return json.dumps([{"score": 8, "comment": "Good"}])
-        
-        # Mock the improvement process
-        with patch('src.madspark.core.batch_operations_base.BATCH_FUNCTIONS', {
-            'improve_ideas_batch': lambda *args, **kwargs: (
-                [{"improved_idea": "Much better version"}], 100
-            )
-        }):
+
+        try:
+            # Patch WorkflowOrchestrator improve function
+            src.madspark.core.workflow_orchestrator.improve_ideas_batch = mock_improve
+
+            # Patch async_evaluate_ideas which is called by process_candidates_parallel_improvement_evaluation
             with patch('src.madspark.core.async_coordinator.async_evaluate_ideas', mock_evaluate):
                 await coordinator.process_candidates_parallel_improvement_evaluation(
                     test_candidates,
@@ -281,13 +307,16 @@ class TestReEvaluationPromptStructure:
                     0.9,
                     0.3
                 )
-                
+
                 # Verify prompt structure includes key elements
                 assert captured_ideas_text is not None
                 assert "Much better version" in captured_ideas_text
                 # With bias prevention, we DON'T include improvement markers
                 # This ensures fair evaluation without bias toward "improved" versions
                 assert not any(marker in captured_ideas_text.upper() for marker in ["IMPROVED", "ENHANCED", "REFINED"])
+        finally:
+            # Restore originals
+            src.madspark.core.workflow_orchestrator.improve_ideas_batch = original_improve
 
 
 if __name__ == "__main__":

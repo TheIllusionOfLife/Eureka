@@ -10,7 +10,6 @@ This test suite ensures that:
 import json
 import pytest
 from unittest.mock import Mock, patch
-from src.madspark.core.workflow_orchestrator import WorkflowOrchestrator
 
 # Test data
 TEST_TOPIC = "renewable energy solutions"

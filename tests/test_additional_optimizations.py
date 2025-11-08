@@ -166,11 +166,13 @@ class TestDynamicIdeaGeneration:
 
         def mock_generate_batch(topic, context, temperature, use_structured_output=True):
             nonlocal num_ideas_requested
-            # Extract num_ideas from context since this is testing dynamic idea count
-            # The actual implementation uses num_ideas parameter, but workflow calls with topic/context/temp
-            # We need to return some ideas to satisfy the test
+            # This function is called from generate_ideas() which expects a string response
+            # Set num_ideas_requested to track what would have been requested
             num_ideas_requested = 12  # Set this to match the expected value
-            return ([f"Idea {i}" for i in range(1, num_ideas_requested + 1)], 1000)
+            # Return JSON string with 12 ideas
+            import json
+            ideas_list = [f"Idea {i}" for i in range(1, num_ideas_requested + 1)]
+            return json.dumps(ideas_list)
 
         def mock_evaluate_batch(ideas, topic, context):
             return (

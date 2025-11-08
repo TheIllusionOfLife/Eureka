@@ -191,9 +191,12 @@ class TestDataIntegrity:
     async def test_no_data_loss_in_parallel_processing(self):
         """Test that all candidates are processed without data loss."""
         from src.madspark.core.async_coordinator import AsyncCoordinator
-        import src.madspark.core.workflow_orchestrator
+        from src.madspark.core.workflow_orchestrator import WorkflowOrchestrator
 
         coordinator = AsyncCoordinator()
+        orchestrator = WorkflowOrchestrator(
+            temperature_manager=None, reasoning_engine=None, verbose=False
+        )
 
         # Create many candidates to test concurrent processing
         num_candidates = 10
@@ -202,37 +205,35 @@ class TestDataIntegrity:
             for i in range(num_candidates)
         ]
 
-        # Save originals
-        original_advocacy = src.madspark.core.workflow_orchestrator.advocate_ideas_batch
-        original_skepticism = src.madspark.core.workflow_orchestrator.criticize_ideas_batch
+        async def mock_advocacy(candidates, topic, context):
+            for i, candidate in enumerate(candidates):
+                candidate["advocacy"] = f"Result for Idea {i}"
+            return candidates, 100
 
-        def mock_batch_operation(items, *args, **kwargs):
-            # Return results for all items
-            return ([{"formatted": f"Result for {item['idea']}"} for item in items], 100)
+        async def mock_skepticism(candidates, topic, context):
+            for i, candidate in enumerate(candidates):
+                candidate["skepticism"] = f"Result for Idea {i}"
+            return candidates, 100
 
-        try:
-            # Patch WorkflowOrchestrator batch functions
-            src.madspark.core.workflow_orchestrator.advocate_ideas_batch = mock_batch_operation
-            src.madspark.core.workflow_orchestrator.criticize_ideas_batch = mock_batch_operation
+        # Patch the orchestrator instance methods directly
+        orchestrator.process_advocacy_async = AsyncMock(side_effect=mock_advocacy)
+        orchestrator.process_skepticism_async = AsyncMock(side_effect=mock_skepticism)
 
-            await coordinator.process_candidates_parallel_advocacy_skepticism(
-                test_candidates,
-                "test topic",
-                "test context",
-                0.5,
-                0.5
-            )
+        await coordinator.process_candidates_parallel_advocacy_skepticism(
+            test_candidates,
+            "test topic",
+            "test context",
+            0.5,
+            0.5,
+            orchestrator=orchestrator
+        )
 
-            # Verify all candidates were processed
-            for i, candidate in enumerate(test_candidates):
-                assert "advocacy" in candidate
-                assert "skepticism" in candidate
-                assert candidate["advocacy"] == f"Result for Idea {i}"
-                assert candidate["skepticism"] == f"Result for Idea {i}"
-        finally:
-            # Restore originals
-            src.madspark.core.workflow_orchestrator.advocate_ideas_batch = original_advocacy
-            src.madspark.core.workflow_orchestrator.criticize_ideas_batch = original_skepticism
+        # Verify all candidates were processed
+        for i, candidate in enumerate(test_candidates):
+            assert "advocacy" in candidate
+            assert "skepticism" in candidate
+            assert candidate["advocacy"] == f"Result for Idea {i}"
+            assert candidate["skepticism"] == f"Result for Idea {i}"
 
 
 class TestPerformanceImprovement:

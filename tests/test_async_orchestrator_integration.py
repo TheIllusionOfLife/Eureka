@@ -91,8 +91,15 @@ class TestAsyncOrchestratorIntegration:
     @pytest.mark.asyncio
     async def test_parallel_execution_preserved(self, async_coordinator, sample_candidates):
         """Test that parallel advocacy+skepticism execution is preserved."""
+        from madspark.core.workflow_orchestrator import WorkflowOrchestrator
+
         # Track call timing to verify parallelism
         call_times = []
+
+        # Create orchestrator instance
+        orchestrator = WorkflowOrchestrator(
+            temperature_manager=None, reasoning_engine=None, verbose=False
+        )
 
         async def mock_advocacy(*args, **kwargs):
             call_times.append(('advocacy', asyncio.get_event_loop().time()))
@@ -104,33 +111,33 @@ class TestAsyncOrchestratorIntegration:
             await asyncio.sleep(0.1)  # Simulate async work
             return (sample_candidates.copy(), 500)
 
-        with patch('madspark.core.workflow_orchestrator.WorkflowOrchestrator.process_advocacy_async',
-                   new=mock_advocacy), \
-             patch('madspark.core.workflow_orchestrator.WorkflowOrchestrator.process_skepticism_async',
-                   new=mock_skepticism):
+        # Patch the orchestrator instance methods directly
+        orchestrator.process_advocacy_async = AsyncMock(side_effect=mock_advocacy)
+        orchestrator.process_skepticism_async = AsyncMock(side_effect=mock_skepticism)
 
-            start_time = asyncio.get_event_loop().time()
+        start_time = asyncio.get_event_loop().time()
 
-            # This should run advocacy and skepticism in parallel
-            await async_coordinator.process_candidates_parallel_advocacy_skepticism(
-                sample_candidates.copy(),
-                "Test Theme",
-                "Test Constraints",
-                0.7,
-                0.7,
-                timeout=5.0
-            )
+        # This should run advocacy and skepticism in parallel
+        await async_coordinator.process_candidates_parallel_advocacy_skepticism(
+            sample_candidates.copy(),
+            "Test Theme",
+            "Test Constraints",
+            0.7,
+            0.7,
+            timeout=5.0,
+            orchestrator=orchestrator
+        )
 
-            end_time = asyncio.get_event_loop().time()
-            elapsed = end_time - start_time
+        end_time = asyncio.get_event_loop().time()
+        elapsed = end_time - start_time
 
-            # Should complete in ~0.1s (parallel) not ~0.2s (sequential)
-            assert elapsed < 0.25, f"Parallel execution took too long: {elapsed}s"
+        # Should complete in ~0.1s (parallel) not ~0.2s (sequential)
+        assert elapsed < 0.25, f"Parallel execution took too long: {elapsed}s"
 
-            # Both should have been called
-            assert len(call_times) == 2
-            assert any(ct[0] == 'advocacy' for ct in call_times)
-            assert any(ct[0] == 'skepticism' for ct in call_times)
+        # Both should have been called
+        assert len(call_times) == 2
+        assert any(ct[0] == 'advocacy' for ct in call_times)
+        assert any(ct[0] == 'skepticism' for ct in call_times)
 
     @pytest.mark.asyncio
     async def test_improvement_uses_orchestrator(self, async_coordinator, sample_candidates):

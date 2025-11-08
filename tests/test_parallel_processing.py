@@ -253,20 +253,26 @@ class TestPerformanceImprovement:
     async def test_parallel_faster_than_sequential(self):
         """Test that parallel processing is faster than sequential."""
         from src.madspark.core.async_coordinator import AsyncCoordinator
-        
+        import src.madspark.core.workflow_orchestrator
+
         coordinator = AsyncCoordinator()
-        
+
         test_candidates = [{"text": "Idea", "critique": "Good", "context": "test"}]
-        
+
+        # Save originals
+        original_advocacy = src.madspark.core.workflow_orchestrator.advocate_ideas_batch
+        original_skepticism = src.madspark.core.workflow_orchestrator.criticize_ideas_batch
+
         # Simulate operations that take 100ms each
         def timed_operation(*args, **kwargs):
             time.sleep(0.1)
             return ([{"formatted": "Result"}], 100)
-        
-        with patch('src.madspark.core.batch_operations_base.BATCH_FUNCTIONS', {
-            'advocate_ideas_batch': timed_operation,
-            'criticize_ideas_batch': timed_operation
-        }):
+
+        try:
+            # Patch WorkflowOrchestrator batch functions
+            src.madspark.core.workflow_orchestrator.advocate_ideas_batch = timed_operation
+            src.madspark.core.workflow_orchestrator.criticize_ideas_batch = timed_operation
+
             # Measure parallel execution time
             start = time.time()
             await coordinator.process_candidates_parallel_advocacy_skepticism(
@@ -277,11 +283,15 @@ class TestPerformanceImprovement:
                 0.5
             )
             parallel_time = time.time() - start
-            
+
             # If operations ran in parallel, should take ~0.1s
             # If sequential, would take ~0.2s
             # Allow some overhead
             assert parallel_time < 0.15, f"Parallel execution took {parallel_time}s, should be < 0.15s"
+        finally:
+            # Restore originals
+            src.madspark.core.workflow_orchestrator.advocate_ideas_batch = original_advocacy
+            src.madspark.core.workflow_orchestrator.criticize_ideas_batch = original_skepticism
 
 
 class TestErrorHandlingInParallel:

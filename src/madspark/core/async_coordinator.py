@@ -271,6 +271,7 @@ class AsyncCoordinator(BatchOperationsBase):
         topic: str,
         context: str,
         temperature: float,
+        orchestrator: Optional["WorkflowOrchestrator"] = None,
     ) -> List[EvaluatedIdea]:
         """Process all candidates with batch advocacy in a single API call.
 
@@ -281,19 +282,20 @@ class AsyncCoordinator(BatchOperationsBase):
             topic: Overall topic for the ideas
             context: Additional constraints or criteria
             temperature: Generation temperature (unused, orchestrator manages temperatures)
+            orchestrator: WorkflowOrchestrator instance to use
 
         Returns:
             Updated candidates with advocacy data
         """
         try:
-            # Phase 3.2c: Use WorkflowOrchestrator for centralized workflow logic
-            from .workflow_orchestrator import WorkflowOrchestrator
-
-            orchestrator = WorkflowOrchestrator(
-                temperature_manager=None,  # Uses internal defaults
-                reasoning_engine=None,
-                verbose=False,
-            )
+            # Phase 3.2c: Use provided or create WorkflowOrchestrator instance
+            if orchestrator is None:
+                from .workflow_orchestrator import WorkflowOrchestrator
+                orchestrator = WorkflowOrchestrator(
+                    temperature_manager=None,
+                    reasoning_engine=None,
+                    verbose=False,
+                )
 
             updated_candidates, _ = await orchestrator.process_advocacy_async(
                 candidates=candidates, topic=topic, context=context
@@ -314,20 +316,21 @@ class AsyncCoordinator(BatchOperationsBase):
         topic: str,
         context: str,
         temperature: float,
+        orchestrator: Optional["WorkflowOrchestrator"] = None,
     ) -> List[EvaluatedIdea]:
         """Process all candidates with batch skepticism in a single API call.
 
         Phase 3.2c: Delegates to WorkflowOrchestrator.process_skepticism_async()
         """
         try:
-            # Phase 3.2c: Use WorkflowOrchestrator for centralized workflow logic
-            from .workflow_orchestrator import WorkflowOrchestrator
-
-            orchestrator = WorkflowOrchestrator(
-                temperature_manager=None,  # Uses internal defaults
-                reasoning_engine=None,
-                verbose=False,
-            )
+            # Phase 3.2c: Use provided or create WorkflowOrchestrator instance
+            if orchestrator is None:
+                from .workflow_orchestrator import WorkflowOrchestrator
+                orchestrator = WorkflowOrchestrator(
+                    temperature_manager=None,
+                    reasoning_engine=None,
+                    verbose=False,
+                )
 
             updated_candidates, _ = await orchestrator.process_skepticism_async(
                 candidates=candidates, topic=topic, context=context
@@ -348,20 +351,21 @@ class AsyncCoordinator(BatchOperationsBase):
         topic: str,
         context: str,
         temperature: float,
+        orchestrator: Optional["WorkflowOrchestrator"] = None,
     ) -> List[EvaluatedIdea]:
         """Process all candidates with batch improvement in a single API call.
 
         Phase 3.2c: Delegates to WorkflowOrchestrator.improve_ideas_async()
         """
         try:
-            # Phase 3.2c: Use WorkflowOrchestrator for centralized workflow logic
-            from .workflow_orchestrator import WorkflowOrchestrator
-
-            orchestrator = WorkflowOrchestrator(
-                temperature_manager=None,  # Uses internal defaults
-                reasoning_engine=None,
-                verbose=False,
-            )
+            # Phase 3.2c: Use provided or create WorkflowOrchestrator instance
+            if orchestrator is None:
+                from .workflow_orchestrator import WorkflowOrchestrator
+                orchestrator = WorkflowOrchestrator(
+                    temperature_manager=None,
+                    reasoning_engine=None,
+                    verbose=False,
+                )
 
             updated_candidates, _ = await orchestrator.improve_ideas_async(
                 candidates=candidates, topic=topic, context=context
@@ -383,6 +387,7 @@ class AsyncCoordinator(BatchOperationsBase):
         context: str,
         advocacy_temp: float,
         skepticism_temp: float,
+        orchestrator: Optional["WorkflowOrchestrator"] = None,
         timeout: float = 60,
     ) -> List[EvaluatedIdea]:
         """Process advocacy and skepticism in parallel for better performance.
@@ -393,6 +398,7 @@ class AsyncCoordinator(BatchOperationsBase):
             context: Additional constraints or criteria
             advocacy_temp: Temperature for advocacy
             skepticism_temp: Temperature for skepticism
+            orchestrator: WorkflowOrchestrator instance to use
             timeout: Timeout for parallel operations
 
         Returns:
@@ -405,6 +411,7 @@ class AsyncCoordinator(BatchOperationsBase):
                 topic,
                 context,
                 advocacy_temp,
+                orchestrator,
             )
         )
 
@@ -414,6 +421,7 @@ class AsyncCoordinator(BatchOperationsBase):
                 topic,
                 context,
                 skepticism_temp,
+                orchestrator,
             )
         )
 
@@ -936,6 +944,7 @@ class AsyncCoordinator(BatchOperationsBase):
                 multi_dimensional_eval,
                 engine,
                 enhanced_reasoning,
+                orchestrator,
             )
 
             await self._send_progress("Workflow completed successfully!", 1.0)
@@ -989,6 +998,7 @@ class AsyncCoordinator(BatchOperationsBase):
         multi_dimensional_eval: bool = False,
         reasoning_engine=None,
         enhanced_reasoning: bool = False,
+        orchestrator: Optional["WorkflowOrchestrator"] = None,
     ) -> List[CandidateData]:
         """Process top candidates with batch operations for efficiency.
 
@@ -1003,7 +1013,7 @@ class AsyncCoordinator(BatchOperationsBase):
                 "Running parallel advocacy and skepticism analysis...", 0.72
             )
             candidates = await self.process_candidates_parallel_advocacy_skepticism(
-                candidates, topic, context, advocacy_temp, skepticism_temp
+                candidates, topic, context, advocacy_temp, skepticism_temp, orchestrator
             )
         else:
             # Don't include advocacy/skepticism fields when enhanced reasoning is disabled
@@ -1013,22 +1023,14 @@ class AsyncCoordinator(BatchOperationsBase):
         # Step 2: Batch Improvement Processing (depends on advocacy/skepticism)
         await self._send_progress("Running batch idea improvement...", 0.78)
         candidates = await self._process_candidates_with_batch_improvement(
-            candidates, topic, context, idea_temp
+            candidates, topic, context, idea_temp, orchestrator
         )
 
         # Step 4: Batch Re-evaluation - Phase 3.2c: Using WorkflowOrchestrator
         await self._send_progress("Running batch re-evaluation...", 0.82)
 
         try:
-            # Phase 3.2c: Use WorkflowOrchestrator for centralized workflow logic
-            from .workflow_orchestrator import WorkflowOrchestrator
-
-            orchestrator = WorkflowOrchestrator(
-                temperature_manager=None,  # Uses internal defaults
-                reasoning_engine=None,
-                verbose=False,
-            )
-
+            # Phase 3.2c: Use provided WorkflowOrchestrator instance
             # Delegate re-evaluation to orchestrator
             updated_candidates, _ = await orchestrator.reevaluate_ideas_async(
                 candidates=candidates,
@@ -1057,15 +1059,7 @@ class AsyncCoordinator(BatchOperationsBase):
         # Step 5: Build final candidate data - Phase 3.2c: Using WorkflowOrchestrator
         await self._send_progress("Building final results...", 0.88)
 
-        # Phase 3.2c: Use WorkflowOrchestrator for centralized results building
-        from .workflow_orchestrator import WorkflowOrchestrator
-
-        orchestrator = WorkflowOrchestrator(
-            temperature_manager=None,  # Uses internal defaults
-            reasoning_engine=None,
-            verbose=False,
-        )
-
+        # Phase 3.2c: Use provided WorkflowOrchestrator instance
         # Delegate results building to orchestrator
         final_candidates = orchestrator.build_final_results(candidates)
 

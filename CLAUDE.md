@@ -467,3 +467,10 @@ export const renderContent = (content: string | ContentStructure) => {
 - **Logical Inference Integration**: Successfully integrated `logical_inference` parameter into structured output prompts when provided
 - **Test Coverage**: Added comprehensive test modules (test_parameter_standardization.py, test_reevaluation_bias.py, test_information_flow.py) for regression prevention
 - **Batch Function Compatibility**: Ensured all test mocks match expected return format of batch functions (tuple with results and token count), preventing test failures during batch operation refactoring and maintaining consistency across coordinator architectures
+
+### PR #182: Phase 3.2c AsyncCoordinator Integration (November 8, 2025)
+- **Orchestrator Injection Pattern**: Batch methods accept optional `orchestrator` parameter for dependency injection, enabling test flexibility while maintaining stateful workflow orchestrator
+- **Lazy Instantiation Fallback**: When both `orchestrator` parameter and `self.orchestrator` are None, batch methods create temporary WorkflowOrchestrator instance, ensuring backward compatibility with existing test patterns
+- **Test Pattern Preservation**: Fixed 11 failing tests across 4 modules by restoring lazy instantiation removed in earlier commit, avoiding need to update all tests individually
+- **Workflow Delegation**: AsyncCoordinator now delegates 7 of 9 workflow steps to WorkflowOrchestrator (generation, evaluation, advocacy, skepticism, improvement, re-evaluation, results building)
+- **Async Feature Preservation**: All async-specific optimizations maintained (parallel execution with asyncio.gather, timeout handling, progress callbacks, semaphore-based concurrency)

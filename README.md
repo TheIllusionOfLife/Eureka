@@ -454,9 +454,21 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
 
 ## Session Handover
 
-### Last Updated: November 07, 2025 09:36 PM JST
+### Last Updated: November 09, 2025 12:13 AM JST
 
 ### Recently Completed
+
+- ✅ **[PR #182](https://github.com/TheIllusionOfLife/Eureka/pull/182)**: Phase 3.2c: Integrate WorkflowOrchestrator into AsyncCoordinator (November 8, 2025)
+  - **Core Achievement**: Integrated WorkflowOrchestrator into async_coordinator.py, delegating 7 of 9 workflow steps
+  - **Code Reduction**: Reduced async_coordinator.py from 1,503 to 1,373 lines (130 lines, 8.6% reduction)
+  - **Integration Pattern**: Orchestrator injection pattern with lazy instantiation fallback for test compatibility
+  - **Workflow Steps Migrated**: Idea generation, evaluation, batch advocacy, skepticism, improvement, re-evaluation, results building
+  - **Async Features Preserved**: Parallel execution (asyncio.gather), timeout handling, progress callbacks, semaphore-based concurrency
+  - **Testing**: Created test_async_orchestrator_integration.py with 9 integration tests, all passing
+  - **CI Fix**: Fixed 11 failing tests by restoring lazy instantiation fallback in batch methods
+  - **Architecture**: WorkflowOrchestrator now used by both coordinator_batch.py (PR #181) and async_coordinator.py (PR #182)
+  - **Remaining**: Single candidate processing pipeline (377 lines), parallel execution methods (106 lines) not yet refactored
+  - **Scope**: Phase 3.2c COMPLETE - Phase 3.3 (remaining optimizations) deferred
 
 - ✅ **[PR #178](https://github.com/TheIllusionOfLife/Eureka/pull/178)**: Phase 3.1: Create WorkflowOrchestrator (November 7, 2025)
   - **TDD Implementation**: Followed test-driven development - wrote 21 comprehensive tests BEFORE implementation
@@ -486,18 +498,19 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
 
 #### Next Priority Tasks
 
-1. **[Phase 3.2] Coordinator Integration - Use WorkflowOrchestrator**
-   - **Source**: [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) Phase 3.2 section
-   - **Context**: Integrate WorkflowOrchestrator into coordinator_batch.py and async_coordinator.py
-   - **Completed**: Phase 3.1 - WorkflowOrchestrator created (PR #178) ✅
-   - **Remaining**: 
-     - Update coordinator_batch.py to replace `_run_workflow_internal` (4-6 hours)
-     - Update async_coordinator.py, remove 333-line legacy `_process_single_candidate` (6-8 hours)
-     - Full integration testing with real API (4-6 hours)
-     - Add multi-dimensional evaluation support to orchestrator
-     - Add logical inference support to orchestrator
-   - **Estimate**: 14-20 hours (High priority - completes refactoring initiative)
-   - **Expected Impact**: ~600 line reduction, centralized workflow logic, easier testing
+1. **[OPTIONAL - Phase 3.3] Complete AsyncCoordinator Refactoring**
+   - **Source**: Phase 3.2c completion (PR #182) - Optional optimization
+   - **Context**: 483 lines remain un-refactored in async_coordinator.py (single candidate pipeline: 377 lines, parallel execution methods: 106 lines)
+   - **Completed**:
+     - ✅ Phase 3.1 - WorkflowOrchestrator created (PR #178)
+     - ✅ Phase 3.2b - coordinator_batch.py integration (PR #181)
+     - ✅ Phase 3.2c - async_coordinator.py batch workflow integration (PR #182)
+   - **Remaining**:
+     - Refactor single candidate processing pipeline (377 lines) - wrap in list, call batch methods
+     - Refactor parallel execution methods (106 lines) - ensure orchestrator methods called in parallel
+   - **Decision Point**: Current state is fully functional with 8.6% code reduction achieved; further refactoring optional
+   - **Estimate**: 6-8 hours for comprehensive completion
+   - **Expected Impact**: Additional ~200 line reduction, but diminishing returns on maintainability
 
 2. **[Phase 3] Core Module Type Hints**
    - **Source**: refactoring_plan_20251106.md Phase 3.3
@@ -529,6 +542,25 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
 - **Root Cause**: Malformed JSON response from Gemini API during batch advocate operations
 
 #### Session Learnings
+
+##### From PR #182 (Phase 3.2c: AsyncCoordinator Integration)
+
+###### Orchestrator Injection with Lazy Fallback Pattern
+- **Discovery**: Batch methods need flexibility for both production (stateful orchestrator) and testing (injected mock)
+- **Pattern**: Accept optional `orchestrator` parameter with lazy instantiation fallback when both parameter and `self.orchestrator` are None
+- **Benefit**: Enables test flexibility (inject mocks) while maintaining production pattern (use self.orchestrator) and backward compatibility (lazy fallback)
+- **Implementation**: `orch = orchestrator if orchestrator is not None else self.orchestrator; if orch is None: orch = WorkflowOrchestrator(...)`
+
+###### Test Pattern Preservation Over Mass Updates
+- **Discovery**: Restoring lazy instantiation fixed 11 failing tests across 4 modules without updating any test code
+- **Decision**: Preserve existing test patterns rather than forcing orchestrator injection updates across entire test suite
+- **Tradeoff**: Slight code complexity (lazy fallback logic) vs. massive test churn (update 11+ tests)
+- **Outcome**: Backward compatibility maintained, tests pass immediately, future tests can use either pattern
+
+###### Systematic CI Fix Protocol
+- **Pattern**: When CI fails, systematically analyze root cause before applying fixes
+- **Steps**: (1) Extract error messages from CI logs, (2) Identify common pattern across failures, (3) Root cause analysis, (4) Apply targeted fix, (5) Verify locally
+- **Example**: 11 test failures all showed `RuntimeError: WorkflowOrchestrator not initialized` → Root cause: removed lazy instantiation in commit 66617f2a → Fix: restore fallback → All tests pass
 
 ##### From PR #178 (Phase 3.1: WorkflowOrchestrator)
 

@@ -10,6 +10,7 @@ This test suite ensures that:
 import json
 import pytest
 from unittest.mock import Mock, patch
+from src.madspark.core.workflow_orchestrator import WorkflowOrchestrator
 
 # Test data
 TEST_TOPIC = "renewable energy solutions"
@@ -204,27 +205,32 @@ class TestCoordinatorInformationFlow:
     async def test_async_coordinator_passes_context_to_improvement(self):
         """Test that async coordinator passes context to improvement via orchestrator (Phase 3.2c)."""
         from src.madspark.core.async_coordinator import AsyncCoordinator
-        from unittest.mock import AsyncMock
+        import src.madspark.core.workflow_orchestrator
 
         coordinator = AsyncCoordinator()
 
-        # Phase 3.2c: Mock orchestrator method to verify context passing
+        # Phase 3.2c: Mock the batch function in workflow_orchestrator's namespace
         context_received = None
 
-        def mock_improvement_side_effect(candidates, topic, context):
+        # Save the original function
+        original_func = src.madspark.core.workflow_orchestrator.improve_ideas_batch
+
+        def mock_improvement_batch(candidates, topic, context, temperature):
             nonlocal context_received
             context_received = context
+            # Return results in expected format
+            results = []
             for candidate in candidates:
-                candidate["improved_idea"] = (
-                    "Enhanced idea with clear implementation plan"
-                )
-            return (candidates, 50)
+                results.append({
+                    "improved_idea": "Enhanced idea with clear implementation plan",
+                    "key_improvements": ["improvement 1"]
+                })
+            return (results, 50)
 
-        # Phase 3.2c: Patch orchestrator method instead of BATCH_FUNCTIONS
-        with patch(
-            "madspark.core.workflow_orchestrator.WorkflowOrchestrator.improve_ideas_async",
-            new=AsyncMock(side_effect=mock_improvement_side_effect),
-        ):
+        try:
+            # Directly replace the module attribute
+            src.madspark.core.workflow_orchestrator.improve_ideas_batch = mock_improvement_batch
+
             # Create test candidates
             test_candidates = [
                 {
@@ -243,8 +249,11 @@ class TestCoordinatorInformationFlow:
                 0.9,  # Temperature
             )
 
-            # Verify context was passed to orchestrator
+            # Verify context was passed to batch function
             assert context_received == TEST_CONTEXT
+        finally:
+            # Restore the original function
+            src.madspark.core.workflow_orchestrator.improve_ideas_batch = original_func
 
 
 class TestIntegrationWithLogicalInference:

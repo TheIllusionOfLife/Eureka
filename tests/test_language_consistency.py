@@ -125,7 +125,7 @@ class TestLanguageConsistency:
         mock_get_model.return_value = "gemini-1.5-flash"
         mock_client = Mock()
         mock_response = Mock()
-        mock_response.text = "7"
+        mock_response.text = '{"score": 7, "reasoning": "Good"}'
         mock_client.models.generate_content.return_value = mock_response
         
         evaluator = MultiDimensionalEvaluator(genai_client=mock_client)

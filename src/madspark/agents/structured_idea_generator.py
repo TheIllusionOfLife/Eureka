@@ -5,9 +5,11 @@ capabilities to ensure clean, meta-commentary-free responses.
 """
 import json
 import logging
-from typing import Any, Optional
+from pathlib import Path
+from typing import Any, Optional, List, Union
 
 from ..utils.constants import DEFAULT_GOOGLE_GENAI_MODEL
+from ..utils.multimodal_input import MultiModalInput
 
 # Optional import for Google GenAI - graceful fallback for CI/testing
 try:
@@ -50,13 +52,15 @@ def improve_idea_structured(
     logical_inference: Optional[str] = None,
     temperature: float = 0.9,
     genai_client: Optional[Any] = None,
-    model_name: str = DEFAULT_GOOGLE_GENAI_MODEL
+    model_name: str = DEFAULT_GOOGLE_GENAI_MODEL,
+    multimodal_files: Optional[List[Union[str, Path]]] = None,
+    multimodal_urls: Optional[List[str]] = None
 ) -> str:
     """Improves an idea using structured output for clean responses.
-    
+
     This function uses Gemini's structured output capabilities to ensure
     the response contains only the improved idea without meta-commentary.
-    
+
     Args:
         original_idea: The original idea to improve
         critique: The critic's evaluation
@@ -86,7 +90,7 @@ def improve_idea_structured(
     _validate_non_empty_string(context, 'context')
     
     # Build focused prompt
-    prompt = f"""Topic: {topic}
+    text_prompt = f"""Topic: {topic}
 Context: {context}
 
 Original Idea: {original_idea}
@@ -96,12 +100,12 @@ Professional Evaluation: {critique}
 Key Strengths: {advocacy_points}
 
 Critical Concerns: {skeptic_points}"""
-    
+
     # Add logical inference if provided
     if logical_inference:
-        prompt += f"\n\nLogical Analysis: {logical_inference}"
-    
-    prompt += """
+        text_prompt += f"\n\nLogical Analysis: {logical_inference}"
+
+    text_prompt += """
 
 Task: Generate an improved version that:
 1. Addresses ALL evaluation criteria
@@ -110,6 +114,14 @@ Task: Generate an improved version that:
 4. Remains bold and creative
 
 Write ONLY the improved idea. No introductions, no meta-commentary."""
+
+    # Process multi-modal inputs if provided
+    mm_processor = MultiModalInput()
+    contents = mm_processor.build_multimodal_prompt(
+        text_prompt=text_prompt,
+        files=multimodal_files,
+        urls=multimodal_urls
+    )
     
     if not GENAI_AVAILABLE or genai_client is None:
         # Mock response for testing
@@ -123,10 +135,10 @@ Write ONLY the improved idea. No introductions, no meta-commentary."""
             response_mime_type="application/json",
             response_schema=IMPROVEMENT_RESPONSE_SCHEMA
         )
-        
+
         response = genai_client.models.generate_content(
             model=model_name,
-            contents=prompt,
+            contents=contents,
             config=config
         )
         

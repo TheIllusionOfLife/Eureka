@@ -6,11 +6,13 @@ and contextual information.
 """
 import json
 import logging
-from typing import Any, List, Dict, Tuple, Optional
+from pathlib import Path
+from typing import Any, List, Dict, Tuple, Optional, Union
 
 from madspark.utils.utils import parse_batch_json_with_fallback
 from madspark.utils.batch_exceptions import BatchParsingError
 from madspark.utils.content_safety import GeminiSafetyHandler
+from madspark.utils.multimodal_input import MultiModalInput
 
 # Set up logger
 logger = logging.getLogger(__name__)
@@ -138,7 +140,14 @@ else:
     model_name = "mock-model"
 
 
-def generate_ideas(topic: str, context: str, temperature: float = 0.9, use_structured_output: bool = True) -> str:
+def generate_ideas(
+    topic: str,
+    context: str,
+    temperature: float = 0.9,
+    use_structured_output: bool = True,
+    multimodal_files: Optional[List[Union[str, Path]]] = None,
+    multimodal_urls: Optional[List[str]] = None
+) -> str:
   """Generates ideas based on a topic and context using the idea generator model.
 
   Args:
@@ -146,18 +155,30 @@ def generate_ideas(topic: str, context: str, temperature: float = 0.9, use_struc
     context: Supporting context, constraints, or inspiration for the ideas.
     temperature: Controls randomness in generation (0.0-1.0). Higher values increase creativity.
     use_structured_output: Whether to use structured JSON output (default: True)
+    multimodal_files: Optional list of file paths (images, PDFs, documents) for context.
+    multimodal_urls: Optional list of URLs for context.
 
   Returns:
     A string containing the generated ideas. If use_structured_output is True,
     returns JSON string. Otherwise, returns newline-separated text.
     Returns an empty string if the model provides no content.
   Raises:
-    ValueError: If topic or context are empty or invalid.
+    ValueError: If topic or context are empty or invalid, or if file/URL validation fails.
+    FileNotFoundError: If specified file doesn't exist.
   """
   _validate_non_empty_string(topic, 'topic')
   _validate_non_empty_string(context, 'context')
 
-  prompt: str = build_generation_prompt(topic=topic, context=context, use_structured_output=use_structured_output)
+  # Build base text prompt
+  text_prompt: str = build_generation_prompt(topic=topic, context=context, use_structured_output=use_structured_output)
+
+  # Process multi-modal inputs if provided
+  mm_processor = MultiModalInput()
+  contents = mm_processor.build_multimodal_prompt(
+      text_prompt=text_prompt,
+      files=multimodal_files,
+      urls=multimodal_urls
+  )
   
   if not GENAI_AVAILABLE or idea_generator_client is None:
     # Return mock response for CI/testing environments or when API key is not configured
@@ -217,10 +238,10 @@ def generate_ideas(topic: str, context: str, temperature: float = 0.9, use_struc
             temperature=temperature,
             system_instruction=SYSTEM_INSTRUCTION
         )
-    
+
     response = idea_generator_client.models.generate_content(
         model=model_name,
-        contents=prompt,
+        contents=contents,
         config=config
     )
     agent_response = response.text if response.text else ""
@@ -344,13 +365,15 @@ def improve_idea(
     topic: str,
     context: str,
     logical_inference: Optional[str] = None,
-    temperature: float = 0.9
+    temperature: float = 0.9,
+    multimodal_files: Optional[List[Union[str, Path]]] = None,
+    multimodal_urls: Optional[List[str]] = None
 ) -> str:
   """Improves an idea based on feedback from multiple agents.
-  
+
   This function now uses structured output to ensure clean responses
   without meta-commentary.
-  
+
   Args:
     original_idea: The original idea to improve.
     critique: The critic's evaluation.
@@ -359,9 +382,11 @@ def improve_idea(
     topic: The main topic/theme for the idea.
     context: The constraints or additional context for improvement.
     logical_inference: Optional logical analysis results to inform improvement.
-    temperature: Controls randomness in generation (0.0-1.0). 
+    temperature: Controls randomness in generation (0.0-1.0).
                  Default 0.9 to maintain creativity.
-    
+    multimodal_files: Optional list of file paths (images, PDFs, documents) for context.
+    multimodal_urls: Optional list of URLs for context.
+
   Returns:
     An improved version of the idea that addresses feedback.
     Returns a fallback improvement if the model provides no content or is filtered.
@@ -384,7 +409,9 @@ def improve_idea(
         logical_inference=logical_inference,
         temperature=temperature,
         genai_client=idea_generator_client,
-        model_name=model_name
+        model_name=model_name,
+        multimodal_files=multimodal_files,
+        multimodal_urls=multimodal_urls
     )
   except (ImportError, Exception) as e:
     # Fall back to original implementation on any error
@@ -402,8 +429,9 @@ def improve_idea(
   _validate_non_empty_string(skeptic_points, 'skeptic_points')
   _validate_non_empty_string(topic, 'topic')
   _validate_non_empty_string(context, 'context')
-  
-  prompt: str = build_improvement_prompt(
+
+  # Build base text prompt
+  text_prompt: str = build_improvement_prompt(
       original_idea=original_idea,
       critique=critique,
       advocacy_points=advocacy_points,
@@ -411,6 +439,14 @@ def improve_idea(
       topic=topic,
       context=context,
       logical_inference=logical_inference
+  )
+
+  # Process multi-modal inputs if provided
+  mm_processor = MultiModalInput()
+  contents = mm_processor.build_multimodal_prompt(
+      text_prompt=text_prompt,
+      files=multimodal_files,
+      urls=multimodal_urls
   )
   
   if not GENAI_AVAILABLE or idea_generator_client is None:
@@ -424,10 +460,10 @@ def improve_idea(
         system_instruction=SYSTEM_INSTRUCTION,
         safety_settings=_IMPROVER_SAFETY_SETTINGS
     )
-    
+
     response = idea_generator_client.models.generate_content(
         model=model_name,
-        contents=prompt,
+        contents=contents,
         config=config
     )
     

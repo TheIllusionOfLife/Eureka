@@ -15,11 +15,15 @@ from dataclasses import dataclass, field
 from collections import defaultdict
 import re
 
-# Import the new LogicalInferenceEngine
+# Third-party imports
+from google.genai import types
+
+# Local imports
 from ..utils.logical_inference_engine import (
     LogicalInferenceEngine,
     InferenceType
 )
+from ..agents.response_schemas import DIMENSION_SCORE_SCHEMA
 
 # Configure logging for enhanced reasoning
 reasoning_logger = logging.getLogger(__name__)
@@ -788,10 +792,6 @@ Respond with only the numeric score (e.g., "6")."""
             from ..agents.genai_client import get_model_name
         
         # Use structured output for reliable score extraction
-        from google.genai import types
-        from madspark.agents.response_schemas import DIMENSION_SCORE_SCHEMA
-        import json
-
         api_config = types.GenerateContentConfig(
             temperature=0.0,  # Deterministic for evaluation
             response_mime_type="application/json",

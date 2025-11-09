@@ -5,10 +5,14 @@ This module provides LLM-based logical inference capabilities to replace
 the hardcoded templates with genuine logical analysis.
 """
 import logging
+import json
 from enum import Enum
 from typing import Dict, Any, List, Optional, Union
 from dataclasses import dataclass, field
 import re
+
+# Third-party imports
+from google import genai
 
 logger = logging.getLogger(__name__)
 
@@ -123,8 +127,6 @@ class LogicalInferenceEngine:
                 CONTRADICTION_ANALYSIS_SCHEMA,
                 IMPLICATIONS_ANALYSIS_SCHEMA
             )
-            from google import genai
-            import json
 
             # Get schema for analysis type
             schema_map = {

@@ -8,7 +8,8 @@ Features specialized agents for idea generation, criticism, advocacy, and skepti
 ## 🚀 Key Features
 
 - **🧠 Multi-Agent System**: IdeaGenerator, Critic, Advocate, and Skeptic agents
-- **🎯 Structured Output**: Google Gemini's structured JSON output for clean, consistent formatting (NEW!)
+- **🎯 Structured Output**: Google Gemini's structured JSON output for clean, consistent formatting
+- **🖼️ Multi-Modal Input**: Support for images, PDFs, documents, and URLs as context (NEW!)
 - **🚀 Batch API Optimization**: 50% fewer API calls with 45% cost savings through intelligent batching
 - **📊 Real-time Monitoring**: Comprehensive token usage and cost tracking with detailed analytics
 - **🔗 Feedback Loop**: Ideas are improved based on agent insights with score comparison
@@ -109,7 +110,56 @@ ms "quick idea" --timeout 60 --async   # 1 minute timeout (async mode enforces t
 
 # Combined options
 ms "create a new game concept as a game director" "implementable within a month, solo" --top-ideas 5 --temperature-preset creative --enhanced --logical --enable-cache --detailed
+```
 
+### Multi-Modal Input (NEW!)
+
+Enhance your idea generation with visual and document context:
+
+```bash
+# NOTE: Multi-modal features are currently available via Python API only.
+# CLI support coming soon!
+
+# Python API examples:
+python << 'EOF'
+from madspark.agents.idea_generator import generate_ideas
+
+# Generate ideas with image context
+ideas = generate_ideas(
+    topic="UI/UX improvements",
+    context="Mobile app redesign",
+    multimodal_files=["mockup.png"]
+)
+
+# Analyze PDFs for insights
+ideas = generate_ideas(
+    topic="Market strategy",
+    context="Competitive analysis",
+    multimodal_files=["report.pdf"]
+)
+
+# Reference competitor websites
+ideas = generate_ideas(
+    topic="Feature roadmap",
+    context="E-commerce platform",
+    multimodal_urls=["https://competitor.com"]
+)
+
+# Mix files and URLs
+ideas = generate_ideas(
+    topic="Design system",
+    context="Best practices",
+    multimodal_files=["current_design.png"],
+    multimodal_urls=["https://dribbble.com/shots/..."]
+)
+EOF
+```
+
+**📖 See [Multi-Modal Guide](docs/MULTIMODAL_GUIDE.md) for comprehensive documentation, examples, and best practices.**
+
+### Standard CLI Usage
+
+```bash
 # Run the coordinator - full multi-agent analysis system
 # Orchestrates IdeaGenerator, Critic, Advocate, and Skeptic agents
 ms coordinator

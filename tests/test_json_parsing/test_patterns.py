@@ -119,6 +119,34 @@ class TestObjectExtractionPatterns:
         # The pattern should at least match one of the nested objects
         assert '{' in matched_text and '}' in matched_text
 
+    def test_find_nested_object_function_exists(self):
+        """Safe wrapper function for nested object pattern should exist."""
+        from madspark.utils.json_parsing.patterns import find_nested_object
+        assert callable(find_nested_object)
+
+    def test_find_nested_object_matches_valid_input(self):
+        """Should match nested object within size limit."""
+        from madspark.utils.json_parsing.patterns import find_nested_object
+
+        text = '{"outer": {"inner": "value"}}'
+        match = find_nested_object(text)
+        assert match is not None
+        assert '{"outer": {"inner": "value"}}' in match.group(0)
+
+    def test_find_nested_object_rejects_oversized_input(self):
+        """Should raise ValueError for input exceeding 10KB."""
+        import pytest
+        from madspark.utils.json_parsing.patterns import find_nested_object, MAX_NESTED_OBJECT_INPUT_BYTES
+
+        # Create input larger than 10KB
+        oversized_text = '{"data": "' + ('x' * MAX_NESTED_OBJECT_INPUT_BYTES) + '"}'
+
+        with pytest.raises(ValueError) as exc_info:
+            find_nested_object(oversized_text)
+
+        assert "only supports inputs up to" in str(exc_info.value)
+        assert str(MAX_NESTED_OBJECT_INPUT_BYTES) in str(exc_info.value)
+
 
 class TestStringCleanupPatterns:
     """Test patterns for cleaning strings in JSON."""

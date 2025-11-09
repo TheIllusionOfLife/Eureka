@@ -41,9 +41,39 @@ JSON_OBJECT_PATTERN = re.compile(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)?\}', re.DOTALL)
 #: Extract JSON object with multiple nesting levels
 #: More comprehensive than JSON_OBJECT_PATTERN
 #: NOTE: This pattern has potential ReDoS vulnerability with nested quantifiers.
-#: If used, MUST validate input size < 10KB before matching to prevent catastrophic backtracking.
+#: Use find_nested_object() function instead of accessing pattern directly.
 #: Currently UNUSED - reserved for future nested object extraction needs.
-NESTED_OBJECT_PATTERN = re.compile(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', re.DOTALL)
+MAX_NESTED_OBJECT_INPUT_BYTES = 10_000
+_NESTED_OBJECT_PATTERN = re.compile(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', re.DOTALL)
+
+
+def find_nested_object(text: str):
+    """Safely search for a nested JSON object without risking catastrophic backtracking.
+
+    Args:
+        text: Input text to search for nested JSON object
+
+    Returns:
+        Match object if found, None otherwise
+
+    Raises:
+        ValueError: If input exceeds MAX_NESTED_OBJECT_INPUT_BYTES (10KB)
+
+    Example:
+        >>> match = find_nested_object('{"outer": {"inner": "value"}}')
+        >>> if match:
+        ...     json_str = match.group(0)
+    """
+    if len(text) > MAX_NESTED_OBJECT_INPUT_BYTES:
+        raise ValueError(
+            f"NESTED_OBJECT_PATTERN only supports inputs up to "
+            f"{MAX_NESTED_OBJECT_INPUT_BYTES} bytes; got {len(text)} bytes."
+        )
+    return _NESTED_OBJECT_PATTERN.search(text)
+
+
+# Export for backward compatibility, but users should call find_nested_object()
+NESTED_OBJECT_PATTERN = _NESTED_OBJECT_PATTERN
 
 
 # ============================================================================

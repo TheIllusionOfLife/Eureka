@@ -5,6 +5,7 @@ duplicated between coordinator.py and async_coordinator.py. This eliminates
 code duplication and provides a single source of truth for agent retry behavior.
 """
 
+from ..config.execution_constants import RetryConfig
 from .utils import exponential_backoff_retry
 from ..agents.idea_generator import generate_ideas, improve_idea
 from ..agents.critic import evaluate_ideas
@@ -14,37 +15,52 @@ from ..agents.skeptic import criticize_idea
 
 class AgentRetryWrapper:
     """Centralized retry wrappers for all agent functions.
-    
+
     This class provides retry-enabled versions of all agent functions
-    with consistent retry configuration (max_retries=3, initial_delay=2.0).
+    with retry configuration from RetryConfig.
     """
-    
+
     @staticmethod
-    @exponential_backoff_retry(max_retries=3, initial_delay=2.0)
+    @exponential_backoff_retry(
+        max_retries=RetryConfig.IDEA_GENERATOR_MAX_RETRIES,
+        initial_delay=RetryConfig.IDEA_GENERATOR_INITIAL_DELAY
+    )
     def idea_generator(topic: str, context: str, temperature: float = 0.9, use_structured_output: bool = True) -> str:
         """Generate ideas with retry logic."""
         return generate_ideas(topic=topic, context=context, temperature=temperature, use_structured_output=use_structured_output)
-    
+
     @staticmethod
-    @exponential_backoff_retry(max_retries=3, initial_delay=2.0)
+    @exponential_backoff_retry(
+        max_retries=RetryConfig.CRITIC_MAX_RETRIES,
+        initial_delay=RetryConfig.CRITIC_INITIAL_DELAY
+    )
     def critic(ideas: str, topic: str, context: str, temperature: float = 0.3, use_structured_output: bool = True) -> str:
         """Evaluate ideas with retry logic."""
         return evaluate_ideas(ideas=ideas, topic=topic, context=context, temperature=temperature, use_structured_output=use_structured_output)
-    
+
     @staticmethod
-    @exponential_backoff_retry(max_retries=2, initial_delay=1.0)
+    @exponential_backoff_retry(
+        max_retries=RetryConfig.ADVOCATE_MAX_RETRIES,
+        initial_delay=RetryConfig.ADVOCATE_INITIAL_DELAY
+    )
     def advocate(idea: str, evaluation: str, topic: str, context: str, temperature: float = 0.5, use_structured_output: bool = True) -> str:
         """Advocate for an idea with retry logic."""
         return advocate_idea(idea=idea, evaluation=evaluation, topic=topic, context=context, temperature=temperature, use_structured_output=use_structured_output)
-    
+
     @staticmethod
-    @exponential_backoff_retry(max_retries=2, initial_delay=1.0)
+    @exponential_backoff_retry(
+        max_retries=RetryConfig.SKEPTIC_MAX_RETRIES,
+        initial_delay=RetryConfig.SKEPTIC_INITIAL_DELAY
+    )
     def skeptic(idea: str, advocacy: str, topic: str, context: str, temperature: float = 0.5, use_structured_output: bool = True) -> str:
         """Provide skeptical analysis with retry logic."""
         return criticize_idea(idea=idea, advocacy=advocacy, topic=topic, context=context, temperature=temperature, use_structured_output=use_structured_output)
-    
+
     @staticmethod
-    @exponential_backoff_retry(max_retries=3, initial_delay=2.0)
+    @exponential_backoff_retry(
+        max_retries=RetryConfig.IMPROVEMENT_MAX_RETRIES,
+        initial_delay=RetryConfig.IMPROVEMENT_INITIAL_DELAY
+    )
     def improve_idea_agent(original_idea: str, critique: str, advocacy_points: str, skeptic_points: str, topic: str, context: str, temperature: float = 0.9) -> str:
         """Improve an idea based on feedback with retry logic."""
         # Note: improve_idea automatically handles structured output internally

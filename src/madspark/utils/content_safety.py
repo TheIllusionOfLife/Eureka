@@ -117,19 +117,19 @@ class GeminiSafetyHandler:
             return [
                 types.SafetySetting(
                     category="HARM_CATEGORY_HARASSMENT",
-                    threshold="BLOCK_ONLY_HIGH"
+                    threshold=ContentSafetyConfig.SAFETY_THRESHOLD
                 ),
                 types.SafetySetting(
                     category="HARM_CATEGORY_HATE_SPEECH",
-                    threshold="BLOCK_ONLY_HIGH"
+                    threshold=ContentSafetyConfig.SAFETY_THRESHOLD
                 ),
                 types.SafetySetting(
                     category="HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                    threshold="BLOCK_ONLY_HIGH"
+                    threshold=ContentSafetyConfig.SAFETY_THRESHOLD
                 ),
                 types.SafetySetting(
                     category="HARM_CATEGORY_DANGEROUS_CONTENT",
-                    threshold="BLOCK_ONLY_HIGH"
+                    threshold=ContentSafetyConfig.SAFETY_THRESHOLD
                 )
             ]
         except ImportError:

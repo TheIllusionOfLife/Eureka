@@ -8,6 +8,7 @@ import json
 import logging
 from typing import Any, List, Dict, Tuple, Optional
 
+from madspark.config.execution_constants import ContentSafetyConfig
 from madspark.utils.utils import parse_batch_json_with_fallback
 from madspark.utils.batch_exceptions import BatchParsingError
 
@@ -44,19 +45,19 @@ if GENAI_AVAILABLE and types:
     _IMPROVER_SAFETY_SETTINGS = [
         types.SafetySetting(
             category="HARM_CATEGORY_HARASSMENT",
-            threshold="BLOCK_ONLY_HIGH"
+            threshold=ContentSafetyConfig.SAFETY_THRESHOLD
         ),
         types.SafetySetting(
             category="HARM_CATEGORY_HATE_SPEECH", 
-            threshold="BLOCK_ONLY_HIGH"
+            threshold=ContentSafetyConfig.SAFETY_THRESHOLD
         ),
         types.SafetySetting(
             category="HARM_CATEGORY_SEXUALLY_EXPLICIT",
-            threshold="BLOCK_ONLY_HIGH"
+            threshold=ContentSafetyConfig.SAFETY_THRESHOLD
         ),
         types.SafetySetting(
             category="HARM_CATEGORY_DANGEROUS_CONTENT",
-            threshold="BLOCK_ONLY_HIGH"
+            threshold=ContentSafetyConfig.SAFETY_THRESHOLD
         )
     ]
 else:

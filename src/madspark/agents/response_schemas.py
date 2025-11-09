@@ -486,3 +486,177 @@ DIMENSION_SCORE_SCHEMA = {
     },
     "required": ["score"]
 }
+
+
+# Schemas for Logical Inference Engine
+
+# Schema for Full Analysis
+FULL_ANALYSIS_SCHEMA = {
+    "type": "OBJECT",
+    "properties": {
+        "inference_chain": {
+            "type": "ARRAY",
+            "items": {"type": "STRING"},
+            "description": "Step-by-step logical reasoning chain"
+        },
+        "conclusion": {
+            "type": "STRING",
+            "description": "Final logical conclusion"
+        },
+        "confidence": {
+            "type": "NUMBER",
+            "description": "Confidence score from 0.0 to 1.0"
+        },
+        "improvements": {
+            "type": "STRING",
+            "description": "Suggested improvements based on logical analysis",
+            "nullable": True
+        }
+    },
+    "required": ["inference_chain", "conclusion", "confidence"]
+}
+
+# Schema for Causal Analysis
+CAUSAL_ANALYSIS_SCHEMA = {
+    "type": "OBJECT",
+    "properties": {
+        "causal_chain": {
+            "type": "ARRAY",
+            "items": {"type": "STRING"},
+            "description": "Chain of cause and effect relationships"
+        },
+        "feedback_loops": {
+            "type": "ARRAY",
+            "items": {"type": "STRING"},
+            "description": "Identified feedback loops in the system",
+            "nullable": True
+        },
+        "root_cause": {
+            "type": "STRING",
+            "description": "Primary root cause identified",
+            "nullable": True
+        },
+        "conclusion": {
+            "type": "STRING",
+            "description": "Conclusion about causal relationships"
+        },
+        "confidence": {
+            "type": "NUMBER",
+            "description": "Confidence score from 0.0 to 1.0"
+        }
+    },
+    "required": ["causal_chain", "conclusion", "confidence"]
+}
+
+# Schema for Constraint Satisfaction Analysis
+CONSTRAINT_ANALYSIS_SCHEMA = {
+    "type": "OBJECT",
+    "properties": {
+        "constraint_satisfaction": {
+            "type": "OBJECT",
+            "description": "Map of constraint names to satisfaction percentages (0-100)",
+            "nullable": True
+        },
+        "overall_satisfaction": {
+            "type": "NUMBER",
+            "description": "Overall satisfaction percentage (0-100)",
+            "nullable": True
+        },
+        "trade_offs": {
+            "type": "ARRAY",
+            "items": {"type": "STRING"},
+            "description": "Identified trade-offs between constraints",
+            "nullable": True
+        },
+        "conclusion": {
+            "type": "STRING",
+            "description": "Conclusion about constraint satisfaction"
+        },
+        "confidence": {
+            "type": "NUMBER",
+            "description": "Confidence score from 0.0 to 1.0"
+        }
+    },
+    "required": ["conclusion", "confidence"]
+}
+
+# Schema for Contradiction Detection
+CONTRADICTION_ANALYSIS_SCHEMA = {
+    "type": "OBJECT",
+    "properties": {
+        "contradictions": {
+            "type": "ARRAY",
+            "items": {
+                "type": "OBJECT",
+                "properties": {
+                    "conflict": {
+                        "type": "STRING",
+                        "description": "Description of the contradiction"
+                    },
+                    "severity": {
+                        "type": "STRING",
+                        "description": "Severity level: HIGH, MEDIUM, or LOW"
+                    },
+                    "type": {
+                        "type": "STRING",
+                        "description": "Type of contradiction"
+                    },
+                    "explanation": {
+                        "type": "STRING",
+                        "description": "Detailed explanation of why this is a contradiction"
+                    }
+                },
+                "required": ["conflict", "severity"]
+            },
+            "description": "List of identified contradictions"
+        },
+        "resolution": {
+            "type": "STRING",
+            "description": "Suggested resolution for contradictions",
+            "nullable": True
+        },
+        "conclusion": {
+            "type": "STRING",
+            "description": "Conclusion about contradictions"
+        },
+        "confidence": {
+            "type": "NUMBER",
+            "description": "Confidence score from 0.0 to 1.0"
+        }
+    },
+    "required": ["contradictions", "conclusion", "confidence"]
+}
+
+# Schema for Implications Analysis
+IMPLICATIONS_ANALYSIS_SCHEMA = {
+    "type": "OBJECT",
+    "properties": {
+        "implications": {
+            "type": "ARRAY",
+            "items": {"type": "STRING"},
+            "description": "Direct implications of the idea",
+            "nullable": True
+        },
+        "second_order_effects": {
+            "type": "ARRAY",
+            "items": {"type": "STRING"},
+            "description": "Second-order effects and indirect consequences",
+            "nullable": True
+        },
+        "conclusion": {
+            "type": "STRING",
+            "description": "Conclusion about implications"
+        },
+        "confidence": {
+            "type": "NUMBER",
+            "description": "Confidence score from 0.0 to 1.0"
+        }
+    },
+    "required": ["conclusion", "confidence"]
+}
+
+# Batch schema for logical inference (array of results)
+BATCH_FULL_ANALYSIS_SCHEMA = {
+    "type": "ARRAY",
+    "items": FULL_ANALYSIS_SCHEMA
+}

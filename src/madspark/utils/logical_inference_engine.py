@@ -96,41 +96,72 @@ class LogicalInferenceEngine:
     ) -> InferenceResult:
         """
         Perform logical inference analysis on an idea.
-        
+
         Args:
             idea: The generated idea to analyze
             topic: Original topic/topic
             context: Constraints and requirements
             analysis_type: Type of analysis to perform
-            
+
         Returns:
             InferenceResult containing the analysis
         """
         # Convert string to enum if needed
         if isinstance(analysis_type, str):
             analysis_type = InferenceType(analysis_type)
-        
+
         try:
             # Get appropriate prompt
             prompt = self.prompts[analysis_type](idea, topic, context)
-            
-            # Call LLM using proper API pattern
+
+            # Call LLM using proper API pattern with structured output
             from madspark.agents.genai_client import get_model_name
+            from madspark.agents.response_schemas import (
+                FULL_ANALYSIS_SCHEMA,
+                CAUSAL_ANALYSIS_SCHEMA,
+                CONSTRAINT_ANALYSIS_SCHEMA,
+                CONTRADICTION_ANALYSIS_SCHEMA,
+                IMPLICATIONS_ANALYSIS_SCHEMA
+            )
             from google import genai
-            
-            config = genai.types.GenerateContentConfig(
+            import json
+
+            # Get schema for analysis type
+            schema_map = {
+                InferenceType.FULL: FULL_ANALYSIS_SCHEMA,
+                InferenceType.CAUSAL: CAUSAL_ANALYSIS_SCHEMA,
+                InferenceType.CONSTRAINTS: CONSTRAINT_ANALYSIS_SCHEMA,
+                InferenceType.CONTRADICTION: CONTRADICTION_ANALYSIS_SCHEMA,
+                InferenceType.IMPLICATIONS: IMPLICATIONS_ANALYSIS_SCHEMA
+            }
+            response_schema = schema_map[analysis_type]
+
+            api_config = genai.types.GenerateContentConfig(
                 temperature=0.7,  # Moderate temperature for balanced reasoning
-                system_instruction="You are a logical reasoning expert. Analyze ideas systematically and provide structured logical insights."
+                response_mime_type="application/json",
+                response_schema=response_schema,
+                system_instruction="You are a logical reasoning expert. Analyze ideas systematically and provide structured logical insights in JSON format."
             )
             response = self.genai_client.models.generate_content(
                 model=get_model_name(),
                 contents=prompt,
-                config=config
+                config=api_config
             )
-            
-            # Parse response
-            return self._parse_response(response.text, analysis_type)
-            
+
+            # Parse JSON response
+            data = json.loads(response.text)
+            return self._create_result_from_json(data, analysis_type)
+
+        except json.JSONDecodeError as e:
+            # Fallback to text parsing for backward compatibility
+            logger.warning(f"JSON parsing failed, falling back to text parsing: {e}")
+            result = self._parse_response(response.text, analysis_type)
+            # Note that we fell back to text parsing due to invalid JSON
+            if result.error is None and result.confidence > 0:
+                # Successfully parsed as text, but note the JSON failure
+                pass  # Don't set error if text parsing succeeded
+            return result
+
         except (AttributeError, KeyError, TypeError, ValueError, RuntimeError) as e:
             logger.error(f"Logical inference failed: {e}")
             return InferenceResult(
@@ -148,48 +179,76 @@ class LogicalInferenceEngine:
     ) -> List[InferenceResult]:
         """
         Perform logical inference analysis on multiple ideas in a single API call.
-        
+
         This method significantly reduces API calls from O(N) to O(1) for logical inference,
         providing substantial performance improvements for batch processing.
-        
+
         Args:
             ideas: List of generated ideas to analyze
             topic: Original topic
             context: Constraints and requirements
             analysis_type: Type of analysis to perform
-            
+
         Returns:
             List of InferenceResult objects, one for each idea
         """
         if not ideas:
             return []
-        
+
         # Convert string to enum if needed
         if isinstance(analysis_type, str):
             analysis_type = InferenceType(analysis_type)
-        
+
         try:
             # Create batch prompt for all ideas
             batch_prompt = self._get_batch_analysis_prompt(ideas, topic, context, analysis_type)
-            
-            # Call LLM using proper API pattern
+
+            # Call LLM using proper API pattern with structured output
             from madspark.agents.genai_client import get_model_name
+            from madspark.agents.response_schemas import BATCH_FULL_ANALYSIS_SCHEMA
             from google import genai
-            
-            config = genai.types.GenerateContentConfig(
+            import json
+
+            # Use batch schema (array of results)
+            api_config = genai.types.GenerateContentConfig(
                 temperature=0.7,
-                system_instruction="You are a logical reasoning expert. Analyze multiple ideas systematically and provide structured logical insights for each one."
+                response_mime_type="application/json",
+                response_schema=BATCH_FULL_ANALYSIS_SCHEMA,
+                system_instruction="You are a logical reasoning expert. Analyze multiple ideas systematically and provide structured logical insights for each one in JSON array format."
             )
-            
+
             response = self.genai_client.models.generate_content(
                 model=get_model_name(),
                 contents=batch_prompt,
-                config=config
+                config=api_config
             )
-            
-            # Parse batch response
+
+            # Parse batch JSON response
+            data = json.loads(response.text)
+            if not isinstance(data, list):
+                raise ValueError(f"Expected array response, got {type(data).__name__}")
+
+            # Convert each JSON object to InferenceResult
+            results = []
+            for item_data in data:
+                result = self._create_result_from_json(item_data, analysis_type)
+                results.append(result)
+
+            # Fill remaining slots if parsing didn't get all ideas
+            while len(results) < len(ideas):
+                results.append(InferenceResult(
+                    conclusion="Unable to parse logical analysis from batch response",
+                    confidence=0.0,
+                    error="Batch parsing incomplete"
+                ))
+
+            return results[:len(ideas)]  # Ensure we return exact number requested
+
+        except json.JSONDecodeError as e:
+            # Fallback to text parsing for backward compatibility
+            logger.warning(f"JSON batch parsing failed, falling back to text parsing: {e}")
             return self._parse_batch_response(response.text, len(ideas), analysis_type)
-            
+
         except (AttributeError, KeyError, TypeError, ValueError, RuntimeError) as e:
             logger.error(f"Batch logical inference failed: {e}")
             # Return error results for all ideas
@@ -459,7 +518,50 @@ LONG_TERM_CONSEQUENCES:
 - [Potential future states]
 
 Consider both positive and negative implications."""
-    
+
+    def _create_result_from_json(self, data: Dict[str, Any], analysis_type: InferenceType) -> InferenceResult:
+        """Create InferenceResult from JSON data (structured output).
+
+        This method replaces regex-based text parsing with direct JSON extraction.
+
+        Args:
+            data: Parsed JSON dictionary from LLM response
+            analysis_type: Type of analysis performed
+
+        Returns:
+            InferenceResult populated with data from JSON
+        """
+        result = InferenceResult()
+
+        # Extract common fields present in all analysis types
+        result.conclusion = data.get("conclusion", "")
+        result.confidence = float(data.get("confidence", 0.0))
+
+        # Extract type-specific fields based on analysis type
+        if analysis_type == InferenceType.FULL:
+            result.inference_chain = data.get("inference_chain", [])
+            result.improvements = data.get("improvements")
+
+        elif analysis_type == InferenceType.CAUSAL:
+            result.causal_chain = data.get("causal_chain", [])
+            result.feedback_loops = data.get("feedback_loops")
+            result.root_cause = data.get("root_cause")
+
+        elif analysis_type == InferenceType.CONSTRAINTS:
+            result.constraint_satisfaction = data.get("constraint_satisfaction")
+            result.overall_satisfaction = data.get("overall_satisfaction")
+            result.trade_offs = data.get("trade_offs")
+
+        elif analysis_type == InferenceType.CONTRADICTION:
+            result.contradictions = data.get("contradictions", [])
+            result.resolution = data.get("resolution")
+
+        elif analysis_type == InferenceType.IMPLICATIONS:
+            result.implications = data.get("implications")
+            result.second_order_effects = data.get("second_order_effects")
+
+        return result
+
     def _parse_response(self, response_text: str, analysis_type: InferenceType) -> InferenceResult:
         """Parse LLM response into structured InferenceResult."""
         result = InferenceResult()

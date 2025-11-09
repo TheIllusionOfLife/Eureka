@@ -30,7 +30,7 @@ class TestSystemIntegration:
         """Test CLI integration with core workflow."""
         # Run CLI command
         result = subprocess.run(
-            ["python", "-m", "madspark.cli.cli", "blockchain", "supply chain"],
+            [sys.executable, "-m", "madspark.cli.cli", "blockchain", "supply chain"],
             capture_output=True,
             text=True,
             env={**os.environ, "PYTHONPATH": "src", "MADSPARK_MODE": "mock"}
@@ -165,7 +165,7 @@ class TestWebAPIIntegration:
             
         # Start server in background
         process = subprocess.Popen(
-            ["python", "web/backend/main.py"],
+            [sys.executable, "web/backend/main.py"],
             env={**os.environ, "PYTHONPATH": "src", "MADSPARK_MODE": "mock"},
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
@@ -408,6 +408,10 @@ class TestWorkflowPerformance:
         assert isinstance(result, list)
     
     @pytest.mark.slow
+    @pytest.mark.skipif(
+        not __import__('importlib.util').util.find_spec('psutil'),
+        reason="psutil not available"
+    )
     def test_workflow_memory_usage(self):
         """Test workflow doesn't have memory leaks."""
         import psutil

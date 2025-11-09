@@ -824,7 +824,7 @@ class AsyncCoordinator(BatchOperationsBase):
                 await self._send_progress(f"Generated {len(parsed_ideas)} ideas", 0.3)
 
             except asyncio.TimeoutError:
-                logger.error("Idea generation timed out after 60 seconds")
+                logger.error(f"Idea generation timed out after {TimeoutConfig.IDEA_GENERATION_TIMEOUT} seconds")
                 await self._send_progress(
                     "Idea generation timed out. Please try again.", 0.0
                 )

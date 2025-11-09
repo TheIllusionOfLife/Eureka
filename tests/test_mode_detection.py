@@ -22,10 +22,12 @@ class TestModeDetection:
     
     def test_explicit_api_mode_without_key_still_api(self):
         """When MADSPARK_MODE=api, should return api even without key."""
-        with patch.dict(os.environ, {
-            'MADSPARK_MODE': 'api'
-        }, clear=True):
-            assert get_mode() == 'api'
+        # Patch load_env_file for consistency with other mode detection tests
+        with patch('madspark.agents.genai_client.load_env_file'):
+            with patch.dict(os.environ, {
+                'MADSPARK_MODE': 'api'
+            }, clear=True):
+                assert get_mode() == 'api'
     
     def test_no_mode_with_api_key_uses_api(self):
         """Without explicit mode but with API key, should use api."""

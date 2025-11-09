@@ -15,9 +15,6 @@ from dataclasses import dataclass, field
 from collections import defaultdict
 import re
 
-# Third-party imports
-from google.genai import types
-
 # Local imports
 from ..utils.logical_inference_engine import (
     LogicalInferenceEngine,
@@ -792,7 +789,7 @@ Respond with only the numeric score (e.g., "6")."""
             from ..agents.genai_client import get_model_name
         
         # Use structured output for reliable score extraction
-        api_config = types.GenerateContentConfig(
+        api_config = self.types.GenerateContentConfig(
             temperature=0.0,  # Deterministic for evaluation
             response_mime_type="application/json",
             response_schema=DIMENSION_SCORE_SCHEMA,

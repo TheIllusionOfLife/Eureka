@@ -207,15 +207,30 @@ class LogicalInferenceEngine:
 
             # Call LLM using proper API pattern with structured output
             from madspark.agents.genai_client import get_model_name
-            from madspark.agents.response_schemas import BATCH_FULL_ANALYSIS_SCHEMA
-            from google import genai
-            import json
+            from madspark.agents.response_schemas import (
+                FULL_ANALYSIS_SCHEMA,
+                CAUSAL_ANALYSIS_SCHEMA,
+                CONSTRAINT_ANALYSIS_SCHEMA,
+                CONTRADICTION_ANALYSIS_SCHEMA,
+                IMPLICATIONS_ANALYSIS_SCHEMA,
+                BATCH_FULL_ANALYSIS_SCHEMA,
+            )
 
-            # Use batch schema (array of results)
+            # Build batch schema from single-item schema
+            schema_map = {
+                InferenceType.FULL: BATCH_FULL_ANALYSIS_SCHEMA,
+                InferenceType.CAUSAL: {"type": "ARRAY", "items": CAUSAL_ANALYSIS_SCHEMA},
+                InferenceType.CONSTRAINTS: {"type": "ARRAY", "items": CONSTRAINT_ANALYSIS_SCHEMA},
+                InferenceType.CONTRADICTION: {"type": "ARRAY", "items": CONTRADICTION_ANALYSIS_SCHEMA},
+                InferenceType.IMPLICATIONS: {"type": "ARRAY", "items": IMPLICATIONS_ANALYSIS_SCHEMA},
+            }
+
+            response_schema = schema_map[analysis_type]
+
             api_config = genai.types.GenerateContentConfig(
                 temperature=0.7,
                 response_mime_type="application/json",
-                response_schema=BATCH_FULL_ANALYSIS_SCHEMA,
+                response_schema=response_schema,
                 system_instruction="You are a logical reasoning expert. Analyze multiple ideas systematically and provide structured logical insights for each one in JSON array format."
             )
 

@@ -1,0 +1,31 @@
+# Test Diagram Description
+
+This is a simple text file representing a diagram concept.
+
+## UI Component Hierarchy
+```
+┌─────────────────────────────┐
+│     Main Application        │
+│  ┌───────────────────────┐  │
+│  │   Header (Navigation) │  │
+│  └───────────────────────┘  │
+│  ┌───────────────────────┐  │
+│  │   Content Area        │  │
+│  │  ┌─────────────────┐  │  │
+│  │  │  Card 1         │  │  │
+│  │  └─────────────────┘  │  │
+│  │  ┌─────────────────┐  │  │
+│  │  │  Card 2         │  │  │
+│  │  └─────────────────┘  │  │
+│  └───────────────────────┘  │
+│  ┌───────────────────────┐  │
+│  │   Footer              │  │
+│  └───────────────────────┘  │
+└─────────────────────────────┘
+```
+
+## Key Features:
+- Responsive design
+- Component-based architecture
+- Clear visual hierarchy
+- Modern UI patterns

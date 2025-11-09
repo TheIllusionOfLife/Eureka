@@ -8,6 +8,15 @@ For new code, prefer importing from execution_constants.TimeoutConfig for
 centralized configuration management. This file is maintained for backward
 compatibility.
 """
+import warnings
+
+# Emit deprecation warning when this module is imported
+warnings.warn(
+    "workflow_constants module is deprecated. "
+    "Use execution_constants.TimeoutConfig for timeout values instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 # Fallback values for error handling
 # These are used when agent calls fail to ensure workflow can continue

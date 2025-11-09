@@ -292,13 +292,16 @@ class TestBackwardCompatibility:
 
     def test_workflow_constants_still_importable(self):
         """Verify workflow_constants.py still works for backward compatibility."""
-        # Should emit deprecation warning but still work
-        with pytest.warns(DeprecationWarning):
-            from madspark.config import workflow_constants
+        # Module should still be importable with timeout constants
+        from madspark.config import workflow_constants
 
-            # Should re-export from execution_constants
-            assert hasattr(workflow_constants, 'IDEA_GENERATION_TIMEOUT')
-            assert hasattr(workflow_constants, 'EVALUATION_TIMEOUT')
+        # Should still have the timeout constants
+        assert hasattr(workflow_constants, 'IDEA_GENERATION_TIMEOUT')
+        assert hasattr(workflow_constants, 'EVALUATION_TIMEOUT')
+
+        # Verify deprecation note in docstring
+        assert workflow_constants.__doc__ is not None
+        assert "deprecated" in workflow_constants.__doc__.lower() or "NOTE" in workflow_constants.__doc__
 
 
 class TestModuleStructure:

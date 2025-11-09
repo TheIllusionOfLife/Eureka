@@ -208,7 +208,6 @@ class LogicalInferenceEngine:
             # Call LLM using proper API pattern with structured output
             from madspark.agents.genai_client import get_model_name
             from madspark.agents.response_schemas import (
-                FULL_ANALYSIS_SCHEMA,
                 CAUSAL_ANALYSIS_SCHEMA,
                 CONSTRAINT_ANALYSIS_SCHEMA,
                 CONTRADICTION_ANALYSIS_SCHEMA,

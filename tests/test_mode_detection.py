@@ -38,8 +38,10 @@ class TestModeDetection:
     
     def test_no_mode_no_key_uses_mock(self):
         """Without explicit mode and no API key, should use mock."""
-        with patch.dict(os.environ, {}, clear=True):
-            assert get_mode() == 'mock'
+        # Need to patch load_env_file to prevent it from loading real .env
+        with patch('madspark.agents.genai_client.load_env_file'):
+            with patch.dict(os.environ, {}, clear=True):
+                assert get_mode() == 'mock'
     
     def test_setup_sh_mock_mode_respected(self):
         """Simulate setup.sh creating .env with MADSPARK_MODE=mock."""

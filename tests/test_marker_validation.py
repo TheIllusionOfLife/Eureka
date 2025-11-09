@@ -50,8 +50,13 @@ class TestMarkerValidation:
         )
         
         # Should show test collected when selecting tests with both markers
-        assert ("test collected" in result.stdout or "collected" in result.stdout or
-                "selected" in result.stdout)
+        # Require positive count to ensure markers actually match
+        assert (
+            "test collected" in result.stdout
+            or "1 item" in result.stdout
+            or "1 selected" in result.stdout
+            or "1 test" in result.stdout
+        )
     
     def test_unmarked_tests_run_by_default(self):
         """Test that unmarked tests run when no marker filter is applied."""

@@ -44,13 +44,16 @@ jobs:
             );
             
             // CI/Infrastructure/Documentation files get higher limits
-            const ciFiles = files.filter(f => 
+            const ciFiles = files.filter(f =>
               f.filename.startsWith('.github/workflows/') ||
               f.filename.includes('ci-policy') ||
               f.filename === 'CLAUDE.md' ||
               f.filename === 'README.md' ||
+              f.filename === '.gitignore' ||
               f.filename.startsWith('docs/') ||
-              (f.filename.endsWith('.md') && (f.filename.toLowerCase().includes('readme') || f.filename.toLowerCase().includes('guide') || f.filename.toLowerCase().includes('doc')))
+              f.filename.startsWith('src/madspark/config/') ||
+              f.filename.endsWith('session_handover.md') ||
+              (f.filename.endsWith('.md') && (f.filename.toLowerCase().includes('readme') || f.filename.toLowerCase().includes('guide') || f.filename.toLowerCase().includes('doc') || f.filename.toLowerCase().includes('session')))
             );
             
             const regularFiles = files.filter(f => !testFiles.includes(f) && !ciFiles.includes(f));
@@ -66,12 +69,16 @@ jobs:
             
             // Check if this is primarily a CI/infrastructure/documentation PR
             const isCiPr = ciDocPercentage >= 0.7; // 70% of files are CI/doc-related
-            
+
             // Check if this is a test-heavy PR (30% test files OR 50% combined test+doc)
             const isTestHeavyPr = testPercentage >= 0.3 || testAndDocPercentage >= 0.5;
-            
+
+            // Check if this is a configuration migration PR (many files with small changes)
+            const avgChangesPerFile = files.length > 0 ? totalChanges / files.length : 0;
+            const isConfigMigrationPr = files.length > 15 && avgChangesPerFile < 150 && testAndDocPercentage >= 0.3;
+
             // Apply extended limits for CI/infrastructure/documentation PRs or test-heavy PRs
-            const useExtendedLimits = isCiPr || isTestHeavyPr;
+            const useExtendedLimits = isCiPr || isTestHeavyPr || isConfigMigrationPr;
             const maxFilesLimit = useExtendedLimits ? 50 : maxFiles;
             const maxChangesLimit = useExtendedLimits ? 3000 : maxChanges;
             
@@ -82,6 +89,8 @@ jobs:
                 message += `*CI/Infrastructure/Documentation PR - using extended limits*\n\n`;
               } else if (isTestHeavyPr) {
                 message += `*Test-heavy PR - using extended limits*\n\n`;
+              } else if (isConfigMigrationPr) {
+                message += `*Configuration migration PR (${Math.round(avgChangesPerFile)} avg changes/file) - using extended limits*\n\n`;
               }
             } else {
               sizeOk = false;

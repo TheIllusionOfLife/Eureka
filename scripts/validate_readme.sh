@@ -50,24 +50,47 @@ done
 echo ""
 echo "🔗 Validating PR references..."
 
-# Extract all PR numbers from README
-PR_NUMBERS=$(grep -o "PR #[0-9]\+" README.md | grep -o "[0-9]\+" | sort -u)
+# Skip if gh command not available
+if ! command -v gh &> /dev/null; then
+    echo -e "${YELLOW}⚠️  WARNING: gh CLI not found, skipping PR validation${NC}"
+    WARNINGS=$((WARNINGS + 1))
+else
+    # Extract all PR numbers from README (portable approach)
+    PR_NUMBERS=$(grep -o "PR #[0-9]\+" README.md | grep -o "[0-9]\+" | sort -u)
+    PR_COUNT=$(echo "$PR_NUMBERS" | wc -l)
 
-for PR in $PR_NUMBERS; do
-    # Skip if gh command not available
-    if ! command -v gh &> /dev/null; then
-        echo -e "${YELLOW}⚠️  WARNING: gh CLI not found, skipping PR validation${NC}"
+    echo "   Found $PR_COUNT unique PR references"
+
+    # Rate limiting protection: Only validate a sample to avoid API limits
+    # Pre-commit hooks should be fast; full validation can happen in CI
+    MAX_VALIDATE=10
+
+    if [ "$PR_COUNT" -gt "$MAX_VALIDATE" ]; then
+        echo -e "${YELLOW}⚠️  WARNING: $PR_COUNT PRs found, validating only first $MAX_VALIDATE (rate limit protection)${NC}"
+        echo -e "${YELLOW}   Full PR validation will run in CI${NC}"
         WARNINGS=$((WARNINGS + 1))
-        break
     fi
 
-    # Check if PR exists
-    # Note: Rate limits are unlikely for pre-commit hooks
-    if ! gh pr view $PR &> /dev/null; then
-        echo -e "${RED}❌ FAIL: PR #$PR referenced but doesn't exist${NC}"
-        ISSUES=$((ISSUES + 1))
+    # Validate up to MAX_VALIDATE PRs (use while read for portability)
+    VALIDATED=0
+    echo "$PR_NUMBERS" | while IFS= read -r PR; do
+        if [ "$VALIDATED" -ge "$MAX_VALIDATE" ]; then
+            break
+        fi
+
+        if [ -n "$PR" ] && ! gh pr view "$PR" &> /dev/null; then
+            echo -e "${RED}❌ FAIL: PR #$PR referenced but doesn't exist${NC}"
+            ISSUES=$((ISSUES + 1))
+        fi
+
+        VALIDATED=$((VALIDATED + 1))
+    done
+
+    if [ "$PR_COUNT" -gt 0 ]; then
+        CHECKED=$([ "$PR_COUNT" -gt "$MAX_VALIDATE" ] && echo "$MAX_VALIDATE" || echo "$PR_COUNT")
+        echo "   ✅ Validated $CHECKED PR references"
     fi
-done
+fi
 
 # 3. Check "Known Issues" section format
 echo ""

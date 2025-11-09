@@ -4,6 +4,15 @@ repos:
   # Local hooks for dependency verification
   - repo: local
     hooks:
+      # README documentation validation (fail-fast - quick check first)
+      - id: readme-validation
+        name: Validate README.md for outdated issues
+        entry: scripts/validate_readme.sh
+        language: script
+        files: ^README\.md$
+        always_run: false
+        pass_filenames: false
+
       # Python dependency verification
       - id: python-requirements-check
         name: Verify Python requirements can be installed
@@ -28,15 +37,6 @@ repos:
         language: python
         types: [text]
         always_run: true
-        pass_filenames: false
-
-      # README documentation validation
-      - id: readme-validation
-        name: Validate README.md for outdated issues
-        entry: scripts/validate_readme.sh
-        language: script
-        files: ^README\.md$
-        always_run: false
         pass_filenames: false
 
   # Code quality and security

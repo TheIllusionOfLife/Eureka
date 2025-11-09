@@ -15,7 +15,7 @@ Strategy Execution Order (in JsonParser):
 from abc import ABC, abstractmethod
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from madspark.utils.json_parsing.telemetry import ParsingTelemetry
 from madspark.utils.json_parsing import patterns
@@ -146,7 +146,7 @@ class JsonArrayExtractionStrategy(ParsingStrategy):
         telemetry.record_failure(self.name, "No valid arrays found")
         return None
 
-    def _extract_json_arrays(self, text: str) -> List[tuple]:
+    def _extract_json_arrays(self, text: str) -> List[Tuple[int, int, List[Dict[str, Any]]]]:
         """Extract JSON arrays from text with proper bracket matching.
 
         Args:

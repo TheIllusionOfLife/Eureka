@@ -217,6 +217,48 @@ MadSpark now uses Google Gemini's structured output feature for cleaner, more co
 - Applies to both individual and batch processing modes
 - **Logical Inference**: 5 specialized schemas for reasoning analysis (full, causal, constraints, contradiction, implications)
 
+**Example: Using JsonParser Directly**
+
+For developers integrating with MadSpark's parsing infrastructure:
+
+```python
+from madspark.utils.json_parsing import JsonParser
+
+# Create parser instance
+parser = JsonParser()
+
+# Parse AI response with automatic fallback
+response_text = '{"idea": "Smart energy grid", "score": 8.5}'
+result = parser.parse(response_text)
+# Returns: {"idea": "Smart energy grid", "score": 8.5}
+
+# Works with messy/mixed content
+messy_text = '''
+Here are some ideas:
+[{"id": 1, "text": "Solar panels"}, {"id": 2, "text": "Wind power"}]
+Hope this helps!
+'''
+result = parser.parse(messy_text, expected_count=2)
+# Returns: [{"id": 1, "text": "Solar panels"}, {"id": 2, "text": "Wind power"}]
+
+# View parsing statistics (which strategies succeeded)
+stats = parser.telemetry.get_stats()
+# Example: {'DirectJson': 1, 'JsonArrayExtraction': 1, 'total': 2}
+```
+
+**Migration from Legacy Parsing**:
+
+```python
+# Old way (deprecated)
+from madspark.utils.utils import parse_json_with_fallback
+result = parse_json_with_fallback(text)  # Triggers DeprecationWarning
+
+# New way (recommended)
+from madspark.utils.json_parsing import JsonParser
+parser = JsonParser()
+result = parser.parse(text)
+```
+
 ### Bookmark Management
 
 MadSpark automatically saves all generated ideas as bookmarks for future reference and remixing. 

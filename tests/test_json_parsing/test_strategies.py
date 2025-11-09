@@ -136,6 +136,24 @@ class TestJsonArrayExtractionStrategy:
         assert result is not None
         assert 'hello' in result[0]["text"]
 
+    def test_handles_nested_arrays_with_quotes(self):
+        """Should handle nested arrays with quoted strings containing brackets."""
+        from madspark.utils.json_parsing.strategies import JsonArrayExtractionStrategy
+        from madspark.utils.json_parsing.telemetry import ParsingTelemetry
+
+        strategy = JsonArrayExtractionStrategy()
+        telemetry = ParsingTelemetry()
+
+        # Edge case: nested arrays with strings that look like JSON
+        text = '[{"data": [1, 2], "note": "Values: [a, b, c]"}]'
+        result = strategy.parse(text, telemetry)
+
+        assert result is not None
+        assert len(result) == 1
+        assert result[0]["data"] == [1, 2]
+        # String with brackets should be preserved
+        assert result[0]["note"] == "Values: [a, b, c]"
+
     def test_returns_none_when_no_arrays(self):
         """Should return None if no valid arrays found."""
         from madspark.utils.json_parsing.strategies import JsonArrayExtractionStrategy

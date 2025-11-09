@@ -169,6 +169,18 @@ def parse_json_with_fallback(
     Returns:
         List of parsed dictionaries
     """
+    # Emit deprecation warning to encourage migration
+    import warnings
+    warnings.warn(
+        "parse_json_with_fallback() is deprecated. "
+        "Use JsonParser from madspark.utils.json_parsing instead:\n"
+        "  from madspark.utils.json_parsing import JsonParser\n"
+        "  parser = JsonParser()\n"
+        "  result = parser.parse(text, expected_count)",
+        DeprecationWarning,
+        stacklevel=2
+    )
+
     # Handle None or empty input early
     if text is None or text == "":
         return []

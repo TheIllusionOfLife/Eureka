@@ -2,6 +2,11 @@
 
 This module contains constants specific to the WorkflowOrchestrator,
 including fallback values for error handling and operation-specific timeouts.
+
+NOTE: Timeout constants in this file are duplicated in execution_constants.py.
+For new code, prefer importing from execution_constants.TimeoutConfig for
+centralized configuration management. This file is maintained for backward
+compatibility.
 """
 
 # Fallback values for error handling

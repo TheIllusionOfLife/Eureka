@@ -40,6 +40,9 @@ JSON_OBJECT_PATTERN = re.compile(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)?\}', re.DOTALL)
 
 #: Extract JSON object with multiple nesting levels
 #: More comprehensive than JSON_OBJECT_PATTERN
+#: NOTE: This pattern has potential ReDoS vulnerability with nested quantifiers.
+#: If used, MUST validate input size < 10KB before matching to prevent catastrophic backtracking.
+#: Currently UNUSED - reserved for future nested object extraction needs.
 NESTED_OBJECT_PATTERN = re.compile(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', re.DOTALL)
 
 

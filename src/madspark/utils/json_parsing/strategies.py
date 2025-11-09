@@ -149,9 +149,25 @@ class JsonArrayExtractionStrategy(ParsingStrategy):
     def _extract_json_arrays(self, text: str) -> List[tuple]:
         """Extract JSON arrays from text with proper bracket matching.
 
+        Args:
+            text: Input text to search for JSON arrays
+
         Returns:
             List of tuples: (start_position, end_position, parsed_array_data)
+
+        Note:
+            Implements 1MB size limit to prevent performance issues with
+            extremely large inputs during bracket matching algorithm (O(n)).
         """
+        # Protection against extremely large inputs (ReDoS/performance)
+        MAX_INPUT_SIZE = 1_000_000  # 1MB limit
+        if len(text) > MAX_INPUT_SIZE:
+            logger.warning(
+                f"Input too large for array extraction: {len(text)} chars "
+                f"(limit: {MAX_INPUT_SIZE}). Skipping to prevent performance issues."
+            )
+            return []
+
         arrays_found = []
         array_start = text.find('[')
 

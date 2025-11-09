@@ -11,6 +11,8 @@ from typing import List, Set
 from dataclasses import dataclass
 import logging
 
+from madspark.config.execution_constants import ThresholdConfig
+
 try:
     from madspark.utils.models import BookmarkedIdea
 except ImportError:
@@ -165,9 +167,9 @@ class DuplicateDetector:
             similarity_threshold: Threshold above which bookmarks are considered duplicates (0.0-1.0)
         """
         self.similarity_threshold = similarity_threshold
-        self.exact_threshold = 0.95  # Threshold for exact matches
-        self.high_similarity_threshold = 0.8  # High similarity warning
-        self.medium_similarity_threshold = 0.6  # Medium similarity notice
+        self.exact_threshold = ThresholdConfig.EXACT_MATCH_THRESHOLD
+        self.high_similarity_threshold = ThresholdConfig.HIGH_SIMILARITY_THRESHOLD
+        self.medium_similarity_threshold = ThresholdConfig.MEDIUM_SIMILARITY_THRESHOLD
         
     def calculate_similarity(self, text1: str, text2: str, theme1: str = "", theme2: str = "") -> float:
         """

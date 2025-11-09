@@ -155,197 +155,43 @@ def parse_json_with_fallback(
     expected_count: Optional[int] = None
 ) -> List[Dict[str, Any]]:
     """Parse JSON data with multiple fallback strategies.
-    
-    This function attempts to parse JSON data using several strategies:
-    1. Parse as a JSON array
-    2. Extract JSON arrays from text
-    3. Parse line-by-line as separate JSON objects
-    4. Extract JSON objects using regex
-    5. Extract score/comment pairs using regex patterns
-    
+
+    DEPRECATED: This function is deprecated in favor of JsonParser from
+    madspark.utils.json_parsing. Use that for new code.
+
+    This function now delegates to JsonParser for consistency and better
+    performance (pre-compiled patterns, telemetry tracking).
+
     Args:
         text: Raw text potentially containing JSON data
         expected_count: Expected number of JSON objects (optional)
-        
+
     Returns:
         List of parsed dictionaries
     """
-    results: List[Dict[str, Any]] = []
-    
-    # Handle None or empty input
+    # Handle None or empty input early
     if text is None or text == "":
         return []
-    
-    # Strategy 1: Try to parse as a complete JSON array
-    try:
-        data = json.loads(text)
-        if isinstance(data, list):
-            results = data
-            logging.debug(f"Successfully parsed as JSON array with {len(results)} items")
-            return results
-        elif isinstance(data, dict):
-            results = [data]
-            logging.debug("Successfully parsed as single JSON object")
-            return results
-    except json.JSONDecodeError:
-        logging.debug("Failed to parse as complete JSON, trying other strategies")
-    
-    # Strategy 2: Extract JSON arrays from text
-    # Helper function to extract JSON arrays with proper bracket matching
-    def _extract_json_arrays(text):
-        """Extract JSON arrays from text with proper bracket matching."""
-        arrays_found = []
-        array_start = text.find('[')
-        
-        while array_start != -1:
-            # Try to find the matching closing bracket
-            bracket_count = 0
-            in_string = False
-            escape_next = False
-            pos = array_start
-            
-            while pos < len(text):
-                char = text[pos]
-                
-                if escape_next:
-                    escape_next = False
-                elif char == '\\' and in_string:
-                    escape_next = True
-                elif char == '"' and not in_string:
-                    in_string = True
-                elif char == '"' and in_string:
-                    in_string = False
-                elif not in_string:
-                    if char == '[':
-                        bracket_count += 1
-                    elif char == ']':
-                        bracket_count -= 1
-                        if bracket_count == 0:
-                            # Found matching closing bracket
-                            array_str = text[array_start:pos+1]
-                            try:
-                                array_data = json.loads(array_str)
-                                if isinstance(array_data, list):
-                                    arrays_found.append((array_start, pos+1, array_data))
-                            except json.JSONDecodeError:
-                                pass
-                            break
-                
-                pos += 1
-            
-            # Look for next array after the current one's closing bracket
-            if bracket_count == 0:
-                array_start = text.find('[', pos + 1)
-            else:
-                array_start = text.find('[', array_start + 1)
-        
-        return arrays_found
-    
-    # Extract all JSON arrays
-    arrays = _extract_json_arrays(text)
-    for start_pos, end_pos, array_data in arrays:
-        for item in array_data:
-            if isinstance(item, dict):
-                results.append(item)
-    
-    if results:
-        logging.debug(f"Successfully extracted {len(results)} items from JSON arrays")
-        return results
-    
-    # Strategy 3: Try line-by-line parsing
-    lines = [line.strip() for line in text.split('\n') if line.strip()]
-    for line in lines:
-        try:
-            obj = json.loads(line)
-            if isinstance(obj, dict):
-                results.append(obj)
-        except json.JSONDecodeError:
-            continue
-    
-    if results:
-        logging.debug(f"Successfully parsed {len(results)} JSON objects line-by-line")
-        return results
-    
-    # Try to find individual JSON objects (including multi-line)
-    # This pattern handles nested objects and multi-line strings
-    json_pattern = re.compile(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)?\}', re.DOTALL)
-    potential_jsons = json_pattern.findall(text)
-    
-    for json_str in potential_jsons:
-        try:
-            # First try direct parsing
-            obj = json.loads(json_str)
-            if isinstance(obj, dict):
-                results.append(obj)
-        except json.JSONDecodeError:
-            # If that fails, try to clean up multi-line strings
-            try:
-                # Replace actual newlines in strings with escaped newlines
-                cleaned = re.sub(r'("(?:[^"\\]|\\.)*")', lambda m: m.group(0).replace('\n', '\\n'), json_str)
-                obj = json.loads(cleaned)
-                if isinstance(obj, dict):
-                    results.append(obj)
-            except json.JSONDecodeError:
-                continue
-    
-    if results:
-        logging.debug(f"Successfully extracted {len(results)} JSON objects using regex")
-        return results
-    
-    # Strategy 5: Extract score/comment patterns using regex
-    # Look for various patterns like "Score: 8, Comment: ..." or narrative formats
-    
-    # Pattern 1: Standard "Score: X, Comment: Y" format
-    score_comment_pattern = re.compile(
-        r'(?:score|Score)[\s:]+(\d+).*?(?:comment|Comment|critique|Critique)[\s:]+([^\n]+)',
-        re.IGNORECASE | re.DOTALL
-    )
-    
-    matches = score_comment_pattern.findall(text)
-    for score_str, comment in matches:
-        try:
-            results.append({
-                "score": int(score_str),
-                "comment": comment.strip().strip('"\'')
-            })
-        except ValueError:
-            continue
-    
-    # Pattern 2: Narrative format with improved regex patterns
-    # Limited repetition to prevent ReDoS, capture until newline for robust comments
-    narrative_patterns = [
-        re.compile(r'scores?\s+an?\s+(\d+)(?:\s+out\s+of\s+\d+)?[.,]?\s*(?:Comment|comment)?:?\s*([^\n]{1,500})', re.IGNORECASE),
-        re.compile(r'give\s+it\s+a\s+score\s+of\s+(\d+)[.,]?\s*(?:Comment|comment)?:?\s*([^\n]{1,500})', re.IGNORECASE),
-        re.compile(r'(?:deserves?|gets?)\s+an?\s+(\d+)[.,]?\s*(?:Comment|comment)?:?\s*([^\n]{1,500})', re.IGNORECASE),
-        re.compile(r'scores?\s+(\d+)[.,]?\s*(?:Comment|comment)?:?\s*([^\n]{1,500})', re.IGNORECASE),
-    ]
-    
-    for pattern in narrative_patterns:
-        narrative_matches = pattern.findall(text)
-        for score_str, comment in narrative_matches:
-            try:
-                results.append({
-                    "score": int(score_str),
-                    "comment": comment.strip().strip('"\'.')  # Also strip trailing period
-                })
-            except ValueError:
-                continue
-    
-    if results:
-        logging.debug(f"Successfully extracted {len(results)} score/comment pairs using regex")
-        return results
-    
-    # If expected_count is provided and we have no results, create placeholders
-    if expected_count and expected_count > 0 and not results:
-        logging.warning(
-            f"Could not parse any JSON data. Creating {expected_count} placeholder entries."
-        )
-        results = [
-            {"score": 0, "comment": "Failed to parse evaluation"}
-            for _ in range(expected_count)
-        ]
-    
-    return results
+
+    # Delegate to the new JsonParser for consistency
+    from madspark.utils.json_parsing import JsonParser
+
+    parser = JsonParser()
+    result = parser.parse(text, expected_count=expected_count)
+
+    # JsonParser returns various types, normalize to list of dicts
+    if result is None:
+        return []
+    elif isinstance(result, list):
+        # Already a list, ensure all items are dicts
+        return [item for item in result if isinstance(item, dict)]
+    elif isinstance(result, dict):
+        # Single dict, wrap in list
+        return [result]
+    else:
+        # Unexpected type, return empty
+        logging.warning(f"JsonParser returned unexpected type: {type(result)}")
+        return []
 
 
 def validate_evaluation_json(data: Dict[str, Any]) -> Dict[str, Any]:

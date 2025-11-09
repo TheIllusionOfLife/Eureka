@@ -280,11 +280,12 @@ class TestPatternPerformance:
         """All exported patterns should be compiled re.Pattern objects."""
         from madspark.utils.json_parsing import patterns
 
-        # Get all module attributes that are individual patterns (not collections)
+        # Get all module attributes that are individual patterns (not collections or constants)
         pattern_names = [
             name for name in dir(patterns)
             if name.isupper() and not name.startswith('_')
             and not name.endswith('_PATTERNS')  # Exclude collection lists
+            and not name.endswith('_BYTES')  # Exclude size limit constants
         ]
 
         # Should have at least 10 individual patterns

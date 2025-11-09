@@ -776,8 +776,8 @@ Respond with only the numeric score (e.g., "6")."""
                 f"Multi-dimensional evaluation requires working AI connection."
             )
         
-    def _ai_evaluate_dimension(self, idea: str, context: Dict[str, Any], 
-                             dimension: str, dimension_config: Dict[str, Any]) -> float:
+    def _ai_evaluate_dimension(self, idea: str, context: Dict[str, Any],
+                             dimension: str, config: Dict[str, Any]) -> float:
         """Evaluate dimension using AI with clear prompts."""
         prompt = self._build_dimension_prompt(idea, context, dimension)
         
@@ -787,22 +787,40 @@ Respond with only the numeric score (e.g., "6")."""
         except ImportError:
             from ..agents.genai_client import get_model_name
         
-        # Direct API call without config - testing showed this works better
+        # Use structured output for reliable score extraction
+        from google.genai import types
+        from madspark.agents.response_schemas import DIMENSION_SCORE_SCHEMA
+        import json
+
+        api_config = types.GenerateContentConfig(
+            temperature=0.0,  # Deterministic for evaluation
+            response_mime_type="application/json",
+            response_schema=DIMENSION_SCORE_SCHEMA,
+            system_instruction=f"Evaluate on {dimension} dimension. Return score as JSON with required 'score' field."
+        )
+
         response = self.genai_client.models.generate_content(
             model=get_model_name(),
-            contents=prompt
+            contents=prompt,
+            config=api_config
         )
-        
-        # Parse score from response
-        score_text = response.text.strip()
+
+        # Parse JSON response
         try:
-            score = float(score_text)
-            # Use dimension config ranges if available
-            min_val = dimension_config.get('range', (1, 10))[0]
-            max_val = dimension_config.get('range', (1, 10))[1]
-            return max(min_val, min(max_val, score))  # Clamp to valid range
-        except ValueError:
-            raise ValueError(f"AI returned non-numeric score: '{score_text}'")
+            data = json.loads(response.text)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Failed to parse dimension score JSON: {e}")
+
+        # Extract score from structured response
+        if "score" not in data:
+            raise ValueError(f"Response missing required 'score' field: {data}")
+
+        score = float(data["score"])
+
+        # Use dimension config ranges if available
+        min_val = config.get('range', (1, 10))[0]
+        max_val = config.get('range', (1, 10))[1]
+        return max(min_val, min(max_val, score))  # Clamp to valid range
     
     def _build_dimension_prompt(self, idea: str, context: Dict[str, Any], dimension: str) -> str:
         """Build evaluation prompt for a specific dimension."""

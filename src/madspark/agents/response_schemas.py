@@ -469,3 +469,20 @@ def convert_risk_to_safety_score(dimension_scores: Dict[str, float]) -> Dict[str
 # Aliases for consistency with agent imports
 ADVOCATE_SCHEMA = ADVOCACY_SCHEMA
 SKEPTIC_SCHEMA = SKEPTICISM_SCHEMA
+
+
+# Schema for individual dimension scoring in Enhanced Reasoning
+DIMENSION_SCORE_SCHEMA = {
+    "type": "OBJECT",
+    "properties": {
+        "score": {
+            "type": "NUMBER",
+            "description": "Numeric score for this dimension"
+        },
+        "reasoning": {
+            "type": "STRING",
+            "description": "Brief explanation for the score (optional)"
+        }
+    },
+    "required": ["score"]
+}

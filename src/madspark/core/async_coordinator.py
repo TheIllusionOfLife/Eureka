@@ -26,6 +26,7 @@ from ..utils.constants import (
     DEFAULT_SKEPTICISM_TEMPERATURE,
     LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD,
 )
+from ..config.execution_constants import TimeoutConfig
 from ..utils.compat_imports import import_agent_retry_wrappers
 
 logger = logging.getLogger(__name__)
@@ -813,7 +814,7 @@ class AsyncCoordinator(BatchOperationsBase):
                         context=context,
                         num_ideas=calculate_ideas_to_generate(num_top_candidates),
                     ),
-                    timeout=60.0,  # 60 second timeout for initial idea generation
+                    timeout=TimeoutConfig.IDEA_GENERATION_TIMEOUT,
                 )
 
                 if not parsed_ideas:
@@ -853,7 +854,7 @@ class AsyncCoordinator(BatchOperationsBase):
                     orchestrator.evaluate_ideas_async(
                         ideas=parsed_ideas, topic=topic, context=context
                     ),
-                    timeout=30.0,  # 30 second timeout for evaluation
+                    timeout=TimeoutConfig.EVALUATION_TIMEOUT,
                 )
 
                 # Normalize fields for compatibility (orchestrator uses "idea", async_coordinator uses "text")
@@ -869,7 +870,7 @@ class AsyncCoordinator(BatchOperationsBase):
                             topic=topic,
                             context=context,
                         ),
-                        timeout=45.0,  # 45 second timeout for multi-dimensional eval
+                        timeout=TimeoutConfig.MULTI_DIMENSIONAL_EVAL_TIMEOUT,
                     )
 
                 # Sort and select top candidates
@@ -1134,7 +1135,7 @@ class AsyncCoordinator(BatchOperationsBase):
                         use_structured_output=True,
                     )
                 ),
-                timeout=30.0,
+                timeout=TimeoutConfig.ADVOCACY_TIMEOUT,
             )
         )
 
@@ -1150,7 +1151,7 @@ class AsyncCoordinator(BatchOperationsBase):
                         use_structured_output=True,
                     )
                 ),
-                timeout=30.0,
+                timeout=TimeoutConfig.SKEPTICISM_TIMEOUT,
             )
         )
 
@@ -1237,7 +1238,7 @@ class AsyncCoordinator(BatchOperationsBase):
                         temperature=idea_temp,
                     )
                 ),
-                timeout=45.0,  # 45 second timeout for improvement (longer due to complexity)
+                timeout=TimeoutConfig.IMPROVEMENT_TIMEOUT,
             )
         except asyncio.TimeoutError:
             logger.warning(
@@ -1279,7 +1280,7 @@ class AsyncCoordinator(BatchOperationsBase):
                                 use_structured_output=True,
                             )
                         ),
-                        timeout=30.0,  # 30 second timeout for re-evaluation
+                        timeout=TimeoutConfig.REEVALUATION_TIMEOUT,
                     )
                 )
 
@@ -1291,7 +1292,7 @@ class AsyncCoordinator(BatchOperationsBase):
                                 idea=improved_idea_text,
                                 context={"topic": topic, "context": context},
                             ),
-                            timeout=30.0,  # 30 second timeout for multi-dimensional evaluation
+                            timeout=TimeoutConfig.MULTI_DIMENSIONAL_EVAL_TIMEOUT,
                         )
                     )
 

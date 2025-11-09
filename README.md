@@ -449,6 +449,57 @@ eureka/
 └── config/                 # Configuration files
 ```
 
+## ⚙️ Configuration
+
+MadSpark provides centralized configuration through `src/madspark/config/execution_constants.py`.
+
+### Configuration Classes
+
+```python
+from madspark.config.execution_constants import (
+    MultiModalConfig,      # File size limits, supported formats
+    TimeoutConfig,         # Workflow step timeouts
+    ConcurrencyConfig,     # Thread pool sizes
+    RetryConfig,           # Agent retry parameters
+    LimitsConfig,          # Size limits, cache settings
+    ThresholdConfig,       # Similarity thresholds
+    TemperatureConfig,     # LLM temperature values
+    ContentSafetyConfig    # Gemini safety settings
+)
+```
+
+### Key Configuration Examples
+
+**Adjust Timeouts:**
+```python
+# Default workflow step timeouts (in seconds)
+TimeoutConfig.IDEA_GENERATION_TIMEOUT = 60
+TimeoutConfig.EVALUATION_TIMEOUT = 60
+TimeoutConfig.IMPROVEMENT_TIMEOUT = 120
+```
+
+**Multi-Modal File Limits:**
+```python
+MultiModalConfig.MAX_FILE_SIZE = 20_000_000      # 20MB
+MultiModalConfig.MAX_IMAGE_SIZE = 8_000_000      # 8MB
+MultiModalConfig.MAX_PDF_SIZE = 40_000_000       # 40MB
+```
+
+**Concurrency Settings:**
+```python
+ConcurrencyConfig.MAX_ASYNC_WORKERS = 4          # Async coordinator
+ConcurrencyConfig.MAX_BATCH_WORKERS = 4          # Batch operations
+```
+
+**Agent Retry Behavior:**
+```python
+RetryConfig.IDEA_GENERATOR_MAX_RETRIES = 3
+RetryConfig.CRITIC_MAX_RETRIES = 3
+RetryConfig.ADVOCATE_MAX_RETRIES = 2
+```
+
+For complete configuration details, see `docs/CONFIGURATION_GUIDE.md`.
+
 ## Development
 
 ### Quick Setup

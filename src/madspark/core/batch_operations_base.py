@@ -10,6 +10,8 @@ from typing import List, Dict, Any
 from concurrent.futures import ThreadPoolExecutor
 import concurrent.futures
 
+from ..config.execution_constants import ConcurrencyConfig
+
 logger = logging.getLogger(__name__)
 
 # Import batch functions registry
@@ -34,7 +36,7 @@ class BatchOperationsBase:
 
     def __init__(self):
         """Initialize batch operations with thread pool executor."""
-        self.executor = ThreadPoolExecutor(max_workers=4)
+        self.executor = ThreadPoolExecutor(max_workers=ConcurrencyConfig.MAX_BATCH_WORKERS)
         atexit.register(self.executor.shutdown, wait=False)
     
     async def run_batch_with_timeout(

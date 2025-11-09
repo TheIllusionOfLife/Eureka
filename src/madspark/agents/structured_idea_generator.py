@@ -7,6 +7,8 @@ import json
 import logging
 from typing import Any, Optional
 
+from ..utils.constants import DEFAULT_GOOGLE_GENAI_MODEL
+
 # Optional import for Google GenAI - graceful fallback for CI/testing
 try:
     from google import genai
@@ -48,7 +50,7 @@ def improve_idea_structured(
     logical_inference: Optional[str] = None,
     temperature: float = 0.9,
     genai_client: Optional[Any] = None,
-    model_name: str = "gemini-2.5-flash"
+    model_name: str = DEFAULT_GOOGLE_GENAI_MODEL
 ) -> str:
     """Improves an idea using structured output for clean responses.
     
@@ -157,7 +159,7 @@ def generate_ideas_structured(
     context: str,
     temperature: float = 0.9,
     genai_client: Optional[Any] = None,
-    model_name: str = "gemini-2.5-flash"
+    model_name: str = DEFAULT_GOOGLE_GENAI_MODEL
 ) -> str:
     """Generate ideas using structured output for cleaner responses.
     

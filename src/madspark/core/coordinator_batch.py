@@ -8,6 +8,7 @@ import logging
 from typing import List, Optional
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 
+from madspark.config.execution_constants import ConcurrencyConfig
 from madspark.utils.batch_monitor import get_batch_monitor
 from madspark.utils.errors import ValidationError
 
@@ -85,7 +86,7 @@ def run_multistep_workflow_batch(
     
     # If timeout is specified and different from default, use ThreadPoolExecutor to enforce it
     if timeout is not None and timeout > 0 and timeout != DEFAULT_TIMEOUT_SECONDS:
-        with ThreadPoolExecutor(max_workers=1) as executor:
+        with ThreadPoolExecutor(max_workers=ConcurrencyConfig.BATCH_COORDINATOR_WORKERS) as executor:
             future = executor.submit(
                 _run_workflow_internal,
                 topic, context, num_top_candidates, enable_reasoning,

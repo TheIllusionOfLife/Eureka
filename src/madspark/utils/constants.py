@@ -182,5 +182,5 @@ MAX_TIMEOUT_SECONDS = 3600  # Maximum timeout (1 hour)
 MIN_TIMEOUT_SECONDS = 60  # Minimum timeout (1 minute)
 
 # API and Scoring Constants
-DEFAULT_NOVELTY_THRESHOLD = 0.8  # Default similarity threshold for novelty filtering
+# Note: DEFAULT_NOVELTY_THRESHOLD is defined earlier in this file (line 23)
 PERCENTAGE_CONVERSION_FACTOR = 100  # For converting to percentage

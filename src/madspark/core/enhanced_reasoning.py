@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from collections import defaultdict
 import re
 
+from ..config.execution_constants import ThresholdConfig
 # Local imports
 from ..utils.logical_inference_engine import (
     LogicalInferenceEngine,
@@ -1391,7 +1392,7 @@ class ReasoningEngine:
             
         # Extract relevant context
         query = f"{current_input.get('idea', '')} {current_input.get('context', '')}"
-        relevant_contexts = self.context_memory.find_similar_contexts(query, threshold=0.3)
+        relevant_contexts = self.context_memory.find_similar_contexts(query, threshold=ThresholdConfig.RELEVANT_CONTEXT_THRESHOLD)
         
         # Calculate context awareness score
         context_awareness_score = self._calculate_context_awareness(
@@ -1553,7 +1554,7 @@ class ReasoningEngine:
         context = request.get('context', {})
         
         # Find relevant historical context
-        relevant_contexts = self.context_memory.find_similar_contexts(input_data, threshold=0.2)
+        relevant_contexts = self.context_memory.find_similar_contexts(input_data, threshold=ThresholdConfig.LOOSE_CONTEXT_THRESHOLD)
         
         # Generate contextual insights
         contextual_insights = self._generate_contextual_insights(

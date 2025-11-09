@@ -7,6 +7,8 @@ import os
 import logging
 from typing import Optional
 
+from ..utils.constants import DEFAULT_GOOGLE_GENAI_MODEL
+
 try:
     from google import genai
     GENAI_AVAILABLE = True
@@ -59,11 +61,11 @@ def get_genai_client() -> Optional['genai.Client']:
 
 def get_model_name() -> str:
     """Get the configured model name from environment.
-    
+
     Returns:
-        The model name from environment or default "gemini-2.5-flash".
+        The model name from environment or DEFAULT_GOOGLE_GENAI_MODEL constant.
     """
-    return os.getenv("GOOGLE_GENAI_MODEL", "gemini-2.5-flash")
+    return os.getenv("GOOGLE_GENAI_MODEL", DEFAULT_GOOGLE_GENAI_MODEL)
 
 
 def load_env_file():

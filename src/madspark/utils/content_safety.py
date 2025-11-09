@@ -5,6 +5,8 @@ import re
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
 
+from ..config.execution_constants import RetryConfig, ContentSafetyConfig
+
 logger = logging.getLogger(__name__)
 
 
@@ -106,7 +108,7 @@ class GeminiSafetyHandler:
     def __init__(self):
         """Initialize Gemini safety handler."""
         self.content_filter = ContentSafetyFilter()
-        self.max_retries = 3
+        self.max_retries = RetryConfig.CONTENT_SAFETY_MAX_RETRIES
     
     def get_safety_settings(self):
         """Get optimized safety settings for Gemini 2.5-flash."""
@@ -115,19 +117,19 @@ class GeminiSafetyHandler:
             return [
                 types.SafetySetting(
                     category="HARM_CATEGORY_HARASSMENT",
-                    threshold="BLOCK_ONLY_HIGH"
+                    threshold=ContentSafetyConfig.SAFETY_THRESHOLD
                 ),
                 types.SafetySetting(
                     category="HARM_CATEGORY_HATE_SPEECH",
-                    threshold="BLOCK_ONLY_HIGH"
+                    threshold=ContentSafetyConfig.SAFETY_THRESHOLD
                 ),
                 types.SafetySetting(
                     category="HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                    threshold="BLOCK_ONLY_HIGH"
+                    threshold=ContentSafetyConfig.SAFETY_THRESHOLD
                 ),
                 types.SafetySetting(
                     category="HARM_CATEGORY_DANGEROUS_CONTENT",
-                    threshold="BLOCK_ONLY_HIGH"
+                    threshold=ContentSafetyConfig.SAFETY_THRESHOLD
                 )
             ]
         except ImportError:

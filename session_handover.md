@@ -19,7 +19,7 @@
     - ✅ Deprecation warning added to workflow_constants.py
   - **Documentation**: Created CONFIGURATION_GUIDE.md (360 lines), updated README.md with configuration section
   - **Verification**: Zero hardcoded constants remain (verified via grep)
-  - **Testing**: All 28 execution_constants tests passing, full test suite 979 passed/14 failed/43 skipped
+  - **Testing**: All 28 execution_constants tests passing, full test suite 979 passed/14 failed/43 skipped (Note: 14 pre-existing failures unrelated to PR #190, non-blocking)
   - **PR Review Success**: Systematically addressed feedback from 5 reviewers (coderabbitai, gemini-code-assist, claude, chatgpt-codex-connector, github-actions)
   - **Review Fixes**: DRY violations (workflow_constants.py re-exports, idea_generator.py safety handler), test error handling (pytest.importorskip), hardcoded error messages
   - **CI Success**: All 20/20 checks passing (quick-checks, claude-review, pr-size-check, mock-mode-test, test, frontend, quality, docker-check, mock-validation)
@@ -110,13 +110,13 @@
    - **Estimate**: 6-8 hours for comprehensive completion
    - **Expected Impact**: Additional ~200 line reduction, but diminishing returns on maintainability
 
-2. **[Phase 3] Core Module Type Hints**
+3. **[Phase 3] Core Module Type Hints**
    - **Source**: refactoring_plan_20251106.md Phase 3.3
    - **Context**: Add type hints to core modules (coordinator.py, async_coordinator.py, enhanced_reasoning.py)
    - **Approach**: Similar to PR #176 - TDD with test_[module]_type_hints.py
    - **Estimate**: 6 hours
 
-3. **[Phase 4] Complete Import Consolidation**
+4. **[Phase 4] Complete Import Consolidation**
    - **Source**: PR #172 - Partial completion
    - **Completed**: 4 of 23 files migrated (async_coordinator, batch_processor, coordinator_batch, advocate)
    - **Remaining**: 19 files with import fallbacks (~200 lines)

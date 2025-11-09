@@ -8,9 +8,9 @@ import json
 import logging
 from typing import Any, List, Dict, Tuple, Optional
 
-from madspark.config.execution_constants import ContentSafetyConfig
 from madspark.utils.utils import parse_batch_json_with_fallback
 from madspark.utils.batch_exceptions import BatchParsingError
+from madspark.utils.content_safety import GeminiSafetyHandler
 
 # Set up logger
 logger = logging.getLogger(__name__)
@@ -39,29 +39,9 @@ except ImportError:
     from constants import IDEA_GENERATION_INSTRUCTION, IDEA_GENERATOR_SYSTEM_INSTRUCTION as SYSTEM_INSTRUCTION, LANGUAGE_CONSISTENCY_INSTRUCTION
 
 # Safety settings for constructive feedback generation
-# These relaxed thresholds are necessary to prevent overly aggressive content
-# filtering when processing critical feedback and improvement suggestions
-if GENAI_AVAILABLE and types:
-    _IMPROVER_SAFETY_SETTINGS = [
-        types.SafetySetting(
-            category="HARM_CATEGORY_HARASSMENT",
-            threshold=ContentSafetyConfig.SAFETY_THRESHOLD
-        ),
-        types.SafetySetting(
-            category="HARM_CATEGORY_HATE_SPEECH", 
-            threshold=ContentSafetyConfig.SAFETY_THRESHOLD
-        ),
-        types.SafetySetting(
-            category="HARM_CATEGORY_SEXUALLY_EXPLICIT",
-            threshold=ContentSafetyConfig.SAFETY_THRESHOLD
-        ),
-        types.SafetySetting(
-            category="HARM_CATEGORY_DANGEROUS_CONTENT",
-            threshold=ContentSafetyConfig.SAFETY_THRESHOLD
-        )
-    ]
-else:
-    _IMPROVER_SAFETY_SETTINGS = []
+# Use centralized safety handler to avoid duplication
+_safety_handler = GeminiSafetyHandler()
+_IMPROVER_SAFETY_SETTINGS = _safety_handler.get_safety_settings()
 
 
 def _validate_non_empty_string(value: Any, param_name: str) -> None:

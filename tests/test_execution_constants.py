@@ -240,51 +240,42 @@ class TestConstantUsage:
     def test_no_hardcoded_timeouts_in_async_coordinator(self):
         """Verify AsyncCoordinator uses config constants."""
         # This test will pass after migration is complete
-        try:
-            import madspark.core.async_coordinator as module
-            import inspect
-            source = inspect.getsource(module)
+        module = pytest.importorskip("madspark.core.async_coordinator")
+        import inspect
+        source = inspect.getsource(module)
 
-            # Should not contain hardcoded timeout values
-            import re
-            # Look for timeout=<number> pattern (but allow timeout=0)
-            hardcoded_timeouts = re.findall(r'timeout=(?!0\.?0?\b)\d+\.?\d*(?!\w)', source)
+        # Should not contain hardcoded timeout values
+        import re
+        # Look for timeout=<number> pattern (but allow timeout=0)
+        hardcoded_timeouts = re.findall(r'timeout=(?!0\.?0?\b)\d+\.?\d*(?!\w)', source)
 
-            assert len(hardcoded_timeouts) == 0, \
-                f"Found hardcoded timeouts in async_coordinator: {hardcoded_timeouts}"
-        except ImportError:
-            pytest.skip("async_coordinator not available yet")
+        assert len(hardcoded_timeouts) == 0, \
+            f"Found hardcoded timeouts in async_coordinator: {hardcoded_timeouts}"
 
     def test_no_hardcoded_max_workers(self):
         """Verify thread pools use config constants."""
         # This test will pass after migration is complete
-        try:
-            import madspark.core.batch_operations_base as module
-            import inspect
-            source = inspect.getsource(module)
+        module = pytest.importorskip("madspark.core.batch_operations_base")
+        import inspect
+        source = inspect.getsource(module)
 
-            # Should not contain max_workers=4
-            assert 'max_workers=4' not in source, \
-                "Found hardcoded max_workers=4 in batch_operations_base"
-        except ImportError:
-            pytest.skip("batch_operations_base not available yet")
+        # Should not contain max_workers=4
+        assert 'max_workers=4' not in source, \
+            "Found hardcoded max_workers=4 in batch_operations_base"
 
     def test_no_hardcoded_model_names(self):
         """Verify model names use constant."""
         # This test will pass after migration is complete
-        try:
-            import madspark.agents.genai_client as module
-            import inspect
-            source = inspect.getsource(module)
+        module = pytest.importorskip("madspark.agents.genai_client")
+        import inspect
+        source = inspect.getsource(module)
 
-            # Count occurrences of hardcoded model name (should be minimal after migration)
-            hardcoded_count = source.count('"gemini-2.5-flash"') + source.count("'gemini-2.5-flash'")
+        # Count occurrences of hardcoded model name (should be minimal after migration)
+        hardcoded_count = source.count('"gemini-2.5-flash"') + source.count("'gemini-2.5-flash'")
 
-            # Should have at most 1 (in the constant definition itself)
-            assert hardcoded_count <= 1, \
-                f"Found {hardcoded_count} hardcoded model name references (expected <= 1)"
-        except ImportError:
-            pytest.skip("genai_client not available yet")
+        # Should have at most 1 (in the constant definition itself)
+        assert hardcoded_count <= 1, \
+            f"Found {hardcoded_count} hardcoded model name references (expected <= 1)"
 
 
 class TestBackwardCompatibility:

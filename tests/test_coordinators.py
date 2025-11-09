@@ -42,13 +42,13 @@ class TestSyncCoordinator:
         }
     
     @pytest.mark.skipif(os.getenv("MADSPARK_MODE") == "mock", reason="Test requires full mock control")
-    @patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry')
-    @patch('madspark.utils.agent_retry_wrappers.call_critic_with_retry')
-    @patch('madspark.agents.advocate.advocate_ideas_batch')
-    @patch('madspark.agents.skeptic.criticize_ideas_batch')
-    @patch('madspark.agents.idea_generator.improve_ideas_batch')
+    @patch('madspark.core.workflow_orchestrator.call_idea_generator_with_retry')
+    @patch('madspark.core.workflow_orchestrator.call_critic_with_retry')
+    @patch('madspark.core.workflow_orchestrator.advocate_ideas_batch')
+    @patch('madspark.core.workflow_orchestrator.criticize_ideas_batch')
+    @patch('madspark.core.workflow_orchestrator.improve_ideas_batch')
     @pytest.mark.integration
-    def test_run_multistep_workflow_success(self, mock_improve_batch, mock_skeptic_batch, mock_advocate_batch, 
+    def test_run_multistep_workflow_success(self, mock_improve_batch, mock_skeptic_batch, mock_advocate_batch,
                                           mock_critic, mock_generate, mock_workflow_results):
         """Test successful workflow execution."""
         # Mock the individual idea generation and batch functions
@@ -98,24 +98,24 @@ class TestSyncCoordinator:
         mock_skeptic_batch.assert_called_once()
     
     @pytest.mark.skipif(os.getenv("MADSPARK_MODE") == "mock", reason="Mock mode always returns mock ideas")
-    @patch('madspark.agents.idea_generator.generate_ideas')
+    @patch('madspark.core.workflow_orchestrator.call_idea_generator_with_retry')
     @pytest.mark.integration
-    def test_run_multistep_workflow_idea_generation_failure(self, mock_generate_ideas):
+    def test_run_multistep_workflow_idea_generation_failure(self, mock_generate):
         """Test workflow when idea generation fails."""
         # Mock the actual generator to return empty string
-        mock_generate_ideas.return_value = ""  # Empty string means no ideas
-        
+        mock_generate.return_value = ""  # Empty string means no ideas
+
         result = run_multistep_workflow(
             topic="AI automation",
             context="Cost-effective"
         )
-        
+
         # Should handle gracefully - returns empty list when no ideas
         assert isinstance(result, list)
         assert len(result) == 0
     
-    @patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry')
-    @patch('madspark.agents.advocate.advocate_ideas_batch')
+    @patch('madspark.core.workflow_orchestrator.call_idea_generator_with_retry')
+    @patch('madspark.core.workflow_orchestrator.advocate_ideas_batch')
     @pytest.mark.integration
     def test_run_multistep_workflow_partial_failure(self, mock_advocate_batch, mock_generate):
         """Test workflow with partial agent failure."""
@@ -135,19 +135,19 @@ class TestSyncCoordinator:
         assert len(result) >= 0  # At least handle gracefully
     
     @pytest.mark.skipif(os.getenv("MADSPARK_MODE") == "mock", reason="Mock mode doesn't validate parameters")
-    @patch('madspark.agents.idea_generator.generate_ideas')
-    def test_workflow_parameter_validation(self, mock_generate_ideas):
+    @patch('madspark.core.workflow_orchestrator.call_idea_generator_with_retry')
+    def test_workflow_parameter_validation(self, mock_generate):
         """Test workflow parameter validation."""
         # Test with empty theme - the batch coordinator should validate this and raise ValidationError
         from madspark.utils.errors import ValidationError
-        mock_generate_ideas.side_effect = ValidationError("Input 'topic' must be a non-empty string.")
-        
+        mock_generate.side_effect = ValidationError("Input 'topic' must be a non-empty string.")
+
         with pytest.raises(ValidationError):
             run_multistep_workflow(topic="", context="test")
-        
+
         # Test with valid parameters should work
-        mock_generate_ideas.side_effect = None  # Reset side effect
-        mock_generate_ideas.return_value = "Test idea"
+        mock_generate.side_effect = None  # Reset side effect
+        mock_generate.return_value = "Test idea"
         result = run_multistep_workflow(topic="test", context="test")
         assert isinstance(result, list)
 
@@ -283,7 +283,7 @@ class TestWorkflowIntegration:
         assert sync_result is not None
         assert async_result is not None
     
-    @patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry')
+    @patch('madspark.core.workflow_orchestrator.call_idea_generator_with_retry')
     @pytest.mark.integration
     def test_workflow_with_bookmarks(self, mock_generate):
         """Test workflow integration with bookmark system."""
@@ -298,7 +298,7 @@ class TestWorkflowIntegration:
         # Should return a list of CandidateData or empty list
         assert isinstance(result, list)
     
-    @patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry')
+    @patch('madspark.core.workflow_orchestrator.call_idea_generator_with_retry')
     @pytest.mark.integration
     def test_workflow_with_temperature_presets(self, mock_generate):
         """Test workflow with temperature presets."""
@@ -317,22 +317,22 @@ class TestWorkflowIntegration:
         assert result is not None or result == []  # Allow empty results in mock mode
     
     @pytest.mark.skipif(os.getenv("MADSPARK_MODE") == "mock", reason="Mock mode always returns mock data")
-    @patch('madspark.agents.idea_generator.generate_ideas')
+    @patch('madspark.core.workflow_orchestrator.call_idea_generator_with_retry')
     @pytest.mark.integration
-    def test_workflow_error_propagation(self, mock_generate_ideas):
+    def test_workflow_error_propagation(self, mock_generate):
         """Test that workflow errors are properly propagated."""
         # When idea generation returns empty, workflow returns empty list
-        mock_generate_ideas.return_value = ""
-        
+        mock_generate.return_value = ""
+
         # Test with valid theme but empty results - workflow handles gracefully
         result = run_multistep_workflow("test", "test")
         assert isinstance(result, list)
         assert len(result) == 0
-        
+
         # Test with empty strings - should raise ValidationError now
         from madspark.utils.errors import ValidationError
-        mock_generate_ideas.side_effect = ValidationError("Input 'topic' must be a non-empty string.")
-        
+        mock_generate.side_effect = ValidationError("Input 'topic' must be a non-empty string.")
+
         with pytest.raises(ValidationError):
             run_multistep_workflow("", "")
 

@@ -13,5 +13,7 @@ Public API:
 """
 
 from madspark.utils.json_parsing import patterns
+from madspark.utils.json_parsing.parser import JsonParser
+from madspark.utils.json_parsing.telemetry import ParsingTelemetry
 
-__all__ = ['patterns']
+__all__ = ['JsonParser', 'patterns', 'ParsingTelemetry']

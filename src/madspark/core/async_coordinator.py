@@ -26,7 +26,7 @@ from ..utils.constants import (
     DEFAULT_SKEPTICISM_TEMPERATURE,
     LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD,
 )
-from ..config.execution_constants import TimeoutConfig
+from ..config.execution_constants import TimeoutConfig, ConcurrencyConfig
 from ..utils.compat_imports import import_agent_retry_wrappers
 
 logger = logging.getLogger(__name__)
@@ -44,7 +44,7 @@ improve_idea_with_retry = _retry_wrappers["improve_idea_with_retry"]
 
 # Create a shared thread pool executor for all async functions
 # This avoids the overhead of creating/destroying executors repeatedly
-_SHARED_EXECUTOR = concurrent.futures.ThreadPoolExecutor(max_workers=4)
+_SHARED_EXECUTOR = concurrent.futures.ThreadPoolExecutor(max_workers=ConcurrencyConfig.MAX_ASYNC_WORKERS)
 
 
 # Ensure threads are cleaned up on interpreter exit

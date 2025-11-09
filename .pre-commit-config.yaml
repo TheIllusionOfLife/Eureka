@@ -4,6 +4,15 @@ repos:
   # Local hooks for dependency verification
   - repo: local
     hooks:
+      # README documentation validation (fail-fast - quick check first)
+      - id: readme-validation
+        name: Validate README.md for outdated issues
+        entry: scripts/validate_readme.sh
+        language: script
+        files: ^README\.md$
+        always_run: false
+        pass_filenames: false
+
       # Python dependency verification
       - id: python-requirements-check
         name: Verify Python requirements can be installed
@@ -11,7 +20,7 @@ repos:
         language: script
         files: (requirements.*\.txt|pyproject\.toml)$
         always_run: false
-        
+
       # npm package lock consistency check
       - id: npm-lockfile-consistency
         name: Verify npm package-lock.json consistency
@@ -20,7 +29,7 @@ repos:
         files: (package\.json|package-lock\.json)$
         always_run: false
         pass_filenames: false
-        
+
       # Docker Compose syntax check
       - id: docker-compose-syntax-check
         name: Check for old docker-compose syntax

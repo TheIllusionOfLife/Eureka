@@ -525,21 +525,9 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
    - **Decision Point**: Evaluate if comprehensive migration provides value vs. current working state
    - **Estimate**: 5 hours for full migration
 
-4. **Fix Web Interface Enhanced Reasoning Bug**
-   - **Source**: Discovered during PR #160 testing
-   - **Issue**: JSON parsing errors when enhanced reasoning enabled in web UI
-   - **Impact**: Results stuck at 40% progress
-   - **Approach**: Debug batch advocate JSON response handling, add error recovery
-   - **Estimate**: 3-4 hours
-
 #### Known Issues / Blockers
 
-**Web Interface Enhanced Reasoning Bug** (Discovered during PR #160 testing)
-- **Issue**: Enabling enhanced reasoning in web UI causes JSON parsing errors
-- **Error**: `Batch advocate API call failed: Invalid JSON response from API: Expecting ',' delimiter`
-- **Impact**: Results stuck at 40% progress when enhanced reasoning is enabled
-- **Workaround**: Use web interface without enhanced reasoning features
-- **Root Cause**: Malformed JSON response from Gemini API during batch advocate operations
+**None currently**: All major issues resolved. Web interface enhanced reasoning working correctly since PR #161 (August 2025).
 
 #### Session Learnings
 
@@ -602,21 +590,20 @@ See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelin
 - **Achievement**: 100% of planned Phase 2 work (2.1 Command Handlers, 2.2 Formatter Pattern, 2.3 Type Hints)
 - **Efficiency**: Systematic refactoring plan enables focused execution
 
-#### Incomplete Testing Tasks (from PR #160)
+#### Completed Testing Tasks (from PR #160-161)
 
-1. **Web Interface Testing** (Partially Complete)
+1. **Web Interface Testing** ✅ **COMPLETE**
    - ✅ Verified Japanese input handling
-   - ✅ Discovered enhanced reasoning bug
-   - ⏸️ Check all collapsible sections in results
-   - ⏸️ Bookmark all generated ideas
-   - ⏸️ Check bookmark list display
-   - ⏸️ Test remix functionality with bookmarks
-   - **Blocker**: Enhanced reasoning bug prevents full testing
+   - ✅ Enhanced reasoning bug fixed in PR #161 (August 2025)
+   - ✅ All collapsible sections working correctly
+   - ✅ Bookmark functionality verified
+   - ✅ Remix functionality tested
+   - **Result**: All features working correctly with no JSON parsing errors
 
-2. **Score Display Verification** 
+2. **Score Display Verification** ✅ **COMPLETE**
    - ✅ CLI shows proper scores (6/10, 8/10) with Japanese input
    - ✅ Float scores properly rounded without defaulting to 0
-   - ⏸️ Web interface score display needs verification once enhanced reasoning is fixed
+   - ✅ Web interface score display verified and working correctly
 
 #### Detailed Refactoring Tasks
 

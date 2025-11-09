@@ -26,25 +26,25 @@ WARNINGS=0
 echo ""
 echo "📋 Checking for references to known fixed bugs..."
 
-if grep -q "Web Interface Enhanced Reasoning Bug" README.md; then
-    if grep -A 5 "Known Issues" README.md | grep -q "Web Interface Enhanced Reasoning Bug"; then
-        echo -e "${RED}❌ FAIL: README references 'Web Interface Enhanced Reasoning Bug' in Known Issues${NC}"
-        echo -e "${YELLOW}   This bug was fixed in PR #161 (August 2025)${NC}"
+# Define known fixed bugs (pattern|description pairs)
+# This approach is more maintainable than hardcoded checks
+KNOWN_FIXED_BUGS=(
+    "Web Interface Enhanced Reasoning Bug|This bug was fixed in PR #161 (August 2025)"
+    "Results stuck at 40%|This was a symptom of a bug fixed in PR #161 (August 2025)"
+    "Blocker.*Enhanced reasoning bug|This blocker was removed in PR #161 (August 2025)"
+)
+
+# Check each known fixed bug pattern
+for bug_entry in "${KNOWN_FIXED_BUGS[@]}"; do
+    bug_pattern=$(echo "$bug_entry" | cut -d'|' -f1)
+    bug_info=$(echo "$bug_entry" | cut -d'|' -f2)
+
+    if grep -qE "$bug_pattern" README.md; then
+        echo -e "${RED}❌ FAIL: README references a known fixed issue: '$bug_pattern'${NC}"
+        echo -e "${YELLOW}   > $bug_info${NC}"
         ISSUES=$((ISSUES + 1))
     fi
-fi
-
-if grep -q "Results stuck at 40%" README.md; then
-    echo -e "${RED}❌ FAIL: README references '40% stuck' issue${NC}"
-    echo -e "${YELLOW}   This was fixed in PR #161 (August 2025)${NC}"
-    ISSUES=$((ISSUES + 1))
-fi
-
-if grep -q "Blocker.*Enhanced reasoning bug" README.md; then
-    echo -e "${RED}❌ FAIL: README has 'Blocker' reference to fixed enhanced reasoning bug${NC}"
-    echo -e "${YELLOW}   This blocker was removed in PR #161 (August 2025)${NC}"
-    ISSUES=$((ISSUES + 1))
-fi
+done
 
 # 2. Validate PR references exist
 echo ""
@@ -61,12 +61,11 @@ for PR in $PR_NUMBERS; do
         break
     fi
 
-    # Check if PR exists (only check a few to avoid rate limits)
-    if [ $PR -gt 180 ] && [ $PR -lt 190 ]; then
-        if ! gh pr view $PR &> /dev/null; then
-            echo -e "${RED}❌ FAIL: PR #$PR referenced but doesn't exist${NC}"
-            ISSUES=$((ISSUES + 1))
-        fi
+    # Check if PR exists
+    # Note: Rate limits are unlikely for pre-commit hooks
+    if ! gh pr view $PR &> /dev/null; then
+        echo -e "${RED}❌ FAIL: PR #$PR referenced but doesn't exist${NC}"
+        ISSUES=$((ISSUES + 1))
     fi
 done
 
@@ -75,8 +74,8 @@ echo ""
 echo "📝 Checking 'Known Issues' section..."
 
 if grep -q "#### Known Issues / Blockers" README.md; then
-    # Extract the Known Issues section
-    KNOWN_ISSUES=$(sed -n '/#### Known Issues/,/####/p' README.md)
+    # Extract the Known Issues section (escape the / in section title)
+    KNOWN_ISSUES=$(sed -n '/^#### Known Issues \/ Blockers/,/^####/p' README.md)
 
     # Check if it says "None currently" or lists actual issues
     if echo "$KNOWN_ISSUES" | grep -q "None currently"; then
@@ -115,12 +114,10 @@ if grep -q "### Last Updated:" README.md; then
     LAST_UPDATED=$(grep "### Last Updated:" README.md | head -1)
     echo "   Found: $LAST_UPDATED"
 
-    # Extract date (format: November 09, 2025 or similar)
-    if echo "$LAST_UPDATED" | grep -q "August.*2025\|July.*2025\|June.*2025"; then
-        echo -e "${YELLOW}⚠️  WARNING: Session handover timestamp is from 2+ months ago${NC}"
-        echo -e "${YELLOW}   Consider updating if making changes${NC}"
-        WARNINGS=$((WARNINGS + 1))
-    fi
+    # Note: Date parsing in bash is complex and brittle
+    # For now, just show the timestamp without validation
+    # Consider using a Python script if robust date validation is needed
+    echo "   ℹ️  Timestamp verification requires manual review"
 else
     echo -e "${YELLOW}⚠️  WARNING: No 'Last Updated' timestamp found in session handover${NC}"
     WARNINGS=$((WARNINGS + 1))

@@ -4,9 +4,6 @@ Following TDD: These tests are written BEFORE implementation.
 They will fail until parser.py is created.
 """
 
-import json
-import pytest
-
 
 class TestJsonParserInit:
     """Test JsonParser initialization."""
@@ -93,7 +90,7 @@ class TestJsonParserFallbackChain:
 
         parser = JsonParser()
         text = '{"valid": "json"}'
-        result = parser.parse(text)
+        _result = parser.parse(text)
 
         # DirectJson should have been used
         assert "DirectJson" in parser.telemetry.strategy_counts
@@ -284,7 +281,7 @@ class TestJsonParserComplexCases:
 
         # Should try fallback strategies or return None
         # Should NOT raise exception
-        result = parser.parse(text)
+        _result = parser.parse(text)
 
         # Result might be None or might extract via regex
         # Either is acceptable
@@ -341,7 +338,7 @@ class TestJsonParserPerformance:
 
         parser = JsonParser()
         text = '{"valid": "json", "number": 123}'
-        result = parser.parse(text)
+        _result = parser.parse(text)
 
         # Only DirectJson should have been attempted
         stats = parser.telemetry.get_stats()

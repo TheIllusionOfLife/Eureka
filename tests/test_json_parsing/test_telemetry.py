@@ -5,7 +5,6 @@ They will fail until telemetry.py is created.
 """
 
 import logging
-import pytest
 
 
 class TestParsingTelemetry:

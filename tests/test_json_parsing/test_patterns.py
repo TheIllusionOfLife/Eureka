@@ -5,7 +5,6 @@ They will fail until patterns.py is created.
 """
 
 import re
-import pytest
 
 
 class TestCommaFixPatterns:

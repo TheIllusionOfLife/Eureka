@@ -811,6 +811,10 @@ Respond with only the numeric score (e.g., "6")."""
         except json.JSONDecodeError as e:
             raise ValueError(f"Failed to parse dimension score JSON: {e}")
 
+        # Ensure data is a dictionary
+        if not isinstance(data, dict):
+            raise ValueError(f"AI returned non-numeric score: Expected dict with 'score' field, got {type(data).__name__}: {data}")
+
         # Extract score from structured response
         if "score" not in data:
             raise ValueError(f"Response missing required 'score' field: {data}")

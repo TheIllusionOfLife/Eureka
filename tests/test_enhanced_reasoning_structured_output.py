@@ -5,8 +5,7 @@ output instead of text parsing.
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
-import json
+from unittest.mock import Mock, patch
 
 
 class TestDimensionScoreStructuredOutput:
@@ -29,7 +28,7 @@ class TestDimensionScoreStructuredOutput:
         evaluator = MultiDimensionalEvaluator(genai_client=mock_client)
 
         # Evaluate a dimension
-        score = evaluator._evaluate_dimension(
+        _score = evaluator._evaluate_dimension(
             idea="Test idea",
             context={"topic": "AI", "context": "testing"},
             dimension="feasibility",
@@ -230,7 +229,7 @@ class TestEnhancedReasoningIntegration:
         evaluator = MultiDimensionalEvaluator(genai_client=mock_client)
 
         # Evaluate with custom dimensions
-        result = evaluator.evaluate_idea(
+        _result = evaluator.evaluate_idea(
             idea="Test idea",
             context={"topic": "AI", "context": "Testing"}
         )

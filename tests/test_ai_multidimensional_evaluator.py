@@ -21,7 +21,7 @@ class TestAIMultiDimensionalEvaluator:
         # Mock GenAI client
         mock_client = Mock()
         mock_response = Mock()
-        mock_response.text = "8.5"
+        mock_response.text = '{"score": 8.5, "reasoning": "Good implementation"}'
         mock_client.models.generate_content.return_value = mock_response
         
         evaluator = MultiDimensionalEvaluator(genai_client=mock_client)
@@ -73,35 +73,36 @@ class TestAIMultiDimensionalEvaluator:
         mock_response = Mock()
         mock_response.text = "This is not a number"
         mock_client.models.generate_content.return_value = mock_response
-        
+
         evaluator = MultiDimensionalEvaluator(genai_client=mock_client)
-        
+
         with pytest.raises(RuntimeError) as exc_info:
             evaluator.evaluate_idea(
                 idea="Test idea",
                 context={"theme": "test"}
             )
-        
-        assert "AI returned non-numeric score" in str(exc_info.value)
+
+        # Should fail with JSON parsing error
+        assert "Failed to parse dimension score JSON" in str(exc_info.value) or "AI returned non-numeric score" in str(exc_info.value)
     
     def test_score_clamping(self):
         """Test that scores are clamped to 1-10 range."""
         mock_client = Mock()
-        
+
         # Test over-range score
         mock_response = Mock()
-        mock_response.text = "15.0"
+        mock_response.text = '{"score": 15.0, "reasoning": "Excellent"}'
         mock_client.models.generate_content.return_value = mock_response
-        
+
         evaluator = MultiDimensionalEvaluator(genai_client=mock_client)
         result = evaluator.evaluate_idea("Test", {"theme": "test"})
-        
+
         # All scores should be clamped to 10
         for score in result['dimension_scores'].values():
             assert score == 10.0
-        
+
         # Test under-range score
-        mock_response.text = "-5.0"
+        mock_response.text = '{"score": -5.0, "reasoning": "Poor"}'
         result = evaluator.evaluate_idea("Test", {"theme": "test"})
         
         # All scores should be clamped to 1
@@ -112,7 +113,7 @@ class TestAIMultiDimensionalEvaluator:
         """Test that evaluation works for non-English text."""
         mock_client = Mock()
         mock_response = Mock()
-        mock_response.text = "7.5"
+        mock_response.text = '{"score": 7.5, "reasoning": "Buena idea"}'
         mock_client.models.generate_content.return_value = mock_response
         
         evaluator = MultiDimensionalEvaluator(genai_client=mock_client)
@@ -135,14 +136,14 @@ class TestAIMultiDimensionalEvaluator:
         """Test that appropriate prompts are generated for each dimension."""
         mock_client = Mock()
         mock_response = Mock()
-        mock_response.text = "7.0"
+        mock_response.text = '{"score": 7.0, "reasoning": "Good"}'
         mock_client.models.generate_content.return_value = mock_response
         
         evaluator = MultiDimensionalEvaluator(genai_client=mock_client)
         
         # Capture the prompts used
         captured_prompts = []
-        def capture_prompt(model, contents):
+        def capture_prompt(model, contents, **kwargs):
             captured_prompts.append(contents)
             return mock_response
         
@@ -173,16 +174,20 @@ class TestAIMultiDimensionalEvaluator:
         """Test that weighted scores are calculated correctly."""
         mock_client = Mock()
         
-        # Set up different scores for different dimensions
-        scores = {"feasibility": "3.0", "innovation": "9.0", "impact": "8.0",
-                 "cost_effectiveness": "4.0", "scalability": "7.0", 
-                 "risk_assessment": "5.0", "timeline": "6.0"}
-        
+        # Set up different scores for different dimensions (using JSON format)
+        scores = {"feasibility": '{"score": 3.0, "reasoning": "Low"}',
+                 "innovation": '{"score": 9.0, "reasoning": "High"}',
+                 "impact": '{"score": 8.0, "reasoning": "Good"}',
+                 "cost_effectiveness": '{"score": 4.0, "reasoning": "Medium"}',
+                 "scalability": '{"score": 7.0, "reasoning": "Fair"}',
+                 "risk_assessment": '{"score": 5.0, "reasoning": "Medium"}',
+                 "timeline": '{"score": 6.0, "reasoning": "Acceptable"}'}
+
         dimension_order = ['feasibility', 'innovation', 'impact', 'cost_effectiveness',
                           'scalability', 'risk_assessment', 'timeline']
-        
+
         call_count = 0
-        def return_score_by_dimension(model, contents):
+        def return_score_by_dimension(model, contents, **kwargs):
             nonlocal call_count
             if call_count < len(dimension_order):
                 score = scores[dimension_order[call_count]]
@@ -256,7 +261,7 @@ class TestCoordinatorIntegration:
         # Mock GenAI client
         mock_client = Mock()
         mock_response = Mock()
-        mock_response.text = "7.5"
+        mock_response.text = '{"score": 7.5, "reasoning": "Good test"}'
         mock_client.models.generate_content.return_value = mock_response
         mock_get_client.return_value = mock_client
         

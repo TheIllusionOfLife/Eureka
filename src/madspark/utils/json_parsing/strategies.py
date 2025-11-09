@@ -15,7 +15,6 @@ Strategy Execution Order (in JsonParser):
 from abc import ABC, abstractmethod
 import json
 import logging
-import re
 from typing import Any, Dict, List, Optional
 
 from madspark.utils.json_parsing.telemetry import ParsingTelemetry

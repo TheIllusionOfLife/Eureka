@@ -4,7 +4,6 @@ Following TDD: These tests verify that logical inference uses structured
 output instead of text parsing with regex.
 """
 
-import pytest
 from unittest.mock import Mock, patch
 import json
 
@@ -34,7 +33,7 @@ class TestFullAnalysisStructuredOutput:
         engine = LogicalInferenceEngine(genai_client=mock_client)
 
         # Perform full analysis
-        result = engine.analyze(
+        _result = engine.analyze(
             idea="Test idea",
             topic="AI safety",
             context="Testing context",
@@ -91,7 +90,6 @@ class TestCausalAnalysisStructuredOutput:
     def test_causal_analysis_uses_structured_output(self, mock_get_model):
         """Should use structured output for causal analysis."""
         from madspark.utils.logical_inference_engine import LogicalInferenceEngine, InferenceType
-        from google.genai import types
 
         mock_get_model.return_value = "gemini-1.5-flash"
 
@@ -354,7 +352,6 @@ class TestBatchAnalysisStructuredOutput:
     def test_batch_analysis_uses_structured_output(self, mock_get_model):
         """Should use structured output for batch analysis."""
         from madspark.utils.logical_inference_engine import LogicalInferenceEngine, InferenceType
-        from google.genai import types
 
         mock_get_model.return_value = "gemini-1.5-flash"
 

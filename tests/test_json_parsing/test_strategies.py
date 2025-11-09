@@ -4,7 +4,6 @@ Following TDD: These tests are written BEFORE implementation.
 They will fail until strategies.py is created.
 """
 
-import json
 import pytest
 
 

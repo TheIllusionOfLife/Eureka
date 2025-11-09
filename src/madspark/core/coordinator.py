@@ -10,6 +10,7 @@ import json
 import logging
 from typing import List, Optional
 
+from madspark.utils.constants import DEFAULT_GOOGLE_GENAI_MODEL
 # Import shared types and logging functions
 from madspark.core.types_and_logging import CandidateData, EvaluatedIdea  # noqa: F401
 
@@ -71,8 +72,8 @@ def _ensure_environment_configured():
         os.environ["GOOGLE_GENAI_MODEL"] = model_name
     else:
         # Set default model name
-        os.environ["GOOGLE_GENAI_MODEL"] = "gemini-2.5-flash"
-        logging.info("GOOGLE_GENAI_MODEL not set - using default: gemini-2.5-flash")
+        os.environ["GOOGLE_GENAI_MODEL"] = DEFAULT_GOOGLE_GENAI_MODEL
+        logging.info(f"GOOGLE_GENAI_MODEL not set - using default: {DEFAULT_GOOGLE_GENAI_MODEL}")
 
 # Agent functions are accessed via retry wrappers from agent_retry_wrappers module
 try:

@@ -173,10 +173,18 @@ class TestFieldNameStandardization:
         
         mock_client = Mock()
         # Create separate mock responses for dimensions and summary
-        dimension_scores = ["8", "7", "9", "6", "8", "7", "8"]  # 7 dimensions
+        dimension_scores = [
+            '{"score": 8, "reasoning": "Good"}',
+            '{"score": 7, "reasoning": "Good"}',
+            '{"score": 9, "reasoning": "Excellent"}',
+            '{"score": 6, "reasoning": "Fair"}',
+            '{"score": 8, "reasoning": "Good"}',
+            '{"score": 7, "reasoning": "Good"}',
+            '{"score": 8, "reasoning": "Good"}'
+        ]  # 7 dimensions
         call_count = 0
-        
-        def mock_generate_content(model, contents):
+
+        def mock_generate_content(model, contents, **kwargs):
             nonlocal call_count
             mock_response = Mock()
             if call_count < len(dimension_scores):

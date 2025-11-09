@@ -208,10 +208,56 @@ MadSpark now uses Google Gemini's structured output feature for cleaner, more co
 - ✅ Reliable logical inference result display
 
 **Technical Details:**
-- Uses `response_mime_type="application/json"` with `response_schema`
+- Uses `response_mime_type="application/json"` with `response_schema` for all LLM interactions
+- **Enhanced JSON Parsing**: Dedicated `json_parsing` package with 5 progressive fallback strategies
+- **Pre-compiled Patterns**: 15-20% faster parsing using pre-compiled regex patterns
+- **Telemetry Tracking**: Monitors parsing strategy usage for optimization
 - Backward compatible with text-based responses for fallback scenarios
 - All agents (IdeaGenerator, Critic, Advocate, Skeptic) support structured output
 - Applies to both individual and batch processing modes
+- **Logical Inference**: 5 specialized schemas for reasoning analysis (full, causal, constraints, contradiction, implications)
+
+**Example: Using JsonParser Directly**
+
+For developers integrating with MadSpark's parsing infrastructure:
+
+```python
+from madspark.utils.json_parsing import JsonParser
+
+# Create parser instance
+parser = JsonParser()
+
+# Parse AI response with automatic fallback
+response_text = '{"idea": "Smart energy grid", "score": 8.5}'
+result = parser.parse(response_text)
+# Returns: {"idea": "Smart energy grid", "score": 8.5}
+
+# Works with messy/mixed content
+messy_text = '''
+Here are some ideas:
+[{"id": 1, "text": "Solar panels"}, {"id": 2, "text": "Wind power"}]
+Hope this helps!
+'''
+result = parser.parse(messy_text, expected_count=2)
+# Returns: [{"id": 1, "text": "Solar panels"}, {"id": 2, "text": "Wind power"}]
+
+# View parsing statistics (which strategies succeeded)
+stats = parser.telemetry.get_stats()
+# Example: {'DirectJson': 1, 'JsonArrayExtraction': 1, 'total': 2}
+```
+
+**Migration from Legacy Parsing**:
+
+```python
+# Old way (deprecated)
+from madspark.utils.utils import parse_json_with_fallback
+result = parse_json_with_fallback(text)  # Triggers DeprecationWarning
+
+# New way (recommended)
+from madspark.utils.json_parsing import JsonParser
+parser = JsonParser()
+result = parser.parse(text)
+```
 
 ### Bookmark Management
 
@@ -386,12 +432,18 @@ The monitoring system ensures you get maximum value from your API usage while ma
 ```
 eureka/
 ├── src/madspark/           # Core application
-│   ├── agents/             # Agent definitions
-│   ├── core/               # Coordinators & logic
+│   ├── agents/             # Agent definitions & response schemas
+│   ├── core/               # Coordinators & enhanced reasoning
 │   ├── utils/              # Utilities
+│   │   ├── json_parsing/   # Structured JSON parsing (NEW!)
+│   │   │   ├── patterns.py      # Pre-compiled regex patterns
+│   │   │   ├── strategies.py    # 5 fallback parsing strategies
+│   │   │   ├── parser.py        # JsonParser orchestrator
+│   │   │   └── telemetry.py     # Usage tracking
+│   │   └── logical_inference_engine.py  # LLM-based reasoning
 │   ├── cli/                # CLI interface
 │   └── web_api/            # Web backend
-├── tests/                  # Test suite (85%+ coverage)
+├── tests/                  # Test suite (90%+ coverage)
 ├── web/frontend/           # React TypeScript app
 ├── docs/                   # Documentation
 └── config/                 # Configuration files

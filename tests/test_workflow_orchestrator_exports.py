@@ -6,7 +6,6 @@ breaking mock targets again (as happened post-PR#182).
 
 Related PR: #188 - Fixed 40+ integration test failures due to mock target changes
 """
-import pytest
 
 
 class TestWorkflowOrchestratorExports:

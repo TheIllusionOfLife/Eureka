@@ -74,8 +74,8 @@ class CacheManager:
             self.is_connected = True
             logger.info("Redis cache initialized successfully")
             return True
-        except (RedisConnectionError, RedisTimeoutError, OSError) as e:
-            logger.error(f"Failed to initialize Redis cache: {e}")
+        except (RedisConnectionError, RedisTimeoutError) as e:
+            logger.error("Redis connection error during cache initialization: %s", e)
             self.is_connected = False
             return False
     
@@ -171,11 +171,8 @@ class CacheManager:
             logger.debug(f"Cached workflow result: {key}")
             return True
 
-        except (RedisConnectionError, RedisTimeoutError, OSError) as e:
-            logger.error(f"Failed to cache workflow result: {e}")
-            return False
-        except (TypeError, ValueError) as e:
-            logger.error(f"Failed to serialize workflow result: {e}")
+        except (RedisConnectionError, RedisTimeoutError) as e:
+            logger.error("Redis connection error while caching workflow result: %s", e)
             return False
     
     async def get_cached_workflow(
@@ -209,8 +206,8 @@ class CacheManager:
             logger.debug(f"Cache miss for workflow: {key}")
             return None
 
-        except (RedisConnectionError, RedisTimeoutError, OSError) as e:
-            logger.error(f"Failed to get cached workflow: {e}")
+        except (RedisConnectionError, RedisTimeoutError) as e:
+            logger.error("Redis connection error while reading workflow cache: %s", e)
             return None
         except (json.JSONDecodeError, KeyError) as e:
             logger.error(f"Failed to deserialize cached workflow: {e}")
@@ -264,11 +261,8 @@ class CacheManager:
             logger.debug(f"Cached agent response: {key}")
             return True
 
-        except (RedisConnectionError, RedisTimeoutError, OSError) as e:
-            logger.error(f"Failed to cache agent response: {e}")
-            return False
-        except (TypeError, ValueError) as e:
-            logger.error(f"Failed to serialize agent response: {e}")
+        except (RedisConnectionError, RedisTimeoutError) as e:
+            logger.error("Redis connection error while caching agent response: %s", e)
             return False
     
     async def get_cached_agent_response(
@@ -299,8 +293,8 @@ class CacheManager:
             
             return None
 
-        except (RedisConnectionError, RedisTimeoutError, OSError) as e:
-            logger.error(f"Failed to get cached agent response: {e}")
+        except (RedisConnectionError, RedisTimeoutError) as e:
+            logger.error("Redis connection error while reading agent cache: %s", e)
             return None
         except (json.JSONDecodeError, KeyError) as e:
             logger.error(f"Failed to deserialize cached agent response: {e}")
@@ -344,8 +338,8 @@ class CacheManager:
             
             return 0
 
-        except (RedisConnectionError, RedisTimeoutError, OSError) as e:
-            logger.error(f"Failed to invalidate cache: {e}")
+        except (RedisConnectionError, RedisTimeoutError) as e:
+            logger.error("Redis connection error during cache invalidation: %s", e)
             return 0
     
     async def clear_all_cache(self) -> bool:
@@ -370,8 +364,8 @@ class CacheManager:
             logger.info(f"Cleared {deleted_count} MadSpark cache entries")
             return True
 
-        except (RedisConnectionError, RedisTimeoutError, OSError) as e:
-            logger.error(f"Failed to clear cache: {e}")
+        except (RedisConnectionError, RedisTimeoutError) as e:
+            logger.error("Redis connection error while clearing cache: %s", e)
             return False
     
     async def get_cache_stats(self) -> Dict[str, Any]:
@@ -409,8 +403,8 @@ class CacheManager:
                 "config": asdict(self.config)
             }
 
-        except (RedisConnectionError, RedisTimeoutError, OSError) as e:
-            logger.error(f"Failed to get cache stats: {e}")
+        except (RedisConnectionError, RedisTimeoutError) as e:
+            logger.error("Redis connection error while getting cache stats: %s", e)
             return {"status": "error", "error": str(e)}
     
     def _calculate_hit_rate(self, info: Dict[str, Any]) -> float:
@@ -491,8 +485,8 @@ class CacheManager:
                     f"(oldest idle: {key_idle_pairs[0][1] if key_idle_pairs else 0}s)"
                 )
 
-        except (RedisConnectionError, RedisTimeoutError, OSError) as e:
-            logger.error(f"Failed to enforce size limit: {e}")
+        except (RedisConnectionError, RedisTimeoutError) as e:
+            logger.error("Redis connection error while enforcing cache size limit: %s", e)
     
     async def warm_cache(self, common_queries: List[Tuple[str, str]]) -> int:
         """Pre-populate cache with common queries.
@@ -557,6 +551,6 @@ class CacheManager:
             
             return results
 
-        except (RedisConnectionError, RedisTimeoutError, OSError) as e:
-            logger.error(f"Failed to batch get: {e}")
+        except (RedisConnectionError, RedisTimeoutError) as e:
+            logger.error("Redis connection error during batch get: %s", e)
             return [None] * len(keys)

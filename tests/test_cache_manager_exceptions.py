@@ -89,6 +89,54 @@ class TestCacheManagerExceptionHandling:
         assert second_call[0][0] == "Sustainable farming"  # topic
         assert second_call[0][1] == "Urban environments"  # context
 
+    @pytest.mark.asyncio
+    async def test_cache_workflow_connection_error_returns_false(self):
+        """Redis connection errors should be handled gracefully."""
+        from madspark.utils.cache_manager import (
+            CacheManager,
+            CacheConfig,
+            RedisConnectionError,
+        )
+
+        cache_manager = CacheManager(CacheConfig())
+        cache_manager.is_connected = True
+        cache_manager.redis_client = AsyncMock()
+        cache_manager.redis_client.setex = AsyncMock(
+            side_effect=RedisConnectionError("boom")
+        )
+        cache_manager._enforce_size_limit = AsyncMock()
+
+        success = await cache_manager.cache_workflow_result(
+            topic="t",
+            context="c",
+            options={},
+            result={"ok": True},
+        )
+
+        assert success is False
+        cache_manager.redis_client.setex.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_cache_workflow_oserror_bubbles_up(self):
+        """System-level OSErrors should not be swallowed by cache manager."""
+        from madspark.utils.cache_manager import CacheManager, CacheConfig
+
+        cache_manager = CacheManager(CacheConfig())
+        cache_manager.is_connected = True
+        cache_manager.redis_client = AsyncMock()
+        cache_manager.redis_client.setex = AsyncMock(
+            side_effect=OSError("disk error")
+        )
+        cache_manager._enforce_size_limit = AsyncMock()
+
+        with pytest.raises(OSError):
+            await cache_manager.cache_workflow_result(
+                topic="t",
+                context="c",
+                options={},
+                result={"ok": True},
+            )
+
 
 class TestCacheManagerExceptionTypes:
     """Test that correct exception types are caught."""

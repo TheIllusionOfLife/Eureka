@@ -100,16 +100,13 @@ FastAPI with mixed Body and File parameters expects:
 export function buildMultiModalFormData(
   request: Partial<IdeaGenerationRequest>,
   files?: File[]
-): FormData {
+): globalThis.FormData {  // Explicit: browser-native FormData, not custom interface
   const formData = new FormData();
 
-  // Remove undefined values
-  const cleanedRequest: Record<string, any> = {};
-  Object.entries(request).forEach(([key, value]) => {
-    if (value !== undefined) {
-      cleanedRequest[key] = value;
-    }
-  });
+  // Remove undefined values using functional approach (KISS principle)
+  const cleanedRequest = Object.fromEntries(
+    Object.entries(request).filter(([, value]) => value !== undefined)
+  );
 
   // Send entire request as JSON string in 'idea_request' field
   formData.append('idea_request', JSON.stringify(cleanedRequest));
@@ -379,13 +376,10 @@ When sending files to FastAPI with mixed Body + File parameters:
 ```typescript
 const formData = new FormData();
 
-// Send entire request as JSON string
-const cleanedRequest: Record<string, any> = {};
-Object.entries(request).forEach(([key, value]) => {
-  if (value !== undefined) {
-    cleanedRequest[key] = value;
-  }
-});
+// Send entire request as JSON string (remove undefined values)
+const cleanedRequest = Object.fromEntries(
+  Object.entries(request).filter(([, value]) => value !== undefined)
+);
 formData.append('idea_request', JSON.stringify(cleanedRequest));
 
 // Add files separately

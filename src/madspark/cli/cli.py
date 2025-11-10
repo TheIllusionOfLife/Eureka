@@ -580,7 +580,7 @@ def search_bookmarks_command(args: argparse.Namespace) -> None:
     for bookmark in matches:
         print(f"ID: {bookmark.id}")
         print(f"Text: {truncate_text_intelligently(bookmark.text)}")
-        print(f"Theme: {bookmark.theme}")
+        print(f"Topic: {bookmark.topic}")
         print(f"Score: {bookmark.score}")
         print("-" * 60)
 

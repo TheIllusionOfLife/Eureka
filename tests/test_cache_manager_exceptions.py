@@ -16,12 +16,12 @@ class TestCacheManagerExceptionHandling:
     async def test_initialize_handles_connection_error(self):
         """Verify CacheManager gracefully handles Redis connection failures."""
         # Import here to avoid issues if redis is not installed
-        from src.madspark.utils.cache_manager import CacheManager, CacheConfig
+        from madspark.utils.cache_manager import CacheManager, CacheConfig
 
         cache_manager = CacheManager(CacheConfig())
 
         # Mock redis client to raise connection error
-        with patch('src.madspark.utils.cache_manager.redis') as mock_redis_module:
+        with patch('madspark.utils.cache_manager.redis') as mock_redis_module:
             mock_redis_module.from_url = Mock(side_effect=ConnectionError("Connection refused"))
 
             result = await cache_manager.initialize()
@@ -32,7 +32,7 @@ class TestCacheManagerExceptionHandling:
     @pytest.mark.asyncio
     async def test_cache_workflow_handles_serialization_error(self):
         """Verify CacheManager handles non-serializable objects."""
-        from src.madspark.utils.cache_manager import CacheManager, CacheConfig
+        from madspark.utils.cache_manager import CacheManager, CacheConfig
 
         cache_manager = CacheManager(CacheConfig())
         cache_manager.is_connected = True
@@ -59,7 +59,7 @@ class TestCacheManagerExceptionHandling:
     @pytest.mark.asyncio
     async def test_get_cached_workflow_handles_deserialization_error(self):
         """Verify CacheManager handles malformed JSON data."""
-        from src.madspark.utils.cache_manager import CacheManager, CacheConfig
+        from madspark.utils.cache_manager import CacheManager, CacheConfig
 
         cache_manager = CacheManager(CacheConfig())
         cache_manager.is_connected = True
@@ -85,7 +85,7 @@ class TestCacheManagerExceptionHandling:
         # When redis is not installed, fallback exception types are used
 
         # Import should succeed without AttributeError
-        from src.madspark.utils.cache_manager import (
+        from madspark.utils.cache_manager import (
             CacheManager,
             RedisConnectionError,
             RedisTimeoutError
@@ -102,7 +102,7 @@ class TestCacheManagerExceptionHandling:
     @pytest.mark.asyncio
     async def test_redis_unavailable_returns_false(self):
         """Verify operations return False/None when redis is unavailable."""
-        from src.madspark.utils.cache_manager import CacheManager, CacheConfig
+        from madspark.utils.cache_manager import CacheManager, CacheConfig
 
         cache_manager = CacheManager(CacheConfig())
         cache_manager.is_connected = False  # Redis not available
@@ -126,7 +126,7 @@ class TestCacheManagerExceptionHandling:
     @pytest.mark.asyncio
     async def test_warm_cache_uses_correct_parameters(self):
         """Verify warm_cache uses topic/context parameters correctly."""
-        from src.madspark.utils.cache_manager import CacheManager, CacheConfig
+        from madspark.utils.cache_manager import CacheManager, CacheConfig
 
         cache_manager = CacheManager(CacheConfig())
         cache_manager.is_connected = True
@@ -163,7 +163,7 @@ class TestCacheManagerExceptionTypes:
 
     def test_exception_imports_are_correct(self):
         """Verify that RedisConnectionError and RedisTimeoutError are properly defined."""
-        from src.madspark.utils.cache_manager import (
+        from madspark.utils.cache_manager import (
             RedisConnectionError,
             RedisTimeoutError,
             REDIS_AVAILABLE

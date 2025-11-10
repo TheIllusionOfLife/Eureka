@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosResponse } from 'axios';
+import axios, { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import { ExtendedAxiosRequestConfig, ApiError } from './types/api.types';
 
 // Configure axios with the backend URL
@@ -12,6 +12,23 @@ const api: AxiosInstance = axios.create({
   },
   timeout: 12 * 60 * 1000, // 12 minutes timeout for idea generation
 });
+
+// Request interceptor to handle FormData
+api.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => {
+    // If data is FormData, Axios will automatically set Content-Type with boundary
+    // Remove our default Content-Type header to let Axios handle it
+    if (config.data instanceof FormData) {
+      if (config.headers) {
+        delete config.headers['Content-Type'];
+      }
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
 // Add retry logic for failed requests with proper typing
 api.interceptors.response.use(

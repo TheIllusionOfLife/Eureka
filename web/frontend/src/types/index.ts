@@ -35,6 +35,8 @@ export interface FormData {
   verbose: boolean;
   show_detailed_results: boolean;
   bookmark_ids?: string[];
+  multimodal_urls?: string[];
+  multimodal_files?: File[];
 }
 
 // Component prop types

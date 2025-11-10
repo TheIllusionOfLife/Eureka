@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
 import { showError } from '../utils/toast';
+import UrlInput from './UrlInput';
+import FileUpload from './FileUpload';
+import { buildMultiModalFormData, shouldUseFormData } from '../utils/formDataConversion';
 
 import { FormData, TemperaturePreset, SavedBookmark } from '../types';
 
@@ -42,6 +45,10 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({
   const [useCustomTemperature, setUseCustomTemperature] = useState(false);
   const [useBookmarks, setUseBookmarks] = useState(false);
 
+  // Multi-modal state
+  const [multimodalUrls, setMultimodalUrls] = useState<string[]>([]);
+  const [multimodalFiles, setMultimodalFiles] = useState<File[]>([]);
+
   // Load temperature presets
   useEffect(() => {
     const loadPresets = async () => {
@@ -82,25 +89,41 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Prepare submission data
-    const submissionData: any = {
+
+    // Prepare base submission data
+    const baseData: any = {
       ...formData,
       temperature: useCustomTemperature ? formData.temperature : null,
       temperature_preset: useCustomTemperature ? null : formData.temperature_preset,
     };
-    
+
     // Add bookmark IDs if using bookmarks
     if (useBookmarks && selectedBookmarkIds.length > 0) {
-      submissionData.bookmark_ids = selectedBookmarkIds;
+      baseData.bookmark_ids = selectedBookmarkIds;
     }
-    
+
+    // Add multi-modal URLs if present
+    if (multimodalUrls.length > 0) {
+      baseData.multimodal_urls = multimodalUrls;
+    }
+
     // Remove constraints field if it's empty to allow backend default
-    if (!submissionData.constraints || submissionData.constraints.trim() === '') {
-      delete submissionData.constraints;
+    if (!baseData.constraints || baseData.constraints.trim() === '') {
+      delete baseData.constraints;
     }
-    
-    onSubmit(submissionData);
+
+    // Determine if we need FormData (for file uploads)
+    if (shouldUseFormData(baseData, multimodalFiles)) {
+      // Convert to FormData for multipart/form-data upload
+      const formDataSubmission = buildMultiModalFormData(baseData, multimodalFiles);
+      // Type cast required: onSubmit expects local FormData interface, but we need to pass
+      // browser-native FormData for file uploads. Ideally, IdeaGenerationFormProps.onSubmit
+      // should accept (data: FormData | globalThis.FormData) => void
+      onSubmit(formDataSubmission as any);
+    } else {
+      // Use JSON for regular requests
+      onSubmit(baseData);
+    }
   };
 
   const selectedPreset = formData.temperature_preset ? temperaturePresets[formData.temperature_preset] : null;
@@ -444,6 +467,36 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({
             </div>
           </div>
         )}
+
+        {/* Multi-Modal Context (Optional) */}
+        <div className="border-t pt-6">
+          <label className="block text-sm font-medium text-gray-700 mb-3">
+            Additional Context (Optional)
+          </label>
+          <p className="text-xs text-gray-500 mb-4">
+            Provide URLs or files to give the AI more context for generating ideas.
+          </p>
+
+          <div className="space-y-4">
+            {/* URL Input */}
+            <UrlInput
+              urls={multimodalUrls}
+              onChange={setMultimodalUrls}
+              label="Context URLs"
+              helpText="Add up to 5 URLs for the AI to analyze (e.g., competitor websites, articles, documentation)"
+              disabled={isLoading}
+            />
+
+            {/* File Upload */}
+            <FileUpload
+              files={multimodalFiles}
+              onChange={setMultimodalFiles}
+              label="Context Files"
+              helpText="Upload PDFs, images, or documents to provide visual or textual context"
+              disabled={isLoading}
+            />
+          </div>
+        </div>
 
         {/* Submit Button */}
         <div>

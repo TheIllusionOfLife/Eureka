@@ -1,0 +1,14 @@
+
+🚀 Generating ideas with Google Gemini API...
+⏳ This may take 30-60 seconds for quality results...
+
+✅ Bookmarked result (ID: bookmark_20251110_151902_181237c2)
+================================================================================
+MADSPARK MULTI-AGENT IDEA GENERATION RESULTS
+================================================================================
+
+
+... [Output truncated - 141 more lines]
+(Full output saved to file - use --output-file to specify location)
+
+📄 Full output saved to: output/markdown/madspark_Design_comparison_20251110_151902.md

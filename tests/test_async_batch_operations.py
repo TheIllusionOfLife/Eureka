@@ -335,7 +335,7 @@ class TestAsyncBatchOperations:
         # Phase 3.2c: Patch orchestrator methods instead of BATCH_FUNCTIONS
         from unittest.mock import AsyncMock
 
-        def mock_generate_side_effect(topic, context, num_ideas):
+        def mock_generate_side_effect(topic, context, num_ideas, **kwargs):
             api_calls["idea_generation"] += 1
             return [f"Idea {i}" for i in range(1, 6)], 1000
 
@@ -642,7 +642,7 @@ class TestAsyncCoordinatorIntegration:
         # Phase 3.2c: Create async mocks for orchestrator methods (old JSON mocks removed)
         from unittest.mock import AsyncMock
 
-        def mock_generate_side_effect(topic, context, num_ideas):
+        def mock_generate_side_effect(topic, context, num_ideas, **kwargs):
             api_calls.append("generate")
             return ([f"Idea {i}: Test idea" for i in range(1, 6)], 1000)
 
@@ -764,7 +764,7 @@ class TestAsyncCoordinatorIntegration:
         coordinator = AsyncCoordinator()
 
         # Phase 3.2c: Create orchestrator mocks (advocacy will fail)
-        def mock_generate_side_effect(topic, context, num_ideas):
+        def mock_generate_side_effect(topic, context, num_ideas, **kwargs):
             return (["Test idea for error recovery"], 100)
 
         def mock_evaluate_side_effect(ideas, topic, context):

@@ -9,7 +9,13 @@ This test module verifies that BatchProcessor correctly handles event loop conte
 import pytest
 import asyncio
 from unittest.mock import AsyncMock, Mock, patch
-from src.madspark.utils.batch_processor import BatchProcessor, BatchItem
+
+try:
+    from madspark.utils.batch_processor import BatchProcessor, BatchItem
+    from madspark.utils.errors import BatchProcessingError
+except ImportError:  # Fallback for local development without editable install
+    from src.madspark.utils.batch_processor import BatchProcessor, BatchItem
+    from src.madspark.utils.errors import BatchProcessingError
 
 
 class TestBatchProcessorEventLoop:
@@ -53,15 +59,15 @@ class TestBatchProcessorEventLoop:
                 BatchItem(theme="Test theme", constraints="Test constraints")
             ]
 
-            # Should raise RuntimeError with helpful message
-            with pytest.raises(RuntimeError) as exc_info:
+            # Should raise BatchProcessingError with helpful message
+            with pytest.raises(BatchProcessingError) as exc_info:
                 processor.process_batch(batch_items)
 
             # Verify error message is helpful
             error_msg = str(exc_info.value)
-            assert "cannot be called from an async context" in error_msg
+            assert "cannot call process_batch() from an async context" in error_msg.lower()
             assert "process_batch_async" in error_msg
-            assert "await" in error_msg
+            assert "SOLUTION" in error_msg
 
             return True
 
@@ -144,18 +150,18 @@ class TestBatchProcessorEventLoop:
 
             try:
                 processor.process_batch(batch_items)
-                pytest.fail("Expected RuntimeError was not raised")
-            except RuntimeError as e:
+                pytest.fail("Expected BatchProcessingError was not raised")
+            except BatchProcessingError as e:
                 error_msg = str(e)
 
                 # Check all required elements are in error message
                 assert "process_batch_async" in error_msg, "Should mention correct method"
-                assert "await" in error_msg, "Should mention await keyword"
-                assert "async context" in error_msg or "event loop" in error_msg, \
+                assert "SOLUTION" in error_msg, "Should provide solutions"
+                assert "async context" in error_msg.lower() or "event loop" in error_msg.lower(), \
                     "Should explain the problem"
 
                 # Should provide alternatives
-                assert "use_async=False" in error_msg or "synchronous mode" in error_msg, \
+                assert "use_async=False" in error_msg or "synchronous mode" in error_msg.lower(), \
                     "Should mention sync mode alternative"
 
                 return True

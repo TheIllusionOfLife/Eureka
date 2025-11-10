@@ -31,6 +31,12 @@ try:
 except ImportError:
     from .cache_manager import CacheConfig
 
+# Import custom errors
+try:
+    from madspark.utils.errors import BatchProcessingError
+except ImportError:
+    from .errors import BatchProcessingError
+
 logger = logging.getLogger(__name__)
 
 
@@ -424,7 +430,7 @@ class BatchProcessor:
                 - total_processing_time: Total time in seconds
 
         Raises:
-            RuntimeError: If called from an async context (event loop already running)
+            BatchProcessingError: If called from an async context (event loop already running)
 
         Examples:
             Synchronous usage (scripts, CLI)::
@@ -476,14 +482,15 @@ class BatchProcessor:
 
             if is_async_context:
                 # Cannot use asyncio.run() from within an event loop
-                raise RuntimeError(
-                    "BatchProcessor.process_batch() cannot be called from an async context "
-                    "(event loop already running). "
-                    "\n\nUse the async version instead:"
-                    "\n  summary = await processor.process_batch_async(batch_items, workflow_options)"
-                    "\n\nOr force synchronous mode:"
-                    "\n  processor = BatchProcessor(use_async=False)"
-                    "\n  summary = processor.process_batch(batch_items)"
+                raise BatchProcessingError(
+                    "Cannot call process_batch() from an async context (event loop already running). "
+                    "\n\n⚠️  You are calling process_batch() from within an async function or event loop."
+                    "\n\n✅ SOLUTION 1: Use the async version instead:"
+                    "\n    summary = await processor.process_batch_async(batch_items, workflow_options)"
+                    "\n\n✅ SOLUTION 2: Force synchronous mode:"
+                    "\n    processor = BatchProcessor(use_async=False)"
+                    "\n    summary = processor.process_batch(batch_items)"
+                    "\n\n📚 For CLI users, add the --async flag to your command."
                 )
 
             # Safe to proceed with async mode

@@ -10,10 +10,20 @@ from dataclasses import dataclass, asdict
 
 try:
     import redis.asyncio as redis
+    from redis.asyncio import ConnectionError as RedisConnectionError
+    from redis.asyncio import TimeoutError as RedisTimeoutError
     REDIS_AVAILABLE = True
 except ImportError:
     REDIS_AVAILABLE = False
     redis = None
+    # Define fallback exception types for when redis is not installed
+    # These will never actually be raised, but prevent AttributeError at parse time
+    class RedisConnectionError(Exception):
+        """Fallback exception for when redis library is not available."""
+        pass
+    class RedisTimeoutError(Exception):
+        """Fallback exception for when redis library is not available."""
+        pass
 
 logger = logging.getLogger(__name__)
 
@@ -64,8 +74,8 @@ class CacheManager:
             self.is_connected = True
             logger.info("Redis cache initialized successfully")
             return True
-        except Exception as e:
-            logger.error(f"Failed to initialize Redis cache: {e}")
+        except (RedisConnectionError, RedisTimeoutError) as e:
+            logger.error("Redis connection error during cache initialization: %s", e)
             self.is_connected = False
             return False
     
@@ -75,22 +85,22 @@ class CacheManager:
             await self.redis_client.close()
             self.is_connected = False
     
-    def _generate_cache_key(self, theme: str, constraints: str, options: Dict[str, Any]) -> str:
+    def _generate_cache_key(self, topic: str, context: str, options: Dict[str, Any]) -> str:
         """Generate a unique cache key for given inputs.
-        
+
         Args:
-            theme: Idea generation theme
-            constraints: Constraints for ideas
+            topic: Main topic for idea generation
+            context: Context/constraints for the ideas
             options: Additional options (temperature, mode, etc.)
-            
+
         Returns:
             Cache key string
         """
         # Sort options for consistent key generation
         sorted_options = json.dumps(options, sort_keys=True)
-        key_parts = [theme, constraints, sorted_options]
+        key_parts = [topic, context, sorted_options]
         key_string = "|".join(key_parts)
-        
+
         # Create hash for compact key
         key_hash = hashlib.sha256(key_string.encode()).hexdigest()[:16]
         return f"{self.config.key_prefix}:workflow:{key_hash}"
@@ -110,16 +120,16 @@ class CacheManager:
     
     async def cache_workflow_result(
         self, 
-        theme: str, 
-        constraints: str, 
+        topic: str, 
+        context: str, 
         options: Dict[str, Any], 
         result: Dict[str, Any]
     ) -> bool:
         """Cache a complete workflow result.
         
         Args:
-            theme: Idea generation theme
-            constraints: Constraints for ideas
+            topic: Main topic for idea generation
+            context: Context/constraints for the ideas
             options: Workflow options
             result: Complete workflow result
             
@@ -130,14 +140,14 @@ class CacheManager:
             return False
             
         try:
-            key = self._generate_cache_key(theme, constraints, options)
+            key = self._generate_cache_key(topic, context, options)
             
             # Add metadata
             cache_data = {
                 "result": result,
                 "cached_at": datetime.now().isoformat(),
-                "theme": theme,
-                "constraints": constraints,
+                "topic": topic,
+                "context": context,
                 "options": options
             }
             
@@ -160,22 +170,22 @@ class CacheManager:
             
             logger.debug(f"Cached workflow result: {key}")
             return True
-            
-        except Exception as e:
-            logger.error(f"Failed to cache workflow result: {e}")
+
+        except (RedisConnectionError, RedisTimeoutError) as e:
+            logger.error("Redis connection error while caching workflow result: %s", e)
             return False
     
     async def get_cached_workflow(
         self, 
-        theme: str, 
-        constraints: str, 
+        topic: str, 
+        context: str, 
         options: Dict[str, Any]
     ) -> Optional[Dict[str, Any]]:
         """Retrieve cached workflow result.
         
         Args:
-            theme: Idea generation theme
-            constraints: Constraints for ideas
+            topic: Main topic for idea generation
+            context: Context/constraints for the ideas
             options: Workflow options
             
         Returns:
@@ -185,7 +195,7 @@ class CacheManager:
             return None
             
         try:
-            key = self._generate_cache_key(theme, constraints, options)
+            key = self._generate_cache_key(topic, context, options)
             cached_data = await self.redis_client.get(key)
             
             if cached_data:
@@ -195,9 +205,12 @@ class CacheManager:
             
             logger.debug(f"Cache miss for workflow: {key}")
             return None
-            
-        except Exception as e:
-            logger.error(f"Failed to get cached workflow: {e}")
+
+        except (RedisConnectionError, RedisTimeoutError) as e:
+            logger.error("Redis connection error while reading workflow cache: %s", e)
+            return None
+        except (json.JSONDecodeError, KeyError) as e:
+            logger.error(f"Failed to deserialize cached workflow: {e}")
             return None
     
     async def cache_agent_response(
@@ -247,9 +260,9 @@ class CacheManager:
             
             logger.debug(f"Cached agent response: {key}")
             return True
-            
-        except Exception as e:
-            logger.error(f"Failed to cache agent response: {e}")
+
+        except (RedisConnectionError, RedisTimeoutError) as e:
+            logger.error("Redis connection error while caching agent response: %s", e)
             return False
     
     async def get_cached_agent_response(
@@ -279,9 +292,12 @@ class CacheManager:
                 return data["response"]
             
             return None
-            
-        except Exception as e:
-            logger.error(f"Failed to get cached agent response: {e}")
+
+        except (RedisConnectionError, RedisTimeoutError) as e:
+            logger.error("Redis connection error while reading agent cache: %s", e)
+            return None
+        except (json.JSONDecodeError, KeyError) as e:
+            logger.error(f"Failed to deserialize cached agent response: {e}")
             return None
     
     async def invalidate_cache(self, pattern: Optional[str] = None) -> int:
@@ -321,9 +337,9 @@ class CacheManager:
                 return deleted_count
             
             return 0
-            
-        except Exception as e:
-            logger.error(f"Failed to invalidate cache: {e}")
+
+        except (RedisConnectionError, RedisTimeoutError) as e:
+            logger.error("Redis connection error during cache invalidation: %s", e)
             return 0
     
     async def clear_all_cache(self) -> bool:
@@ -347,9 +363,9 @@ class CacheManager:
             
             logger.info(f"Cleared {deleted_count} MadSpark cache entries")
             return True
-            
-        except Exception as e:
-            logger.error(f"Failed to clear cache: {e}")
+
+        except (RedisConnectionError, RedisTimeoutError) as e:
+            logger.error("Redis connection error while clearing cache: %s", e)
             return False
     
     async def get_cache_stats(self) -> Dict[str, Any]:
@@ -386,9 +402,9 @@ class CacheManager:
                 "hit_rate": self._calculate_hit_rate(info),
                 "config": asdict(self.config)
             }
-            
-        except Exception as e:
-            logger.error(f"Failed to get cache stats: {e}")
+
+        except (RedisConnectionError, RedisTimeoutError) as e:
+            logger.error("Redis connection error while getting cache stats: %s", e)
             return {"status": "error", "error": str(e)}
     
     def _calculate_hit_rate(self, info: Dict[str, Any]) -> float:
@@ -468,15 +484,15 @@ class CacheManager:
                     f"Enforced size limit: deleted {to_delete} LRU keys "
                     f"(oldest idle: {key_idle_pairs[0][1] if key_idle_pairs else 0}s)"
                 )
-                
-        except Exception as e:
-            logger.error(f"Failed to enforce size limit: {e}")
+
+        except (RedisConnectionError, RedisTimeoutError) as e:
+            logger.error("Redis connection error while enforcing cache size limit: %s", e)
     
     async def warm_cache(self, common_queries: List[Tuple[str, str]]) -> int:
         """Pre-populate cache with common queries.
         
         Args:
-            common_queries: List of (theme, constraints) tuples
+            common_queries: List of (topic, context) tuples
             
         Returns:
             Number of entries warmed
@@ -485,7 +501,7 @@ class CacheManager:
             return 0
             
         warmed = 0
-        for theme, constraints in common_queries:
+        for topic, context in common_queries:
             # Generate synthetic result for warming
             # In production, this would call the actual workflow
             synthetic_result = {
@@ -495,8 +511,8 @@ class CacheManager:
             }
             
             success = await self.cache_workflow_result(
-                theme, 
-                constraints, 
+                topic,
+                context,
                 {"temperature": 0.7},  # Default options
                 synthetic_result
             )
@@ -534,7 +550,7 @@ class CacheManager:
                     results.append(None)
             
             return results
-            
-        except Exception as e:
-            logger.error(f"Failed to batch get: {e}")
+
+        except (RedisConnectionError, RedisTimeoutError) as e:
+            logger.error("Redis connection error during batch get: %s", e)
             return [None] * len(keys)

@@ -176,17 +176,29 @@ Examples:
   
   # Verbose mode with enhanced reasoning for detailed analysis
   ms "Sustainable agriculture" "Low-cost" --verbose --enhanced-reasoning
-  
+
+  # Multi-modal inputs: Analyze competitor website
+  ms "Improve our landing page" "Increase conversions" --url https://competitor.com
+
+  # Multi-modal inputs: Visual design inspiration
+  ms "Modern app redesign" "Clean, minimal" --image mockup.png --image wireframe.jpg
+
+  # Multi-modal inputs: Document analysis
+  ms "Summarize research findings" "Key insights" --file research.pdf --file data.csv
+
+  # Multi-modal inputs: Combined context
+  ms "Product improvement ideas" "User-focused" --url https://reviews.com --file feedback.pdf --image current-ui.png
+
   # List saved bookmarks
   ms --list-bookmarks
-  
+
   # Show temperature presets
   ms --list-presets
-  
+
   # Batch processing
   ms --create-sample-batch csv
   ms --batch sample_batch.csv --batch-concurrent 5
-  
+
   # Interactive mode
   ms --interactive
         """
@@ -472,7 +484,37 @@ Examples:
         '--export-filename',
         help='Base filename for exports (timestamp will be added if not specified)'
     )
-    
+
+    # Multi-modal inputs
+    multimodal_group = parser.add_argument_group(
+        'multi-modal inputs',
+        'Provide additional context via files and URLs for richer idea generation'
+    )
+
+    multimodal_group.add_argument(
+        '--url', '-u',
+        action='append',
+        dest='multimodal_urls',
+        metavar='URL',
+        help='Add URL for context (e.g., competitor website, reference material). Can specify multiple times.'
+    )
+
+    multimodal_group.add_argument(
+        '--file', '-f',
+        action='append',
+        dest='multimodal_files',
+        metavar='PATH',
+        help='Add file for context: PDF, text, markdown, or document. Can specify multiple times.'
+    )
+
+    multimodal_group.add_argument(
+        '--image', '-img',
+        action='append',
+        dest='multimodal_images',
+        metavar='PATH',
+        help='Add image for visual context (PNG, JPG, JPEG, WebP, GIF, BMP). Can specify multiple times.'
+    )
+
     return parser
 
 

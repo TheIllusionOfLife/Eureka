@@ -4,6 +4,8 @@ This module consolidates the retry logic for all agent functions that was previo
 duplicated between coordinator.py and async_coordinator.py. This eliminates
 code duplication and provides a single source of truth for agent retry behavior.
 """
+from typing import List, Optional, Union
+from pathlib import Path
 
 from ..config.execution_constants import RetryConfig
 from .utils import exponential_backoff_retry
@@ -25,9 +27,35 @@ class AgentRetryWrapper:
         max_retries=RetryConfig.IDEA_GENERATOR_MAX_RETRIES,
         initial_delay=RetryConfig.IDEA_GENERATOR_INITIAL_DELAY
     )
-    def idea_generator(topic: str, context: str, temperature: float = 0.9, use_structured_output: bool = True) -> str:
-        """Generate ideas with retry logic."""
-        return generate_ideas(topic=topic, context=context, temperature=temperature, use_structured_output=use_structured_output)
+    def idea_generator(
+        topic: str,
+        context: str,
+        temperature: float = 0.9,
+        use_structured_output: bool = True,
+        multimodal_files: Optional[List[Union[str, Path]]] = None,
+        multimodal_urls: Optional[List[str]] = None
+    ) -> str:
+        """Generate ideas with retry logic.
+
+        Args:
+            topic: Main topic/theme for idea generation.
+            context: Context/constraints for the ideas.
+            temperature: Controls randomness (0.0-1.0).
+            use_structured_output: Whether to use structured JSON output.
+            multimodal_files: Optional list of file paths (images, PDFs, documents).
+            multimodal_urls: Optional list of URLs for context.
+
+        Returns:
+            Generated ideas as string (JSON if use_structured_output=True).
+        """
+        return generate_ideas(
+            topic=topic,
+            context=context,
+            temperature=temperature,
+            use_structured_output=use_structured_output,
+            multimodal_files=multimodal_files,
+            multimodal_urls=multimodal_urls
+        )
 
     @staticmethod
     @exponential_backoff_retry(

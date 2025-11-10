@@ -8,7 +8,8 @@ refine ideas based on a given theme and constraints.
 import os
 import json
 import logging
-from typing import List, Optional
+from pathlib import Path
+from typing import List, Optional, Union
 
 from madspark.utils.constants import DEFAULT_GOOGLE_GENAI_MODEL
 # Import shared types and logging functions
@@ -109,7 +110,7 @@ except ImportError:
 
 
 def run_multistep_workflow(
-    topic: str, context: str, num_top_candidates: int = 2, 
+    topic: str, context: str, num_top_candidates: int = 2,
     enable_novelty_filter: bool = True, novelty_threshold: float = DEFAULT_NOVELTY_THRESHOLD,
     temperature_manager: Optional[TemperatureManager] = None,
     verbose: bool = False,
@@ -117,14 +118,16 @@ def run_multistep_workflow(
     multi_dimensional_eval: bool = False,
     logical_inference: bool = False,
     reasoning_engine: Optional[ReasoningEngine] = None,
-    timeout: int = DEFAULT_TIMEOUT_SECONDS
+    timeout: int = DEFAULT_TIMEOUT_SECONDS,
+    multimodal_files: Optional[List[Union[str, Path]]] = None,
+    multimodal_urls: Optional[List[str]] = None
 ) -> List[CandidateData]:
     """
     Runs the multi-step idea generation and refinement workflow.
-    
+
     This function now redirects to the batch-optimized version which provides
     50% fewer API calls while maintaining full backward compatibility.
-    
+
     Args:
         topic: The main topic/theme for idea generation
         context: Context or constraints for the ideas
@@ -138,7 +141,9 @@ def run_multistep_workflow(
         logical_inference: Enable logical inference chains for enhanced reasoning
         reasoning_engine: Pre-initialized reasoning engine (optional)
         timeout: Maximum time allowed for the entire workflow in seconds
-        
+        multimodal_files: Optional list of file paths for multi-modal context
+        multimodal_urls: Optional list of URLs for multi-modal context
+
     Returns:
         List of CandidateData containing processed ideas with evaluations
     """
@@ -175,7 +180,9 @@ def run_multistep_workflow(
         novelty_filter=novelty_filter,
         verbose=verbose,
         reasoning_engine=engine,
-        timeout=timeout
+        timeout=timeout,
+        multimodal_files=multimodal_files,
+        multimodal_urls=multimodal_urls
     )
 
 

@@ -5,7 +5,8 @@ to significantly reduce the number of API calls from O(N) to O(1) for
 advocate, skeptic, and improvement processing.
 """
 import logging
-from typing import List, Optional
+from pathlib import Path
+from typing import List, Optional, Union
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 
 from madspark.config.execution_constants import ConcurrencyConfig
@@ -43,8 +44,8 @@ improve_ideas_batch = _batch_functions['improve_ideas_batch']
 
 
 def run_multistep_workflow_batch(
-    topic: str, 
-    context: str, 
+    topic: str,
+    context: str,
     num_top_candidates: int = 2,
     enable_reasoning: bool = True,
     multi_dimensional_eval: bool = False,
@@ -52,7 +53,9 @@ def run_multistep_workflow_batch(
     novelty_filter: Optional[NoveltyFilter] = None,
     verbose: bool = False,
     reasoning_engine: Optional[ReasoningEngine] = None,
-    timeout: int = DEFAULT_TIMEOUT_SECONDS
+    timeout: int = DEFAULT_TIMEOUT_SECONDS,
+    multimodal_files: Optional[List[Union[str, Path]]] = None,
+    multimodal_urls: Optional[List[str]] = None
 ) -> List[CandidateData]:
     """
     Batch-optimized version of the multi-agent workflow.
@@ -91,7 +94,7 @@ def run_multistep_workflow_batch(
                 _run_workflow_internal,
                 topic, context, num_top_candidates, enable_reasoning,
                 multi_dimensional_eval, temperature_manager, novelty_filter,
-                verbose, reasoning_engine
+                verbose, reasoning_engine, multimodal_files, multimodal_urls
             )
             try:
                 return future.result(timeout=timeout)
@@ -106,7 +109,7 @@ def run_multistep_workflow_batch(
         return _run_workflow_internal(
             topic, context, num_top_candidates, enable_reasoning,
             multi_dimensional_eval, temperature_manager, novelty_filter,
-            verbose, reasoning_engine
+            verbose, reasoning_engine, multimodal_files, multimodal_urls
         )
 
 
@@ -119,7 +122,9 @@ def _run_workflow_internal(
     temperature_manager: Optional[TemperatureManager] = None,
     novelty_filter: Optional[NoveltyFilter] = None,
     verbose: bool = False,
-    reasoning_engine: Optional[ReasoningEngine] = None
+    reasoning_engine: Optional[ReasoningEngine] = None,
+    multimodal_files: Optional[List[Union[str, Path]]] = None,
+    multimodal_urls: Optional[List[str]] = None
 ) -> List[CandidateData]:
     """Internal workflow implementation using WorkflowOrchestrator.
 
@@ -157,7 +162,9 @@ def _run_workflow_internal(
         topic=topic,
         context=context,
         num_ideas=10,  # Generate 10 ideas initially
-        monitor=monitor
+        monitor=monitor,
+        multimodal_files=multimodal_files,
+        multimodal_urls=multimodal_urls
     )
 
     if not parsed_ideas:

@@ -10,7 +10,9 @@ duplication and improving maintainability.
 import asyncio
 import logging
 import time
-from typing import List, Tuple, Dict, Any, Optional, TYPE_CHECKING
+from functools import partial
+from typing import List, Tuple, Dict, Any, Optional, Union, TYPE_CHECKING
+from pathlib import Path
 
 if TYPE_CHECKING:
     from madspark.utils.batch_monitor import BatchMonitor
@@ -130,7 +132,9 @@ class WorkflowOrchestrator:
         self,
         topic: str,
         context: str,
-        num_ideas: int
+        num_ideas: int,
+        multimodal_files: Optional[List[Union[str, Path]]] = None,
+        multimodal_urls: Optional[List[str]] = None
     ) -> Tuple[List[str], int]:
         """Generate initial ideas for the given topic and context.
 
@@ -138,6 +142,8 @@ class WorkflowOrchestrator:
             topic: Main topic/theme for idea generation.
             context: Context/constraints for the ideas.
             num_ideas: Number of ideas to generate.
+            multimodal_files: Optional list of file paths (images, PDFs, documents).
+            multimodal_urls: Optional list of URLs for context.
 
         Returns:
             Tuple of (list of idea strings, token count).
@@ -161,7 +167,9 @@ class WorkflowOrchestrator:
             topic=topic,
             context=context,
             temperature=idea_temp,
-            use_structured_output=True
+            use_structured_output=True,
+            multimodal_files=multimodal_files,
+            multimodal_urls=multimodal_urls
         )
 
         duration = time.time() - start_time
@@ -571,7 +579,9 @@ class WorkflowOrchestrator:
         topic: str,
         context: str,
         num_ideas: int,
-        monitor: Optional['BatchMonitor'] = None
+        monitor: Optional['BatchMonitor'] = None,
+        multimodal_files: Optional[List[Union[str, Path]]] = None,
+        multimodal_urls: Optional[List[str]] = None
     ) -> Tuple[List[str], int]:
         """Generate ideas with batch monitoring integration.
 
@@ -580,6 +590,8 @@ class WorkflowOrchestrator:
             context: Context/constraints for the ideas.
             num_ideas: Number of ideas to generate.
             monitor: Optional BatchMonitor instance for tracking.
+            multimodal_files: Optional list of file paths (images, PDFs, documents).
+            multimodal_urls: Optional list of URLs for context.
 
         Returns:
             Tuple of (list of idea strings, token count).
@@ -591,7 +603,11 @@ class WorkflowOrchestrator:
 
         with batch_call_context("idea_generation", num_ideas, monitor) as monitor_ctx:
             try:
-                ideas, token_count = self.generate_ideas(topic, context, num_ideas)
+                ideas, token_count = self.generate_ideas(
+                    topic, context, num_ideas,
+                    multimodal_files=multimodal_files,
+                    multimodal_urls=multimodal_urls
+                )
 
                 # Set monitoring metadata
                 if token_count > 0:
@@ -821,7 +837,9 @@ class WorkflowOrchestrator:
         self,
         topic: str,
         context: str,
-        num_ideas: int
+        num_ideas: int,
+        multimodal_files: Optional[List[Union[str, Path]]] = None,
+        multimodal_urls: Optional[List[str]] = None
     ) -> Tuple[List[str], int]:
         """Async variant of generate_ideas.
 
@@ -829,18 +847,23 @@ class WorkflowOrchestrator:
             topic: Main topic/theme for idea generation.
             context: Context/constraints for the ideas.
             num_ideas: Number of ideas to generate.
+            multimodal_files: Optional list of file paths (images, PDFs, documents).
+            multimodal_urls: Optional list of URLs for context.
 
         Returns:
             Tuple of (list of idea strings, token count).
         """
+        # Use partial to handle keyword arguments with run_in_executor
         loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(
-            None,
+        func = partial(
             self.generate_ideas,
-            topic,
-            context,
-            num_ideas
+            topic=topic,
+            context=context,
+            num_ideas=num_ideas,
+            multimodal_files=multimodal_files,
+            multimodal_urls=multimodal_urls
         )
+        return await loop.run_in_executor(None, func)
 
     async def evaluate_ideas_async(
         self,

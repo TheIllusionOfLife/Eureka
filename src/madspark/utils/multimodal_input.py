@@ -13,6 +13,8 @@ Key Features:
 """
 
 import logging
+import socket
+import ipaddress
 from pathlib import Path
 from typing import List, Optional, Union
 from urllib.parse import urlparse
@@ -119,13 +121,13 @@ class MultiModalInput:
 
     def validate_url(self, url: Optional[str]) -> None:
         """
-        Validate URL format and scheme.
+        Validate URL format and scheme with SSRF protection.
 
         Args:
             url: URL string to validate
 
         Raises:
-            ValueError: If URL is invalid or uses unsupported scheme
+            ValueError: If URL is invalid, uses unsupported scheme, or targets private/internal resources
         """
         if url is None or url == "":
             raise ValueError("Invalid URL: URL cannot be empty or None")
@@ -143,6 +145,34 @@ class MultiModalInput:
         # Check netloc (domain)
         if not parsed.netloc:
             raise ValueError("Invalid URL: Missing domain")
+
+        # SSRF Protection: Block localhost and private IP addresses
+        hostname = parsed.hostname
+        if not hostname:
+            raise ValueError("Invalid URL: Cannot extract hostname")
+
+        # Block localhost variants
+        localhost_patterns = ['localhost', '127.', '0.0.0.0', '[::]', '[::1]']
+        if any(hostname.lower().startswith(pattern) for pattern in localhost_patterns):
+            raise ValueError(
+                "Invalid URL: Localhost/loopback addresses are not allowed for security reasons"
+            )
+
+        # Resolve hostname and check for private IPs
+        try:
+            # Get IP address from hostname
+            ip_str = socket.gethostbyname(hostname)
+            ip = ipaddress.ip_address(ip_str)
+
+            # Block private/internal IP ranges
+            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+                raise ValueError(
+                    f"Invalid URL: Private/internal IP addresses are not allowed for security reasons "
+                    f"(resolved to {ip_str})"
+                )
+        except socket.gaierror:
+            # DNS resolution failed - could be invalid domain or network issue
+            raise ValueError(f"Invalid URL: Cannot resolve hostname '{hostname}'")
 
     def _detect_mime_type(self, file_path: Union[str, Path]) -> str:
         """

@@ -164,7 +164,7 @@ class TestDynamicIdeaGeneration:
         original_generate = src.madspark.core.workflow_orchestrator.call_idea_generator_with_retry
         original_evaluate = src.madspark.core.workflow_orchestrator.call_critic_with_retry
 
-        def mock_generate_batch(topic, context, temperature, use_structured_output=True):
+        def mock_generate_batch(topic, context, temperature, use_structured_output=True, **kwargs):
             nonlocal num_ideas_requested
             # This function is called from generate_ideas() which expects a string response
             # Set num_ideas_requested to track what would have been requested

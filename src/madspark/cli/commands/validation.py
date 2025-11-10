@@ -4,6 +4,10 @@ from typing import TYPE_CHECKING
 
 from .base import CommandHandler, CommandResult
 
+# Multi-modal input limits for safety and resource management
+MAX_MULTIMODAL_FILES = 20  # Maximum number of files per request
+MAX_MULTIMODAL_URLS = 10   # Maximum number of URLs per request
+
 # Import MadSpark components with fallback for local development
 try:
     from madspark.utils.temperature_control import create_temperature_manager_from_args
@@ -135,7 +139,7 @@ class WorkflowValidator(CommandHandler):
         Validates files and URLs using MultiModalInput utility.
 
         Raises:
-            ValidationError: If any file or URL validation fails
+            ValidationError: If any file or URL validation fails or limits are exceeded
         """
         # Use getattr with defaults for cleaner code (follows DRY principle)
         multimodal_urls = getattr(self.args, 'multimodal_urls', None) or []
@@ -145,6 +149,20 @@ class WorkflowValidator(CommandHandler):
 
         if not (multimodal_urls or all_files):
             return  # No multi-modal inputs to validate
+
+        # Check file count limits
+        if len(all_files) > MAX_MULTIMODAL_FILES:
+            raise ValidationError(
+                f"Too many files: {len(all_files)} files provided, "
+                f"maximum allowed is {MAX_MULTIMODAL_FILES}"
+            )
+
+        # Check URL count limits
+        if len(multimodal_urls) > MAX_MULTIMODAL_URLS:
+            raise ValidationError(
+                f"Too many URLs: {len(multimodal_urls)} URLs provided, "
+                f"maximum allowed is {MAX_MULTIMODAL_URLS}"
+            )
 
         # Import multi-modal utilities
         try:
@@ -169,5 +187,6 @@ class WorkflowValidator(CommandHandler):
             except ValueError as e:
                 raise ValidationError(f"Invalid URL '{url}': {e}")
 
-        # Log success
-        self.log_info(f"Multi-modal validation passed: {len(all_files)} file(s), {len(multimodal_urls)} URL(s)")
+        # Log success (only if verbose mode is enabled)
+        if getattr(self.args, 'verbose', False):
+            self.log_info(f"Multi-modal validation passed: {len(all_files)} file(s), {len(multimodal_urls)} URL(s)")

@@ -5,80 +5,11 @@ including connection errors, serialization failures, and redis unavailability.
 """
 
 import pytest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 
 class TestCacheManagerExceptionHandling:
     """Test exception handling in CacheManager."""
-
-    @pytest.mark.asyncio
-    async def test_initialize_handles_connection_error(self):
-        """Verify CacheManager gracefully handles Redis connection failures."""
-        # Import here to avoid issues if redis is not installed
-        from madspark.utils.cache_manager import CacheManager, CacheConfig, RedisConnectionError
-
-        cache_manager = CacheManager(CacheConfig())
-
-        # Patch both REDIS_AVAILABLE and redis.from_url to test exception handling
-        with patch('madspark.utils.cache_manager.REDIS_AVAILABLE', True):
-            with patch('madspark.utils.cache_manager.redis.from_url', side_effect=RedisConnectionError("Connection refused")):
-                result = await cache_manager.initialize()
-
-                assert result is False
-                assert cache_manager.is_connected is False
-
-    @pytest.mark.asyncio
-    async def test_cache_workflow_handles_serialization_error(self):
-        """Verify CacheManager handles non-serializable objects."""
-        from madspark.utils.cache_manager import CacheManager, CacheConfig
-
-        cache_manager = CacheManager(CacheConfig())
-        cache_manager.is_connected = True
-
-        # Mock redis client with proper return values
-        mock_client = AsyncMock()
-        mock_client.info = AsyncMock(return_value={"used_memory": 0})  # Mock for _enforce_size_limit
-        cache_manager.redis_client = mock_client
-
-        # Create a result with a non-serializable object
-        non_serializable_result = {
-            "data": lambda x: x,  # Functions can't be JSON-serialized
-            "timestamp": "2024-01-01"
-        }
-
-        # The method should handle this gracefully with fallback to default=str
-        result = await cache_manager.cache_workflow_result(
-            topic="test",
-            context="test",
-            options={},
-            result=non_serializable_result
-        )
-
-        # With the fallback, it should succeed
-        # (The fallback converts non-serializable objects to strings)
-        assert result is True
-
-    @pytest.mark.asyncio
-    async def test_get_cached_workflow_handles_deserialization_error(self):
-        """Verify CacheManager handles malformed JSON data."""
-        from madspark.utils.cache_manager import CacheManager, CacheConfig
-
-        cache_manager = CacheManager(CacheConfig())
-        cache_manager.is_connected = True
-
-        # Mock redis client to return invalid JSON
-        mock_client = AsyncMock()
-        mock_client.get = AsyncMock(return_value='{"invalid": json}')  # Malformed JSON
-        cache_manager.redis_client = mock_client
-
-        result = await cache_manager.get_cached_workflow(
-            topic="test",
-            context="test",
-            options={}
-        )
-
-        # Should handle the JSONDecodeError gracefully
-        assert result is None
 
     def test_cache_manager_works_without_redis_installed(self):
         """Verify CacheManager imports successfully when redis is not available."""

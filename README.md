@@ -366,7 +366,7 @@ ms "future technology" --remix --remix-ids bookmark_123,bookmark_456  # Use spec
 
 ### Web Interface Setup
 
-The MadSpark web interface provides a modern React-based UI for generating ideas with real-time progress updates.
+The MadSpark web interface provides a modern React-based UI for generating ideas with real-time progress updates. **Now with multi-modal support!** Add URLs and upload files directly from the browser for enhanced context.
 
 **Quick Setup with Aliases (Recommended):**
 ```bash
@@ -387,6 +387,7 @@ madspark-web-stop  # Stop services
 **Features:**
 - Real-time progress updates via WebSocket
 - Interactive bookmark management
+- **Multi-modal input: Add URLs and upload files (PDFs, images, documents)**
 - Duplicate detection with visual warnings
 - Export results in multiple formats
 - Keyboard shortcuts for power users

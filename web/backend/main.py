@@ -515,10 +515,17 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Initialize rate limiter
-limiter = Limiter(key_func=get_remote_address)
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+# Initialize rate limiter (disabled in test/mock mode)
+if os.getenv("MADSPARK_MODE") != "mock":
+    limiter = Limiter(key_func=get_remote_address)
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+else:
+    # Mock mode: create a no-op limiter for testing
+    # Create a limiter with very high limits that effectively doesn't limit
+    limiter = Limiter(key_func=get_remote_address, default_limits=["10000/minute"])
+    app.state.limiter = limiter
+    logging.info("Rate limiting disabled in mock/test mode (10000/minute)")
 
 # Configure CORS
 app.add_middleware(

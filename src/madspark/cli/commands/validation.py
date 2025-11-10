@@ -41,6 +41,9 @@ class WorkflowValidator(CommandHandler):
             # Validate theme and constraints
             self._validate_theme_and_constraints()
 
+            # Validate multi-modal inputs if provided
+            self._validate_multimodal_inputs()
+
             # Setup temperature manager
             temp_manager = self._setup_temperature_manager()
 
@@ -125,3 +128,58 @@ class WorkflowValidator(CommandHandler):
         except Exception as e:
             self.log_error(f"Failed to setup remix mode: {e}")
             raise
+
+    def _validate_multimodal_inputs(self) -> None:
+        """Validate multi-modal inputs if provided.
+
+        Validates files and URLs using MultiModalInput utility.
+
+        Raises:
+            ValidationError: If any file or URL validation fails
+        """
+        # Check if any multi-modal inputs provided
+        has_multimodal = (
+            (hasattr(self.args, 'multimodal_urls') and self.args.multimodal_urls) or
+            (hasattr(self.args, 'multimodal_files') and self.args.multimodal_files) or
+            (hasattr(self.args, 'multimodal_images') and self.args.multimodal_images)
+        )
+
+        if not has_multimodal:
+            return  # No multi-modal inputs to validate
+
+        # Import multi-modal utilities
+        try:
+            from madspark.utils.multimodal_input import MultiModalInput
+        except ImportError:
+            # Fallback for local development
+            from utils.multimodal_input import MultiModalInput
+
+        mm_input = MultiModalInput()
+
+        # Combine files and images into single list
+        all_files = []
+        if hasattr(self.args, 'multimodal_files') and self.args.multimodal_files:
+            all_files.extend(self.args.multimodal_files)
+        if hasattr(self.args, 'multimodal_images') and self.args.multimodal_images:
+            all_files.extend(self.args.multimodal_images)
+
+        # Validate files
+        for file_path in all_files:
+            try:
+                mm_input.validate_file(file_path)
+            except (ValueError, FileNotFoundError) as e:
+                raise ValidationError(f"Invalid file '{file_path}': {e}")
+
+        # Validate URLs
+        if hasattr(self.args, 'multimodal_urls') and self.args.multimodal_urls:
+            for url in self.args.multimodal_urls:
+                try:
+                    mm_input.validate_url(url)
+                except ValueError as e:
+                    raise ValidationError(f"Invalid URL '{url}': {e}")
+
+        # Log success
+        if all_files or (hasattr(self.args, 'multimodal_urls') and self.args.multimodal_urls):
+            file_count = len(all_files)
+            url_count = len(self.args.multimodal_urls) if hasattr(self.args, 'multimodal_urls') and self.args.multimodal_urls else 0
+            self.log_info(f"Multi-modal validation passed: {file_count} file(s), {url_count} URL(s)")

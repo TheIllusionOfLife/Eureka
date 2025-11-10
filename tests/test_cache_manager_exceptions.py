@@ -76,8 +76,7 @@ class TestCacheManagerExceptionHandling:
         # Should handle the JSONDecodeError gracefully
         assert result is None
 
-    @pytest.mark.asyncio
-    async def test_cache_manager_works_without_redis_installed(self):
+    def test_cache_manager_works_without_redis_installed(self):
         """Verify CacheManager imports successfully when redis is not available."""
         # This test verifies the fix for the AttributeError bug
         # When redis is not installed, fallback exception types are used

@@ -517,8 +517,8 @@ class CacheManager:
             }
             
             success = await self.cache_workflow_result(
-                theme, 
-                constraints, 
+                topic,
+                context,
                 {"temperature": 0.7},  # Default options
                 synthetic_result
             )

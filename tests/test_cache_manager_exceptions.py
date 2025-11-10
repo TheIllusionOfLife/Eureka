@@ -123,6 +123,40 @@ class TestCacheManagerExceptionHandling:
         )
         assert cached is None
 
+    @pytest.mark.asyncio
+    async def test_warm_cache_uses_correct_parameters(self):
+        """Verify warm_cache uses topic/context parameters correctly."""
+        from src.madspark.utils.cache_manager import CacheManager, CacheConfig
+
+        cache_manager = CacheManager(CacheConfig())
+        cache_manager.is_connected = True
+        cache_manager.redis_client = AsyncMock()
+
+        # Mock cache_workflow_result to track calls
+        cache_manager.cache_workflow_result = AsyncMock(return_value=True)
+
+        # Call warm_cache with test queries
+        common_queries = [
+            ("AI in healthcare", "Budget-friendly solutions"),
+            ("Sustainable farming", "Urban environments")
+        ]
+
+        warmed_count = await cache_manager.warm_cache(common_queries)
+
+        # Verify correct number of entries warmed
+        assert warmed_count == 2
+        assert cache_manager.cache_workflow_result.call_count == 2
+
+        # Verify first call used correct parameters (topic, context)
+        first_call = cache_manager.cache_workflow_result.call_args_list[0]
+        assert first_call[0][0] == "AI in healthcare"  # topic
+        assert first_call[0][1] == "Budget-friendly solutions"  # context
+
+        # Verify second call used correct parameters
+        second_call = cache_manager.cache_workflow_result.call_args_list[1]
+        assert second_call[0][0] == "Sustainable farming"  # topic
+        assert second_call[0][1] == "Urban environments"  # context
+
 
 class TestCacheManagerExceptionTypes:
     """Test that correct exception types are caught."""

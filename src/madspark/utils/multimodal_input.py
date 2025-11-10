@@ -156,7 +156,7 @@ class MultiModalInput:
         localhost_patterns = ['localhost', '127.', '0.0.0.0', '[::]', '[::1]']
         if any(hostname.lower().startswith(pattern) for pattern in localhost_patterns):
             raise ValueError(
-                f"Invalid URL: Localhost/loopback addresses are not allowed for security reasons"
+                "Invalid URL: Localhost/loopback addresses are not allowed for security reasons"
             )
 
         # Resolve hostname and check for private IPs

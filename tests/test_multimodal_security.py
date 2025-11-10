@@ -10,11 +10,9 @@ This test suite verifies:
 import pytest
 import tempfile
 import os
-from pathlib import Path
 from unittest.mock import Mock, patch
 
 from src.madspark.utils.multimodal_input import MultiModalInput
-from src.madspark.utils.errors import ValidationError
 from src.madspark.cli.commands.validation import (
     WorkflowValidator,
     MAX_MULTIMODAL_FILES,

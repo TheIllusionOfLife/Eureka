@@ -64,7 +64,7 @@ class CacheManager:
             self.is_connected = True
             logger.info("Redis cache initialized successfully")
             return True
-        except Exception as e:
+        except (ConnectionError, ConnectionRefusedError, TimeoutError, OSError) as e:
             logger.error(f"Failed to initialize Redis cache: {e}")
             self.is_connected = False
             return False
@@ -160,9 +160,12 @@ class CacheManager:
             
             logger.debug(f"Cached workflow result: {key}")
             return True
-            
-        except Exception as e:
+
+        except (ConnectionError, TimeoutError, OSError) as e:
             logger.error(f"Failed to cache workflow result: {e}")
+            return False
+        except (TypeError, ValueError) as e:
+            logger.error(f"Failed to serialize workflow result: {e}")
             return False
     
     async def get_cached_workflow(
@@ -195,9 +198,12 @@ class CacheManager:
             
             logger.debug(f"Cache miss for workflow: {key}")
             return None
-            
-        except Exception as e:
+
+        except (ConnectionError, TimeoutError, OSError) as e:
             logger.error(f"Failed to get cached workflow: {e}")
+            return None
+        except (json.JSONDecodeError, KeyError) as e:
+            logger.error(f"Failed to deserialize cached workflow: {e}")
             return None
     
     async def cache_agent_response(
@@ -247,9 +253,12 @@ class CacheManager:
             
             logger.debug(f"Cached agent response: {key}")
             return True
-            
-        except Exception as e:
+
+        except (ConnectionError, TimeoutError, OSError) as e:
             logger.error(f"Failed to cache agent response: {e}")
+            return False
+        except (TypeError, ValueError) as e:
+            logger.error(f"Failed to serialize agent response: {e}")
             return False
     
     async def get_cached_agent_response(
@@ -279,9 +288,12 @@ class CacheManager:
                 return data["response"]
             
             return None
-            
-        except Exception as e:
+
+        except (ConnectionError, TimeoutError, OSError) as e:
             logger.error(f"Failed to get cached agent response: {e}")
+            return None
+        except (json.JSONDecodeError, KeyError) as e:
+            logger.error(f"Failed to deserialize cached agent response: {e}")
             return None
     
     async def invalidate_cache(self, pattern: Optional[str] = None) -> int:
@@ -321,8 +333,8 @@ class CacheManager:
                 return deleted_count
             
             return 0
-            
-        except Exception as e:
+
+        except (ConnectionError, TimeoutError, OSError) as e:
             logger.error(f"Failed to invalidate cache: {e}")
             return 0
     
@@ -347,8 +359,8 @@ class CacheManager:
             
             logger.info(f"Cleared {deleted_count} MadSpark cache entries")
             return True
-            
-        except Exception as e:
+
+        except (ConnectionError, TimeoutError, OSError) as e:
             logger.error(f"Failed to clear cache: {e}")
             return False
     
@@ -386,8 +398,8 @@ class CacheManager:
                 "hit_rate": self._calculate_hit_rate(info),
                 "config": asdict(self.config)
             }
-            
-        except Exception as e:
+
+        except (ConnectionError, TimeoutError, OSError) as e:
             logger.error(f"Failed to get cache stats: {e}")
             return {"status": "error", "error": str(e)}
     
@@ -468,8 +480,8 @@ class CacheManager:
                     f"Enforced size limit: deleted {to_delete} LRU keys "
                     f"(oldest idle: {key_idle_pairs[0][1] if key_idle_pairs else 0}s)"
                 )
-                
-        except Exception as e:
+
+        except (ConnectionError, TimeoutError, OSError) as e:
             logger.error(f"Failed to enforce size limit: {e}")
     
     async def warm_cache(self, common_queries: List[Tuple[str, str]]) -> int:
@@ -534,7 +546,7 @@ class CacheManager:
                     results.append(None)
             
             return results
-            
-        except Exception as e:
+
+        except (ConnectionError, TimeoutError, OSError) as e:
             logger.error(f"Failed to batch get: {e}")
             return [None] * len(keys)

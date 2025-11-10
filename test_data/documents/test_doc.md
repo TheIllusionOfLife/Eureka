@@ -1,7 +1,7 @@
 # Test Markdown Document
 
 ## Overview
-This is a sample markdown document for testing multi-modal capabilities.
+This is a sample Markdown document for testing multi-modal capabilities.
 
 ## Key Points
 - Point 1: Design system needs refresh

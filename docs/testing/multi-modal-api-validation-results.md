@@ -80,7 +80,7 @@ Successfully validated the multi-modal CLI implementation (PR #193) with real Go
   - ✅ Bookmark created: `bookmark_20251110_151902_181237c2`
 - **Output File:** `test_results_2_1.txt`, `output/markdown/madspark_Design_comparison_20251110_151902.md`
 
-#### Test 2.2: Mixed Multi-Modal (PDF + Image + URL) ✅
+#### Test 2.2: Mixed Multi-Modal (TXT + Image + URL) ✅
 - **Command:** `python -m madspark.cli.cli "Marketing campaign ideas" "New product launch combining visual mockup and requirements" --file test_data/documents/test_doc.txt --image test_data/images/test_blue.png --url "https://example.com" --output-format json`
 - **Result:** SUCCESS
 - **Verification:**
@@ -188,6 +188,14 @@ Successfully validated the multi-modal CLI implementation (PR #193) with real Go
 ### Documents
 - `test_data/documents/test_doc.txt` - Product Requirements Document
 - `test_data/documents/test_doc.md` - Markdown test document
+
+### Test Result Logs
+**Note:** Only a subset of test result logs are included as artifacts:
+- `test_results_1_1.txt` - Phase 1 Test 1.1 (initial error + resolution note)
+- `test_results_2_1.txt` through `test_results_2_6.txt` - Phase 2 Tests (all 6)
+- `test_results_3_1.txt` - Phase 3 Test 3.1
+
+Additional tests (Phase 1 Tests 1.2-1.4, Phase 3 Tests 3.2-3.3) were executed successfully and verified in real-time but their terminal output was not saved to separate files. Results for these tests are documented above with verification points and bookmark IDs.
 
 ---
 

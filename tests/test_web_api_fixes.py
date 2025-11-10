@@ -39,7 +39,7 @@ class TestWebAPIFixes:
     @pytest.mark.integration
     def test_health_endpoint_with_uptime(self, client):
         """Test health endpoint includes uptime field."""
-        response = client.get("/health")
+        response = client.get("/api/health")
         assert response.status_code == 200
         
         data = response.json()
@@ -55,9 +55,9 @@ class TestWebAPIFixes:
     @pytest.mark.integration
     def test_idea_generation_response_structure(self, client):
         """Test idea generation returns correct structure."""
-        # Test with new field names
+        # Test with new field names (using async endpoint for JSON support)
         response = client.post(
-            "/api/generate-ideas",
+            "/api/generate-ideas-async",
             json={
                 "topic": "renewable energy",
                 "context": "urban environments"
@@ -81,9 +81,9 @@ class TestWebAPIFixes:
     @pytest.mark.integration
     def test_field_alias_compatibility(self, client):
         """Test both old and new field names work."""
-        # Test with old field names (theme/constraints)
+        # Test with old field names (theme/constraints) using async endpoint
         response = client.post(
-            "/api/generate-ideas",
+            "/api/generate-ideas-async",
             json={
                 "theme": "space exploration",
                 "constraints": "low budget"
@@ -94,9 +94,9 @@ class TestWebAPIFixes:
         data = response.json()
         assert "results" in data
         
-        # Test with new field names (topic/context)
+        # Test with new field names (topic/context) using async endpoint
         response = client.post(
-            "/api/generate-ideas",
+            "/api/generate-ideas-async",
             json={
                 "topic": "ocean conservation",
                 "context": "tropical regions"
@@ -111,8 +111,8 @@ class TestWebAPIFixes:
     def test_bookmark_field_validation(self, client):
         """Test bookmark creation with proper field validation."""
         bookmark_data = {
-            "theme": "test theme",
-            "constraints": "test constraints", 
+            "topic": "test topic",
+            "context": "test context", 
             "idea": "test idea",
             "improved_idea": "test improved idea",
             "initial_critique": "test critique",
@@ -176,7 +176,7 @@ class TestWebAPIFixes:
         # Simulate one component being None by patching it to None
         
         with patch('web.backend.main.temp_manager', None):
-            response = client.get("/health")
+            response = client.get("/api/health")
             assert response.status_code == 200
             
             data = response.json()
@@ -187,10 +187,10 @@ class TestWebAPIFixes:
     def test_concurrent_request_handling(self, client):
         """Test API handles concurrent requests properly."""
         import concurrent.futures
-        
+
         def make_request():
             return client.post(
-                "/api/generate-ideas",
+                "/api/generate-ideas-async",
                 json={"topic": "test", "context": "concurrent"}
             )
         

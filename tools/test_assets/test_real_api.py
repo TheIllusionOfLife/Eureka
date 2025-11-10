@@ -19,7 +19,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'src'))
 from dotenv import load_dotenv
 load_dotenv()
 
-from madspark.agents.idea_generator import generate_ideas, improve_idea
+from madspark.agents.idea_generator import generate_ideas, improve_idea  # noqa: E402
 
 
 def test_single_file_context():
@@ -31,7 +31,7 @@ def test_single_file_context():
     diagram_file = Path(__file__).parent / "test_diagram.txt"
 
     print(f"📄 Using file: {diagram_file}")
-    print(f"📊 Topic: UI/UX improvements")
+    print("📊 Topic: UI/UX improvements")
 
     try:
         result = generate_ideas(
@@ -44,7 +44,7 @@ def test_single_file_context():
 
         print("\n✅ API Call Successful!")
         print(f"📝 Result length: {len(result)} characters")
-        print(f"\n🎯 Generated Ideas (first 500 chars):")
+        print("\n🎯 Generated Ideas (first 500 chars):")
         print("-" * 70)
         print(result[:500])
         print("..." if len(result) > 500 else "")
@@ -72,7 +72,7 @@ def test_url_context():
     test_urls = ["https://www.example.com"]
 
     print(f"🔗 Using URLs: {test_urls}")
-    print(f"📊 Topic: Website improvement ideas")
+    print("📊 Topic: Website improvement ideas")
 
     try:
         result = generate_ideas(
@@ -85,7 +85,7 @@ def test_url_context():
 
         print("\n✅ API Call Successful!")
         print(f"📝 Result length: {len(result)} characters")
-        print(f"\n🎯 Generated Ideas (first 500 chars):")
+        print("\n🎯 Generated Ideas (first 500 chars):")
         print("-" * 70)
         print(result[:500])
         print("..." if len(result) > 500 else "")
@@ -115,7 +115,7 @@ def test_mixed_multimodal():
 
     print(f"📄 Using file: {diagram_file}")
     print(f"🔗 Using URLs: {test_urls}")
-    print(f"📊 Topic: Comprehensive design improvements")
+    print("📊 Topic: Comprehensive design improvements")
 
     try:
         result = generate_ideas(
@@ -129,7 +129,7 @@ def test_mixed_multimodal():
 
         print("\n✅ API Call Successful!")
         print(f"📝 Result length: {len(result)} characters")
-        print(f"\n🎯 Generated Ideas (first 500 chars):")
+        print("\n🎯 Generated Ideas (first 500 chars):")
         print("-" * 70)
         print(result[:500])
         print("..." if len(result) > 500 else "")
@@ -172,7 +172,7 @@ def test_improve_idea_with_file():
 
         print("\n✅ API Call Successful!")
         print(f"📝 Result length: {len(result)} characters")
-        print(f"\n🎯 Improved Idea (first 500 chars):")
+        print("\n🎯 Improved Idea (first 500 chars):")
         print("-" * 70)
         print(result[:500])
         print("..." if len(result) > 500 else "")

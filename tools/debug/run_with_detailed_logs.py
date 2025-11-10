@@ -96,10 +96,10 @@ if __name__ == "__main__":
     results, log_file = run_with_logging()
     
     if results:
-        print(f"\n💡 Final Results Summary:")
+        print("\n💡 Final Results Summary:")
         for i, result in enumerate(results, 1):
             print(f"{i}. {result.get('idea', 'N/A')[:100]}...")
     
-    print(f"\n📖 View complete logs with:")
+    print("\n📖 View complete logs with:")
     print(f"   cat {log_file}")
     print(f"   tail -f {log_file}  # For real-time monitoring")

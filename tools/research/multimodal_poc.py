@@ -40,7 +40,7 @@ def test_image_upload():
     test_image_path = Path(__file__).parent / "test_image.txt"
 
     if not test_image_path.exists():
-        print(f"ℹ️  Note: No test image found. This test requires a real image file.")
+        print("ℹ️  Note: No test image found. This test requires a real image file.")
         print(f"   Create a test image at: {test_image_path}")
         return None
 
@@ -57,19 +57,19 @@ def test_image_upload():
             mime_type="text/plain"  # For test file; use image/png for real images
         )
 
-        print(f"✅ Part created successfully!")
+        print("✅ Part created successfully!")
         print(f"   Part type: {type(file_part)}")
         print(f"   Has inline_data: {file_part.inline_data is not None}")
 
         # Try to use the Part in a prompt
         # Can mix strings and Part objects in contents list
-        print(f"\n🤖 Sending prompt with file Part...")
+        print("\n🤖 Sending prompt with file Part...")
         response = client.models.generate_content(
             model='gemini-2.0-flash-exp',
             contents=["Describe the content of this file:", file_part]
         )
 
-        print(f"✅ Response received:")
+        print("✅ Response received:")
         print(f"   {response.text[:200]}...")
 
         return file_part
@@ -90,7 +90,7 @@ def test_pdf_upload():
     test_pdf_path = Path(__file__).parent / "test_document.pdf"
 
     if not test_pdf_path.exists():
-        print(f"ℹ️  Note: No test PDF found. Skipping this test.")
+        print("ℹ️  Note: No test PDF found. Skipping this test.")
         print(f"   Create a test PDF at: {test_pdf_path}")
         return None
 
@@ -106,16 +106,16 @@ def test_pdf_upload():
             mime_type="application/pdf"
         )
 
-        print(f"✅ Part created successfully!")
+        print("✅ Part created successfully!")
 
         # Try to extract content from PDF
-        print(f"\n🤖 Sending prompt with PDF Part...")
+        print("\n🤖 Sending prompt with PDF Part...")
         response = client.models.generate_content(
             model='gemini-2.0-flash-exp',
             contents=["Summarize this document in 2-3 bullet points:", pdf_part]
         )
 
-        print(f"✅ Response received:")
+        print("✅ Response received:")
         print(f"   {response.text}")
 
         return pdf_part
@@ -146,17 +146,17 @@ def test_url_context():
             contents=prompt
         )
 
-        print(f"✅ Response received:")
+        print("✅ Response received:")
         print(f"   {response.text}")
 
         # Check if there's a Part type for URLs
-        print(f"\n🔍 Checking for URL-specific Part types...")
+        print("\n🔍 Checking for URL-specific Part types...")
         if hasattr(types, 'Part'):
             print(f"   types.Part available: {types.Part}")
             if hasattr(types.Part, 'from_uri'):
-                print(f"   types.Part.from_uri() method found!")
+                print("   types.Part.from_uri() method found!")
             else:
-                print(f"   No from_uri() method found")
+                print("   No from_uri() method found")
 
         return True
 
@@ -174,7 +174,7 @@ def test_structured_output_with_multimodal():
     test_image_path = Path(__file__).parent / "test_image.txt"
 
     if not test_image_path.exists():
-        print(f"ℹ️  Skipping: No test image found")
+        print("ℹ️  Skipping: No test image found")
         return None
 
     try:
@@ -201,26 +201,26 @@ def test_structured_output_with_multimodal():
             response_schema=FileAnalysis
         )
 
-        print(f"🤖 Sending prompt with structured output schema...")
+        print("🤖 Sending prompt with structured output schema...")
         response = client.models.generate_content(
             model='gemini-2.0-flash-exp',
             contents=["Analyze this file and provide structured information about it.", file_part],
             config=config
         )
 
-        print(f"✅ Response received:")
+        print("✅ Response received:")
         print(f"   {response.text}")
 
         # Try to parse as JSON
         import json
         try:
             parsed = json.loads(response.text)
-            print(f"\n✅ Successfully parsed as structured JSON:")
+            print("\n✅ Successfully parsed as structured JSON:")
             print(f"   Description: {parsed.get('description', 'N/A')}")
             print(f"   Content Type: {parsed.get('content_type', 'N/A')}")
             print(f"   Key Points: {parsed.get('key_points', [])}")
         except json.JSONDecodeError:
-            print(f"⚠️  Response is not valid JSON")
+            print("⚠️  Response is not valid JSON")
 
         return True
 
@@ -242,18 +242,18 @@ def test_part_structure():
         print("🔍 Inspecting genai.types module...")
 
         if hasattr(types, 'Part'):
-            print(f"✅ types.Part exists")
+            print("✅ types.Part exists")
             print(f"   Methods: {[m for m in dir(types.Part) if not m.startswith('_')]}")
 
         if hasattr(types, 'Content'):
-            print(f"✅ types.Content exists")
+            print("✅ types.Content exists")
             print(f"   Methods: {[m for m in dir(types.Content) if not m.startswith('_')]}")
 
         # Try to create a text Part
         if hasattr(types, 'Part'):
             try:
                 text_part = types.Part(text="Hello, world!")
-                print(f"\n✅ Created text Part:")
+                print("\n✅ Created text Part:")
                 print(f"   {text_part}")
             except Exception as e:
                 print(f"⚠️  Cannot create text Part: {e}")

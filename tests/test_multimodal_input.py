@@ -14,9 +14,7 @@ Test coverage goals: 90%+ for critical paths
 """
 
 import pytest
-from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
-from typing import List, Optional
+from unittest.mock import Mock, patch
 import tempfile
 import os
 
@@ -37,7 +35,6 @@ class TestMultiModalInputValidation:
     def test_validate_file_size_within_limit(self):
         """Test file size validation - file within limit should pass."""
         from madspark.utils.multimodal_input import MultiModalInput
-        from madspark.config.execution_constants import MultiModalConfig
 
         mm_input = MultiModalInput()
 
@@ -55,7 +52,6 @@ class TestMultiModalInputValidation:
     def test_validate_file_size_exceeds_image_limit(self):
         """Test file size validation - oversized image should fail."""
         from madspark.utils.multimodal_input import MultiModalInput
-        from madspark.config.execution_constants import MultiModalConfig
 
         mm_input = MultiModalInput()
 
@@ -74,7 +70,6 @@ class TestMultiModalInputValidation:
     def test_validate_file_size_exceeds_pdf_limit(self):
         """Test file size validation - oversized PDF should fail."""
         from madspark.utils.multimodal_input import MultiModalInput
-        from madspark.config.execution_constants import MultiModalConfig
 
         mm_input = MultiModalInput()
 

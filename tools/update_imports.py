@@ -3,7 +3,6 @@
 Script to update import statements for the new package structure.
 """
 
-import os
 import re
 from pathlib import Path
 

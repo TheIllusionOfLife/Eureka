@@ -5,8 +5,6 @@ Real-time agent monitoring - shows what each agent is doing step by step
 
 import os
 import logging
-import json
-from datetime import datetime
 
 # Load environment variables first
 try:
@@ -133,7 +131,7 @@ class AgentMonitor:
         
         # STEP 5: Advocacy Analysis
         for i, idea in enumerate(top_ideas, 1):
-            self.log_step(f"✅ ADVOCATE AGENT", f"Building case for idea #{i}",
+            self.log_step("✅ ADVOCATE AGENT", f"Building case for idea #{i}",
                          f"Temperature: 0.5 (balanced persuasion)\nIdea: {idea[:100]}...")
             
             try:
@@ -155,7 +153,7 @@ class AgentMonitor:
         
         # STEP 6: Skeptical Analysis
         for i, idea in enumerate(top_ideas, 1):
-            self.log_step(f"⚠️ SKEPTIC AGENT", f"Analyzing risks for idea #{i}",
+            self.log_step("⚠️ SKEPTIC AGENT", f"Analyzing risks for idea #{i}",
                          f"Temperature: 0.5 (balanced skepticism)\nIdea: {idea[:100]}...")
             
             try:

@@ -5,11 +5,10 @@ This module tests the FastAPI endpoints for handling multi-modal inputs
 including file uploads (PDFs, images, documents) and URL validation.
 """
 import pytest
-import os
 import uuid
 from io import BytesIO
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock
 
 # Mock FastAPI UploadFile if not available
 try:

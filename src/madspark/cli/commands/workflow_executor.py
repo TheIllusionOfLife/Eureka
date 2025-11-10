@@ -186,5 +186,5 @@ class WorkflowExecutor(CommandHandler):
             "timeout": self.args.timeout,
             # Multi-modal inputs
             "multimodal_files": multimodal_files if multimodal_files else None,
-            "multimodal_urls": self.args.multimodal_urls or None,
+            "multimodal_urls": getattr(self.args, 'multimodal_urls', None) or None,
         }

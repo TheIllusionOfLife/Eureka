@@ -34,7 +34,11 @@ class TestCacheManagerExceptionHandling:
 
         cache_manager = CacheManager(CacheConfig())
         cache_manager.is_connected = True
-        cache_manager.redis_client = AsyncMock()
+
+        # Mock redis client with proper return values
+        mock_client = AsyncMock()
+        mock_client.info = AsyncMock(return_value={"used_memory": 0})  # Mock for _enforce_size_limit
+        cache_manager.redis_client = mock_client
 
         # Create a result with a non-serializable object
         non_serializable_result = {

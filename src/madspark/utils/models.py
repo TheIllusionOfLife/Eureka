@@ -13,8 +13,8 @@ class BookmarkedIdea:
     """Container for a bookmarked idea with metadata."""
     id: str
     text: str
-    theme: str
-    constraints: str
+    topic: str
+    context: str
     score: int
     critique: str
     advocacy: str

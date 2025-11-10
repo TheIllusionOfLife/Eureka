@@ -185,8 +185,8 @@ class BookmarkManager:
         bookmark = BookmarkedIdea(
             id=bookmark_id,
             text=idea_text,
-            theme=topic,
-            constraints=context,
+            topic=topic,
+            context=context,
             score=score,
             critique=critique,
             advocacy=advocacy,
@@ -266,8 +266,8 @@ class BookmarkManager:
         
         for bookmark in self.bookmarks.values():
             if (query_lower in bookmark.text.lower() or
-                query_lower in bookmark.theme.lower() or
-                query_lower in bookmark.constraints.lower()):
+                query_lower in bookmark.topic.lower() or
+                query_lower in bookmark.context.lower()):
                 matches.append(bookmark)
         
         # Sort by bookmark date (newest first)
@@ -330,7 +330,7 @@ class BookmarkManager:
                 similar_bookmarks.append({
                     'id': result.bookmark_id,
                     'text': bookmark.text,
-                    'theme': bookmark.theme,
+                    'topic': bookmark.topic,
                     'score': bookmark.score,
                     'similarity_score': result.similarity_score,
                     'match_type': result.match_type,
@@ -394,7 +394,7 @@ class BookmarkManager:
                 result['similar_bookmarks'].append({
                     'id': similar.bookmark_id,
                     'text': bookmark.text[:200] + '...' if len(bookmark.text) > 200 else bookmark.text,
-                    'theme': bookmark.theme,
+                    'topic': bookmark.topic,
                     'similarity_score': similar.similarity_score,
                     'match_type': similar.match_type
                 })

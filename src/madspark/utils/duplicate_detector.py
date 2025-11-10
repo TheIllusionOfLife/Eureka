@@ -231,10 +231,10 @@ class DuplicateDetector:
         
         for bookmark in existing_bookmarks:
             similarity = self.calculate_similarity(
-                new_text, 
+                new_text,
                 bookmark.text,
                 new_theme,
-                bookmark.theme
+                bookmark.topic
             )
             
             if similarity >= self.medium_similarity_threshold:

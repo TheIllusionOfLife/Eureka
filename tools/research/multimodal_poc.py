@@ -278,7 +278,7 @@ def main():
         print("   export GOOGLE_API_KEY='your-key-here'")
         sys.exit(1)
 
-    print(f"✅ API Key found: {api_key[:10]}...")
+    print("✅ API key detected.")
 
     # Run tests
     results = {

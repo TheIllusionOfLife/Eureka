@@ -250,7 +250,7 @@ def main():
         print("   Please set it in .env file")
         sys.exit(1)
 
-    print(f"✅ API Key found: {api_key[:10]}...")
+    print("✅ API key found.")
 
     # Run tests
     results = {

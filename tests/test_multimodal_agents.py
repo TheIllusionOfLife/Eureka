@@ -19,11 +19,16 @@ import os
 class TestIdeaGeneratorMultiModal:
     """Test idea_generator with multi-modal inputs."""
 
+    @patch('madspark.agents.idea_generator.types')
     @patch('madspark.agents.idea_generator.idea_generator_client')
     @patch('madspark.agents.idea_generator.GENAI_AVAILABLE', True)
-    def test_generate_ideas_with_single_image(self, mock_client):
+    def test_generate_ideas_with_single_image(self, mock_client, mock_types):
         """Test generating ideas with single image context."""
         from madspark.agents.idea_generator import generate_ideas
+
+        # Mock the types module
+        mock_config = Mock()
+        mock_types.GenerateContentConfig.return_value = mock_config
 
         # Mock the response
         mock_response = Mock()
@@ -65,11 +70,16 @@ class TestIdeaGeneratorMultiModal:
         finally:
             os.unlink(tmp_path)
 
+    @patch('madspark.agents.idea_generator.types')
     @patch('madspark.agents.idea_generator.idea_generator_client')
     @patch('madspark.agents.idea_generator.GENAI_AVAILABLE', True)
-    def test_generate_ideas_with_pdf(self, mock_client):
+    def test_generate_ideas_with_pdf(self, mock_client, mock_types):
         """Test generating ideas with PDF context."""
         from madspark.agents.idea_generator import generate_ideas
+
+        # Mock the types module
+        mock_config = Mock()
+        mock_types.GenerateContentConfig.return_value = mock_config
 
         mock_response = Mock()
         mock_response.text = "Idea 1: Document-based insight\nIdea 2: PDF analysis feature"
@@ -92,11 +102,16 @@ class TestIdeaGeneratorMultiModal:
         finally:
             os.unlink(tmp_path)
 
+    @patch('madspark.agents.idea_generator.types')
     @patch('madspark.agents.idea_generator.idea_generator_client')
     @patch('madspark.agents.idea_generator.GENAI_AVAILABLE', True)
-    def test_generate_ideas_with_url(self, mock_client):
+    def test_generate_ideas_with_url(self, mock_client, mock_types):
         """Test generating ideas with URL context."""
         from madspark.agents.idea_generator import generate_ideas
+
+        # Mock the types module
+        mock_config = Mock()
+        mock_types.GenerateContentConfig.return_value = mock_config
 
         mock_response = Mock()
         mock_response.text = "Idea 1: Website-inspired feature\nIdea 2: Competitor analysis"
@@ -125,11 +140,16 @@ class TestIdeaGeneratorMultiModal:
 
         assert "Idea" in result
 
+    @patch('madspark.agents.idea_generator.types')
     @patch('madspark.agents.idea_generator.idea_generator_client')
     @patch('madspark.agents.idea_generator.GENAI_AVAILABLE', True)
-    def test_generate_ideas_mixed_multimodal(self, mock_client):
+    def test_generate_ideas_mixed_multimodal(self, mock_client, mock_types):
         """Test generating ideas with both files and URLs."""
         from madspark.agents.idea_generator import generate_ideas
+
+        # Mock the types module
+        mock_config = Mock()
+        mock_types.GenerateContentConfig.return_value = mock_config
 
         mock_response = Mock()
         mock_response.text = "Idea 1: Comprehensive analysis\nIdea 2: Multi-source insights"
@@ -162,11 +182,16 @@ class TestIdeaGeneratorMultiModal:
         finally:
             os.unlink(tmp_path)
 
+    @patch('madspark.agents.idea_generator.types')
     @patch('madspark.agents.idea_generator.idea_generator_client')
     @patch('madspark.agents.idea_generator.GENAI_AVAILABLE', True)
-    def test_generate_ideas_backward_compatible(self, mock_client):
+    def test_generate_ideas_backward_compatible(self, mock_client, mock_types):
         """Test that generate_ideas still works without multi-modal params."""
         from madspark.agents.idea_generator import generate_ideas
+
+        # Mock the types module
+        mock_config = Mock()
+        mock_types.GenerateContentConfig.return_value = mock_config
 
         mock_response = Mock()
         mock_response.text = "Idea 1: Standard idea\nIdea 2: Another standard idea"
@@ -216,11 +241,16 @@ class TestIdeaGeneratorMultiModal:
 class TestIdeaImproverMultiModal:
     """Test idea improvement with multi-modal inputs."""
 
+    @patch('madspark.agents.idea_generator.types')
     @patch('madspark.agents.idea_generator.idea_generator_client')
     @patch('madspark.agents.idea_generator.GENAI_AVAILABLE', True)
-    def test_improve_idea_with_image(self, mock_client):
+    def test_improve_idea_with_image(self, mock_client, mock_types):
         """Test improving idea with image context."""
         from madspark.agents.idea_generator import improve_idea
+
+        # Mock the types module
+        mock_config = Mock()
+        mock_types.GenerateContentConfig.return_value = mock_config
 
         mock_response = Mock()
         mock_response.text = "Improved idea with visual context considerations"
@@ -255,11 +285,16 @@ class TestIdeaImproverMultiModal:
         finally:
             os.unlink(tmp_path)
 
+    @patch('madspark.agents.idea_generator.types')
     @patch('madspark.agents.idea_generator.idea_generator_client')
     @patch('madspark.agents.idea_generator.GENAI_AVAILABLE', True)
-    def test_improve_idea_with_urls(self, mock_client):
+    def test_improve_idea_with_urls(self, mock_client, mock_types):
         """Test improving idea with URL context."""
         from madspark.agents.idea_generator import improve_idea
+
+        # Mock the types module
+        mock_config = Mock()
+        mock_types.GenerateContentConfig.return_value = mock_config
 
         mock_response = Mock()
         mock_response.text = "Improved idea with external references"
@@ -288,11 +323,16 @@ class TestIdeaImproverMultiModal:
 
         assert len(result) > 0
 
+    @patch('madspark.agents.idea_generator.types')
     @patch('madspark.agents.idea_generator.idea_generator_client')
     @patch('madspark.agents.idea_generator.GENAI_AVAILABLE', True)
-    def test_improve_idea_backward_compatible(self, mock_client):
+    def test_improve_idea_backward_compatible(self, mock_client, mock_types):
         """Test improve_idea works without multi-modal params."""
         from madspark.agents.idea_generator import improve_idea
+
+        # Mock the types module
+        mock_config = Mock()
+        mock_types.GenerateContentConfig.return_value = mock_config
 
         mock_response = Mock()
         mock_response.text = "Standard improved idea"

@@ -339,7 +339,7 @@ For issues or questions:
 2. Review file sizes and formats
 3. Verify API key is configured
 4. Check logs for detailed error information
-5. Report issues at: [GitHub Issues](https://github.com/TheIllusion OfLife/Eureka/issues)
+5. Report issues at: [GitHub Issues](https://github.com/TheIllusionOfLife/Eureka/issues)
 
 ---
 

@@ -5,7 +5,7 @@ including connection errors, serialization failures, and redis unavailability.
 """
 
 import pytest
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, patch
 
 
 class TestCacheManagerExceptionHandling:
@@ -19,14 +19,13 @@ class TestCacheManagerExceptionHandling:
 
         cache_manager = CacheManager(CacheConfig())
 
-        # Mock redis client to raise connection error
-        with patch('madspark.utils.cache_manager.redis') as mock_redis_module:
-            mock_redis_module.from_url = Mock(side_effect=RedisConnectionError("Connection refused"))
+        # Patch both REDIS_AVAILABLE and redis.from_url to test exception handling
+        with patch('madspark.utils.cache_manager.REDIS_AVAILABLE', True):
+            with patch('madspark.utils.cache_manager.redis.from_url', side_effect=RedisConnectionError("Connection refused")):
+                result = await cache_manager.initialize()
 
-            result = await cache_manager.initialize()
-
-            assert result is False
-            assert cache_manager.is_connected is False
+                assert result is False
+                assert cache_manager.is_connected is False
 
     @pytest.mark.asyncio
     async def test_cache_workflow_handles_serialization_error(self):

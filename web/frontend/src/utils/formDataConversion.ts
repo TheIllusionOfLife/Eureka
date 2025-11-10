@@ -46,46 +46,20 @@ export function buildMultiModalFormData(
 ): FormData {
   const formData = new FormData();
 
-  // Convert each request field to FormData format
+  // FastAPI with mixed Body and File parameters expects the JSON data
+  // to be sent as a single JSON string in a form field called 'idea_request'
+  // when files are present (multipart/form-data)
+
+  // Clean the request object: remove undefined values
+  const cleanedRequest: Record<string, any> = {};
   Object.entries(request).forEach(([key, value]) => {
-    if (value === undefined) {
-      // Skip undefined values
-      return;
-    }
-
-    // Handle arrays (except multimodal_urls which needs special handling)
-    if (Array.isArray(value)) {
-      if (key === 'multimodal_urls') {
-        // Only add if not empty
-        if (value.length > 0) {
-          formData.append(key, JSON.stringify(value));
-        }
-      } else if (key === 'bookmark_ids') {
-        // Bookmark IDs as JSON array
-        if (value.length > 0) {
-          formData.append(key, JSON.stringify(value));
-        }
-      } else {
-        // Other arrays (future-proofing)
-        formData.append(key, JSON.stringify(value));
-      }
-      return;
-    }
-
-    // Handle primitives and null
-    if (value === null) {
-      formData.append(key, 'null');
-    } else if (typeof value === 'boolean') {
-      formData.append(key, value.toString());
-    } else if (typeof value === 'number') {
-      formData.append(key, value.toString());
-    } else if (typeof value === 'string') {
-      formData.append(key, value);
-    } else {
-      // Objects (should not happen with current schema, but handle gracefully)
-      formData.append(key, JSON.stringify(value));
+    if (value !== undefined) {
+      cleanedRequest[key] = value;
     }
   });
+
+  // Send the entire request as a JSON string in 'idea_request' field
+  formData.append('idea_request', JSON.stringify(cleanedRequest));
 
   // Add files if present
   if (files && files.length > 0) {

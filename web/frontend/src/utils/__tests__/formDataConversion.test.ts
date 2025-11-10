@@ -81,14 +81,19 @@ describe('FormData Conversion Utilities', () => {
       show_detailed_results: false
     };
 
-    it('should create FormData with all JSON fields', () => {
+    it('should create FormData with idea_request as JSON string', () => {
       const formData = buildMultiModalFormData(baseRequest, []);
 
-      expect(formData.get('theme')).toBe('Test Theme');
-      expect(formData.get('constraints')).toBe('Test Constraints');
-      expect(formData.get('num_top_candidates')).toBe('3');
-      expect(formData.get('enable_novelty_filter')).toBe('true');
-      expect(formData.get('novelty_threshold')).toBe('0.7');
+      const ideaRequestStr = formData.get('idea_request');
+      expect(ideaRequestStr).toBeTruthy();
+      expect(typeof ideaRequestStr).toBe('string');
+
+      const parsed = JSON.parse(ideaRequestStr as string);
+      expect(parsed.theme).toBe('Test Theme');
+      expect(parsed.constraints).toBe('Test Constraints');
+      expect(parsed.num_top_candidates).toBe(3);
+      expect(parsed.enable_novelty_filter).toBe(true);
+      expect(parsed.novelty_threshold).toBe(0.7);
     });
 
     it('should handle null and undefined values', () => {
@@ -99,38 +104,40 @@ describe('FormData Conversion Utilities', () => {
       };
 
       const formData = buildMultiModalFormData(request, []);
+      const parsed = JSON.parse(formData.get('idea_request') as string);
 
       // Undefined should be omitted
-      expect(formData.has('constraints')).toBe(false);
+      expect(parsed.constraints).toBeUndefined();
       // Null should be included
-      expect(formData.get('temperature_preset')).toBe('null');
+      expect(parsed.temperature_preset).toBe(null);
     });
 
     it('should handle boolean values', () => {
       const formData = buildMultiModalFormData(baseRequest, []);
+      const parsed = JSON.parse(formData.get('idea_request') as string);
 
-      expect(formData.get('enable_novelty_filter')).toBe('true');
-      expect(formData.get('enhanced_reasoning')).toBe('false');
+      expect(parsed.enable_novelty_filter).toBe(true);
+      expect(parsed.enhanced_reasoning).toBe(false);
     });
 
     it('should handle number values', () => {
       const formData = buildMultiModalFormData(baseRequest, []);
+      const parsed = JSON.parse(formData.get('idea_request') as string);
 
-      expect(formData.get('num_top_candidates')).toBe('3');
-      expect(formData.get('novelty_threshold')).toBe('0.7');
+      expect(parsed.num_top_candidates).toBe(3);
+      expect(parsed.novelty_threshold).toBe(0.7);
     });
 
-    it('should add URLs as JSON array when present', () => {
+    it('should add URLs as array when present', () => {
       const request = {
         ...baseRequest,
         multimodal_urls: ['https://example1.com', 'https://example2.com']
       };
 
       const formData = buildMultiModalFormData(request, []);
+      const parsed = JSON.parse(formData.get('idea_request') as string);
 
-      const urlsValue = formData.get('multimodal_urls');
-      expect(urlsValue).toBeTruthy();
-      expect(JSON.parse(urlsValue as string)).toEqual([
+      expect(parsed.multimodal_urls).toEqual([
         'https://example1.com',
         'https://example2.com'
       ]);
@@ -157,22 +164,23 @@ describe('FormData Conversion Utilities', () => {
       const files = [new File(['test'], 'test.pdf', { type: 'application/pdf' })];
 
       const formData = buildMultiModalFormData(request, files);
+      const parsed = JSON.parse(formData.get('idea_request') as string);
 
-      expect(formData.get('multimodal_urls')).toBeTruthy();
+      expect(parsed.multimodal_urls).toEqual(['https://example.com']);
       expect(formData.getAll('multimodal_files')).toHaveLength(1);
     });
 
-    it('should handle empty URLs and files arrays', () => {
+    it('should handle empty URLs array', () => {
       const request = {
         ...baseRequest,
         multimodal_urls: []
       };
 
       const formData = buildMultiModalFormData(request, []);
+      const parsed = JSON.parse(formData.get('idea_request') as string);
 
-      // Empty arrays should result in no multimodal fields
-      expect(formData.has('multimodal_urls')).toBe(false);
-      expect(formData.has('multimodal_files')).toBe(false);
+      // Empty arrays should be included in JSON
+      expect(parsed.multimodal_urls).toEqual([]);
     });
 
     it('should handle bookmark_ids array', () => {
@@ -182,38 +190,24 @@ describe('FormData Conversion Utilities', () => {
       };
 
       const formData = buildMultiModalFormData(request, []);
+      const parsed = JSON.parse(formData.get('idea_request') as string);
 
-      const bookmarkIds = formData.get('bookmark_ids');
-      expect(bookmarkIds).toBeTruthy();
-      expect(JSON.parse(bookmarkIds as string)).toEqual(['bookmark-1', 'bookmark-2']);
-    });
-
-    it('should convert all fields to strings appropriately', () => {
-      const request = {
-        ...baseRequest,
-        num_top_candidates: 5,
-        novelty_threshold: 0.85,
-        enable_novelty_filter: false
-      };
-
-      const formData = buildMultiModalFormData(request, []);
-
-      // FormData stores everything as strings
-      expect(typeof formData.get('num_top_candidates')).toBe('string');
-      expect(typeof formData.get('novelty_threshold')).toBe('string');
-      expect(typeof formData.get('enable_novelty_filter')).toBe('string');
-
-      // But values should be correct
-      expect(formData.get('num_top_candidates')).toBe('5');
-      expect(formData.get('novelty_threshold')).toBe('0.85');
-      expect(formData.get('enable_novelty_filter')).toBe('false');
+      expect(parsed.bookmark_ids).toEqual(['bookmark-1', 'bookmark-2']);
     });
 
     it('should return a valid FormData object', () => {
       const formData = buildMultiModalFormData(baseRequest, []);
 
       expect(formData).toBeInstanceOf(FormData);
-      expect(formData.get('theme')).toBe('Test Theme');
+      expect(formData.get('idea_request')).toBeTruthy();
+    });
+
+    it('should create valid JSON that can be parsed', () => {
+      const formData = buildMultiModalFormData(baseRequest, []);
+      const ideaRequestStr = formData.get('idea_request') as string;
+
+      // Should not throw
+      expect(() => JSON.parse(ideaRequestStr)).not.toThrow();
     });
   });
 });

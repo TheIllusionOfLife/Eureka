@@ -52,15 +52,8 @@ class TestIdeaGeneratorMultiModal:
             assert mock_client.models.generate_content.called
             call_args = mock_client.models.generate_content.call_args
 
-            # contents should be a list (could be in kwargs or args)
-            if 'contents' in call_args.kwargs:
-                contents = call_args.kwargs['contents']
-            elif len(call_args.args) > 1:
-                # Could be positional arg
-                contents = call_args.args[1] if len(call_args.args) > 1 else call_args.args[0]
-            else:
-                # Or check both args
-                contents = call_args[1]['contents'] if call_args[1] and 'contents' in call_args[1] else None
+            # contents is passed as keyword argument
+            contents = call_args.kwargs['contents']
 
             assert isinstance(contents, list), f"Contents should be a list for multi-modal, got {type(contents)}"
             assert len(contents) >= 2, "Should have text and at least one file Part"

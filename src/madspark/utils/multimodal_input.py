@@ -47,6 +47,21 @@ class MultiModalInput:
         config: MultiModalConfig instance with size/format limits
     """
 
+    # MIME type mappings (class-level constant for efficiency)
+    _MIME_MAP = {
+        'png': 'image/png',
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'webp': 'image/webp',
+        'gif': 'image/gif',
+        'bmp': 'image/bmp',
+        'pdf': 'application/pdf',
+        'txt': 'text/plain',
+        'md': 'text/markdown',
+        'doc': 'application/msword',
+        'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    }
+
     def __init__(self):
         """Initialize MultiModalInput with config."""
         self.config = MultiModalConfig
@@ -82,31 +97,31 @@ class MultiModalInput:
         # Get file size
         file_size = path.stat().st_size
 
-        # Detect format and check size limits
+        # Detect format and determine size limit
         extension = path.suffix.lower().lstrip('.')
 
+        # Determine file type and corresponding size limit
         if extension in self.config.SUPPORTED_IMAGE_FORMATS:
-            if file_size > self.config.MAX_IMAGE_SIZE:
-                raise ValueError(
-                    f"File too large: {file_size} bytes "
-                    f"(max for images: {self.config.MAX_IMAGE_SIZE} bytes)"
-                )
+            file_type = "images"
+            max_size = self.config.MAX_IMAGE_SIZE
+        elif extension == 'pdf':
+            file_type = "PDFs"
+            max_size = self.config.MAX_PDF_SIZE
         elif extension in self.config.SUPPORTED_DOC_FORMATS:
-            if extension == 'pdf' and file_size > self.config.MAX_PDF_SIZE:
-                raise ValueError(
-                    f"File too large: {file_size} bytes "
-                    f"(max for PDFs: {self.config.MAX_PDF_SIZE} bytes)"
-                )
-            elif file_size > self.config.MAX_FILE_SIZE:
-                raise ValueError(
-                    f"File too large: {file_size} bytes "
-                    f"(max for documents: {self.config.MAX_FILE_SIZE} bytes)"
-                )
+            file_type = "documents"
+            max_size = self.config.MAX_FILE_SIZE
         else:
             supported_all = self.config.SUPPORTED_IMAGE_FORMATS | self.config.SUPPORTED_DOC_FORMATS
             raise ValueError(
                 f"Unsupported file format: .{extension}. "
                 f"Supported formats: {', '.join(sorted(supported_all))}"
+            )
+
+        # Perform single size check
+        if file_size > max_size:
+            raise ValueError(
+                f"File too large: {file_size} bytes "
+                f"(max for {file_type}: {max_size} bytes)"
             )
 
     def validate_url(self, url: Optional[str]) -> None:
@@ -152,22 +167,7 @@ class MultiModalInput:
         path = Path(file_path)
         extension = path.suffix.lower().lstrip('.')
 
-        # Image MIME types
-        mime_map = {
-            'png': 'image/png',
-            'jpg': 'image/jpeg',
-            'jpeg': 'image/jpeg',
-            'webp': 'image/webp',
-            'gif': 'image/gif',
-            'bmp': 'image/bmp',
-            'pdf': 'application/pdf',
-            'txt': 'text/plain',
-            'md': 'text/markdown',
-            'doc': 'application/msword',
-            'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        }
-
-        return mime_map.get(extension, 'application/octet-stream')
+        return self._MIME_MAP.get(extension, 'application/octet-stream')
 
     def process_file(self, file_path: Union[str, Path]) -> Union['types.Part', MockPart]:
         """
@@ -245,11 +245,10 @@ class MultiModalInput:
 
         # Add URL context to text (since Gemini can't fetch them)
         if urls:
-            url_context = "\n\nURL References:\n"
             for url in urls:
                 self.validate_url(url)
-                url_context += f"- {url}\n"
-            enhanced_text = enhanced_text + url_context
+            url_list_str = "\n".join(f"- {url}" for url in urls)
+            enhanced_text += f"\n\nURL References:\n{url_list_str}\n"
 
         # If no files, return enhanced text only
         if not files:

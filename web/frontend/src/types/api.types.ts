@@ -55,6 +55,7 @@ export interface IdeaGenerationRequest {
   verbose: boolean;
   show_detailed_results: boolean;
   bookmark_ids?: string[];
+  multimodal_urls?: string[];
 }
 
 export interface MultiDimensionalEvaluation {

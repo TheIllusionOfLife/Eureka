@@ -624,7 +624,7 @@ class IdeaGenerationRequest(BaseModel):
     bookmark_ids: Optional[List[str]] = Field(default=None, description="Bookmark IDs to use for remix context")
     multimodal_urls: Optional[List[str]] = Field(
         default=None,
-        max_length=5,
+        max_items=5,
         description="URLs for multi-modal context (max 5 URLs)"
     )
 
@@ -900,7 +900,7 @@ def save_upload_file(upload_file: UploadFile) -> Path:
     except ValueError as e:
         # Validation failed - clean up file if it was created
         if temp_path.exists():
-            temp_path.unlink()
+            temp_path.unlink(missing_ok=True)
 
         logger.warning(f"File validation failed for {upload_file.filename}: {e}")
         raise HTTPException(
@@ -910,7 +910,7 @@ def save_upload_file(upload_file: UploadFile) -> Path:
     except Exception as e:
         # File save failed - clean up if file was partially created
         if temp_path.exists():
-            temp_path.unlink()
+            temp_path.unlink(missing_ok=True)
 
         logger.error(f"Failed to save file {upload_file.filename}: {e}")
         raise HTTPException(
@@ -1127,6 +1127,19 @@ async def generate_ideas(
         # Handle multi-modal file uploads
         multimodal_file_paths = []
         multimodal_url_list = idea_request.multimodal_urls or []
+
+        # Validate URLs for SSRF protection
+        if multimodal_url_list:
+            from madspark.utils.multimodal_input import MultiModalInput
+            mm_input = MultiModalInput()
+            for url in multimodal_url_list:
+                try:
+                    mm_input.validate_url(url)
+                except ValueError as e:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Invalid URL: {str(e)}"
+                    )
 
         try:
             # Process uploaded files

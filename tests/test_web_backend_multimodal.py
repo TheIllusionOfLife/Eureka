@@ -201,7 +201,10 @@ class TestSaveUploadFile:
         """Test saving a valid PDF file."""
         # Import the helper function
         import sys
-        sys.path.insert(0, '/Users/yuyamukai/Eureka/web/backend')
+        from pathlib import Path
+        # Add web/backend directory dynamically
+        backend_path = Path(__file__).parent.parent / 'web' / 'backend'
+        sys.path.insert(0, str(backend_path))
         from main import save_upload_file
 
         # Save the file
@@ -219,7 +222,9 @@ class TestSaveUploadFile:
         """Test that save_upload_file rejects files exceeding size limit."""
         from madspark.config.execution_constants import MultiModalConfig
         import sys
-        sys.path.insert(0, '/Users/yuyamukai/Eureka/web/backend')
+        from pathlib import Path
+        backend_path = Path(__file__).parent.parent / 'web' / 'backend'
+        sys.path.insert(0, str(backend_path))
         from main import save_upload_file
 
         # Create oversized file
@@ -243,7 +248,9 @@ class TestSaveUploadFile:
     def test_save_creates_unique_filename(self, mock_upload_file, temp_upload_dir):
         """Test that save_upload_file creates unique filenames."""
         import sys
-        sys.path.insert(0, '/Users/yuyamukai/Eureka/web/backend')
+        from pathlib import Path
+        backend_path = Path(__file__).parent.parent / 'web' / 'backend'
+        sys.path.insert(0, str(backend_path))
         from main import save_upload_file
 
         # Reset file pointer
@@ -268,7 +275,9 @@ class TestSaveUploadFile:
     def test_save_validates_file_format(self, temp_upload_dir):
         """Test that save_upload_file validates file format."""
         import sys
-        sys.path.insert(0, '/Users/yuyamukai/Eureka/web/backend')
+        from pathlib import Path
+        backend_path = Path(__file__).parent.parent / 'web' / 'backend'
+        sys.path.insert(0, str(backend_path))
         from main import save_upload_file
 
         # Create file with invalid extension
@@ -293,7 +302,9 @@ class TestSaveUploadFile:
     def test_cleanup_temp_file_on_error(self, temp_upload_dir):
         """Test that temp files are cleaned up on error."""
         import sys
-        sys.path.insert(0, '/Users/yuyamukai/Eureka/web/backend')
+        from pathlib import Path
+        backend_path = Path(__file__).parent.parent / 'web' / 'backend'
+        sys.path.insert(0, str(backend_path))
         from main import save_upload_file
 
         # Create file with invalid extension that will fail validation

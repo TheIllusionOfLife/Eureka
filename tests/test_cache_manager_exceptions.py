@@ -6,7 +6,6 @@ including connection errors, serialization failures, and redis unavailability.
 
 import pytest
 from unittest.mock import AsyncMock, Mock, patch
-import json
 
 
 class TestCacheManagerExceptionHandling:
@@ -16,13 +15,13 @@ class TestCacheManagerExceptionHandling:
     async def test_initialize_handles_connection_error(self):
         """Verify CacheManager gracefully handles Redis connection failures."""
         # Import here to avoid issues if redis is not installed
-        from madspark.utils.cache_manager import CacheManager, CacheConfig
+        from madspark.utils.cache_manager import CacheManager, CacheConfig, RedisConnectionError
 
         cache_manager = CacheManager(CacheConfig())
 
         # Mock redis client to raise connection error
         with patch('madspark.utils.cache_manager.redis') as mock_redis_module:
-            mock_redis_module.from_url = Mock(side_effect=ConnectionError("Connection refused"))
+            mock_redis_module.from_url = Mock(side_effect=RedisConnectionError("Connection refused"))
 
             result = await cache_manager.initialize()
 

@@ -322,16 +322,19 @@ class TestMultiModalInputPromptBuilding:
     def test_build_prompt_with_urls(self):
         """Test building prompt with URLs."""
         from madspark.utils.multimodal_input import MultiModalInput
+        from unittest.mock import patch
 
         mm_input = MultiModalInput()
 
         urls = ["https://example.com", "https://test.org"]
 
-        result = mm_input.build_multimodal_prompt(
-            text_prompt="Analyze these websites",
-            files=None,
-            urls=urls
-        )
+        # Mock DNS resolution to return valid public IPs
+        with patch('socket.gethostbyname', return_value='1.2.3.4'):
+            result = mm_input.build_multimodal_prompt(
+                text_prompt="Analyze these websites",
+                files=None,
+                urls=urls
+            )
 
         # URLs should be incorporated into the text prompt
         # (since Gemini can't fetch URLs, we add them as context)
@@ -415,6 +418,7 @@ class TestMultiModalInputErrorHandling:
     def test_valid_url_formats(self):
         """Test acceptance of valid URL formats."""
         from madspark.utils.multimodal_input import MultiModalInput
+        from unittest.mock import patch
 
         mm_input = MultiModalInput()
 
@@ -425,9 +429,11 @@ class TestMultiModalInputErrorHandling:
             "https://example.com:8080/path"
         ]
 
-        for url in valid_urls:
-            # Should not raise exception
-            mm_input.validate_url(url)
+        # Mock DNS resolution to return valid public IPs
+        with patch('socket.gethostbyname', return_value='1.2.3.4'):
+            for url in valid_urls:
+                # Should not raise exception
+                mm_input.validate_url(url)
 
     @patch('madspark.utils.multimodal_input.GENAI_AVAILABLE', False)
     def test_large_file_warning(self, caplog):

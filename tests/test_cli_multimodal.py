@@ -295,6 +295,7 @@ class TestMultiModalValidation:
     def test_valid_urls_pass_validation(self, basic_args):
         """Test that valid URLs pass validation."""
         from madspark.cli.commands.validation import WorkflowValidator
+        from unittest.mock import patch
 
         args = basic_args
         args.multimodal_urls = [
@@ -306,8 +307,10 @@ class TestMultiModalValidation:
 
         validator = WorkflowValidator(args, Mock())
 
-        # Should not raise any exceptions
-        validator._validate_multimodal_inputs()
+        # Mock DNS resolution to return valid public IPs
+        with patch('socket.gethostbyname', return_value='1.2.3.4'):
+            # Should not raise any exceptions
+            validator._validate_multimodal_inputs()
 
     def test_nonexistent_file_fails_validation(self, basic_args):
         """Test that non-existent file raises ValidationError."""
@@ -404,6 +407,7 @@ class TestMultiModalValidation:
     def test_combined_valid_inputs_pass_validation(self, basic_args, temp_image, temp_pdf):
         """Test that combination of valid URLs and files pass validation."""
         from madspark.cli.commands.validation import WorkflowValidator
+        from unittest.mock import patch
 
         args = basic_args
         args.multimodal_urls = ["https://example.com", "http://test.org"]
@@ -412,8 +416,10 @@ class TestMultiModalValidation:
 
         validator = WorkflowValidator(args, Mock())
 
-        # Should not raise any exceptions
-        validator._validate_multimodal_inputs()
+        # Mock DNS resolution to return valid public IPs
+        with patch('socket.gethostbyname', return_value='1.2.3.4'):
+            # Should not raise any exceptions
+            validator._validate_multimodal_inputs()
 
 
 # ==============================================================================

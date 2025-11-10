@@ -284,6 +284,7 @@ class TestIdeaImproverMultiModal:
     def test_improve_idea_with_urls(self, mock_client, mock_types):
         """Test improving idea with URL context."""
         from madspark.agents.idea_generator import improve_idea
+        from unittest.mock import patch
 
         # Mock the types module
         mock_config = Mock()
@@ -293,15 +294,17 @@ class TestIdeaImproverMultiModal:
         mock_response.text = "Improved idea with external references"
         mock_client.models.generate_content.return_value = mock_response
 
-        result = improve_idea(
-            original_idea="Feature concept",
-            critique="Needs market validation",
-            advocacy_points="Innovative approach",
-            skeptic_points="Unclear value",
-            topic="Product feature",
-            context="Competitive analysis",
-            multimodal_urls=["https://competitor1.com", "https://competitor2.com"]
-        )
+        # Mock DNS resolution to return valid public IPs
+        with patch('socket.gethostbyname', return_value='1.2.3.4'):
+            result = improve_idea(
+                original_idea="Feature concept",
+                critique="Needs market validation",
+                advocacy_points="Innovative approach",
+                skeptic_points="Unclear value",
+                topic="Product feature",
+                context="Competitive analysis",
+                multimodal_urls=["https://competitor1.com", "https://competitor2.com"]
+            )
 
         assert mock_client.models.generate_content.called
 

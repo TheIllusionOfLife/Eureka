@@ -9,7 +9,7 @@ Features specialized agents for idea generation, criticism, advocacy, and skepti
 
 - **🧠 Multi-Agent System**: IdeaGenerator, Critic, Advocate, and Skeptic agents
 - **🎯 Structured Output**: Google Gemini's structured JSON output for clean, consistent formatting
-- **🖼️ Multi-Modal Input**: Support for images, PDFs, documents, and URLs as context (NEW!)
+- **🖼️ Multi-Modal Input**: CLI and API support for images, PDFs, documents, and URLs as context (NEW!)
 - **🚀 Batch API Optimization**: 50% fewer API calls with 45% cost savings through intelligent batching
 - **📊 Real-time Monitoring**: Comprehensive token usage and cost tracking with detailed analytics
 - **🔗 Feedback Loop**: Ideas are improved based on agent insights with score comparison
@@ -114,14 +114,30 @@ ms "create a new game concept as a game director" "implementable within a month,
 
 ### Multi-Modal Input (NEW!)
 
-Enhance your idea generation with visual and document context:
+Enhance your idea generation with visual and document context! Multi-modal inputs allow you to provide images, PDFs, documents, and URLs alongside your text prompts for richer, more contextual idea generation.
+
+#### CLI Usage (Recommended)
 
 ```bash
-# NOTE: Multi-modal features are currently available via Python API only.
-# CLI support coming soon!
+# Single URL for context
+ms "Improve our landing page" "Increase conversions" --url https://competitor.com
 
-# Python API examples:
-python << 'EOF'
+# Multiple images for visual inspiration
+ms "Modern app redesign" "Clean, minimal" --image mockup.png --image wireframe.jpg
+
+# Analyze documents (PDFs, text files, etc.)
+ms "Summarize research findings" "Key insights" --file research.pdf --file data.csv
+
+# Combined multi-modal inputs
+ms "Product improvement ideas" "User-focused" \
+  --url https://reviews.com \
+  --file feedback.pdf \
+  --image current-ui.png
+```
+
+#### Python API Usage
+
+```python
 from madspark.agents.idea_generator import generate_ideas
 
 # Generate ideas with image context
@@ -152,8 +168,13 @@ ideas = generate_ideas(
     multimodal_files=["current_design.png"],
     multimodal_urls=["https://dribbble.com/shots/..."]
 )
-EOF
 ```
+
+#### Supported Formats
+
+- **Images**: PNG, JPG, JPEG, WebP, GIF, BMP (max 8MB each)
+- **Documents**: PDF (max 40MB), TXT, MD, DOC, DOCX (max 20MB each)
+- **URLs**: HTTP/HTTPS (competitor sites, references, documentation)
 
 **📖 See [Multi-Modal Guide](docs/MULTIMODAL_GUIDE.md) for comprehensive documentation, examples, and best practices.**
 

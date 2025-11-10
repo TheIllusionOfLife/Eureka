@@ -10,6 +10,7 @@ duplication and improving maintainability.
 import asyncio
 import logging
 import time
+from functools import partial
 from typing import List, Tuple, Dict, Any, Optional, Union, TYPE_CHECKING
 from pathlib import Path
 
@@ -853,7 +854,6 @@ class WorkflowOrchestrator:
             Tuple of (list of idea strings, token count).
         """
         # Use partial to handle keyword arguments with run_in_executor
-        from functools import partial
         loop = asyncio.get_running_loop()
         func = partial(
             self.generate_ideas,

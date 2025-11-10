@@ -13,6 +13,8 @@ Key Features:
 """
 
 import logging
+import socket
+import ipaddress
 from pathlib import Path
 from typing import List, Optional, Union
 from urllib.parse import urlparse
@@ -145,9 +147,6 @@ class MultiModalInput:
             raise ValueError("Invalid URL: Missing domain")
 
         # SSRF Protection: Block localhost and private IP addresses
-        import socket
-        import ipaddress
-
         hostname = parsed.hostname
         if not hostname:
             raise ValueError("Invalid URL: Cannot extract hostname")

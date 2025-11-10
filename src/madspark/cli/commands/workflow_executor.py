@@ -168,11 +168,9 @@ class WorkflowExecutor(CommandHandler):
             Dictionary of workflow keyword arguments
         """
         # Combine files and images into single list for multi-modal inputs
-        multimodal_files = []
-        if hasattr(self.args, 'multimodal_files') and self.args.multimodal_files:
-            multimodal_files.extend(self.args.multimodal_files)
-        if hasattr(self.args, 'multimodal_images') and self.args.multimodal_images:
-            multimodal_files.extend(self.args.multimodal_images)
+        files = getattr(self.args, 'multimodal_files', None) or []
+        images = getattr(self.args, 'multimodal_images', None) or []
+        multimodal_files = files + images
 
         return {
             "topic": self.args.theme,  # Map theme to topic for consistency
@@ -188,5 +186,5 @@ class WorkflowExecutor(CommandHandler):
             "timeout": self.args.timeout,
             # Multi-modal inputs
             "multimodal_files": multimodal_files if multimodal_files else None,
-            "multimodal_urls": self.args.multimodal_urls if hasattr(self.args, 'multimodal_urls') and self.args.multimodal_urls else None,
+            "multimodal_urls": self.args.multimodal_urls or None,
         }

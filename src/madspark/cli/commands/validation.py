@@ -13,12 +13,14 @@ try:
     from madspark.utils.temperature_control import create_temperature_manager_from_args
     from madspark.utils.bookmark_system import remix_with_bookmarks
     from madspark.utils.errors import ValidationError
+    from madspark.utils.multimodal_input import MultiModalInput
     if TYPE_CHECKING:
         from madspark.utils.temperature_control import TemperatureManager
 except ImportError:
     from temperature_control import create_temperature_manager_from_args
     from bookmark_system import remix_with_bookmarks
     from errors import ValidationError
+    from utils.multimodal_input import MultiModalInput
     if TYPE_CHECKING:
         from temperature_control import TemperatureManager
 
@@ -163,13 +165,6 @@ class WorkflowValidator(CommandHandler):
                 f"Too many URLs: {len(multimodal_urls)} URLs provided, "
                 f"maximum allowed is {MAX_MULTIMODAL_URLS}"
             )
-
-        # Import multi-modal utilities
-        try:
-            from madspark.utils.multimodal_input import MultiModalInput
-        except ImportError:
-            # Fallback for local development
-            from utils.multimodal_input import MultiModalInput
 
         mm_input = MultiModalInput()
 

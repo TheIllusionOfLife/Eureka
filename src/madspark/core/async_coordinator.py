@@ -659,6 +659,8 @@ class AsyncCoordinator(BatchOperationsBase):
         logical_inference: bool = False,
         reasoning_engine: Optional[ReasoningEngine] = None,
         timeout: int = 1200,
+        multimodal_files: Optional[List] = None,
+        multimodal_urls: Optional[List[str]] = None
     ) -> List[CandidateData]:
         """Run the complete async workflow with timeout support.
 
@@ -690,6 +692,8 @@ class AsyncCoordinator(BatchOperationsBase):
                     multi_dimensional_eval=multi_dimensional_eval,
                     logical_inference=logical_inference,
                     reasoning_engine=reasoning_engine,
+                    multimodal_files=multimodal_files,
+                    multimodal_urls=multimodal_urls
                 ),
                 timeout=timeout,
             )
@@ -713,6 +717,8 @@ class AsyncCoordinator(BatchOperationsBase):
         multi_dimensional_eval: bool = False,
         logical_inference: bool = False,
         reasoning_engine: Optional[ReasoningEngine] = None,
+        multimodal_files: Optional[List] = None,
+        multimodal_urls: Optional[List[str]] = None
     ) -> List[CandidateData]:
         """Internal workflow implementation without timeout wrapper."""
         # Define cache options upfront to avoid potential NameError
@@ -813,6 +819,8 @@ class AsyncCoordinator(BatchOperationsBase):
                         topic=topic,
                         context=context,
                         num_ideas=calculate_ideas_to_generate(num_top_candidates),
+                        multimodal_files=multimodal_files,
+                        multimodal_urls=multimodal_urls
                     ),
                     timeout=TimeoutConfig.IDEA_GENERATION_TIMEOUT,
                 )

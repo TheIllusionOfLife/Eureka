@@ -167,6 +167,13 @@ class WorkflowExecutor(CommandHandler):
         Returns:
             Dictionary of workflow keyword arguments
         """
+        # Combine files and images into single list for multi-modal inputs
+        multimodal_files = []
+        if hasattr(self.args, 'multimodal_files') and self.args.multimodal_files:
+            multimodal_files.extend(self.args.multimodal_files)
+        if hasattr(self.args, 'multimodal_images') and self.args.multimodal_images:
+            multimodal_files.extend(self.args.multimodal_images)
+
         return {
             "topic": self.args.theme,  # Map theme to topic for consistency
             "context": self.args.constraints,  # Map constraints to context for consistency
@@ -178,5 +185,8 @@ class WorkflowExecutor(CommandHandler):
             "enhanced_reasoning": self.args.enhanced_reasoning,
             "multi_dimensional_eval": True,  # Always enabled as a core feature
             "logical_inference": self.args.logical_inference,
-            "timeout": self.args.timeout
+            "timeout": self.args.timeout,
+            # Multi-modal inputs
+            "multimodal_files": multimodal_files if multimodal_files else None,
+            "multimodal_urls": self.args.multimodal_urls if hasattr(self.args, 'multimodal_urls') and self.args.multimodal_urls else None,
         }

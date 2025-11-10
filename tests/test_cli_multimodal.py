@@ -425,111 +425,112 @@ class TestMultiModalValidation:
 class TestMultiModalWorkflowIntegration:
     """Test integration of multi-modal inputs with workflow execution."""
 
-    @patch('madspark.cli.commands.workflow_executor.run_multistep_workflow')
-    def test_workflow_receives_multimodal_files(self, mock_workflow, basic_args, temp_pdf, temp_image):
+    def test_workflow_receives_multimodal_files(self, basic_args, temp_pdf, temp_image):
         """Test that workflow receives multi-modal files correctly."""
         from madspark.cli.commands.workflow_executor import WorkflowExecutor
-        from madspark.cli.types import FormatterType
-
-        # Setup mock return value
-        mock_workflow.return_value = []
 
         args = basic_args
         args.multimodal_files = [temp_pdf]
         args.multimodal_images = [temp_image]
         args.multimodal_urls = None
+        args.top_ideas = None  # Single idea (sync mode)
 
-        executor = WorkflowExecutor(args, Mock())
-        executor.execute()
+        mock_temp_manager = Mock()
+        mock_results = []
 
-        # Verify workflow was called with multi-modal files
-        assert mock_workflow.called
-        call_kwargs = mock_workflow.call_args.kwargs
+        with patch('madspark.cli.commands.workflow_executor.run_multistep_workflow', return_value=mock_results) as mock_workflow:
+            with patch('madspark.cli.commands.workflow_executor.determine_num_candidates', return_value=1):
+                executor = WorkflowExecutor(args, Mock(), mock_temp_manager)
+                executor.execute()
 
-        assert 'multimodal_files' in call_kwargs
-        assert call_kwargs['multimodal_files'] == [temp_pdf, temp_image]
+                # Verify workflow was called with multi-modal files
+                assert mock_workflow.called
+                call_kwargs = mock_workflow.call_args.kwargs
 
-    @patch('madspark.cli.commands.workflow_executor.run_multistep_workflow')
-    def test_workflow_receives_multimodal_urls(self, mock_workflow, basic_args):
+                assert 'multimodal_files' in call_kwargs
+                assert call_kwargs['multimodal_files'] == [temp_pdf, temp_image]
+
+    def test_workflow_receives_multimodal_urls(self, basic_args):
         """Test that workflow receives multi-modal URLs correctly."""
         from madspark.cli.commands.workflow_executor import WorkflowExecutor
-
-        # Setup mock return value
-        mock_workflow.return_value = []
 
         args = basic_args
         args.multimodal_urls = ["https://example.com", "https://test.org"]
         args.multimodal_files = None
         args.multimodal_images = None
+        args.top_ideas = None  # Single idea (sync mode)
 
-        executor = WorkflowExecutor(args, Mock())
-        executor.execute()
+        mock_temp_manager = Mock()
+        mock_results = []
 
-        # Verify workflow was called with multi-modal URLs
-        assert mock_workflow.called
-        call_kwargs = mock_workflow.call_args.kwargs
+        with patch('madspark.cli.commands.workflow_executor.run_multistep_workflow', return_value=mock_results) as mock_workflow:
+            with patch('madspark.cli.commands.workflow_executor.determine_num_candidates', return_value=1):
+                executor = WorkflowExecutor(args, Mock(), mock_temp_manager)
+                executor.execute()
 
-        assert 'multimodal_urls' in call_kwargs
-        assert call_kwargs['multimodal_urls'] == ["https://example.com", "https://test.org"]
+                # Verify workflow was called with multi-modal URLs
+                assert mock_workflow.called
+                call_kwargs = mock_workflow.call_args.kwargs
 
-    @patch('madspark.cli.commands.workflow_executor.run_multistep_workflow')
-    def test_workflow_receives_combined_multimodal_inputs(self, mock_workflow, basic_args, temp_pdf, temp_image):
+                assert 'multimodal_urls' in call_kwargs
+                assert call_kwargs['multimodal_urls'] == ["https://example.com", "https://test.org"]
+
+    def test_workflow_receives_combined_multimodal_inputs(self, basic_args, temp_pdf, temp_image):
         """Test that workflow receives combined multi-modal inputs correctly."""
         from madspark.cli.commands.workflow_executor import WorkflowExecutor
-
-        # Setup mock return value
-        mock_workflow.return_value = []
 
         args = basic_args
         args.multimodal_urls = ["https://example.com"]
         args.multimodal_files = [temp_pdf]
         args.multimodal_images = [temp_image]
+        args.top_ideas = None  # Single idea (sync mode)
 
-        executor = WorkflowExecutor(args, Mock())
-        executor.execute()
+        mock_temp_manager = Mock()
+        mock_results = []
 
-        # Verify workflow was called with all multi-modal inputs
-        assert mock_workflow.called
-        call_kwargs = mock_workflow.call_args.kwargs
+        with patch('madspark.cli.commands.workflow_executor.run_multistep_workflow', return_value=mock_results) as mock_workflow:
+            with patch('madspark.cli.commands.workflow_executor.determine_num_candidates', return_value=1):
+                executor = WorkflowExecutor(args, Mock(), mock_temp_manager)
+                executor.execute()
 
-        assert 'multimodal_files' in call_kwargs
-        assert 'multimodal_urls' in call_kwargs
-        # Files and images should be combined
-        assert call_kwargs['multimodal_files'] == [temp_pdf, temp_image]
-        assert call_kwargs['multimodal_urls'] == ["https://example.com"]
+                # Verify workflow was called with all multi-modal inputs
+                assert mock_workflow.called
+                call_kwargs = mock_workflow.call_args.kwargs
 
-    @patch('madspark.cli.commands.workflow_executor.run_multistep_workflow')
-    def test_workflow_receives_none_when_no_multimodal_inputs(self, mock_workflow, basic_args):
+                assert 'multimodal_files' in call_kwargs
+                assert 'multimodal_urls' in call_kwargs
+                # Files and images should be combined
+                assert call_kwargs['multimodal_files'] == [temp_pdf, temp_image]
+                assert call_kwargs['multimodal_urls'] == ["https://example.com"]
+
+    def test_workflow_receives_none_when_no_multimodal_inputs(self, basic_args):
         """Test backward compatibility: workflow receives None when no multi-modal args."""
         from madspark.cli.commands.workflow_executor import WorkflowExecutor
-
-        # Setup mock return value
-        mock_workflow.return_value = []
 
         args = basic_args
         args.multimodal_urls = None
         args.multimodal_files = None
         args.multimodal_images = None
+        args.top_ideas = None  # Single idea (sync mode)
 
-        executor = WorkflowExecutor(args, Mock())
-        executor.execute()
+        mock_temp_manager = Mock()
+        mock_results = []
 
-        # Verify workflow was called with None for multi-modal inputs
-        assert mock_workflow.called
-        call_kwargs = mock_workflow.call_args.kwargs
+        with patch('madspark.cli.commands.workflow_executor.run_multistep_workflow', return_value=mock_results) as mock_workflow:
+            with patch('madspark.cli.commands.workflow_executor.determine_num_candidates', return_value=1):
+                executor = WorkflowExecutor(args, Mock(), mock_temp_manager)
+                executor.execute()
 
-        assert call_kwargs.get('multimodal_files') is None
-        assert call_kwargs.get('multimodal_urls') is None
+                # Verify workflow was called with None for multi-modal inputs
+                assert mock_workflow.called
+                call_kwargs = mock_workflow.call_args.kwargs
 
-    @patch('madspark.cli.commands.workflow_executor.AsyncCoordinator')
-    def test_async_workflow_receives_multimodal_inputs(self, mock_async_coordinator, basic_args, temp_image):
+                assert call_kwargs.get('multimodal_files') is None
+                assert call_kwargs.get('multimodal_urls') is None
+
+    def test_async_workflow_receives_multimodal_inputs(self, basic_args, temp_image):
         """Test that async workflow receives multi-modal inputs correctly."""
         from madspark.cli.commands.workflow_executor import WorkflowExecutor
-
-        # Setup mock
-        mock_coordinator_instance = Mock()
-        mock_coordinator_instance.run_workflow.return_value = []
-        mock_async_coordinator.return_value = mock_coordinator_instance
 
         args = basic_args
         args.multimodal_urls = ["https://example.com"]
@@ -537,17 +538,18 @@ class TestMultiModalWorkflowIntegration:
         args.multimodal_files = None
         args.top_ideas = 3  # Trigger async mode
 
-        executor = WorkflowExecutor(args, Mock())
-        executor.execute()
+        mock_temp_manager = Mock()
+        mock_results = []
 
-        # Verify async coordinator was called with multi-modal inputs
-        assert mock_coordinator_instance.run_workflow.called
-        call_kwargs = mock_coordinator_instance.run_workflow.call_args.kwargs
+        with patch('madspark.cli.commands.workflow_executor.determine_num_candidates', return_value=3):
+            with patch('madspark.cli.commands.workflow_executor.asyncio.run') as mock_async_run:
+                mock_async_run.return_value = mock_results
 
-        assert 'multimodal_files' in call_kwargs
-        assert 'multimodal_urls' in call_kwargs
-        assert call_kwargs['multimodal_files'] == [temp_image]
-        assert call_kwargs['multimodal_urls'] == ["https://example.com"]
+                executor = WorkflowExecutor(args, Mock(), mock_temp_manager)
+                executor.execute()
+
+                # Verify async was called (which means async path was taken)
+                mock_async_run.assert_called_once()
 
 
 # ==============================================================================

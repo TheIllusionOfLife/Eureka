@@ -5,10 +5,8 @@ to define the expected behavior of multi-modal CLI features.
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 import argparse
-import tempfile
-from pathlib import Path
 
 
 # Test fixtures

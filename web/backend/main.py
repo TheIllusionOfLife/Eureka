@@ -13,10 +13,11 @@ import random
 import uuid
 import sys
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, List, Optional, Any
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Request, Query
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Request, Query, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
@@ -621,6 +622,11 @@ class IdeaGenerationRequest(BaseModel):
     logical_inference: bool = Field(default=False, description="Enable logical inference chains")
     timeout: Optional[int] = Field(default=None, ge=60, le=3600, description="Request timeout in seconds (60-3600)")
     bookmark_ids: Optional[List[str]] = Field(default=None, description="Bookmark IDs to use for remix context")
+    multimodal_urls: Optional[List[str]] = Field(
+        default=None,
+        max_length=5,
+        description="URLs for multi-modal context (max 5 URLs)"
+    )
 
     class Config:
         populate_by_name = True  # Accept both alias and original names (Pydantic V2)
@@ -838,6 +844,81 @@ class WebSocketManager:
 ws_manager = WebSocketManager()
 
 
+# Multi-modal file upload helper
+def save_upload_file(upload_file: UploadFile) -> Path:
+    """Save uploaded file to temp directory with validation.
+
+    Args:
+        upload_file: FastAPI UploadFile object containing the uploaded file
+
+    Returns:
+        Path object pointing to the saved file
+
+    Raises:
+        HTTPException(413): File size exceeds limit
+        HTTPException(400): Invalid file format or validation error
+        HTTPException(500): File save operation failed
+    """
+    try:
+        from madspark.utils.multimodal_input import MultiModalInput
+        from madspark.config.execution_constants import MultiModalConfig
+    except ImportError as e:
+        logger.error(f"Failed to import multi-modal modules: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Multi-modal support not available"
+        )
+
+    # Validate file size before saving
+    file_size = getattr(upload_file, 'size', None)
+    if file_size and file_size > MultiModalConfig.MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File too large: {upload_file.filename} ({file_size} bytes). Maximum size: {MultiModalConfig.MAX_FILE_SIZE} bytes"
+        )
+
+    # Create temp directory
+    temp_dir = Path("/tmp/madspark_uploads")
+    temp_dir.mkdir(exist_ok=True)
+
+    # Generate unique filename
+    temp_path = temp_dir / f"{uuid.uuid4()}_{upload_file.filename}"
+
+    try:
+        # Save file
+        with temp_path.open("wb") as f:
+            content = upload_file.file.read()
+            f.write(content)
+
+        # Validate using existing MultiModalInput
+        mm_input = MultiModalInput()
+        mm_input.validate_file(temp_path)
+
+        logger.info(f"Saved and validated file: {upload_file.filename} -> {temp_path}")
+        return temp_path
+
+    except ValueError as e:
+        # Validation failed - clean up file if it was created
+        if temp_path.exists():
+            temp_path.unlink()
+
+        logger.warning(f"File validation failed for {upload_file.filename}: {e}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"File validation failed: {str(e)}"
+        )
+    except Exception as e:
+        # File save failed - clean up if file was partially created
+        if temp_path.exists():
+            temp_path.unlink()
+
+        logger.error(f"Failed to save file {upload_file.filename}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to save file: {str(e)}"
+        )
+
+
 @app.get("/")
 async def root():
     """API root endpoint with system information."""
@@ -968,9 +1049,15 @@ async def get_temperature_presets():
     }
 )
 @limiter.limit("5/minute")  # Allow 5 idea generation requests per minute
-async def generate_ideas(request: Request, idea_request: IdeaGenerationRequest):
-    """Generate ideas using the async MadSpark multi-agent workflow."""
+async def generate_ideas(
+    request: Request,
+    idea_request: IdeaGenerationRequest,
+    multimodal_files: Optional[List[UploadFile]] = File(None),
+    multimodal_images: Optional[List[UploadFile]] = File(None)
+):
+    """Generate ideas using the async MadSpark multi-agent workflow with optional multi-modal inputs."""
     start_time = datetime.now()
+    temp_files = []  # Track temp files for cleanup
     
     # Check if running in mock mode - check environment variable properly
     google_api_key = os.environ.get("GOOGLE_API_KEY", "").strip()
@@ -1036,7 +1123,60 @@ async def generate_ideas(request: Request, idea_request: IdeaGenerationRequest):
             except Exception as e:
                 logger.warning(f"Failed to create remix context: {e}")
                 # Continue with original context if remix fails
-        
+
+        # Handle multi-modal file uploads
+        multimodal_file_paths = []
+        multimodal_url_list = idea_request.multimodal_urls or []
+
+        try:
+            # Process uploaded files
+            if multimodal_files:
+                for file in multimodal_files:
+                    try:
+                        temp_path = save_upload_file(file)
+                        temp_files.append(temp_path)
+                        multimodal_file_paths.append(temp_path)
+                        logger.info(f"Processed file upload: {file.filename}")
+                    except HTTPException as e:
+                        # Track file-specific errors
+                        error_tracker.track_error('file_upload_validation', str(e.detail), {
+                            'filename': file.filename,
+                            'status_code': e.status_code
+                        })
+                        raise
+
+            # Process uploaded images
+            if multimodal_images:
+                for file in multimodal_images:
+                    try:
+                        temp_path = save_upload_file(file)
+                        temp_files.append(temp_path)
+                        multimodal_file_paths.append(temp_path)
+                        logger.info(f"Processed image upload: {file.filename}")
+                    except HTTPException as e:
+                        # Track file-specific errors
+                        error_tracker.track_error('file_upload_validation', str(e.detail), {
+                            'filename': file.filename,
+                            'status_code': e.status_code
+                        })
+                        raise
+
+            # Log multi-modal inputs
+            if multimodal_file_paths or multimodal_url_list:
+                await ws_manager.send_progress_update(
+                    f"Processing multi-modal inputs: {len(multimodal_file_paths)} files, {len(multimodal_url_list)} URLs",
+                    3.0
+                )
+
+        except HTTPException:
+            # Clean up temp files on error
+            for temp_file in temp_files:
+                try:
+                    temp_file.unlink(missing_ok=True)
+                except Exception as cleanup_error:
+                    logger.warning(f"Failed to clean up temp file {temp_file}: {cleanup_error}")
+            raise
+
         # Create async coordinator with cache and progress callback
         async_coordinator = AsyncCoordinator(
             max_concurrent_agents=max_concurrent_agents,
@@ -1053,34 +1193,45 @@ async def generate_ideas(request: Request, idea_request: IdeaGenerationRequest):
             logger.info(f"Logical inference engine available: {reasoning_eng.logical_inference_engine is not None}")
         
         try:
-            results = await asyncio.wait_for(
-                async_coordinator.run_workflow(
-                    topic=idea_request.topic,
-                    context=context,  # Use potentially remixed context
-                    num_top_candidates=idea_request.num_top_candidates,
-                    enable_novelty_filter=idea_request.enable_novelty_filter,
-                    novelty_threshold=idea_request.novelty_threshold,
-                    temperature_manager=temp_mgr,
-                    verbose=idea_request.verbose,
-                    enhanced_reasoning=idea_request.enhanced_reasoning,
-                    multi_dimensional_eval=True,  # Always enabled as a core feature
-                    logical_inference=idea_request.logical_inference,
-                    reasoning_engine=reasoning_eng
-                ),
-                timeout=timeout_seconds
+            try:
+                results = await asyncio.wait_for(
+                    async_coordinator.run_workflow(
+                        topic=idea_request.topic,
+                        context=context,  # Use potentially remixed context
+                        num_top_candidates=idea_request.num_top_candidates,
+                        enable_novelty_filter=idea_request.enable_novelty_filter,
+                        novelty_threshold=idea_request.novelty_threshold,
+                        temperature_manager=temp_mgr,
+                        verbose=idea_request.verbose,
+                        enhanced_reasoning=idea_request.enhanced_reasoning,
+                        multi_dimensional_eval=True,  # Always enabled as a core feature
+                        logical_inference=idea_request.logical_inference,
+                        reasoning_engine=reasoning_eng,
+                        multimodal_files=multimodal_file_paths if multimodal_file_paths else None,
+                        multimodal_urls=multimodal_url_list if multimodal_url_list else None
+                    ),
+                    timeout=timeout_seconds
+                )
+            except asyncio.TimeoutError:
+                await ws_manager.send_progress_update(f"Request timed out after {timeout_seconds} seconds", 0.0)
+                raise HTTPException(
+                    status_code=408,
+                    detail=f"Request timed out after {timeout_seconds} seconds. Please try with fewer candidates or simpler constraints."
+                )
+
+            return _create_success_response(
+                results=results,
+                start_time=start_time,
+                message=f"Generated {len(results)} ideas successfully"
             )
-        except asyncio.TimeoutError:
-            await ws_manager.send_progress_update(f"Request timed out after {timeout_seconds} seconds", 0.0)
-            raise HTTPException(
-                status_code=408, 
-                detail=f"Request timed out after {timeout_seconds} seconds. Please try with fewer candidates or simpler constraints."
-            )
-        
-        return _create_success_response(
-            results=results,
-            start_time=start_time,
-            message=f"Generated {len(results)} ideas successfully"
-        )
+        finally:
+            # Clean up temp files after processing (success or failure)
+            for temp_file in temp_files:
+                try:
+                    temp_file.unlink(missing_ok=True)
+                    logger.debug(f"Cleaned up temp file: {temp_file}")
+                except Exception as cleanup_error:
+                    logger.warning(f"Failed to clean up temp file {temp_file}: {cleanup_error}")
         
     except HTTPException:
         # Re-raise HTTP exceptions (like timeout)

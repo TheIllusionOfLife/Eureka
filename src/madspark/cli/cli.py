@@ -472,7 +472,37 @@ Examples:
         '--export-filename',
         help='Base filename for exports (timestamp will be added if not specified)'
     )
-    
+
+    # Multi-modal inputs
+    multimodal_group = parser.add_argument_group(
+        'multi-modal inputs',
+        'Provide additional context via files and URLs for richer idea generation'
+    )
+
+    multimodal_group.add_argument(
+        '--url', '-u',
+        action='append',
+        dest='multimodal_urls',
+        metavar='URL',
+        help='Add URL for context (e.g., competitor website, reference material). Can specify multiple times.'
+    )
+
+    multimodal_group.add_argument(
+        '--file', '-f',
+        action='append',
+        dest='multimodal_files',
+        metavar='PATH',
+        help='Add file for context: PDF, text, markdown, or document. Can specify multiple times.'
+    )
+
+    multimodal_group.add_argument(
+        '--image', '-img',
+        action='append',
+        dest='multimodal_images',
+        metavar='PATH',
+        help='Add image for visual context (PNG, JPG, JPEG, WebP, GIF, BMP). Can specify multiple times.'
+    )
+
     return parser
 
 

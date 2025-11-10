@@ -9,8 +9,13 @@ This test module verifies that BatchProcessor correctly handles event loop conte
 import pytest
 import asyncio
 from unittest.mock import AsyncMock, Mock, patch
-from src.madspark.utils.batch_processor import BatchProcessor, BatchItem
-from src.madspark.utils.errors import BatchProcessingError
+
+try:
+    from madspark.utils.batch_processor import BatchProcessor, BatchItem
+    from madspark.utils.errors import BatchProcessingError
+except ImportError:  # Fallback for local development without editable install
+    from src.madspark.utils.batch_processor import BatchProcessor, BatchItem
+    from src.madspark.utils.errors import BatchProcessingError
 
 
 class TestBatchProcessorEventLoop:
@@ -60,7 +65,7 @@ class TestBatchProcessorEventLoop:
 
             # Verify error message is helpful
             error_msg = str(exc_info.value)
-            assert "cannot be called from an async context" in error_msg.lower()
+            assert "cannot call process_batch() from an async context" in error_msg.lower()
             assert "process_batch_async" in error_msg
             assert "SOLUTION" in error_msg
 

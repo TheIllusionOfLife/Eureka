@@ -430,7 +430,7 @@ class BatchProcessor:
                 - total_processing_time: Total time in seconds
 
         Raises:
-            RuntimeError: If called from an async context (event loop already running)
+            BatchProcessingError: If called from an async context (event loop already running)
 
         Examples:
             Synchronous usage (scripts, CLI)::

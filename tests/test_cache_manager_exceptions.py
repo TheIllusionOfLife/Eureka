@@ -46,8 +46,8 @@ class TestCacheManagerExceptionHandling:
 
         # The method should handle this gracefully with fallback to default=str
         result = await cache_manager.cache_workflow_result(
-            theme="test",
-            constraints="test",
+            topic="test",
+            context="test",
             options={},
             result=non_serializable_result
         )
@@ -70,8 +70,8 @@ class TestCacheManagerExceptionHandling:
         cache_manager.redis_client = mock_client
 
         result = await cache_manager.get_cached_workflow(
-            theme="test",
-            constraints="test",
+            topic="test",
+            context="test",
             options={}
         )
 
@@ -109,16 +109,16 @@ class TestCacheManagerExceptionHandling:
 
         # All cache operations should handle unavailability gracefully
         result = await cache_manager.cache_workflow_result(
-            theme="test",
-            constraints="test",
+            topic="test",
+            context="test",
             options={},
             result={}
         )
         assert result is False
 
         cached = await cache_manager.get_cached_workflow(
-            theme="test",
-            constraints="test",
+            topic="test",
+            context="test",
             options={}
         )
         assert cached is None

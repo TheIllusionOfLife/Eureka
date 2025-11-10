@@ -85,22 +85,22 @@ class CacheManager:
             await self.redis_client.close()
             self.is_connected = False
     
-    def _generate_cache_key(self, theme: str, constraints: str, options: Dict[str, Any]) -> str:
+    def _generate_cache_key(self, topic: str, context: str, options: Dict[str, Any]) -> str:
         """Generate a unique cache key for given inputs.
-        
+
         Args:
-            theme: Idea generation theme
-            constraints: Constraints for ideas
+            topic: Main topic for idea generation
+            context: Context/constraints for the ideas
             options: Additional options (temperature, mode, etc.)
-            
+
         Returns:
             Cache key string
         """
         # Sort options for consistent key generation
         sorted_options = json.dumps(options, sort_keys=True)
-        key_parts = [theme, constraints, sorted_options]
+        key_parts = [topic, context, sorted_options]
         key_string = "|".join(key_parts)
-        
+
         # Create hash for compact key
         key_hash = hashlib.sha256(key_string.encode()).hexdigest()[:16]
         return f"{self.config.key_prefix}:workflow:{key_hash}"
@@ -120,16 +120,16 @@ class CacheManager:
     
     async def cache_workflow_result(
         self, 
-        theme: str, 
-        constraints: str, 
+        topic: str, 
+        context: str, 
         options: Dict[str, Any], 
         result: Dict[str, Any]
     ) -> bool:
         """Cache a complete workflow result.
         
         Args:
-            theme: Idea generation theme
-            constraints: Constraints for ideas
+            topic: Main topic for idea generation
+            context: Context/constraints for the ideas
             options: Workflow options
             result: Complete workflow result
             
@@ -140,14 +140,14 @@ class CacheManager:
             return False
             
         try:
-            key = self._generate_cache_key(theme, constraints, options)
+            key = self._generate_cache_key(topic, context, options)
             
             # Add metadata
             cache_data = {
                 "result": result,
                 "cached_at": datetime.now().isoformat(),
-                "theme": theme,
-                "constraints": constraints,
+                "topic": topic,
+                "context": context,
                 "options": options
             }
             
@@ -180,15 +180,15 @@ class CacheManager:
     
     async def get_cached_workflow(
         self, 
-        theme: str, 
-        constraints: str, 
+        topic: str, 
+        context: str, 
         options: Dict[str, Any]
     ) -> Optional[Dict[str, Any]]:
         """Retrieve cached workflow result.
         
         Args:
-            theme: Idea generation theme
-            constraints: Constraints for ideas
+            topic: Main topic for idea generation
+            context: Context/constraints for the ideas
             options: Workflow options
             
         Returns:
@@ -198,7 +198,7 @@ class CacheManager:
             return None
             
         try:
-            key = self._generate_cache_key(theme, constraints, options)
+            key = self._generate_cache_key(topic, context, options)
             cached_data = await self.redis_client.get(key)
             
             if cached_data:
@@ -498,7 +498,7 @@ class CacheManager:
         """Pre-populate cache with common queries.
         
         Args:
-            common_queries: List of (theme, constraints) tuples
+            common_queries: List of (topic, context) tuples
             
         Returns:
             Number of entries warmed
@@ -507,7 +507,7 @@ class CacheManager:
             return 0
             
         warmed = 0
-        for theme, constraints in common_queries:
+        for topic, context in common_queries:
             # Generate synthetic result for warming
             # In production, this would call the actual workflow
             synthetic_result = {

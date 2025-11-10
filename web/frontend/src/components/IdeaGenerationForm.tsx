@@ -116,6 +116,9 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({
     if (shouldUseFormData(baseData, multimodalFiles)) {
       // Convert to FormData for multipart/form-data upload
       const formDataSubmission = buildMultiModalFormData(baseData, multimodalFiles);
+      // Type cast required: onSubmit expects local FormData interface, but we need to pass
+      // browser-native FormData for file uploads. Ideally, IdeaGenerationFormProps.onSubmit
+      // should accept (data: FormData | globalThis.FormData) => void
       onSubmit(formDataSubmission as any);
     } else {
       // Use JSON for regular requests

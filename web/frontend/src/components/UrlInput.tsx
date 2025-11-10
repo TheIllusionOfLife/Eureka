@@ -161,7 +161,7 @@ const UrlInput: React.FC<UrlInputProps> = ({
         <div className="flex flex-wrap gap-2" role="list">
           {urls.map((url, index) => (
             <div
-              key={index}
+              key={url}
               title={url}
               className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-blue-100 text-blue-800 rounded-full"
               role="listitem"

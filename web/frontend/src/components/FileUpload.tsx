@@ -205,7 +205,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
           <p className="text-xs text-gray-500">
             <span className="font-medium">Images:</span> PNG, JPG, WebP, GIF (max 8MB)
             <br />
-            <span className="font-medium">Documents:</span> PDF, TXT, MD, DOC (max 40MB)
+            <span className="font-medium">Documents:</span> PDF (max 40MB), TXT/MD/DOC/DOCX (max 20MB)
           </p>
         </div>
       </div>
@@ -222,7 +222,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
         <div className="space-y-2" role="list">
           {files.map((file, index) => (
             <div
-              key={index}
+              key={file.name}
               className="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-200"
               role="listitem"
             >

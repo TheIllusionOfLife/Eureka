@@ -13,7 +13,7 @@ import psutil
 import json
 import statistics
 from datetime import datetime
-from typing import Dict, List, Any
+from typing import Dict, Any
 import sys
 import os
 import asyncio
@@ -24,9 +24,9 @@ project_root = os.path.dirname(os.path.dirname(current_dir))
 src_dir = os.path.join(project_root, 'src')
 sys.path.insert(0, src_dir)
 
-from madspark.core.coordinator import run_multistep_workflow
-from madspark.core.async_coordinator import AsyncCoordinator
-from madspark.utils.cache_manager import CacheManager
+from madspark.core.coordinator import run_multistep_workflow  # noqa: E402
+from madspark.core.async_coordinator import AsyncCoordinator  # noqa: E402
+from madspark.utils.cache_manager import CacheManager  # noqa: E402
 
 
 class PerformanceBenchmark:
@@ -50,9 +50,6 @@ class PerformanceBenchmark:
         
         start_time = time.time()
         start_memory = self.measure_memory()
-        
-        # Track API calls by monitoring logs
-        api_calls = 0
         
         # Run workflow
         try:
@@ -129,7 +126,7 @@ class PerformanceBenchmark:
     
     def benchmark_cache_performance(self) -> Dict[str, Any]:
         """Benchmark cache performance if Redis is available"""
-        print(f"\n💾 Testing cache performance...")
+        print("\n💾 Testing cache performance...")
         
         try:
             cache_manager = CacheManager(enabled=True)
@@ -145,7 +142,7 @@ class PerformanceBenchmark:
             
             # Read performance
             read_start = time.time()
-            cached_data = cache_manager.get(test_key)
+            _ = cache_manager.get(test_key)  # Testing read performance
             read_time = time.time() - read_start
             
             # Cache hit test
@@ -169,7 +166,7 @@ class PerformanceBenchmark:
                 "hit_rate": hits / (hits + misses)
             }
             
-            print(f"  ✅ Cache available")
+            print("  ✅ Cache available")
             print(f"  📝 Write time: {write_time*1000:.2f}ms")
             print(f"  📖 Read time: {read_time*1000:.2f}ms")
             
@@ -218,7 +215,7 @@ class PerformanceBenchmark:
             self.results["summary"]["avg_async_time"] = statistics.mean(async_times)
             self.results["summary"]["async_speedup"] = speedup
             
-            print(f"\n📊 PERFORMANCE SUMMARY")
+            print("\n📊 PERFORMANCE SUMMARY")
             print("=" * 50)
             print(f"Average sync time: {self.results['summary']['avg_sync_time']:.2f}s")
             print(f"Average async time: {self.results['summary']['avg_async_time']:.2f}s")
@@ -228,7 +225,7 @@ class PerformanceBenchmark:
         with open("benchmark_results.json", "w") as f:
             json.dump(self.results, f, indent=2)
         
-        print(f"\n💾 Results saved to benchmark_results.json")
+        print("\n💾 Results saved to benchmark_results.json")
         
         # Generate report
         self.generate_report()
@@ -279,7 +276,7 @@ Generated: {self.results['timestamp']}
         with open("benchmark_report.md", "w") as f:
             f.write(report)
         
-        print(f"📄 Report saved to benchmark_report.md")
+        print("📄 Report saved to benchmark_report.md")
 
 
 async def main():

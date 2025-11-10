@@ -34,6 +34,22 @@ class MultiModalConfig:
     SUPPORTED_IMAGE_FORMATS = {'png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp'}
     SUPPORTED_DOC_FORMATS = {'pdf', 'txt', 'md', 'doc', 'docx'}
 
+    # File type rules (format → (type_name, max_size))
+    # More data-driven approach for validation
+    FILE_TYPE_RULES = {
+        'png': ('images', MAX_IMAGE_SIZE),
+        'jpg': ('images', MAX_IMAGE_SIZE),
+        'jpeg': ('images', MAX_IMAGE_SIZE),
+        'webp': ('images', MAX_IMAGE_SIZE),
+        'gif': ('images', MAX_IMAGE_SIZE),
+        'bmp': ('images', MAX_IMAGE_SIZE),
+        'pdf': ('PDFs', MAX_PDF_SIZE),
+        'txt': ('documents', MAX_FILE_SIZE),
+        'md': ('documents', MAX_FILE_SIZE),
+        'doc': ('documents', MAX_FILE_SIZE),
+        'docx': ('documents', MAX_FILE_SIZE),
+    }
+
     # Processing limits
     MAX_PDF_PAGES = 100
     IMAGE_MAX_DIMENSION = 4096

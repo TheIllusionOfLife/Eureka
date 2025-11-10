@@ -12,7 +12,7 @@ from typing import Any, List, Dict, Tuple, Optional, Union
 from madspark.utils.utils import parse_batch_json_with_fallback
 from madspark.utils.batch_exceptions import BatchParsingError
 from madspark.utils.content_safety import GeminiSafetyHandler
-from madspark.utils.multimodal_input import MultiModalInput
+from madspark.utils.multimodal_input import build_prompt_with_multimodal
 
 # Set up logger
 logger = logging.getLogger(__name__)
@@ -173,11 +173,10 @@ def generate_ideas(
   text_prompt: str = build_generation_prompt(topic=topic, context=context, use_structured_output=use_structured_output)
 
   # Process multi-modal inputs if provided
-  mm_processor = MultiModalInput()
-  contents = mm_processor.build_multimodal_prompt(
+  contents = build_prompt_with_multimodal(
       text_prompt=text_prompt,
-      files=multimodal_files,
-      urls=multimodal_urls
+      multimodal_files=multimodal_files,
+      multimodal_urls=multimodal_urls
   )
   
   if not GENAI_AVAILABLE or idea_generator_client is None:
@@ -442,11 +441,10 @@ def improve_idea(
   )
 
   # Process multi-modal inputs if provided
-  mm_processor = MultiModalInput()
-  contents = mm_processor.build_multimodal_prompt(
+  contents = build_prompt_with_multimodal(
       text_prompt=text_prompt,
-      files=multimodal_files,
-      urls=multimodal_urls
+      multimodal_files=multimodal_files,
+      multimodal_urls=multimodal_urls
   )
   
   if not GENAI_AVAILABLE or idea_generator_client is None:

@@ -97,19 +97,12 @@ class MultiModalInput:
         # Get file size
         file_size = path.stat().st_size
 
-        # Detect format and determine size limit
+        # Detect format and determine size limit (data-driven approach)
         extension = path.suffix.lower().lstrip('.')
 
-        # Determine file type and corresponding size limit
-        if extension in self.config.SUPPORTED_IMAGE_FORMATS:
-            file_type = "images"
-            max_size = self.config.MAX_IMAGE_SIZE
-        elif extension == 'pdf':
-            file_type = "PDFs"
-            max_size = self.config.MAX_PDF_SIZE
-        elif extension in self.config.SUPPORTED_DOC_FORMATS:
-            file_type = "documents"
-            max_size = self.config.MAX_FILE_SIZE
+        # Look up file type rules
+        if extension in self.config.FILE_TYPE_RULES:
+            file_type, max_size = self.config.FILE_TYPE_RULES[extension]
         else:
             supported_all = self.config.SUPPORTED_IMAGE_FORMATS | self.config.SUPPORTED_DOC_FORMATS
             raise ValueError(
@@ -137,11 +130,8 @@ class MultiModalInput:
         if url is None or url == "":
             raise ValueError("Invalid URL: URL cannot be empty or None")
 
-        # Parse URL
-        try:
-            parsed = urlparse(url)
-        except Exception as e:
-            raise ValueError(f"Invalid URL format: {e}")
+        # Parse URL (urlparse is robust and doesn't raise exceptions)
+        parsed = urlparse(url)
 
         # Check scheme
         if parsed.scheme not in ('http', 'https'):
@@ -262,3 +252,31 @@ class MultiModalInput:
             parts.append(part)
 
         return parts
+
+
+# Convenience function to avoid code duplication
+def build_prompt_with_multimodal(
+    text_prompt: str,
+    multimodal_files: Optional[List[Union[str, Path]]] = None,
+    multimodal_urls: Optional[List[str]] = None
+) -> Union[str, List[Union[str, 'types.Part', MockPart]]]:
+    """
+    Convenience function to build multi-modal prompt.
+
+    This helper reduces code duplication across idea_generator, improve_idea,
+    and structured_idea_generator functions.
+
+    Args:
+        text_prompt: Base text prompt
+        multimodal_files: Optional list of file paths
+        multimodal_urls: Optional list of URLs
+
+    Returns:
+        Enhanced prompt (string or list with Parts)
+    """
+    mm_processor = MultiModalInput()
+    return mm_processor.build_multimodal_prompt(
+        text_prompt=text_prompt,
+        files=multimodal_files,
+        urls=multimodal_urls
+    )

@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, Optional, List, Union
 
 from ..utils.constants import DEFAULT_GOOGLE_GENAI_MODEL
-from ..utils.multimodal_input import MultiModalInput
+from ..utils.multimodal_input import build_prompt_with_multimodal
 
 # Optional import for Google GenAI - graceful fallback for CI/testing
 try:
@@ -116,11 +116,10 @@ Task: Generate an improved version that:
 Write ONLY the improved idea. No introductions, no meta-commentary."""
 
     # Process multi-modal inputs if provided
-    mm_processor = MultiModalInput()
-    contents = mm_processor.build_multimodal_prompt(
+    contents = build_prompt_with_multimodal(
         text_prompt=text_prompt,
-        files=multimodal_files,
-        urls=multimodal_urls
+        multimodal_files=multimodal_files,
+        multimodal_urls=multimodal_urls
     )
     
     if not GENAI_AVAILABLE or genai_client is None:

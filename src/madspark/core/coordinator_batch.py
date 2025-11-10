@@ -5,7 +5,8 @@ to significantly reduce the number of API calls from O(N) to O(1) for
 advocate, skeptic, and improvement processing.
 """
 import logging
-from typing import List, Optional
+from pathlib import Path
+from typing import List, Optional, Union
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 
 from madspark.config.execution_constants import ConcurrencyConfig
@@ -53,7 +54,7 @@ def run_multistep_workflow_batch(
     verbose: bool = False,
     reasoning_engine: Optional[ReasoningEngine] = None,
     timeout: int = DEFAULT_TIMEOUT_SECONDS,
-    multimodal_files: Optional[List] = None,
+    multimodal_files: Optional[List[Union[str, Path]]] = None,
     multimodal_urls: Optional[List[str]] = None
 ) -> List[CandidateData]:
     """
@@ -122,7 +123,7 @@ def _run_workflow_internal(
     novelty_filter: Optional[NoveltyFilter] = None,
     verbose: bool = False,
     reasoning_engine: Optional[ReasoningEngine] = None,
-    multimodal_files: Optional[List] = None,
+    multimodal_files: Optional[List[Union[str, Path]]] = None,
     multimodal_urls: Optional[List[str]] = None
 ) -> List[CandidateData]:
     """Internal workflow implementation using WorkflowOrchestrator.

@@ -137,14 +137,13 @@ class WorkflowValidator(CommandHandler):
         Raises:
             ValidationError: If any file or URL validation fails
         """
-        # Check if any multi-modal inputs provided
-        has_multimodal = (
-            (hasattr(self.args, 'multimodal_urls') and self.args.multimodal_urls) or
-            (hasattr(self.args, 'multimodal_files') and self.args.multimodal_files) or
-            (hasattr(self.args, 'multimodal_images') and self.args.multimodal_images)
-        )
+        # Use getattr with defaults for cleaner code (follows DRY principle)
+        multimodal_urls = getattr(self.args, 'multimodal_urls', None) or []
+        multimodal_files = getattr(self.args, 'multimodal_files', None) or []
+        multimodal_images = getattr(self.args, 'multimodal_images', None) or []
+        all_files = multimodal_files + multimodal_images
 
-        if not has_multimodal:
+        if not (multimodal_urls or all_files):
             return  # No multi-modal inputs to validate
 
         # Import multi-modal utilities
@@ -156,13 +155,6 @@ class WorkflowValidator(CommandHandler):
 
         mm_input = MultiModalInput()
 
-        # Combine files and images into single list
-        all_files = []
-        if hasattr(self.args, 'multimodal_files') and self.args.multimodal_files:
-            all_files.extend(self.args.multimodal_files)
-        if hasattr(self.args, 'multimodal_images') and self.args.multimodal_images:
-            all_files.extend(self.args.multimodal_images)
-
         # Validate files
         for file_path in all_files:
             try:
@@ -171,15 +163,11 @@ class WorkflowValidator(CommandHandler):
                 raise ValidationError(f"Invalid file '{file_path}': {e}")
 
         # Validate URLs
-        if hasattr(self.args, 'multimodal_urls') and self.args.multimodal_urls:
-            for url in self.args.multimodal_urls:
-                try:
-                    mm_input.validate_url(url)
-                except ValueError as e:
-                    raise ValidationError(f"Invalid URL '{url}': {e}")
+        for url in multimodal_urls:
+            try:
+                mm_input.validate_url(url)
+            except ValueError as e:
+                raise ValidationError(f"Invalid URL '{url}': {e}")
 
         # Log success
-        if all_files or (hasattr(self.args, 'multimodal_urls') and self.args.multimodal_urls):
-            file_count = len(all_files)
-            url_count = len(self.args.multimodal_urls) if hasattr(self.args, 'multimodal_urls') and self.args.multimodal_urls else 0
-            self.log_info(f"Multi-modal validation passed: {file_count} file(s), {url_count} URL(s)")
+        self.log_info(f"Multi-modal validation passed: {len(all_files)} file(s), {len(multimodal_urls)} URL(s)")

@@ -125,7 +125,8 @@ def _convert_json_schema_to_genai(
         # Extract non-null type
         non_null_schemas = [s for s in json_schema['anyOf'] if s.get('type') != 'null']
         if len(non_null_schemas) == 1:
-            genai_schema = _convert_json_schema_to_genai(non_null_schemas[0], defs)
+            # Merge schemas to preserve top-level properties like description
+            genai_schema = {**genai_schema, **_convert_json_schema_to_genai(non_null_schemas[0], defs)}
             genai_schema['nullable'] = True
         elif len(non_null_schemas) > 1:
             # Multiple non-null types - keep as anyOf

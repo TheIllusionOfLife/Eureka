@@ -260,6 +260,16 @@ class TestEvaluationModels:
 class TestAdapters:
     """Test Pydantic to GenAI schema conversion."""
 
+    def test_optional_field_with_description_preserved(self):
+        """Optional fields with descriptions should convert correctly."""
+        schema = pydantic_to_genai_schema(DimensionScore)
+
+        reasoning_schema = schema['properties']['reasoning']
+        assert reasoning_schema['type'] == 'STRING'
+        assert reasoning_schema['nullable'] is True
+        assert 'Explanation for the assigned score' in reasoning_schema['description']
+        assert reasoning_schema['maxLength'] == 1000
+
     def test_simple_model_conversion(self):
         """Simple model should convert to GenAI format."""
         schema = pydantic_to_genai_schema(DimensionScore)

@@ -63,17 +63,19 @@ def test_single_idea():
             score = eval_item.get('score')
             comment = eval_item.get('comment')
 
-            print(f"\n✓ Evaluation {i+1}:")
-            print(f"  Score: {score}")
-            print(f"  Comment: {comment[:100]}{'...' if len(comment) > 100 else ''}")
-
             # Validate score bounds (Pydantic should enforce this)
             assert score is not None, "Score must be present"
             assert 0 <= score <= 10, f"Score {score} outside valid range [0, 10]"
 
-            # Validate comment
-            assert comment is not None, "Comment must be present"
+            # Validate comment type and length
+            assert isinstance(comment, str), "Comment must be a non-empty string"
             assert len(comment) >= 10, f"Comment too short: {len(comment)} chars"
+
+            # Build preview after validation
+            preview = comment[:100] + ("..." if len(comment) > 100 else "")
+            print(f"\n✓ Evaluation {i+1}:")
+            print(f"  Score: {score}")
+            print(f"  Comment: {preview}")
 
         print("\n✅ Single idea test PASSED")
         return True
@@ -130,20 +132,22 @@ Virtual reality remote collaboration workspace"""
             score = eval_item.get('score')
             comment = eval_item.get('comment')
 
-            print(f"\n✓ Evaluation {i+1}:")
-            print(f"  Score: {score}")
-            print(f"  Comment: {comment[:100]}{'...' if len(comment) > 100 else ''}")
-
             # Validate score bounds
             assert score is not None, f"Evaluation {i+1}: Score must be present"
             assert 0 <= score <= 10, f"Evaluation {i+1}: Score {score} outside valid range"
 
-            # Validate comment
-            assert comment is not None, f"Evaluation {i+1}: Comment must be present"
+            # Validate comment type and length
+            assert isinstance(comment, str), f"Evaluation {i+1}: Comment must be a string"
             assert len(comment) >= 10, f"Evaluation {i+1}: Comment too short"
 
             # Check for truncation (common API issue)
             assert not comment.endswith("..."), f"Evaluation {i+1}: Comment appears truncated"
+
+            # Build preview after validation
+            preview = comment[:100] + ("..." if len(comment) > 100 else "")
+            print(f"\n✓ Evaluation {i+1}:")
+            print(f"  Score: {score}")
+            print(f"  Comment: {preview}")
 
         print("\n✅ Multiple ideas test PASSED")
         return True

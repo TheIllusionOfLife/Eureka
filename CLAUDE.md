@@ -274,6 +274,128 @@ mock_models.generate_content.return_value = mock_response
 mock_genai_client.models = mock_models
 ```
 
+## Pydantic Schema Models (Phase 1 Complete)
+
+MadSpark uses Pydantic v2 models for type-safe schema definitions that work across LLM providers.
+
+### Usage Pattern
+```python
+from madspark.schemas.evaluation import EvaluatorResponse, CriticEvaluations
+from madspark.schemas.adapters import pydantic_to_genai_schema, genai_response_to_pydantic
+from google import genai
+from google.genai import types
+
+# 1. Define schema as Pydantic model (see src/madspark/schemas/)
+# 2. Convert to GenAI format for API calls
+config = types.GenerateContentConfig(
+    temperature=0.7,
+    response_mime_type="application/json",
+    response_schema=pydantic_to_genai_schema(CriticEvaluations),
+    system_instruction="..."
+)
+
+# 3. Make API call
+client = genai.Client()
+response = client.models.generate_content(
+    model="gemini-2.5-flash",
+    contents="...",
+    config=config
+)
+
+# 4. Validate and parse response
+validated = genai_response_to_pydantic(response.text, CriticEvaluations)
+
+# 5. Use type-safe fields
+for eval_item in validated:
+    print(eval_item.score)  # IDE autocomplete works!
+    print(eval_item.comment)
+
+# 6. Convert to dict for backward compatibility
+data = [item.model_dump() for item in validated]
+```
+
+### Available Models
+
+**Base Models** (`madspark.schemas.base`):
+- `TitledItem` - Title+description pairs (for Advocate/Skeptic)
+- `ConfidenceRated` - Analysis with confidence scores (0.0-1.0)
+- `ScoredEvaluation` - Numeric evaluations (0-10 scale)
+
+**Evaluation Models** (`madspark.schemas.evaluation`):
+- `EvaluatorResponse` - Evaluator agent output with optional strengths/weaknesses
+- `DimensionScore` - Single dimension score for multi-dimensional evaluations
+- `CriticEvaluation` - Single critic evaluation
+- `CriticEvaluations` - Array of critic evaluations
+
+### Benefits
+- ✅ Type safety with IDE autocomplete
+- ✅ Automatic validation with clear error messages
+- ✅ Field constraints (min/max) enforced by Gemini API
+- ✅ Provider-agnostic (works with any LLM via adapter pattern)
+- ✅ Better documentation (schemas are self-documenting)
+- ✅ Backward compatible via `.model_dump()`
+
+### Adding New Schemas
+1. Create Pydantic model in `src/madspark/schemas/`
+2. Inherit from base models when applicable (`TitledItem`, `ConfidenceRated`, `ScoredEvaluation`)
+3. Add field validators for custom constraints using `@field_validator`
+4. Use `pydantic_to_genai_schema()` adapter in agent code
+5. Add comprehensive tests in `tests/test_schemas_pydantic.py`
+6. Update `src/madspark/schemas/README.md` documentation
+
+### Example: Creating a New Schema
+```python
+# src/madspark/schemas/new_agent.py
+from pydantic import BaseModel, Field
+from typing import List, Optional
+from .base import ScoredEvaluation
+
+class NewAgentResponse(ScoredEvaluation):
+    """Response from NewAgent."""
+    insights: List[str] = Field(
+        ...,
+        description="Key insights discovered",
+        min_length=1
+    )
+    confidence: Optional[float] = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description="Confidence in analysis"
+    )
+
+# Usage in agent
+from madspark.schemas.new_agent import NewAgentResponse
+from madspark.schemas.adapters import pydantic_to_genai_schema
+
+schema = pydantic_to_genai_schema(NewAgentResponse)
+# ... use schema in API call
+```
+
+### Migration Status
+- ✅ **Phase 1 Complete:** Base models + Evaluation schemas (EVALUATOR, DIMENSION_SCORE, CRITIC)
+- ✅ **Critic agent migrated** to use Pydantic schemas
+- ⏳ **Phase 2 (Future):** Idea generation and logical inference schemas
+- ⏳ **Phase 3 (Future):** Advocacy, skepticism, and multi-dimensional evaluation schemas
+- ⏳ **Phase 4 (Future):** Remove legacy dict schemas, full provider abstraction
+
+### Testing Pydantic Schemas
+```bash
+# Run Pydantic schema tests (59 test cases)
+PYTHONPATH=src pytest tests/test_schemas_pydantic.py -v
+
+# Test with coverage
+pytest tests/test_schemas_pydantic.py --cov=src/madspark/schemas --cov-report=html
+
+# Test critic agent integration
+PYTHONPATH=src pytest tests/test_agents.py::TestCritic -v
+```
+
+### See Also
+- **Full Documentation:** `src/madspark/schemas/README.md`
+- **Test Suite:** `tests/test_schemas_pydantic.py` (59 tests)
+- **Pydantic Documentation:** https://docs.pydantic.dev/
+
 ## PR Review Management
 
 ### 4-Phase Review Protocol

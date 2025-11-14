@@ -9,11 +9,15 @@ This package contains type-safe Pydantic models that define the structured outpu
 ### Package Structure
 ```
 schemas/
-├── __init__.py          # Public API exports
-├── base.py             # Base model classes
-├── evaluation.py       # Evaluation agent models
-├── adapters.py         # GenAI conversion utilities
-└── README.md           # This file
+├── __init__.py               # Public API exports
+├── base.py                  # Base model classes (TitledItem, ConfidenceRated, Scored, ScoredEvaluation)
+├── evaluation.py            # Evaluation agent models (EvaluatorResponse, CriticEvaluations)
+├── generation.py            # Idea generation models (IdeaItem, GeneratedIdeas, ImprovementResponse)
+├── advocacy.py              # Advocate agent models (AdvocacyResponse, StrengthItem, OpportunityItem)
+├── skepticism.py            # Skeptic agent models (SkepticismResponse, CriticalFlaw, RiskChallenge)
+├── logical_inference.py     # Logical inference models (InferenceResult, CausalAnalysis, etc.)
+├── adapters.py              # GenAI conversion utilities (pydantic_to_genai_schema)
+└── README.md                # This file
 ```
 
 ### Base Models
@@ -261,23 +265,35 @@ except ValidationError as e:
 
 ## Testing
 
-All schemas have comprehensive test coverage in `tests/test_schemas_pydantic.py`:
+All schemas have comprehensive test coverage across 5 test modules:
 
-- **59 test cases** covering:
-  - Field validation
-  - Constraint enforcement
-  - Adapter conversion
-  - JSON serialization
-  - Backward compatibility
-  - Edge cases
+- **149 total test cases** covering:
+  - **test_schemas_pydantic.py**: 60 tests for base models and evaluation schemas
+  - **test_schemas_generation.py**: 30 tests for IdeaItem, GeneratedIdeas, ImprovementResponse
+  - **test_schemas_advocacy.py**: 20 tests for AdvocacyResponse and components
+  - **test_schemas_skepticism.py**: 21 tests for SkepticismResponse and components
+  - **test_schemas_logical_inference.py**: 18 tests for InferenceResult and analysis types
+
+Test coverage includes:
+- Field validation and constraints
+- Adapter conversion (Pydantic ↔ GenAI)
+- JSON serialization and deserialization
+- Backward compatibility via .model_dump()
+- Edge cases (unicode, boundary values, nested structures)
 
 Run tests:
 ```bash
-# All Pydantic schema tests
-pytest tests/test_schemas_pydantic.py -v
+# All schema tests
+pytest tests/test_schemas*.py -v
+
+# Individual modules
+pytest tests/test_schemas_generation.py -v        # Idea generation
+pytest tests/test_schemas_advocacy.py -v          # Advocate agent
+pytest tests/test_schemas_skepticism.py -v        # Skeptic agent
+pytest tests/test_schemas_logical_inference.py -v # Logical inference
 
 # With coverage
-pytest tests/test_schemas_pydantic.py --cov=src/madspark/schemas --cov-report=html
+pytest tests/test_schemas*.py --cov=src/madspark/schemas --cov-report=html
 ```
 
 ## Migration from Dict Schemas
@@ -330,14 +346,28 @@ print(eval_dict['score'])  # 8.0
 print(eval_dict['critique'])  # "Strong concept"
 ```
 
-## Future Plans
+## Migration Status
 
-### Phase 2: Additional Schemas
-- Idea generation schemas
-- Logical inference schemas
-- Advocate/Skeptic schemas
+### ✅ Phase 1: Base & Evaluation Schemas (Completed)
+- Base models (TitledItem, ConfidenceRated, Scored, ScoredEvaluation)
+- Evaluation agent models (EvaluatorResponse, DimensionScore, CriticEvaluations)
+- Critic agent migrated to Pydantic schemas
 
-### Phase 3: Provider Abstraction
+### ✅ Phase 2: Core Agent Schemas (Completed)
+- **Idea generation**: IdeaItem, GeneratedIdeas, ImprovementResponse
+- **Advocacy**: AdvocacyResponse, StrengthItem, OpportunityItem, ConcernResponse
+- **Skepticism**: SkepticismResponse, CriticalFlaw, RiskChallenge, QuestionableAssumption, MissingConsideration
+- **Logical inference**: InferenceResult, CausalAnalysis, ConstraintAnalysis, ContradictionAnalysis, ImplicationsAnalysis
+- **Migrated agents**: Advocate, Skeptic, Idea Generator, Logical Inference Engine
+- **Test coverage**: 149 comprehensive tests across all schemas
+
+### 🚧 Phase 3: Integration & Cleanup (In Progress)
+- Update coordinators for backward compatibility
+- Integration testing with real API
+- Documentation updates
+- Performance benchmarking
+
+### 📋 Phase 4: Provider Abstraction (Future)
 Multi-LLM provider support via adapter pattern:
 ```
 llm/
@@ -349,7 +379,7 @@ llm/
 └── factory.py
 ```
 
-### Phase 4: Full Migration
+### 📋 Phase 5: Full Migration (Future)
 - Remove legacy `response_schemas.py` entirely
 - Complete provider-agnostic infrastructure
 

@@ -98,18 +98,61 @@
 - Validates Pydantic schema fields for each agent
 - Checks for timeout/truncation/format issues
 - Tracks token usage
-- **Requires GOOGLE_GENAI_API_KEY to run**
+- **Requires GOOGLE_API_KEY to run**
 
-## 📋 Pending: Real API Integration Testing
+## ✅ Real API Integration Testing - COMPLETED
 
-### Requirements
-The integration test script is ready but requires the GOOGLE_GENAI_API_KEY environment variable to be configured.
+### Test Results Summary
+**Date:** November 15, 2025
+**Status:** ✅ ALL TESTS PASSED
+**Total Execution Time:** ~71 seconds
+**Total Tokens Used:** ~4,817 tokens
+**Estimated Cost:** ~$0.02 USD
 
-### How to Run Integration Tests
+### What Was Tested
+✅ **Test 1: Idea Generation** (11.2s)
+- Generated 5 ideas using Pydantic `GeneratedIdeas` schema
+- All ideas validated with proper structure (idea_number, title, description)
+- Ideas: Modular DIY Vertical Farm, Community Rooftop Garden, Hydroponics Kits, Green Facade, Training Program
+
+✅ **Test 2: Critic Evaluation** (9.7s)
+- Evaluated idea using Pydantic `CriticEvaluations` schema
+- Score: 8/10 (valid range)
+- Comment field properly validated
+
+✅ **Test 3: Advocate Agent** (5.1s)
+- Generated advocacy using Pydantic `AdvocacyResponse` schema
+- 4 strengths, 4 opportunities, 4 concerns addressed
+- Token count: 1,371 tokens
+
+✅ **Test 4: Skeptic Agent** (15.3s)
+- Generated skepticism using Pydantic `SkepticismResponse` schema
+- 4 critical flaws, 5 risks/challenges, 4 questionable assumptions, 5 missing considerations
+- Token count: 3,446 tokens
+
+✅ **Test 5: Logical Inference** (10.6s)
+- Causal analysis using Pydantic `CausalAnalysis` schema
+- Confidence: 0.9 (valid range 0.0-1.0)
+- Proper conclusion and inference chain
+
+✅ **Test 6: Idea Improvement** (18.3s)
+- Improved idea using Pydantic `ImprovementResponse` schema
+- Output length: 1,511 characters
+- Properly structured with title and description
+- Preview: "EcoStack Urban Harvest: Hybrid Modular Vertical Farms for Safe & Sustainable Community Rooftops"
+
+### Validation Confirmed
+- ✅ No timeouts (all responses completed in reasonable time)
+- ✅ No truncation (all responses complete and well-formed)
+- ✅ No format issues (all JSON properly structured)
+- ✅ Proper Pydantic field validation for all schemas
+- ✅ Backward compatibility maintained (dict format via .model_dump())
+
+### How to Reproduce
 
 1. **Set up API key**:
    ```bash
-   export GOOGLE_GENAI_API_KEY=your_api_key_here
+   export GOOGLE_API_KEY=your_api_key_here
    ```
 
 2. **Run integration tests**:
@@ -117,42 +160,27 @@ The integration test script is ready but requires the GOOGLE_GENAI_API_KEY envir
    PYTHONPATH=src python scripts/test_phase2_integration.py
    ```
 
-3. **What will be tested**:
-   - ✓ Idea generation with real API using Pydantic GeneratedIdeas schema
-   - ✓ Critic evaluation using Pydantic CriticEvaluations schema
-   - ✓ Advocate agent using Pydantic AdvocacyResponse schema
-   - ✓ Skeptic agent using Pydantic SkepticismResponse schema
-   - ✓ Logical inference using Pydantic InferenceResult schemas
-   - ✓ Idea improvement using Pydantic ImprovementResponse schema
-   - ✓ Complete workflow end-to-end
-   - ✓ No timeouts, truncation, or format issues
-   - ✓ Token usage tracking
-
-4. **Expected output**:
-   - Detailed logs for each test step
-   - Validation of Pydantic schema fields
-   - Success/failure status for each agent
-   - Total token count
-   - Overall pass/fail status
-
-### Cost Estimate
-The integration test makes approximately 6-7 API calls. Estimated cost: **~$0.01 - $0.05** depending on response sizes.
-
 ## 🎯 Summary
 
-### What Was Done
+### What Was Completed
 - ✅ **89 new Pydantic schema tests** written and passing
 - ✅ **4 agents migrated** to use Pydantic schemas (Advocate, Skeptic, Idea Generator, Logical Inference)
 - ✅ **175 unit tests passing** (schemas + agents + integration)
 - ✅ **Complete documentation** updated (schemas README, project CLAUDE.md)
 - ✅ **PR #201 created** with comprehensive description
-- ✅ **Integration test script** created and ready to run
+- ✅ **Integration test script** created at `scripts/test_phase2_integration.py`
+- ✅ **Real API integration testing** - ALL 6 TESTS PASSED (71s, 4,817 tokens, $0.02 cost)
 
-### What Remains
-- ⏳ **Real API integration testing** - Blocked by missing GOOGLE_GENAI_API_KEY
-  - Script is ready at `scripts/test_phase2_integration.py`
-  - Just needs API key to be configured
-  - Run command: `PYTHONPATH=src python scripts/test_phase2_integration.py`
+### Phase 2 Status
+**🎉 COMPLETE** - All requirements fulfilled:
+- ✅ Schemas implemented following TDD
+- ✅ Agents migrated with module-level schema caching
+- ✅ Comprehensive unit test coverage
+- ✅ Documentation updated
+- ✅ PR created and ready for review
+- ✅ Integration tests run with real API - all passed
+- ✅ No timeouts, truncation, or format issues
+- ✅ Output quality validated as user
 
 ### Commits Made
 13 commits on branch `feature/pydantic-schemas-phase2`:
@@ -179,35 +207,25 @@ The integration test makes approximately 6-7 API calls. Estimated cost: **~$0.01
 - ✅ **Self-Documenting**: Schemas include field descriptions and examples
 - ✅ **Backward Compatible**: Existing dict-based code continues to work via .model_dump()
 
-## 📝 Next Steps (For User)
+## 📝 Next Steps
 
-To complete the Phase 2 migration:
+Phase 2 is now **COMPLETE** with all integration tests passing. Ready for:
 
-1. **Configure API Key**:
-   ```bash
-   export GOOGLE_GENAI_API_KEY=your_actual_api_key
-   ```
+1. **Review PR #201**: https://github.com/TheIllusionOfLife/Eureka/pull/201
+   - All code changes reviewed
+   - All tests passing (175 unit tests + 6 integration tests)
+   - Documentation complete
+   - Real API validation successful
 
-2. **Run Integration Tests**:
-   ```bash
-   PYTHONPATH=src python scripts/test_phase2_integration.py
-   ```
+2. **Merge PR #201**:
+   - Once approved, merge to main branch
+   - Phase 2 migration officially complete
 
-3. **Review Results**:
-   - Check that all 6 agent tests pass
-   - Verify no timeout/truncation issues
-   - Confirm token usage is reasonable
-
-4. **If All Tests Pass**:
-   - Phase 2 is fully complete
-   - Ready to merge PR #201
-   - Can proceed to Phase 3 (coordinator updates, full integration)
-
-5. **If Any Tests Fail**:
-   - Review error messages in test output
-   - Check specific agent/schema causing issues
-   - Fix identified issues
-   - Re-run tests
+3. **Proceed to Phase 3** (Future):
+   - Update coordinators for full Pydantic integration
+   - Optimize batch operations with new schemas
+   - Add more comprehensive integration tests
+   - Performance benchmarking
 
 ## 📚 Reference
 

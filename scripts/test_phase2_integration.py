@@ -9,11 +9,11 @@ This script tests the complete workflow with real Gemini API to verify:
 4. Complete workflow from generation through improvement
 
 Requirements:
-- GOOGLE_GENAI_API_KEY environment variable must be set
+- GOOGLE_API_KEY environment variable must be set
 - Run from project root: PYTHONPATH=src python scripts/test_phase2_integration.py
 
 Usage:
-    export GOOGLE_GENAI_API_KEY=your_api_key_here
+    export GOOGLE_API_KEY=your_api_key_here
     PYTHONPATH=src python scripts/test_phase2_integration.py
 """
 
@@ -32,11 +32,11 @@ logger = logging.getLogger(__name__)
 
 
 def check_api_key() -> bool:
-    """Check if GOOGLE_GENAI_API_KEY is configured."""
-    api_key = os.getenv('GOOGLE_GENAI_API_KEY')
+    """Check if GOOGLE_API_KEY is configured."""
+    api_key = os.getenv('GOOGLE_API_KEY')
     if not api_key:
-        logger.error("GOOGLE_GENAI_API_KEY environment variable not set")
-        logger.error("Please set it: export GOOGLE_GENAI_API_KEY=your_api_key")
+        logger.error("GOOGLE_API_KEY environment variable not set")
+        logger.error("Please set it: export GOOGLE_API_KEY=your_api_key")
         return False
     logger.info("✓ API key configured")
     return True
@@ -97,34 +97,39 @@ def test_critic_evaluation(idea: str) -> Dict[str, Any]:
     """Test critic evaluation with real API using Pydantic CriticEvaluations schema."""
     logger.info("\n=== Testing Critic Evaluation ===")
 
-    from madspark.agents.critic import evaluate_ideas_batch
+    from madspark.utils.agent_retry_wrappers import call_critic_with_retry
+    import json
 
     topic = "sustainable urban agriculture"
     context = "rooftop gardens with limited budget"
 
     try:
-        # Evaluate with Pydantic schema
-        results, token_count = evaluate_ideas_batch(
-            ideas=[idea],
+        # Evaluate with Pydantic schema (call_critic_with_retry uses evaluate_ideas)
+        result_text = call_critic_with_retry(
+            ideas=idea,
             topic=topic,
             context=context,
             temperature=0.7
         )
 
-        assert len(results) == 1, "Should return one evaluation"
-        evaluation = results[0]
+        # Parse JSON response
+        evaluations = json.loads(result_text)
+
+        assert isinstance(evaluations, list), "Result should be a list"
+        assert len(evaluations) > 0, "Should return at least one evaluation"
+
+        evaluation = evaluations[0]
 
         # Validate Pydantic schema fields
         assert 'score' in evaluation, "Missing score field"
-        assert 'critique' in evaluation, "Missing critique field"
+        assert 'comment' in evaluation, "Missing comment field"
         assert isinstance(evaluation['score'], (int, float)), "Score should be numeric"
         assert 0 <= evaluation['score'] <= 10, "Score should be 0-10"
 
         logger.info(f"✓ Score: {evaluation['score']}/10")
-        logger.info(f"✓ Critique: {evaluation['critique'][:100]}...")
-        logger.info(f"✓ Token count: {token_count}")
+        logger.info(f"✓ Comment: {evaluation['comment'][:100]}...")
 
-        return {"success": True, "evaluation": evaluation, "token_count": token_count}
+        return {"success": True, "evaluation": evaluation, "token_count": 0}
 
     except AssertionError as e:
         logger.error(f"✗ Validation failed: {e}")
@@ -343,7 +348,7 @@ def run_integration_tests() -> bool:
     if eval_result["success"]:
         adv_result = test_advocate(
             idea_text,
-            eval_result["evaluation"]["critique"]
+            eval_result["evaluation"]["comment"]
         )
         if adv_result["success"]:
             total_tokens += adv_result.get("token_count", 0)
@@ -370,7 +375,7 @@ def run_integration_tests() -> bool:
     if all([eval_result["success"], adv_result["success"], skep_result["success"]]):
         improve_result = test_improvement(
             idea_text,
-            eval_result["evaluation"]["critique"],
+            eval_result["evaluation"]["comment"],
             adv_result["advocacy"]["formatted"],
             skep_result["skepticism"]["formatted"]
         )

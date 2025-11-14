@@ -5,7 +5,7 @@ These models replace the legacy InferenceResult dataclass and logical
 inference schema dictionaries from response_schemas.py.
 """
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import Field, field_validator
 from typing import List, Optional, Dict, Any
 from .base import ConfidenceRated
 

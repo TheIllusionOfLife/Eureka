@@ -14,7 +14,24 @@ import re
 # Third-party imports
 from google import genai
 
+# Pydantic schemas for logical inference
+from madspark.schemas.logical_inference import (
+    InferenceResult as PydanticInferenceResult,
+    CausalAnalysis,
+    ConstraintAnalysis,
+    ContradictionAnalysis,
+    ImplicationsAnalysis
+)
+from madspark.schemas.adapters import pydantic_to_genai_schema
+
 logger = logging.getLogger(__name__)
+
+# Convert Pydantic models to GenAI schema format at module level (cached)
+_FULL_ANALYSIS_GENAI_SCHEMA = pydantic_to_genai_schema(PydanticInferenceResult)
+_CAUSAL_ANALYSIS_GENAI_SCHEMA = pydantic_to_genai_schema(CausalAnalysis)
+_CONSTRAINT_ANALYSIS_GENAI_SCHEMA = pydantic_to_genai_schema(ConstraintAnalysis)
+_CONTRADICTION_ANALYSIS_GENAI_SCHEMA = pydantic_to_genai_schema(ContradictionAnalysis)
+_IMPLICATIONS_ANALYSIS_GENAI_SCHEMA = pydantic_to_genai_schema(ImplicationsAnalysis)
 
 
 class InferenceType(Enum):
@@ -120,21 +137,14 @@ class LogicalInferenceEngine:
 
             # Call LLM using proper API pattern with structured output
             from madspark.agents.genai_client import get_model_name
-            from madspark.agents.response_schemas import (
-                FULL_ANALYSIS_SCHEMA,
-                CAUSAL_ANALYSIS_SCHEMA,
-                CONSTRAINT_ANALYSIS_SCHEMA,
-                CONTRADICTION_ANALYSIS_SCHEMA,
-                IMPLICATIONS_ANALYSIS_SCHEMA
-            )
 
-            # Get schema for analysis type
+            # Get pre-computed schema for analysis type
             schema_map = {
-                InferenceType.FULL: FULL_ANALYSIS_SCHEMA,
-                InferenceType.CAUSAL: CAUSAL_ANALYSIS_SCHEMA,
-                InferenceType.CONSTRAINTS: CONSTRAINT_ANALYSIS_SCHEMA,
-                InferenceType.CONTRADICTION: CONTRADICTION_ANALYSIS_SCHEMA,
-                InferenceType.IMPLICATIONS: IMPLICATIONS_ANALYSIS_SCHEMA
+                InferenceType.FULL: _FULL_ANALYSIS_GENAI_SCHEMA,
+                InferenceType.CAUSAL: _CAUSAL_ANALYSIS_GENAI_SCHEMA,
+                InferenceType.CONSTRAINTS: _CONSTRAINT_ANALYSIS_GENAI_SCHEMA,
+                InferenceType.CONTRADICTION: _CONTRADICTION_ANALYSIS_GENAI_SCHEMA,
+                InferenceType.IMPLICATIONS: _IMPLICATIONS_ANALYSIS_GENAI_SCHEMA
             }
             response_schema = schema_map[analysis_type]
 
@@ -207,21 +217,14 @@ class LogicalInferenceEngine:
 
             # Call LLM using proper API pattern with structured output
             from madspark.agents.genai_client import get_model_name
-            from madspark.agents.response_schemas import (
-                CAUSAL_ANALYSIS_SCHEMA,
-                CONSTRAINT_ANALYSIS_SCHEMA,
-                CONTRADICTION_ANALYSIS_SCHEMA,
-                IMPLICATIONS_ANALYSIS_SCHEMA,
-                BATCH_FULL_ANALYSIS_SCHEMA,
-            )
 
-            # Build batch schema from single-item schema
+            # Build batch schema from pre-computed single-item schemas
             schema_map = {
-                InferenceType.FULL: BATCH_FULL_ANALYSIS_SCHEMA,
-                InferenceType.CAUSAL: {"type": "ARRAY", "items": CAUSAL_ANALYSIS_SCHEMA},
-                InferenceType.CONSTRAINTS: {"type": "ARRAY", "items": CONSTRAINT_ANALYSIS_SCHEMA},
-                InferenceType.CONTRADICTION: {"type": "ARRAY", "items": CONTRADICTION_ANALYSIS_SCHEMA},
-                InferenceType.IMPLICATIONS: {"type": "ARRAY", "items": IMPLICATIONS_ANALYSIS_SCHEMA},
+                InferenceType.FULL: {"type": "ARRAY", "items": _FULL_ANALYSIS_GENAI_SCHEMA},
+                InferenceType.CAUSAL: {"type": "ARRAY", "items": _CAUSAL_ANALYSIS_GENAI_SCHEMA},
+                InferenceType.CONSTRAINTS: {"type": "ARRAY", "items": _CONSTRAINT_ANALYSIS_GENAI_SCHEMA},
+                InferenceType.CONTRADICTION: {"type": "ARRAY", "items": _CONTRADICTION_ANALYSIS_GENAI_SCHEMA},
+                InferenceType.IMPLICATIONS: {"type": "ARRAY", "items": _IMPLICATIONS_ANALYSIS_GENAI_SCHEMA},
             }
 
             response_schema = schema_map[analysis_type]

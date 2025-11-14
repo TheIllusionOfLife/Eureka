@@ -6,22 +6,31 @@ from unittest.mock import Mock, patch
 from madspark.agents.structured_idea_generator import (
     improve_idea_structured,
     generate_ideas_structured,
-    IMPROVEMENT_RESPONSE_SCHEMA
+    _IMPROVEMENT_RESPONSE_GENAI_SCHEMA
 )
+from madspark.schemas.generation import ImprovementResponse
 
 
 class TestStructuredIdeaGeneration:
     """Test structured idea generation functions."""
     
     def test_improvement_response_schema(self):
-        """Test that response schema is correctly defined."""
-        assert IMPROVEMENT_RESPONSE_SCHEMA["type"] == "OBJECT"
-        assert "improved_idea" in IMPROVEMENT_RESPONSE_SCHEMA["properties"]
-        assert "improved_idea" in IMPROVEMENT_RESPONSE_SCHEMA["required"]
-        
-        # Check property types
-        assert IMPROVEMENT_RESPONSE_SCHEMA["properties"]["improved_idea"]["type"] == "STRING"
-        assert IMPROVEMENT_RESPONSE_SCHEMA["properties"]["key_improvements"]["type"] == "ARRAY"
+        """Test that response schema is correctly defined (Pydantic-generated)."""
+        # Verify schema is generated from Pydantic model
+        assert _IMPROVEMENT_RESPONSE_GENAI_SCHEMA["type"] == "OBJECT"
+        assert "improved_title" in _IMPROVEMENT_RESPONSE_GENAI_SCHEMA["properties"]
+        assert "improved_description" in _IMPROVEMENT_RESPONSE_GENAI_SCHEMA["properties"]
+        assert "key_improvements" in _IMPROVEMENT_RESPONSE_GENAI_SCHEMA["properties"]
+
+        # Check required fields from Pydantic model
+        assert "improved_title" in _IMPROVEMENT_RESPONSE_GENAI_SCHEMA["required"]
+        assert "improved_description" in _IMPROVEMENT_RESPONSE_GENAI_SCHEMA["required"]
+        assert "key_improvements" in _IMPROVEMENT_RESPONSE_GENAI_SCHEMA["required"]
+
+        # Verify Pydantic model structure via model_fields
+        assert 'improved_title' in ImprovementResponse.model_fields
+        assert 'improved_description' in ImprovementResponse.model_fields
+        assert 'key_improvements' in ImprovementResponse.model_fields
     
     @patch('madspark.agents.structured_idea_generator.GENAI_AVAILABLE', True)
     def test_improve_idea_structured_with_json_response(self):
@@ -29,9 +38,10 @@ class TestStructuredIdeaGeneration:
         mock_client = Mock()
         mock_response = Mock()
         
-        # Mock a structured JSON response
+        # Mock a structured JSON response using new Pydantic schema fields
         structured_response = {
-            "improved_idea": "A blockchain-powered renewable energy marketplace",
+            "improved_title": "Blockchain-Powered Renewable Energy Marketplace",
+            "improved_description": "A decentralized marketplace connecting renewable energy producers with consumers using blockchain for transparent tracking and automated transactions",
             "key_improvements": [
                 "Added blockchain for transparency",
                 "Enhanced scalability",
@@ -40,7 +50,7 @@ class TestStructuredIdeaGeneration:
         }
         mock_response.text = json.dumps(structured_response)
         mock_client.models.generate_content.return_value = mock_response
-        
+
         result = improve_idea_structured(
             original_idea="Solar panel sharing",
             critique="Needs better tracking",
@@ -50,9 +60,10 @@ class TestStructuredIdeaGeneration:
             context="renewable energy",
             genai_client=mock_client
         )
-        
-        # Should extract clean improved idea
-        assert result == "A blockchain-powered renewable energy marketplace"
+
+        # Should concatenate title and description (backward compatibility)
+        assert "Blockchain-Powered Renewable Energy Marketplace" in result
+        assert "decentralized marketplace" in result
         assert "improved version" not in result.lower()
         assert "enhanced concept" not in result.lower()
     

@@ -274,7 +274,7 @@ mock_models.generate_content.return_value = mock_response
 mock_genai_client.models = mock_models
 ```
 
-## Pydantic Schema Models (Phase 1 Complete)
+## Pydantic Schema Models (Phases 1 & 2 Complete)
 
 MadSpark uses Pydantic v2 models for type-safe schema definitions that work across LLM providers.
 
@@ -319,13 +319,39 @@ data = [item.model_dump() for item in validated]
 **Base Models** (`madspark.schemas.base`):
 - `TitledItem` - Title+description pairs (for Advocate/Skeptic)
 - `ConfidenceRated` - Analysis with confidence scores (0.0-1.0)
-- `ScoredEvaluation` - Numeric evaluations (0-10 scale)
+- `Scored` - Base class with score field
+- `ScoredEvaluation` - Numeric evaluations (0-10 scale) with critique
 
 **Evaluation Models** (`madspark.schemas.evaluation`):
 - `EvaluatorResponse` - Evaluator agent output with optional strengths/weaknesses
 - `DimensionScore` - Single dimension score for multi-dimensional evaluations
 - `CriticEvaluation` - Single critic evaluation
 - `CriticEvaluations` - Array of critic evaluations
+
+**Generation Models** (`madspark.schemas.generation`):
+- `IdeaItem` - Single generated idea with features and category
+- `GeneratedIdeas` - Array of generated ideas (RootModel)
+- `ImprovementResponse` - Improved idea with title, description, and improvements
+
+**Advocacy Models** (`madspark.schemas.advocacy`):
+- `AdvocacyResponse` - Complete advocacy output
+- `StrengthItem` - Identified strength (inherits TitledItem)
+- `OpportunityItem` - Identified opportunity (inherits TitledItem)
+- `ConcernResponse` - Concern with mitigation response
+
+**Skepticism Models** (`madspark.schemas.skepticism`):
+- `SkepticismResponse` - Complete skepticism output
+- `CriticalFlaw` - Identified flaw (inherits TitledItem)
+- `RiskChallenge` - Identified risk (inherits TitledItem)
+- `QuestionableAssumption` - Assumption with concern
+- `MissingConsideration` - Overlooked factor with importance
+
+**Logical Inference Models** (`madspark.schemas.logical_inference`):
+- `InferenceResult` - Base inference result (inherits ConfidenceRated)
+- `CausalAnalysis` - Causal chain analysis
+- `ConstraintAnalysis` - Constraint satisfaction analysis
+- `ContradictionAnalysis` - Contradiction detection
+- `ImplicationsAnalysis` - Implications and second-order effects
 
 ### Benefits
 - ✅ Type safety with IDE autocomplete
@@ -374,26 +400,36 @@ schema = pydantic_to_genai_schema(NewAgentResponse)
 
 ### Migration Status
 - ✅ **Phase 1 Complete:** Base models + Evaluation schemas (EVALUATOR, DIMENSION_SCORE, CRITIC)
-- ✅ **Critic agent migrated** to use Pydantic schemas
-- ⏳ **Phase 2 (Future):** Idea generation and logical inference schemas
-- ⏳ **Phase 3 (Future):** Advocacy, skepticism, and multi-dimensional evaluation schemas
-- ⏳ **Phase 4 (Future):** Remove legacy dict schemas, full provider abstraction
+- ✅ **Phase 2 Complete:** All core agent schemas (Generation, Advocacy, Skepticism, Logical Inference)
+- ✅ **Migrated Agents:** Critic, Advocate, Skeptic, Idea Generator, Logical Inference Engine
+- ⏳ **Phase 3 (In Progress):** Integration testing, coordinator updates, documentation
+- ⏳ **Phase 4 (Future):** Provider abstraction for multi-LLM support
+- ⏳ **Phase 5 (Future):** Remove legacy dict schemas completely
 
 ### Testing Pydantic Schemas
 ```bash
-# Run Pydantic schema tests (59 test cases)
-PYTHONPATH=src pytest tests/test_schemas_pydantic.py -v
+# Run all schema tests (149 test cases across 5 modules)
+PYTHONPATH=src pytest tests/test_schemas*.py -v
+
+# Individual test modules
+pytest tests/test_schemas_pydantic.py -v        # 60 tests: base & evaluation
+pytest tests/test_schemas_generation.py -v      # 30 tests: idea generation
+pytest tests/test_schemas_advocacy.py -v        # 20 tests: advocacy
+pytest tests/test_schemas_skepticism.py -v      # 21 tests: skepticism
+pytest tests/test_schemas_logical_inference.py -v # 18 tests: logical inference
 
 # Test with coverage
-pytest tests/test_schemas_pydantic.py --cov=src/madspark/schemas --cov-report=html
+pytest tests/test_schemas*.py --cov=src/madspark/schemas --cov-report=html
 
-# Test critic agent integration
+# Test migrated agent integration
 PYTHONPATH=src pytest tests/test_agents.py::TestCritic -v
+PYTHONPATH=src pytest tests/test_agents.py::TestAdvocate -v
+PYTHONPATH=src pytest tests/test_agents.py::TestSkeptic -v
 ```
 
 ### See Also
 - **Full Documentation:** `src/madspark/schemas/README.md`
-- **Test Suite:** `tests/test_schemas_pydantic.py` (59 tests)
+- **Test Suites:** 149 tests across 5 test modules
 - **Pydantic Documentation:** https://docs.pydantic.dev/
 
 ## PR Review Management

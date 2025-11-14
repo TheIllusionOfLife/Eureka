@@ -82,16 +82,53 @@ class ConfidenceRated(BaseModel):
     }
 
 
-class ScoredEvaluation(BaseModel):
+class Scored(BaseModel):
     """
-    Base model for evaluations with a numerical score.
+    Base model for items with a numerical score.
+
+    Provides the core scoring field and rounding validator used across
+    multiple evaluation models.
+
+    Features:
+        - Enforces 0.0 to 10.0 range via Gemini API (new feature!)
+        - Rounds to 1 decimal place for readability
+
+    Examples:
+        >>> scored = Scored(score=8.567)
+        >>> scored.score
+        8.6
+    """
+    score: float = Field(
+        ...,
+        ge=0.0,
+        le=10.0,
+        description="Numerical score from 0 (poor) to 10 (excellent)"
+    )
+
+    @field_validator('score')
+    @classmethod
+    def round_score(cls, v: float) -> float:
+        """Round score to 1 decimal place for readability."""
+        return round(v, 1)
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [{
+                "score": 8.5
+            }]
+        }
+    }
+
+
+class ScoredEvaluation(Scored):
+    """
+    Base model for evaluations with a numerical score and critique.
 
     Used by Critic and Evaluator agents to provide quantitative assessments
     of ideas on a 0-10 scale.
 
     Features:
-        - Enforces 0.0 to 10.0 range via Gemini API (new feature!)
-        - Rounds to 1 decimal place for readability
+        - Inherits score field and rounding from Scored base class
         - Requires minimum critique length to ensure quality feedback
 
     Examples:
@@ -100,24 +137,12 @@ class ScoredEvaluation(BaseModel):
         ...     critique="Strong concept with clear market fit"
         ... )
     """
-    score: float = Field(
-        ...,
-        ge=0.0,
-        le=10.0,
-        description="Numerical score from 0 (poor) to 10 (excellent)"
-    )
     critique: str = Field(
         ...,
         min_length=10,
         max_length=5000,
         description="Detailed written evaluation"
     )
-
-    @field_validator('score')
-    @classmethod
-    def round_score(cls, v: float) -> float:
-        """Round score to 1 decimal place for readability."""
-        return round(v, 1)
 
     model_config = {
         "json_schema_extra": {

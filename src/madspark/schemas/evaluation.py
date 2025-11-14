@@ -7,7 +7,7 @@ and CRITIC_SCHEMA dictionary definitions.
 
 from pydantic import BaseModel, Field, RootModel
 from typing import List, Optional
-from .base import ScoredEvaluation
+from .base import Scored, ScoredEvaluation
 
 
 class EvaluatorResponse(ScoredEvaluation):
@@ -100,22 +100,16 @@ class DimensionScore(BaseModel):
     }
 
 
-class CriticEvaluation(BaseModel):
+class CriticEvaluation(Scored):
     """
     Single evaluation item from the Critic agent.
 
-    Identical to EvaluatorResponse but used in array context.
+    Inherits score field and rounding validator from Scored base class.
     This model represents one critic's evaluation within a batch.
 
     Note: When Critic agent returns multiple evaluations, they are
     wrapped in a CriticEvaluations array (see below).
     """
-    score: float = Field(
-        ...,
-        ge=0.0,
-        le=10.0,
-        description="Numerical score from 0 (poor) to 10 (excellent)"
-    )
     comment: str = Field(
         ...,
         min_length=10,

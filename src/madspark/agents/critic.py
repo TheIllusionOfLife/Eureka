@@ -19,10 +19,14 @@ except ImportError:
 try:
     from madspark.agents.genai_client import get_genai_client, get_model_name
     from madspark.utils.constants import CRITIC_SYSTEM_INSTRUCTION, DEFAULT_CRITIC_TEMPERATURE, LANGUAGE_CONSISTENCY_INSTRUCTION
+    from madspark.schemas.evaluation import CriticEvaluations
+    from madspark.schemas.adapters import pydantic_to_genai_schema
 except ImportError:
     # Fallback for local development/testing
     from .genai_client import get_genai_client, get_model_name
     from constants import CRITIC_SYSTEM_INSTRUCTION, DEFAULT_CRITIC_TEMPERATURE, LANGUAGE_CONSISTENCY_INSTRUCTION
+    from schemas.evaluation import CriticEvaluations
+    from schemas.adapters import pydantic_to_genai_schema
 
 # Configure the Google GenAI client
 if GENAI_AVAILABLE:
@@ -31,6 +35,9 @@ if GENAI_AVAILABLE:
 else:
     critic_client = None
     model_name = "mock-model"
+
+# Convert Pydantic model to GenAI schema format at module level (cached)
+_CRITIC_GENAI_SCHEMA = pydantic_to_genai_schema(CriticEvaluations)
 
 
 def evaluate_ideas(ideas: str, topic: str, context: str, temperature: float = DEFAULT_CRITIC_TEMPERATURE, use_structured_output: bool = True) -> str:
@@ -126,14 +133,11 @@ def evaluate_ideas(ideas: str, topic: str, context: str, temperature: float = DE
   
   try:
     if use_structured_output:
-        # Import the schema
-        from madspark.agents.response_schemas import CRITIC_SCHEMA
-        
-        # Create the generation config with structured output
+        # Create the generation config with pre-computed structured output schema
         config = types.GenerateContentConfig(
             temperature=temperature,
             response_mime_type="application/json",
-            response_schema=CRITIC_SCHEMA,
+            response_schema=_CRITIC_GENAI_SCHEMA,
             system_instruction=CRITIC_SYSTEM_INSTRUCTION
         )
     else:

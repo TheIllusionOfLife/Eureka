@@ -6,7 +6,7 @@ This module provides conversion from Pydantic's JSON Schema output to GenAI form
 """
 
 from pydantic import BaseModel
-from typing import Dict, Any, Type, List, Optional
+from typing import Dict, Any, Type, Optional
 import logging
 import json
 

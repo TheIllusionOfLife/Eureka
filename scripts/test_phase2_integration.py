@@ -98,7 +98,6 @@ def test_critic_evaluation(idea: str) -> Dict[str, Any]:
     logger.info("\n=== Testing Critic Evaluation ===")
 
     from madspark.utils.agent_retry_wrappers import call_critic_with_retry
-    import json
 
     topic = "sustainable urban agriculture"
     context = "rooftop gardens with limited budget"
@@ -253,13 +252,13 @@ def test_logical_inference(idea: str) -> Dict[str, Any]:
         )
 
         # Validate Pydantic InferenceResult fields
-        assert hasattr(result, 'inference_chain') or 'inference_chain' in result.__dict__, "Missing inference_chain"
-        assert hasattr(result, 'conclusion') or 'conclusion' in result.__dict__, "Missing conclusion"
-        assert hasattr(result, 'confidence') or 'confidence' in result.__dict__, "Missing confidence"
+        assert result.inference_chain, "Missing or empty inference_chain"
+        assert result.conclusion, "Missing or empty conclusion"
+        assert result.confidence > 0.0, "Missing or zero confidence"
 
-        logger.info(f"✓ Inference steps: {len(result.inference_chain) if hasattr(result, 'inference_chain') else 'N/A'}")
-        logger.info(f"✓ Conclusion: {result.conclusion[:100] if hasattr(result, 'conclusion') else 'N/A'}...")
-        logger.info(f"✓ Confidence: {result.confidence if hasattr(result, 'confidence') else 'N/A'}")
+        logger.info(f"✓ Inference steps: {len(result.inference_chain)}")
+        logger.info(f"✓ Conclusion: {result.conclusion[:100]}...")
+        logger.info(f"✓ Confidence: {result.confidence}")
 
         return {"success": True, "inference": result}
 

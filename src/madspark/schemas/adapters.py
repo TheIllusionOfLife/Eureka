@@ -76,8 +76,10 @@ def _convert_json_schema_to_genai(
                 # Recursively convert the referenced definition
                 return _convert_json_schema_to_genai(defs[def_name], defs)
             else:
-                logger.warning(f"Referenced definition not found: {def_name}")
-                return {}
+                raise ValueError(
+                    f"Schema definition '{def_name}' not found in $defs. "
+                    f"Available definitions: {list(defs.keys())}"
+                )
 
     # Handle type conversion
     json_type = json_schema.get('type')
@@ -179,5 +181,20 @@ def genai_response_to_pydantic(
         >>> result.score
         8.5
     """
-    data = json.loads(response_text)
-    return model.model_validate(data)
+    try:
+        data = json.loads(response_text)
+    except json.JSONDecodeError as e:
+        logger.error(
+            f"Failed to parse JSON response: {e}\n"
+            f"Response preview: {response_text[:200]}..."
+        )
+        raise
+
+    try:
+        return model.model_validate(data)
+    except Exception as e:
+        logger.error(
+            f"Validation failed for {model.__name__}: {e}\n"
+            f"Data: {data}"
+        )
+        raise

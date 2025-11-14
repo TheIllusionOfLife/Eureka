@@ -126,14 +126,18 @@ def evaluate_ideas(ideas: str, topic: str, context: str, temperature: float = DE
   
   try:
     if use_structured_output:
-        # Import the schema
-        from madspark.agents.response_schemas import CRITIC_SCHEMA
-        
+        # Import Pydantic schema and adapter
+        from madspark.schemas.evaluation import CriticEvaluations
+        from madspark.schemas.adapters import pydantic_to_genai_schema
+
+        # Convert Pydantic model to GenAI schema format
+        critic_schema = pydantic_to_genai_schema(CriticEvaluations)
+
         # Create the generation config with structured output
         config = types.GenerateContentConfig(
             temperature=temperature,
             response_mime_type="application/json",
-            response_schema=CRITIC_SCHEMA,
+            response_schema=critic_schema,
             system_instruction=CRITIC_SYSTEM_INSTRUCTION
         )
     else:

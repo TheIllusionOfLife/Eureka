@@ -74,7 +74,19 @@ class LogicalInferenceEngine:
             InferenceType.CONTRADICTION: self._get_contradiction_analysis_prompt,
             InferenceType.IMPLICATIONS: self._get_implications_analysis_prompt,
         }
-    
+
+    def _normalize_percentage_score(self, score: float) -> float:
+        """
+        Normalize a score from 0-100 scale to 0.0-1.0 scale.
+
+        Args:
+            score: Raw score value (either 0-100 or already 0.0-1.0)
+
+        Returns:
+            Normalized score between 0.0 and 1.0
+        """
+        return score / 100.0 if score > 1.0 else score
+
     def analyze(
         self,
         idea: str,
@@ -629,14 +641,14 @@ Consider both positive and negative implications."""
 
         # Normalize constraint scores to 0.0-1.0 as expected by Pydantic schema
         constraint_satisfaction = {
-            name: (value / 100.0 if value > 1 else value)
+            name: self._normalize_percentage_score(value)
             for name, value in raw_constraint_satisfaction.items()
         }
 
         # Extract overall satisfaction and normalize to 0.0-1.0
         overall = self._extract_number(text, "OVERALL_SATISFACTION")
         raw_overall = overall if overall is not None else 50.0  # Default to 50%
-        overall_satisfaction = raw_overall / 100.0 if raw_overall > 1 else raw_overall
+        overall_satisfaction = self._normalize_percentage_score(raw_overall)
         confidence = overall_satisfaction  # Already normalized
 
         # Extract trade-offs

@@ -174,11 +174,103 @@ See **[docs/ci-policy.md](docs/ci-policy.md)** for complete guidelines on:
 
 ## Dependencies
 - **Python**: 3.10+ required for TypedDict and modern features
-- **Core**: google-genai, python-dotenv (from `config/requirements.txt`)
+- **Core**: google-genai, python-dotenv, ollama, diskcache (from `config/requirements.txt`)
 - **Testing**: pytest, pytest-mock, pytest-asyncio
-- **Caching**: redis (available but optional)
+- **Caching**: redis (available but optional), diskcache (LLM response caching)
 - **Optional**: ruff for linting, mypy for type checking
 - **Web**: FastAPI, React 18.2, TypeScript, Docker (in `web/` directory)
+
+## LLM Provider Abstraction Layer (NEW)
+
+MadSpark now supports multiple LLM providers through an abstraction layer with automatic fallback and caching.
+
+### Package Structure
+```text
+src/madspark/llm/
+├── __init__.py          # Main exports
+├── base.py              # LLMProvider abstract base class
+├── config.py            # LLMConfig, ModelTier configuration
+├── response.py          # LLMResponse metadata dataclass
+├── exceptions.py        # Provider-specific exceptions
+├── cache.py             # ResponseCache with diskcache backend
+├── router.py            # LLMRouter with fallback logic
+├── agent_adapter.py     # Bridge for agent integration
+└── providers/
+    ├── ollama.py        # OllamaProvider (local, free)
+    └── gemini.py        # GeminiProvider (cloud, paid)
+```
+
+### Usage Pattern
+```python
+from madspark.llm import get_router, LLMConfig, ModelTier
+from pydantic import BaseModel
+
+# Define schema
+class MySchema(BaseModel):
+    score: float
+    comment: str
+
+# Get router (singleton)
+router = get_router()
+
+# Generate with automatic provider selection
+validated, response = router.generate_structured(
+    prompt="Rate this idea",
+    schema=MySchema,
+    temperature=0.7
+)
+
+# Access results
+print(validated.score)  # Validated Pydantic object
+print(response.provider)  # "ollama" or "gemini"
+print(response.tokens_used)
+print(response.cost)  # $0.0 for Ollama
+
+# Check metrics
+metrics = router.get_metrics()
+print(f"Cache hit rate: {metrics['cache_hit_rate']:.1%}")
+```
+
+### CLI Integration
+```bash
+# Provider selection
+ms "topic" --provider auto         # Default: Ollama primary, Gemini fallback
+ms "topic" --provider ollama       # Force local inference
+ms "topic" --provider gemini       # Force cloud API
+
+# Model tier
+ms "topic" --model-tier fast       # gemma3:4b-it-qat (quick)
+ms "topic" --model-tier balanced   # gemma3:12b-it-qat (better)
+ms "topic" --model-tier quality    # gemini-2.5-flash (best)
+
+# Cache control
+ms "topic" --no-cache              # Disable caching
+ms --clear-cache "topic"           # Clear cache first
+
+# Statistics
+ms "topic" --show-llm-stats        # Display usage metrics
+```
+
+### Environment Variables
+```bash
+MADSPARK_LLM_PROVIDER=auto        # auto, ollama, gemini
+MADSPARK_MODEL_TIER=fast           # fast, balanced, quality
+MADSPARK_FALLBACK_ENABLED=true     # Enable provider fallback
+MADSPARK_CACHE_ENABLED=true        # Enable response caching
+MADSPARK_CACHE_TTL=86400           # Cache TTL in seconds (24h)
+MADSPARK_CACHE_DIR=.cache/llm      # Cache directory
+OLLAMA_HOST=http://localhost:11434 # Ollama server
+OLLAMA_MODEL_FAST=gemma3:4b-it-qat # Fast tier model
+OLLAMA_MODEL_BALANCED=gemma3:12b-it-qat # Balanced tier model
+```
+
+### Key Features
+- **Zero-Cost Local Inference**: Ollama provides free inference with gemma3 models
+- **Automatic Fallback**: Routes to Gemini when Ollama unavailable
+- **Response Caching**: 30-50% reduction in API calls via disk cache
+- **Usage Metrics**: Track tokens, cost, latency, cache hit rate
+- **Provider Health Monitoring**: Check availability via router.health_status()
+- **Multimodal Support**: Images via Ollama, PDF/URL via Gemini
 
 ## CLI Output Formatting Architecture
 

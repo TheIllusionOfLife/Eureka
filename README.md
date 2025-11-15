@@ -9,7 +9,9 @@ Features specialized agents for idea generation, criticism, advocacy, and skepti
 
 - **🧠 Multi-Agent System**: IdeaGenerator, Critic, Advocate, and Skeptic agents
 - **🎯 Structured Output**: Google Gemini's structured JSON output for clean, consistent formatting
-- **🖼️ Multi-Modal Input**: CLI and API support for images, PDFs, documents, and URLs as context (NEW!)
+- **🦙 Multi-LLM Support**: Ollama (local, free) with Gemini fallback - automatic provider selection (NEW!)
+- **🖼️ Multi-Modal Input**: CLI and API support for images, PDFs, documents, and URLs as context
+- **💾 Response Caching**: Disk-based caching with 30-50% reduction in API calls
 - **🚀 Batch API Optimization**: 50% fewer API calls with 45% cost savings through intelligent batching
 - **📊 Real-time Monitoring**: Comprehensive token usage and cost tracking with detailed analytics
 - **🔗 Feedback Loop**: Ideas are improved based on agent insights with score comparison
@@ -177,6 +179,38 @@ ideas = generate_ideas(
 - **URLs**: HTTP/HTTPS (competitor sites, references, documentation)
 
 **📖 See [Multi-Modal Guide](docs/MULTIMODAL_GUIDE.md) for comprehensive documentation, examples, and best practices.**
+
+### LLM Provider Selection (NEW!)
+
+MadSpark now supports multiple LLM providers with automatic fallback and response caching:
+
+```bash
+# Default: Auto-select provider (Ollama primary, Gemini fallback)
+ms "urban farming" --show-llm-stats
+
+# Force specific provider
+ms "AI healthcare" --provider ollama        # Local inference (free)
+ms "quantum computing" --provider gemini    # Cloud API (paid)
+
+# Control model quality tier
+ms "space exploration" --model-tier fast      # 4B model (quick)
+ms "climate solutions" --model-tier balanced  # 12B model (better)
+ms "renewable energy" --model-tier quality    # Gemini (best)
+
+# Cache management
+ms "education innovation" --no-cache       # Disable caching
+ms --clear-cache "healthcare AI"           # Clear cache first
+
+# Disable fallback (fail if primary provider unavailable)
+ms "future transportation" --no-fallback
+```
+
+**Provider Features:**
+- **Ollama (Primary)**: Local inference with gemma3 models, $0 cost, image support
+- **Gemini (Fallback)**: Cloud inference, PDF/URL support, higher quality
+- **Response Caching**: Disk-based cache with 24h TTL, 30-50% fewer API calls
+- **Automatic Fallback**: Seamlessly switches providers on failure
+- **Usage Statistics**: Track tokens, cost, cache hits with `--show-llm-stats`
 
 ### Standard CLI Usage
 

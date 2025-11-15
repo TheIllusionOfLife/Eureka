@@ -20,6 +20,7 @@ from madspark.llm.exceptions import (
     AllProvidersFailedError,
     SchemaValidationError,
 )
+from madspark.llm.cache import ResponseCache, get_cache, reset_cache
 
 __all__ = [
     # Base classes
@@ -30,6 +31,10 @@ __all__ = [
     "ModelTier",
     "get_config",
     "reset_config",
+    # Caching
+    "ResponseCache",
+    "get_cache",
+    "reset_cache",
     # Exceptions
     "LLMProviderError",
     "ProviderUnavailableError",

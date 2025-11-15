@@ -815,18 +815,16 @@ Respond with only the numeric score (e.g., "6")."""
             # Handle validation errors for out-of-range scores
             # Try to extract the score from JSON and clamp it manually
             try:
-                import json as json_module
-                data = json_module.loads(response.text)
+                data = json.loads(response.text)
                 if 'score' in data:
                     # Extract raw score and clamp it
                     raw_score = float(data['score'])
                     min_val = config.get('range', (1, 10))[0]
                     max_val = config.get('range', (1, 10))[1]
                     return max(min_val, min(max_val, raw_score))
-            except (json_module.JSONDecodeError, KeyError, TypeError):
+            except (json.JSONDecodeError, KeyError, TypeError):
                 pass
-            raise ValueError(f"Failed to parse dimension score: {e}")
-        except json.JSONDecodeError as e:
+            # Raise the original Pydantic validation error if manual parsing also fails
             raise ValueError(f"Failed to parse dimension score: {e}")
 
         # Use dimension config ranges if available

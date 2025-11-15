@@ -930,12 +930,16 @@ class AsyncCoordinator(BatchOperationsBase):
                         if inference_result and hasattr(inference_result, "confidence"):
                             confidence = getattr(inference_result, "confidence", 0.0)
                             if confidence > LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD:
-                                # Convert InferenceResult to dictionary for storage
+                                # Normalize Pydantic InferenceResult to dictionary for storage
+                                normalized_result = self.normalize_agent_response(
+                                    inference_result, expected_type="dict"
+                                )
+                                # Store only relevant fields
                                 candidate["logical_inference"] = {
-                                    "confidence": inference_result.confidence,
-                                    "inference": inference_result.conclusion,
-                                    "inference_chain": inference_result.inference_chain,
-                                    "improvements": inference_result.improvements,
+                                    "confidence": normalized_result.get("confidence", 0.0),
+                                    "inference": normalized_result.get("conclusion", ""),
+                                    "inference_chain": normalized_result.get("inference_chain", []),
+                                    "improvements": normalized_result.get("improvements"),
                                 }
                                 logger.info(
                                     f"Added logical inference data to candidate {i + 1} with confidence {confidence}"

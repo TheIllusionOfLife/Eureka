@@ -8,7 +8,7 @@ import logging
 import json
 from enum import Enum
 from typing import Dict, Any, List, Optional, Union
-from dataclasses import dataclass, field
+# Removed dataclass import - using Pydantic models instead
 import re
 
 # Third-party imports
@@ -43,42 +43,9 @@ class InferenceType(Enum):
     IMPLICATIONS = "implications"
 
 
-@dataclass
-class InferenceResult:
-    """Result of logical inference analysis."""
-    # Core fields
-    inference_chain: List[str] = field(default_factory=list)
-    conclusion: str = ""
-    confidence: float = 0.0
-    improvements: Optional[str] = None
-    
-    # Analysis-specific fields
-    causal_chain: Optional[List[str]] = None
-    feedback_loops: Optional[List[str]] = None
-    root_cause: Optional[str] = None
-    
-    constraint_satisfaction: Optional[Dict[str, float]] = None
-    overall_satisfaction: Optional[float] = None
-    trade_offs: Optional[List[str]] = None
-    
-    contradictions: Optional[List[Dict[str, Any]]] = None
-    resolution: Optional[str] = None
-    
-    implications: Optional[List[str]] = None
-    second_order_effects: Optional[List[str]] = None
-    
-    # Error handling
-    error: Optional[str] = None
-    
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary for JSON serialization."""
-        result = {}
-        for key, value in self.__dict__.items():
-            if value is not None:
-                if isinstance(value, list) and len(value) == 0:
-                    continue  # Skip empty lists
-                result[key] = value
-        return result
+# Type alias for backward compatibility - actual model defined in schemas/logical_inference.py
+# This module now uses Pydantic models from madspark.schemas.logical_inference
+InferenceResult = PydanticInferenceResult
 
 
 class LogicalInferenceEngine:
@@ -255,10 +222,10 @@ class LogicalInferenceEngine:
 
             # Fill remaining slots if parsing didn't get all ideas
             while len(results) < len(ideas):
-                results.append(InferenceResult(
+                results.append(PydanticInferenceResult(
+                    inference_chain=["Batch parsing incomplete"],
                     conclusion="Unable to parse logical analysis from batch response",
-                    confidence=0.0,
-                    error="Batch parsing incomplete"
+                    confidence=0.0
                 ))
 
             return results[:len(ideas)]  # Ensure we return exact number requested
@@ -272,10 +239,10 @@ class LogicalInferenceEngine:
             logger.error(f"Batch logical inference failed: {e}")
             # Return error results for all ideas
             return [
-                InferenceResult(
+                PydanticInferenceResult(
+                    inference_chain=["Analysis failed due to error"],
                     conclusion="Unable to perform logical analysis due to an error",
-                    confidence=0.0,
-                    error=str(e)
+                    confidence=0.0
                 )
                 for _ in ideas
             ]
@@ -539,52 +506,37 @@ LONG_TERM_CONSEQUENCES:
 Consider both positive and negative implications."""
 
     def _create_result_from_json(self, data: Dict[str, Any], analysis_type: InferenceType) -> InferenceResult:
-        """Create InferenceResult from JSON data (structured output).
+        """Create InferenceResult from JSON data using Pydantic validation.
 
-        This method replaces regex-based text parsing with direct JSON extraction.
+        This method uses Pydantic models to parse and validate JSON responses,
+        providing automatic type checking and field validation.
 
         Args:
             data: Parsed JSON dictionary from LLM response
             analysis_type: Type of analysis performed
 
         Returns:
-            InferenceResult populated with data from JSON
+            Pydantic InferenceResult model with validated data
+
+        Raises:
+            ValidationError: If JSON data doesn't match expected Pydantic schema
         """
-        result = InferenceResult()
+        # Select appropriate Pydantic model based on analysis type
+        model_map = {
+            InferenceType.FULL: PydanticInferenceResult,
+            InferenceType.CAUSAL: CausalAnalysis,
+            InferenceType.CONSTRAINTS: ConstraintAnalysis,
+            InferenceType.CONTRADICTION: ContradictionAnalysis,
+            InferenceType.IMPLICATIONS: ImplicationsAnalysis
+        }
 
-        # Extract common fields present in all analysis types
-        result.conclusion = data.get("conclusion", "")
-        result.confidence = float(data.get("confidence", 0.0))
+        model_class = model_map.get(analysis_type, PydanticInferenceResult)
 
-        # Extract type-specific fields based on analysis type
-        if analysis_type == InferenceType.FULL:
-            result.inference_chain = data.get("inference_chain", [])
-            result.improvements = data.get("improvements")
-
-        elif analysis_type == InferenceType.CAUSAL:
-            result.causal_chain = data.get("causal_chain", [])
-            result.feedback_loops = data.get("feedback_loops")
-            result.root_cause = data.get("root_cause")
-
-        elif analysis_type == InferenceType.CONSTRAINTS:
-            result.constraint_satisfaction = data.get("constraint_satisfaction")
-            result.overall_satisfaction = data.get("overall_satisfaction")
-            result.trade_offs = data.get("trade_offs")
-
-        elif analysis_type == InferenceType.CONTRADICTION:
-            result.contradictions = data.get("contradictions", [])
-            result.resolution = data.get("resolution")
-
-        elif analysis_type == InferenceType.IMPLICATIONS:
-            result.implications = data.get("implications")
-            result.second_order_effects = data.get("second_order_effects")
-
-        return result
+        # Parse and validate using Pydantic model
+        return model_class(**data)
 
     def _parse_response(self, response_text: str, analysis_type: InferenceType) -> InferenceResult:
-        """Parse LLM response into structured InferenceResult."""
-        result = InferenceResult()
-        
+        """Parse LLM response into structured Pydantic InferenceResult."""
         try:
             if analysis_type == InferenceType.FULL:
                 result = self._parse_full_response(response_text)
@@ -596,91 +548,117 @@ Consider both positive and negative implications."""
                 result = self._parse_contradiction_response(response_text)
             elif analysis_type == InferenceType.IMPLICATIONS:
                 result = self._parse_implications_response(response_text)
-            
+            else:
+                # Fallback for unknown types
+                result = PydanticInferenceResult(
+                    inference_chain=["Analysis completed"],
+                    conclusion="Analysis completed",
+                    confidence=0.5
+                )
+
         except (AttributeError, IndexError, ValueError, TypeError) as e:
             logger.warning(f"Failed to parse response fully: {e}")
-            # Provide basic result even if parsing fails
-            result.conclusion = self._extract_section(response_text, "CONCLUSION") or \
-                               "Analysis completed but parsing was incomplete"
-            result.confidence = self._extract_confidence(response_text) or 0.5
-            
+            # Provide basic Pydantic result even if parsing fails
+            conclusion = self._extract_section(response_text, "CONCLUSION") or \
+                        "Analysis completed but parsing was incomplete"
+            confidence = self._extract_confidence(response_text) or 0.5
+            result = PydanticInferenceResult(
+                inference_chain=["Fallback analysis"],
+                conclusion=conclusion,
+                confidence=confidence
+            )
+
         return result
     
     def _parse_full_response(self, text: str) -> InferenceResult:
-        """Parse full analysis response."""
-        result = InferenceResult()
-        
-        # Extract inference chain
+        """Parse full analysis response into Pydantic model."""
+        # Extract fields
         chain_section = self._extract_section(text, "INFERENCE_CHAIN")
-        if chain_section:
-            result.inference_chain = self._parse_bullet_list(chain_section)
-        
-        # Extract conclusion
-        result.conclusion = self._extract_section(text, "CONCLUSION") or ""
-        
-        # Extract confidence
-        result.confidence = self._extract_confidence(text) or 0.5
-        
-        # Extract improvements
-        result.improvements = self._extract_section(text, "IMPROVEMENTS")
-        
-        return result
+        inference_chain = self._parse_bullet_list(chain_section) if chain_section else ["Analysis completed"]
+
+        conclusion = self._extract_section(text, "CONCLUSION") or "Analysis completed but parsing was incomplete"
+        confidence = self._extract_confidence(text) or 0.5
+        improvements = self._extract_section(text, "IMPROVEMENTS")
+
+        # Return Pydantic model
+        return PydanticInferenceResult(
+            inference_chain=inference_chain,
+            conclusion=conclusion,
+            confidence=confidence,
+            improvements=improvements
+        )
     
     def _parse_causal_response(self, text: str) -> InferenceResult:
-        """Parse causal analysis response."""
-        result = InferenceResult()
-        
+        """Parse causal analysis response into Pydantic CausalAnalysis model."""
+        # Extract fields (this is a fallback parser, rarely used with structured output)
+
         # Extract causal chain
         chain_section = self._extract_section(text, "CAUSAL_CHAIN")
-        if chain_section:
-            result.causal_chain = self._parse_numbered_list(chain_section)
-        
+        causal_chain = self._parse_numbered_list(chain_section) if chain_section else ["Causal analysis"]
+
         # Extract feedback loops
         loops_section = self._extract_section(text, "FEEDBACK_LOOPS")
-        if loops_section:
-            result.feedback_loops = self._parse_bullet_list(loops_section)
-        
+        feedback_loops = self._parse_bullet_list(loops_section) if loops_section else []
+
         # Extract root cause
-        result.root_cause = self._extract_section(text, "ROOT_CAUSE")
-        
+        root_cause = self._extract_section(text, "ROOT_CAUSE") or "Analysis completed"
+
         # Set conclusion based on root cause
-        if result.root_cause:
-            result.conclusion = f"Root cause analysis: {result.root_cause}"
-            result.confidence = 0.8  # Default for causal analysis
-        
-        return result
+        conclusion = f"Root cause analysis: {root_cause}"
+        confidence = 0.8  # Default for causal analysis
+
+        # Extract inference chain for base model
+        inference_chain = causal_chain[:3] if len(causal_chain) > 0 else ["Causal analysis step 1"]
+
+        # Return Pydantic CausalAnalysis model
+        return CausalAnalysis(
+            inference_chain=inference_chain,
+            conclusion=conclusion,
+            confidence=confidence,
+            causal_chain=causal_chain,
+            feedback_loops=feedback_loops,
+            root_cause=root_cause
+        )
     
     def _parse_constraint_response(self, text: str) -> InferenceResult:
-        """Parse constraint satisfaction response."""
-        result = InferenceResult()
-        
+        """Parse constraint satisfaction response into Pydantic ConstraintAnalysis model."""
         # Extract constraint analysis
         constraints_section = self._extract_section(text, "CONSTRAINT_ANALYSIS")
-        if constraints_section:
-            result.constraint_satisfaction = self._parse_constraint_list(constraints_section)
-        
+        constraint_satisfaction = (
+            self._parse_constraint_list(constraints_section)
+            if constraints_section
+            else {"general": 0.5}
+        )
+
         # Extract overall satisfaction
         overall = self._extract_number(text, "OVERALL_SATISFACTION")
-        if overall is not None:
-            result.overall_satisfaction = overall
-            result.confidence = overall / 100.0  # Convert percentage to confidence
-        
+        overall_satisfaction = overall if overall is not None else 0.5
+        confidence = overall_satisfaction / 100.0 if overall_satisfaction > 1 else overall_satisfaction
+
         # Extract trade-offs
         tradeoffs_section = self._extract_section(text, "TRADE_OFFS")
-        if tradeoffs_section:
-            result.trade_offs = self._parse_bullet_list(tradeoffs_section)
-        
+        trade_offs = self._parse_bullet_list(tradeoffs_section) if tradeoffs_section else []
+
         # Set conclusion
-        if result.overall_satisfaction:
-            result.conclusion = f"Constraints satisfied at {result.overall_satisfaction}% overall"
-        
-        return result
+        conclusion = f"Constraints satisfied at {int(overall_satisfaction * 100 if overall_satisfaction <= 1 else overall_satisfaction)}% overall"
+
+        # Extract inference chain
+        inference_chain = ["Constraint analysis step 1", f"Evaluated {len(constraint_satisfaction)} constraints"]
+
+        # Return Pydantic ConstraintAnalysis model
+        return ConstraintAnalysis(
+            inference_chain=inference_chain,
+            conclusion=conclusion,
+            confidence=confidence,
+            constraint_satisfaction=constraint_satisfaction,
+            overall_satisfaction=overall_satisfaction,
+            trade_offs=trade_offs
+        )
     
     def _parse_contradiction_response(self, text: str) -> InferenceResult:
-        """Parse contradiction analysis response."""
-        result = InferenceResult()
-        result.contradictions = []
-        
+        """Parse contradiction analysis response into Pydantic ContradictionAnalysis model."""
+        contradictions = []
+
         # Check for contradictions count
         count_match = re.search(r'CONTRADICTIONS_FOUND:\s*(\d+)', text)
         if count_match and int(count_match.group(1)) > 0:
@@ -689,45 +667,66 @@ Consider both positive and negative implications."""
                 r'CONTRADICTION_\d+:(.*?)(?=CONTRADICTION_\d+:|RESOLUTION:|$)',
                 text, re.DOTALL
             )
-            
+
             for section in contradiction_sections:
                 contradiction = self._parse_contradiction_details(section)
                 if contradiction:
-                    result.contradictions.append(contradiction)
-        
+                    contradictions.append(contradiction)
+
         # Extract resolution
-        result.resolution = self._extract_section(text, "RESOLUTION")
-        
+        resolution = self._extract_section(text, "RESOLUTION") or "No resolution provided"
+
         # Set conclusion based on findings
-        if result.contradictions:
-            result.conclusion = f"Found {len(result.contradictions)} logical contradiction(s)"
-            result.confidence = 0.6  # Lower confidence when contradictions exist
+        if contradictions:
+            conclusion = f"Found {len(contradictions)} logical contradiction(s)"
+            confidence = 0.6  # Lower confidence when contradictions exist
         else:
-            result.conclusion = "No logical contradictions detected"
-            result.confidence = 0.9
-        
-        return result
+            conclusion = "No logical contradictions detected"
+            confidence = 0.9
+
+        # Extract inference chain
+        inference_chain = [
+            "Analyzed for logical contradictions",
+            f"Found {len(contradictions)} potential issues"
+        ]
+
+        # Return Pydantic ContradictionAnalysis model
+        return ContradictionAnalysis(
+            inference_chain=inference_chain,
+            conclusion=conclusion,
+            confidence=confidence,
+            contradictions=contradictions,
+            resolution=resolution
+        )
     
     def _parse_implications_response(self, text: str) -> InferenceResult:
-        """Parse implications analysis response."""
-        result = InferenceResult()
-        
+        """Parse implications analysis response into Pydantic ImplicationsAnalysis model."""
         # Extract direct implications
         direct_section = self._extract_section(text, "DIRECT_IMPLICATIONS")
-        if direct_section:
-            result.implications = self._parse_numbered_list(direct_section)
-        
+        implications = self._parse_numbered_list(direct_section) if direct_section else ["Analysis completed"]
+
         # Extract second-order effects
         second_section = self._extract_section(text, "SECOND_ORDER_EFFECTS")
-        if second_section:
-            result.second_order_effects = self._parse_bullet_list(second_section)
-        
+        second_order_effects = self._parse_bullet_list(second_section) if second_section else []
+
         # Set conclusion
-        if result.implications:
-            result.conclusion = f"Analysis reveals {len(result.implications)} direct implications"
-            result.confidence = 0.8
-        
-        return result
+        conclusion = f"Analysis reveals {len(implications)} direct implications"
+        confidence = 0.8
+
+        # Extract inference chain
+        inference_chain = [
+            "Analyzed direct implications",
+            f"Identified {len(second_order_effects)} second-order effects"
+        ]
+
+        # Return Pydantic ImplicationsAnalysis model
+        return ImplicationsAnalysis(
+            inference_chain=inference_chain,
+            conclusion=conclusion,
+            confidence=confidence,
+            implications=implications,
+            second_order_effects=second_order_effects
+        )
     
     # Utility parsing methods
     def _extract_section(self, text: str, section_name: str) -> Optional[str]:

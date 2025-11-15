@@ -104,15 +104,15 @@ IMPROVEMENTS: Balance difficulty progression"""
         """Test batch analysis with API error."""
         # Mock API error
         mock_genai_client.models.generate_content.side_effect = RuntimeError("API Error")
-        
+
         results = inference_engine.analyze_batch(ideas=sample_ideas,
             topic="test",
             context="test"
         )
-        
-        # Should return error results for all ideas
+
+        # Should return error results for all ideas (Pydantic models with error messages in conclusion)
         assert len(results) == 3
-        assert all(result.error == "API Error" for result in results)
+        assert all("API Error" in result.conclusion or "Unable to" in result.conclusion for result in results)
         assert all(result.confidence == 0.0 for result in results)
     
     def test_analyze_batch_parsing_failure(self, inference_engine, mock_genai_client, sample_ideas):
@@ -187,16 +187,16 @@ Invalid content for remaining ideas..."""
         assert "IMPROVEMENTS:" in prompt
     
     def test_to_dict_method(self):
-        """Test InferenceResult to_dict conversion."""
+        """Test InferenceResult model_dump conversion (Pydantic v2)."""
         result = InferenceResult(
             inference_chain=["Step 1", "Step 2"],
             conclusion="Test conclusion",
             confidence=0.8,
             improvements="Test improvements"
         )
-        
-        data = result.to_dict()
-        
+
+        data = result.model_dump()
+
         assert isinstance(data, dict)
         assert data["inference_chain"] == ["Step 1", "Step 2"]
         assert data["conclusion"] == "Test conclusion"

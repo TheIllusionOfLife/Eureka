@@ -135,18 +135,15 @@ class LogicalInferenceEngine:
             # Fallback to text parsing for backward compatibility
             logger.warning(f"JSON parsing failed, falling back to text parsing: {e}")
             result = self._parse_response(response.text, analysis_type)
-            # Note that we fell back to text parsing due to invalid JSON
-            if result.error is None and result.confidence > 0:
-                # Successfully parsed as text, but note the JSON failure
-                pass  # Don't set error if text parsing succeeded
+            # Successfully fell back to text parsing
             return result
 
         except (AttributeError, KeyError, TypeError, ValueError, RuntimeError) as e:
             logger.error(f"Logical inference failed: {e}")
             return InferenceResult(
-                conclusion="Unable to perform logical analysis due to an error",
-                confidence=0.0,
-                error=str(e)
+                inference_chain=["Error occurred during analysis"],
+                conclusion=f"Unable to perform logical analysis: {str(e)}",
+                confidence=0.0
             )
     
     def analyze_batch(
@@ -333,9 +330,9 @@ Important:
             # Fill remaining slots if parsing didn't get all ideas
             while len(results) < num_ideas:
                 results.append(InferenceResult(
+                    inference_chain=["Batch parsing incomplete"],
                     conclusion="Unable to parse logical analysis from batch response",
-                    confidence=0.0,
-                    error="Batch parsing incomplete"
+                    confidence=0.0
                 ))
             
         except Exception as e:
@@ -343,9 +340,9 @@ Important:
             # Return error results for all ideas
             results = [
                 InferenceResult(
-                    conclusion="Unable to parse logical analysis from batch response",
-                    confidence=0.0,
-                    error=str(e)
+                    inference_chain=["Batch parsing incomplete"],
+                    conclusion=f"Unable to parse logical analysis from batch response: {str(e)}",
+                    confidence=0.0
                 )
                 for _ in range(num_ideas)
             ]
@@ -891,24 +888,24 @@ Consider both positive and negative implications."""
                 output.append(f"  {i}. {step}")
         
         # Causal analysis
-        if result.causal_chain:
+        if getattr(result, 'causal_chain', None):
             output.append("\nCausal Analysis:")
             for cause in result.causal_chain:
                 output.append(f"  • {cause}")
-        
-        if result.feedback_loops:
+
+        if getattr(result, 'feedback_loops', None):
             output.append("\nFeedback Loops:")
             for loop in result.feedback_loops:
                 output.append(f"  ↻ {loop}")
-        
+
         # Constraints
-        if result.constraint_satisfaction:
+        if getattr(result, 'constraint_satisfaction', None):
             output.append("\nConstraint Satisfaction:")
             for constraint, satisfaction in result.constraint_satisfaction.items():
                 output.append(f"  • {constraint}: {satisfaction}%")
-        
+
         # Contradictions
-        if result.contradictions:
+        if getattr(result, 'contradictions', None):
             output.append("\nContradictions Found:")
             for cont in result.contradictions:
                 output.append(f"  ⚠️  {cont.get('conflict', 'Unknown conflict')}")
@@ -916,12 +913,12 @@ Consider both positive and negative implications."""
                     output.append(f"     Severity: {cont['severity']}")
         
         # Implications
-        if result.implications:
+        if getattr(result, 'implications', None):
             output.append("\nDirect Implications:")
             for imp in result.implications:
                 output.append(f"  → {imp}")
-        
-        if result.second_order_effects:
+
+        if getattr(result, 'second_order_effects', None):
             output.append("\nSecond-Order Effects:")
             for effect in result.second_order_effects:
                 output.append(f"  ⟶ {effect}")
@@ -935,9 +932,9 @@ Consider both positive and negative implications."""
         # Improvements
         if result.improvements:
             output.append(f"\nImprovements: {result.improvements}")
-        
-        # Error if any
-        if result.error:
-            output.append(f"\n⚠️  Error during analysis: {result.error}")
-        
+
+        # Error indicated by low confidence and error message in conclusion
+        if result.confidence == 0.0 and ("Unable to" in result.conclusion or "Error" in result.conclusion):
+            output.append(f"\n⚠️  Error during analysis: {result.conclusion}")
+
         return '\n'.join(output)

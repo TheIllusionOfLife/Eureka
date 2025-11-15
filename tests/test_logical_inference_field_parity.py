@@ -11,56 +11,43 @@ import os
 # Add src to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from madspark.utils.logical_inference_engine import LogicalInferenceEngine, InferenceResult, InferenceType
+from madspark.utils.logical_inference_engine import LogicalInferenceEngine, InferenceType
+from madspark.schemas.logical_inference import (
+    InferenceResult,
+    CausalAnalysis,
+    ConstraintAnalysis,
+    ContradictionAnalysis,
+    ImplicationsAnalysis
+)
 
 
 class TestLogicalInferenceFieldParity:
     """Test that logical inference returns same fields in mock and production modes."""
     
     def test_inference_result_has_all_expected_fields(self):
-        """Test that InferenceResult dataclass contains all expected fields."""
-        # Create a result with all fields populated
+        """Test that InferenceResult Pydantic model contains all expected core fields."""
+        # Create a base result with core fields
         result = InferenceResult(
-            # Core fields
+            # Core fields (required on all inference results)
             inference_chain=["Step 1", "Step 2"],
             conclusion="Test conclusion",
             confidence=0.85,
-            improvements="Could be improved",
-            
-            # Analysis-specific fields
-            causal_chain=["Cause 1", "Cause 2"],
-            feedback_loops=["Loop 1"],
-            root_cause="Root cause",
-            
-            constraint_satisfaction={"Constraint 1": 80.0},
-            overall_satisfaction=75.0,
-            trade_offs=["Trade-off 1"],
-            
-            contradictions=[{"conflict": "A vs B", "severity": "HIGH"}],
-            resolution="Resolve by...",
-            
-            implications=["Implication 1"],
-            second_order_effects=["Effect 1"],
-            
-            error=None
+            improvements="Could be improved"
         )
-        
-        # Verify all fields exist
+
+        # Verify core fields exist on base class
         assert hasattr(result, 'inference_chain')
         assert hasattr(result, 'conclusion')
         assert hasattr(result, 'confidence')
         assert hasattr(result, 'improvements')
-        assert hasattr(result, 'causal_chain')
-        assert hasattr(result, 'feedback_loops')
-        assert hasattr(result, 'root_cause')
-        assert hasattr(result, 'constraint_satisfaction')
-        assert hasattr(result, 'overall_satisfaction')
-        assert hasattr(result, 'trade_offs')
-        assert hasattr(result, 'contradictions')
-        assert hasattr(result, 'resolution')
-        assert hasattr(result, 'implications')
-        assert hasattr(result, 'second_order_effects')
-        assert hasattr(result, 'error')
+
+        # Subclass-specific fields should NOT exist on base InferenceResult
+        assert not hasattr(result, 'causal_chain')  # Only on CausalAnalysis
+        assert not hasattr(result, 'constraint_satisfaction')  # Only on ConstraintAnalysis
+        assert not hasattr(result, 'contradictions')  # Only on ContradictionAnalysis
+        assert not hasattr(result, 'implications')  # Only on ImplicationsAnalysis
+
+        # No 'error' field in Pydantic version (errors indicated by confidence=0.0)
     
     def test_production_mode_returns_all_fields_for_full_analysis(self):
         """Test that production mode with real LLM returns all expected fields for full analysis."""
@@ -106,12 +93,10 @@ ROOT_CAUSE: Fundamental need for efficiency improvement"""
         assert result.conclusion is not None and result.conclusion != ""
         assert result.confidence > 0
         assert result.improvements is not None
-        
-        # These fields may not be populated for FULL analysis type
-        # but should exist (can be None)
-        assert hasattr(result, 'causal_chain')
-        assert hasattr(result, 'feedback_loops')
-        assert hasattr(result, 'root_cause')
+
+        # For FULL analysis, result is base InferenceResult, not subclasses
+        # So subclass-specific fields won't exist
+        assert isinstance(result, InferenceResult)
     
     def test_production_mode_causal_analysis_returns_specific_fields(self):
         """Test that causal analysis returns causal-specific fields."""
@@ -219,26 +204,29 @@ IMPROVEMENTS: Test improvements"""
         # This inconsistency should be fixed
     
     def test_to_dict_excludes_empty_fields(self):
-        """Test that to_dict() method excludes None and empty list fields."""
-        result = InferenceResult(
+        """Test that model_dump() includes all fields per Pydantic behavior."""
+        # Use CausalAnalysis to test with causal_chain field
+        result = CausalAnalysis(
             conclusion="Test conclusion",
             confidence=0.8,
-            inference_chain=[],  # Empty list
+            inference_chain=["Step 1"],  # Required field, cannot be empty
             improvements=None,  # None value
             causal_chain=["Has value"]  # Non-empty
         )
-        
-        result_dict = result.to_dict()
-        
+
+        # Use Pydantic v2 model_dump() instead of to_dict()
+        result_dict = result.model_dump()
+
         # Should include non-empty fields
         assert 'conclusion' in result_dict
         assert 'confidence' in result_dict
         assert 'causal_chain' in result_dict
-        
-        # Should exclude empty/None fields
-        assert 'inference_chain' not in result_dict  # Empty list
-        assert 'improvements' not in result_dict  # None
-        assert 'feedback_loops' not in result_dict  # Default None
+        assert 'inference_chain' in result_dict
+
+        # Pydantic includes None fields by default
+        # Use exclude_none=True to exclude them
+        result_dict_no_none = result.model_dump(exclude_none=True)
+        assert 'improvements' not in result_dict_no_none  # None excluded
     
     def test_batch_analysis_field_consistency(self):
         """Test that batch analysis returns consistent fields for all items."""
@@ -278,10 +266,11 @@ IMPROVEMENTS: Second improvements"""
         
         # Assert - all results should have same field structure
         assert len(results) == 2
-        
-        fields_1 = set(results[0].to_dict().keys())
-        fields_2 = set(results[1].to_dict().keys())
-        
+
+        # Use Pydantic v2 model_dump() instead of to_dict()
+        fields_1 = set(results[0].model_dump().keys())
+        fields_2 = set(results[1].model_dump().keys())
+
         # Both results should have the same fields populated
         # (though values may differ)
         assert fields_1 == fields_2, f"Field mismatch: {fields_1} vs {fields_2}"

@@ -171,6 +171,8 @@ class OllamaProvider(LLMProvider):
         system_instruction: str = "",
         temperature: float = 0.0,  # Default 0 for structured output
         images: Optional[list[Union[str, Path]]] = None,
+        files: Optional[list[Path]] = None,
+        urls: Optional[list[str]] = None,
         token_budget: Optional[int] = None,
     ) -> tuple[Any, LLMResponse]:
         """
@@ -184,6 +186,8 @@ class OllamaProvider(LLMProvider):
             system_instruction: System instruction
             temperature: Sampling temperature (default 0 for determinism)
             images: Optional image paths
+            files: Optional file paths (not supported by Ollama, ignored)
+            urls: Optional URLs (not supported by Ollama, ignored)
             token_budget: Max tokens to generate
 
         Returns:
@@ -193,6 +197,9 @@ class OllamaProvider(LLMProvider):
             ProviderUnavailableError: If Ollama not available
             SchemaValidationError: If output doesn't match schema
         """
+        # Note: files and urls are not supported by Ollama, included for interface compatibility
+        if files or urls:
+            logger.debug("Ollama does not support files/urls, ignoring these parameters")
         if not self.health_check():
             raise ProviderUnavailableError(f"Ollama not available. Model: {self._model}")
 

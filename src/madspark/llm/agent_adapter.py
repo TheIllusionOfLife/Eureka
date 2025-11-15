@@ -5,13 +5,15 @@ Provides a seamless interface for agents to use LLMRouter
 while maintaining backward compatibility with direct GenAI calls.
 """
 
+import json
 import logging
-from typing import Any, Optional, Type
 from pathlib import Path
+from typing import Optional, Type
+
 from pydantic import BaseModel
 
-from madspark.llm.router import get_router
 from madspark.llm.exceptions import AllProvidersFailedError
+from madspark.llm.router import get_router
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +27,7 @@ def generate_structured_via_router(
     files: Optional[list[Path]] = None,
     urls: Optional[list[str]] = None,
     force_provider: Optional[str] = None,
-) -> tuple[Any, int]:
+) -> tuple[str, int]:
     """
     Generate structured output through LLM router.
 
@@ -68,7 +70,6 @@ def generate_structured_via_router(
         if hasattr(validated, "model_dump_json"):
             response_text = validated.model_dump_json()
         else:
-            import json
             response_text = json.dumps(validated)
 
         return response_text, response.tokens_used

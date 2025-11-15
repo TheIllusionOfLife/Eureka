@@ -11,7 +11,7 @@ from typing import Any, Optional, List, Union
 from ..utils.constants import DEFAULT_GOOGLE_GENAI_MODEL
 from ..utils.multimodal_input import build_prompt_with_multimodal
 from madspark.schemas.generation import ImprovementResponse
-from madspark.schemas.adapters import pydantic_to_genai_schema
+from madspark.schemas.adapters import pydantic_to_genai_schema, genai_response_to_pydantic
 
 # Optional import for Google GenAI - graceful fallback for CI/testing
 try:
@@ -128,19 +128,17 @@ Write ONLY the improved idea. No introductions, no meta-commentary."""
             config=config
         )
         
-        # Parse JSON response using Pydantic schema fields
+        # Parse and validate JSON response with Pydantic adapter
         if response.text:
             try:
-                data = json.loads(response.text)
-                # New Pydantic schema has improved_title and improved_description
-                if "improved_title" in data and "improved_description" in data:
-                    # Combine title and description for backward compatibility
-                    return f"{data['improved_title']}\n\n{data['improved_description']}"
-                # Fallback for legacy "improved_idea" field (shouldn't happen with new schema)
-                return data.get("improved_idea", response.text)
-            except json.JSONDecodeError:
-                # Fallback to raw text if not valid JSON
-                logging.warning("Response was not valid JSON, using raw text")
+                improvement = genai_response_to_pydantic(response.text, ImprovementResponse)
+
+                # Combine title and description for backward compatibility
+                return f"{improvement.improved_title}\n\n{improvement.improved_description}"
+
+            except (ValueError, json.JSONDecodeError) as e:
+                # Fallback to raw text if parsing fails
+                logging.warning(f"Response parsing failed, using raw text: {e}")
                 return response.text
         else:
             return f"An enhanced {context} approach incorporating all feedback."

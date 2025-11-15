@@ -5,8 +5,9 @@ code duplication between async_coordinator.py and coordinator_batch.py.
 """
 import asyncio
 import atexit
+import json
 import logging
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Union
 from concurrent.futures import ThreadPoolExecutor
 import concurrent.futures
 
@@ -258,3 +259,97 @@ class BatchOperationsBase:
                 logger.warning(f"Improvement result missing for candidate {i+1}")
                 candidate[result_key] = candidate["text"]  # Fallback to original
         return candidates
+
+    def normalize_agent_response(self, response: Any, expected_type: str = "dict") -> Union[Dict, List[Dict], str]:
+        """Normalize agent responses to consistent format.
+
+        Handles responses from agents that may return:
+        - Pydantic models
+        - Dictionaries
+        - JSON strings
+        - Lists of any of the above
+
+        Args:
+            response: Agent response in any format
+            expected_type: Expected return type ("dict", "list", or "str")
+
+        Returns:
+            Normalized response in expected format
+        """
+        # Handle None/empty responses
+        if response is None:
+            if expected_type == "list":
+                return []
+            elif expected_type == "dict":
+                return {}
+            else:
+                return ""
+
+        # Handle Pydantic models (v2 and v1 compatibility)
+        if hasattr(response, "model_dump"):
+            response = response.model_dump()
+        elif hasattr(response, "dict"):
+            response = response.dict()  # Pydantic v1 compatibility
+
+        # Handle JSON strings
+        if isinstance(response, str):
+            try:
+                response = json.loads(response)
+            except json.JSONDecodeError:
+                if expected_type == "str":
+                    return response
+                logger.warning(f"Could not parse response as JSON: {response[:100]}")
+                return {} if expected_type == "dict" else []
+
+        # Handle lists
+        if isinstance(response, list):
+            if expected_type == "list":
+                # Normalize each item in the list
+                normalized_list = []
+                for item in response:
+                    if hasattr(item, "model_dump"):
+                        normalized_list.append(item.model_dump())
+                    elif hasattr(item, "dict"):
+                        normalized_list.append(item.dict())
+                    elif isinstance(item, dict):
+                        normalized_list.append(item)
+                    else:
+                        logger.warning(f"Unexpected list item type: {type(item)}")
+                        normalized_list.append(str(item))
+                return normalized_list
+            elif expected_type == "dict":
+                if len(response) > 0:
+                    # If expecting dict but got list, take first item
+                    logger.warning("Expected dict but got list, taking first item")
+                    return self.normalize_agent_response(response[0], expected_type="dict")
+                else:
+                    # Empty list, expecting dict - return empty dict
+                    logger.warning("Expected dict but got empty list, returning empty dict")
+                    return {}
+            elif expected_type == "str":
+                return json.dumps(response)
+            else:
+                return response
+
+        # Handle dicts
+        if isinstance(response, dict):
+            if expected_type == "dict":
+                return response
+            elif expected_type == "list":
+                # If expecting list but got dict, wrap in list
+                logger.warning("Expected list but got dict, wrapping in list")
+                return [response]
+            elif expected_type == "str":
+                return json.dumps(response)
+            else:
+                return response
+
+        # Handle other types
+        if expected_type == "str":
+            return str(response)
+        elif expected_type == "dict":
+            logger.warning(f"Could not convert {type(response)} to dict, returning empty dict")
+            return {}
+        else:  # expected_type == "list"
+            logger.warning(f"Could not convert {type(response)} to list, wrapping in list")
+            return [response]

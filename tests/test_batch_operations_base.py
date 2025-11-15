@@ -345,3 +345,193 @@ class TestBatchOperationsPerformance:
             assert elapsed < 0.25, f"Concurrent execution too slow: {elapsed}s"
             assert advocacy_results == ["result1_1", "result1_2"]
             assert skepticism_results == ["result2_1", "result2_2"]
+
+
+class TestAgentResponseNormalization:
+    """Test suite for agent response normalization (Phase 3, Task 3)."""
+
+    def setup_method(self):
+        """Set up test fixtures."""
+        self.batch_ops = BatchOperationsBase()
+
+    def test_normalize_pydantic_model_to_dict(self):
+        """Test normalization of Pydantic model responses to dict."""
+        from madspark.schemas.generation import ImprovementResponse
+
+        # Create Pydantic model response
+        pydantic_response = ImprovementResponse(
+            improved_title="Test Title",
+            improved_description="Test Description",
+            key_improvements=["Improvement 1", "Improvement 2"],
+            implementation_steps=["Step 1", "Step 2"],
+            differentiators=["Unique feature 1"]
+        )
+
+        # Normalize to dict
+        result = self.batch_ops.normalize_agent_response(pydantic_response, expected_type="dict")
+
+        assert isinstance(result, dict)
+        assert result["improved_title"] == "Test Title"
+        assert result["improved_description"] == "Test Description"
+        assert len(result["key_improvements"]) == 2
+
+    def test_normalize_json_string_to_dict(self):
+        """Test normalization of JSON string responses to dict."""
+        import json
+
+        # JSON string response
+        json_response = json.dumps({
+            "score": 8.5,
+            "comment": "Good idea with strong potential",
+            "strengths": ["Innovative", "Scalable"],
+            "weaknesses": ["High cost"]
+        })
+
+        # Normalize to dict
+        result = self.batch_ops.normalize_agent_response(json_response, expected_type="dict")
+
+        assert isinstance(result, dict)
+        assert result["score"] == 8.5
+        assert result["comment"] == "Good idea with strong potential"
+        assert len(result["strengths"]) == 2
+
+    def test_normalize_dict_passthrough(self):
+        """Test that dict responses are passed through unchanged."""
+        dict_response = {
+            "idea": "Test idea",
+            "score": 7.0,
+            "evaluation": "Good potential"
+        }
+
+        # Normalize (should pass through)
+        result = self.batch_ops.normalize_agent_response(dict_response, expected_type="dict")
+
+        assert isinstance(result, dict)
+        assert result == dict_response
+        assert result["score"] == 7.0
+
+    def test_normalize_list_of_dicts(self):
+        """Test normalization of list responses."""
+        list_response = [
+            {"idea": "Idea 1", "score": 7.5},
+            {"idea": "Idea 2", "score": 9.0}
+        ]
+
+        # Normalize to list
+        result = self.batch_ops.normalize_agent_response(list_response, expected_type="list")
+
+        assert isinstance(result, list)
+        assert len(result) == 2
+        assert result[0]["score"] == 7.5
+        assert result[1]["score"] == 9.0
+
+    def test_normalize_list_of_pydantic_models(self):
+        """Test normalization of list containing Pydantic models."""
+        from madspark.schemas.evaluation import DimensionScore
+
+        # Create list of Pydantic models
+        pydantic_list = [
+            DimensionScore(score=8.0, reasoning="Good"),
+            DimensionScore(score=9.5, reasoning="Excellent")
+        ]
+
+        # Normalize to list of dicts
+        result = self.batch_ops.normalize_agent_response(pydantic_list, expected_type="list")
+
+        assert isinstance(result, list)
+        assert len(result) == 2
+        assert isinstance(result[0], dict)
+        assert result[0]["score"] == 8.0
+        assert result[1]["score"] == 9.5
+
+    def test_normalize_handles_none_gracefully(self):
+        """Test that None responses are handled gracefully."""
+        # Test None with different expected types
+        assert self.batch_ops.normalize_agent_response(None, expected_type="dict") == {}
+        assert self.batch_ops.normalize_agent_response(None, expected_type="list") == []
+        assert self.batch_ops.normalize_agent_response(None, expected_type="str") == ""
+
+    def test_normalize_invalid_json_string(self):
+        """Test handling of invalid JSON strings."""
+        invalid_json = "This is not valid JSON"
+
+        # Expected type dict - should return empty dict with warning
+        result = self.batch_ops.normalize_agent_response(invalid_json, expected_type="dict")
+        assert result == {}
+
+        # Expected type str - should return as-is
+        result = self.batch_ops.normalize_agent_response(invalid_json, expected_type="str")
+        assert result == "This is not valid JSON"
+
+    def test_normalize_list_to_dict_takes_first_item(self):
+        """Test that list normalized to dict returns first item."""
+        list_response = [
+            {"score": 8.0, "comment": "First"},
+            {"score": 7.0, "comment": "Second"}
+        ]
+
+        # Normalize list to dict (should take first item)
+        result = self.batch_ops.normalize_agent_response(list_response, expected_type="dict")
+
+        assert isinstance(result, dict)
+        assert result["score"] == 8.0
+        assert result["comment"] == "First"
+
+    def test_normalize_empty_list_to_dict(self):
+        """Test that empty list normalized to dict returns empty dict."""
+        empty_list = []
+
+        result = self.batch_ops.normalize_agent_response(empty_list, expected_type="dict")
+
+        assert result == {}
+
+    def test_normalize_dict_to_list_wraps_in_list(self):
+        """Test that dict normalized to list is wrapped in list."""
+        dict_response = {"score": 8.5, "comment": "Good"}
+
+        result = self.batch_ops.normalize_agent_response(dict_response, expected_type="list")
+
+        assert isinstance(result, list)
+        assert len(result) == 1
+        assert result[0]["score"] == 8.5
+
+    def test_normalize_pydantic_v1_compatibility(self):
+        """Test backward compatibility with Pydantic v1 .dict() method."""
+        # Create mock Pydantic v1 model (has .dict() but not .model_dump())
+        class MockPydanticV1:
+            def dict(self):
+                return {"field1": "value1", "field2": "value2"}
+
+        mock_v1_response = MockPydanticV1()
+
+        result = self.batch_ops.normalize_agent_response(mock_v1_response, expected_type="dict")
+
+        assert isinstance(result, dict)
+        assert result["field1"] == "value1"
+
+    def test_normalize_dict_to_json_string(self):
+        """Test normalization of dict to JSON string."""
+        import json
+
+        dict_response = {"score": 8.0, "comment": "Good idea"}
+
+        result = self.batch_ops.normalize_agent_response(dict_response, expected_type="str")
+
+        assert isinstance(result, str)
+        # Should be valid JSON
+        parsed = json.loads(result)
+        assert parsed["score"] == 8.0
+
+    def test_normalize_list_to_json_string(self):
+        """Test normalization of list to JSON string."""
+        import json
+
+        list_response = [{"score": 8.0}, {"score": 9.0}]
+
+        result = self.batch_ops.normalize_agent_response(list_response, expected_type="str")
+
+        assert isinstance(result, str)
+        # Should be valid JSON
+        parsed = json.loads(result)
+        assert len(parsed) == 2
+        assert parsed[0]["score"] == 8.0

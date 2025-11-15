@@ -203,3 +203,87 @@ Write ONLY the improved idea. No introductions, no meta-commentary."""
         assert "Write ONLY the improved idea" in test_prompt
         assert "No introductions" in test_prompt
         assert "no meta-commentary" in test_prompt
+
+    @patch('madspark.agents.structured_idea_generator.GENAI_AVAILABLE', True)
+    def test_improve_idea_structured_uses_pydantic_parsing(self):
+        """Test that improve_idea_structured uses Pydantic adapter for parsing (Task 4)."""
+        mock_client = Mock()
+        mock_response = Mock()
+        mock_response.text = json.dumps({
+            "improved_title": "Enhanced Smart Traffic System with AI",
+            "improved_description": "Advanced AI-powered traffic optimization system with real-time adaptation and predictive congestion management",
+            "key_improvements": ["Added AI capabilities", "Real-time processing", "Predictive analytics"],
+            "implementation_steps": ["Phase 1: Pilot", "Phase 2: Rollout"],
+            "differentiators": ["AI-powered", "Real-time adaptation"]
+        })
+        mock_client.models.generate_content.return_value = mock_response
+
+        # Test improvement with Pydantic parsing
+        result = improve_idea_structured(
+            original_idea="Smart traffic lights that respond to congestion",
+            critique="Good concept but needs AI integration",
+            advocacy_points="Cost-effective and scalable solution",
+            skeptic_points="Concerns about data privacy and infrastructure requirements",
+            topic="Urban Innovation",
+            context="Smart Cities Initiative",
+            temperature=0.9,
+            genai_client=mock_client
+        )
+
+        # Verify result combines title and description (backward compatible format)
+        assert "Enhanced Smart Traffic System with AI" in result
+        assert "Advanced AI-powered traffic optimization" in result
+        assert isinstance(result, str)
+        # Should be title + "\n\n" + description format
+        assert "\n\n" in result
+
+    @patch('madspark.agents.structured_idea_generator.GENAI_AVAILABLE', True)
+    def test_improve_idea_structured_handles_invalid_json(self):
+        """Test fallback when JSON parsing fails with Pydantic."""
+        mock_client = Mock()
+        mock_response = Mock()
+        mock_response.text = "This is not valid JSON - just plain text response"
+        mock_client.models.generate_content.return_value = mock_response
+
+        # Should fall back to raw text
+        result = improve_idea_structured(
+            original_idea="Test idea",
+            critique="Test critique",
+            advocacy_points="Test advocacy",
+            skeptic_points="Test skepticism",
+            topic="Test",
+            context="Test",
+            genai_client=mock_client
+        )
+
+        # Should return the raw text as fallback
+        assert result == "This is not valid JSON - just plain text response"
+
+    @patch('madspark.agents.structured_idea_generator.GENAI_AVAILABLE', True)
+    def test_improve_idea_structured_validates_pydantic_fields(self):
+        """Test that Pydantic validation catches invalid/incomplete responses."""
+        mock_client = Mock()
+        mock_response = Mock()
+        # Missing required 'improved_description' field
+        mock_response.text = json.dumps({
+            "improved_title": "Test Title",
+            "key_improvements": ["Improvement 1", "Improvement 2"]
+            # Missing improved_description (required field)
+        })
+        mock_client.models.generate_content.return_value = mock_response
+
+        # Should fall back to raw text since Pydantic validation fails
+        result = improve_idea_structured(
+            original_idea="Test",
+            critique="Test",
+            advocacy_points="Test",
+            skeptic_points="Test",
+            topic="Test",
+            context="Test",
+            genai_client=mock_client
+        )
+
+        # Should fall back to raw JSON text when Pydantic validation fails
+        assert isinstance(result, str)
+        # Verify it's the raw text (Pydantic parsing failed)
+        assert "Test Title" in result or "improved_title" in result

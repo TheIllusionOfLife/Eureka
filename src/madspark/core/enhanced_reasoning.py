@@ -21,7 +21,11 @@ from ..utils.logical_inference_engine import (
     LogicalInferenceEngine,
     InferenceType
 )
-from ..agents.response_schemas import DIMENSION_SCORE_SCHEMA
+from madspark.schemas.evaluation import DimensionScore
+from madspark.schemas.adapters import pydantic_to_genai_schema, genai_response_to_pydantic
+
+# Convert Pydantic model to GenAI schema format at module level (cached)
+_DIMENSION_SCORE_GENAI_SCHEMA = pydantic_to_genai_schema(DimensionScore)
 
 # Configure logging for enhanced reasoning
 reasoning_logger = logging.getLogger(__name__)
@@ -780,20 +784,20 @@ Respond with only the numeric score (e.g., "6")."""
         
     def _ai_evaluate_dimension(self, idea: str, context: Dict[str, Any],
                              dimension: str, config: Dict[str, Any]) -> float:
-        """Evaluate dimension using AI with clear prompts."""
+        """Evaluate dimension using AI with clear prompts and Pydantic validation."""
         prompt = self._build_dimension_prompt(idea, context, dimension)
-        
+
         # Import model name getter
         try:
             from madspark.agents.genai_client import get_model_name
         except ImportError:
             from ..agents.genai_client import get_model_name
-        
-        # Use structured output for reliable score extraction
+
+        # Use structured output with Pydantic schema
         api_config = self.types.GenerateContentConfig(
             temperature=0.0,  # Deterministic for evaluation
             response_mime_type="application/json",
-            response_schema=DIMENSION_SCORE_SCHEMA,
+            response_schema=_DIMENSION_SCORE_GENAI_SCHEMA,
             system_instruction=f"Evaluate on {dimension} dimension. Return score as JSON with required 'score' field."
         )
 
@@ -803,21 +807,25 @@ Respond with only the numeric score (e.g., "6")."""
             config=api_config
         )
 
-        # Parse JSON response
+        # Parse and validate with Pydantic adapter
         try:
-            data = json.loads(response.text)
-        except json.JSONDecodeError as e:
-            raise ValueError(f"Failed to parse dimension score JSON: {e}")
-
-        # Ensure data is a dictionary
-        if not isinstance(data, dict):
-            raise ValueError(f"AI returned non-numeric score: Expected dict with 'score' field, got {type(data).__name__}: {data}")
-
-        # Extract score from structured response
-        if "score" not in data:
-            raise ValueError(f"Response missing required 'score' field: {data}")
-
-        score = float(data["score"])
+            dimension_score = genai_response_to_pydantic(response.text, DimensionScore)
+            score = dimension_score.score
+        except ValueError as e:
+            # Handle validation errors for out-of-range scores
+            # Try to extract the score from JSON and clamp it manually
+            try:
+                data = json.loads(response.text)
+                if 'score' in data:
+                    # Extract raw score and clamp it
+                    raw_score = float(data['score'])
+                    min_val = config.get('range', (1, 10))[0]
+                    max_val = config.get('range', (1, 10))[1]
+                    return max(min_val, min(max_val, raw_score))
+            except (json.JSONDecodeError, KeyError, TypeError):
+                pass
+            # Raise the original Pydantic validation error if manual parsing also fails
+            raise ValueError(f"Failed to parse dimension score: {e}")
 
         # Use dimension config ranges if available
         min_val = config.get('range', (1, 10))[0]

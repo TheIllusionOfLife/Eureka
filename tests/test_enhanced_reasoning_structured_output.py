@@ -136,7 +136,7 @@ class TestDimensionScoreStructuredOutput:
 
         evaluator = MultiDimensionalEvaluator(genai_client=mock_client)
 
-        with pytest.raises(RuntimeError, match="Failed to evaluate.*Failed to parse.*JSON"):
+        with pytest.raises(RuntimeError, match="Failed to evaluate.*Failed to parse"):
             evaluator._evaluate_dimension(
                 idea="Test",
                 context={"topic": "AI", "context": "test"},

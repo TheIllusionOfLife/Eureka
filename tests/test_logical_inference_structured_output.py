@@ -96,6 +96,7 @@ class TestCausalAnalysisStructuredOutput:
         mock_client = Mock()
         mock_response = Mock()
         mock_response.text = json.dumps({
+            "inference_chain": ["Analyze initial state", "Trace effects"],  # Required field
             "causal_chain": ["Initial state", "First effect", "Second effect"],
             "feedback_loops": ["Loop 1", "Loop 2"],
             "root_cause": "Primary driver",
@@ -118,7 +119,9 @@ class TestCausalAnalysisStructuredOutput:
         api_config = call_args.kwargs['config']
         assert api_config.response_mime_type == "application/json"
 
-        # Verify parsed data
+        # Verify parsed data - result should be CausalAnalysis
+        from madspark.schemas.logical_inference import CausalAnalysis
+        assert isinstance(result, CausalAnalysis)
         assert result.causal_chain == ["Initial state", "First effect", "Second effect"]
         assert result.feedback_loops == ["Loop 1", "Loop 2"]
         assert result.root_cause == "Primary driver"
@@ -137,12 +140,13 @@ class TestConstraintAnalysisStructuredOutput:
         mock_client = Mock()
         mock_response = Mock()
         mock_response.text = json.dumps({
+            "inference_chain": ["Evaluate budget", "Evaluate timeline", "Evaluate quality"],  # Required field
             "constraint_satisfaction": {
-                "Budget": 85.0,
-                "Timeline": 70.0,
-                "Quality": 90.0
+                "Budget": 0.85,  # Changed to 0-1 scale
+                "Timeline": 0.70,
+                "Quality": 0.90
             },
-            "overall_satisfaction": 81.67,
+            "overall_satisfaction": 0.82,  # Changed to 0-1 scale (was 81.67)
             "trade_offs": ["Cost vs Quality", "Speed vs Accuracy"],
             "conclusion": "Constraints moderately satisfied",
             "confidence": 0.82
@@ -158,13 +162,16 @@ class TestConstraintAnalysisStructuredOutput:
             analysis_type=InferenceType.CONSTRAINTS
         )
 
-        # Verify parsed constraint data
+        # Verify parsed constraint data - result should be ConstraintAnalysis
+        from madspark.schemas.logical_inference import ConstraintAnalysis
+        assert isinstance(result, ConstraintAnalysis)
         assert result.constraint_satisfaction == {
-            "Budget": 85.0,
-            "Timeline": 70.0,
-            "Quality": 90.0
+            "Budget": 0.85,
+            "Timeline": 0.70,
+            "Quality": 0.90
         }
-        assert result.overall_satisfaction == 81.67
+        # overall_satisfaction is 0-1 scale in Pydantic version
+        assert result.overall_satisfaction == 0.82
         assert result.trade_offs == ["Cost vs Quality", "Speed vs Accuracy"]
 
 
@@ -181,6 +188,7 @@ class TestContradictionAnalysisStructuredOutput:
         mock_client = Mock()
         mock_response = Mock()
         mock_response.text = json.dumps({
+            "inference_chain": ["Review claims", "Identify inconsistencies"],  # Required field
             "contradictions": [
                 {
                     "conflict": "Claim A contradicts Claim B",
@@ -204,7 +212,9 @@ class TestContradictionAnalysisStructuredOutput:
             analysis_type=InferenceType.CONTRADICTION
         )
 
-        # Verify contradiction parsing
+        # Verify contradiction parsing - result should be ContradictionAnalysis
+        from madspark.schemas.logical_inference import ContradictionAnalysis
+        assert isinstance(result, ContradictionAnalysis)
         assert len(result.contradictions) == 1
         assert result.contradictions[0]["conflict"] == "Claim A contradicts Claim B"
         assert result.contradictions[0]["severity"] == "HIGH"
@@ -220,6 +230,7 @@ class TestContradictionAnalysisStructuredOutput:
         mock_client = Mock()
         mock_response = Mock()
         mock_response.text = json.dumps({
+            "inference_chain": ["Review claims", "Check consistency"],  # Required field
             "contradictions": [],
             "resolution": None,
             "conclusion": "No logical contradictions detected",
@@ -236,7 +247,9 @@ class TestContradictionAnalysisStructuredOutput:
             analysis_type=InferenceType.CONTRADICTION
         )
 
-        # Verify no contradictions
+        # Verify no contradictions - result should be ContradictionAnalysis
+        from madspark.schemas.logical_inference import ContradictionAnalysis
+        assert isinstance(result, ContradictionAnalysis)
         assert result.contradictions == []
         assert result.conclusion == "No logical contradictions detected"
         assert result.confidence == 0.9
@@ -255,6 +268,7 @@ class TestImplicationsAnalysisStructuredOutput:
         mock_client = Mock()
         mock_response = Mock()
         mock_response.text = json.dumps({
+            "inference_chain": ["Analyze direct effects", "Project second-order effects"],  # Required field
             "implications": [
                 "Direct implication 1",
                 "Direct implication 2"
@@ -277,7 +291,9 @@ class TestImplicationsAnalysisStructuredOutput:
             analysis_type=InferenceType.IMPLICATIONS
         )
 
-        # Verify implications parsing
+        # Verify implications parsing - result should be ImplicationsAnalysis
+        from madspark.schemas.logical_inference import ImplicationsAnalysis
+        assert isinstance(result, ImplicationsAnalysis)
         assert result.implications == ["Direct implication 1", "Direct implication 2"]
         assert result.second_order_effects == ["Secondary effect 1", "Secondary effect 2"]
         assert len(result.implications) == 2
@@ -421,8 +437,8 @@ class TestErrorHandling:
         # The key is it doesn't raise an exception
         assert result is not None
         # Text parsing will attempt to parse "Not valid JSON" and likely fail gracefully
-        # Either error is set OR confidence is 0 (from failed text parsing)
-        assert result.error is not None or result.confidence <= 0.5
+        # In Pydantic version, errors indicated by confidence=0.0, not error field
+        assert result.confidence <= 0.5
 
     @patch('madspark.agents.genai_client.get_model_name')
     def test_missing_required_fields_handled(self, mock_get_model):
@@ -450,10 +466,11 @@ class TestErrorHandling:
         )
 
         # Should handle gracefully with error
-        # Either populate with defaults or set error field
+        # In Pydantic version, validation errors result in confidence=0.0
         assert result is not None
-        # At minimum, should have some data even if incomplete
-        assert result.inference_chain == ["Step 1"] or result.error is not None
+        # Missing required 'conclusion' field will cause validation error
+        # Engine should catch this and return low confidence result
+        assert result.confidence == 0.0
 
 
 class TestBackwardCompatibility:

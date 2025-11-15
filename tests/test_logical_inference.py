@@ -4,8 +4,13 @@ from unittest.mock import Mock
 
 from madspark.utils.logical_inference_engine import (
     LogicalInferenceEngine,
-    InferenceResult,
     InferenceType
+)
+from madspark.schemas.logical_inference import (
+    InferenceResult,
+    CausalAnalysis,
+    ConstraintAnalysis,
+    ContradictionAnalysis
 )
 
 
@@ -80,18 +85,20 @@ FEEDBACK_LOOPS:
 - More adoption → Economy of scale → Lower costs → More adoption
 
 ROOT_CAUSE: Urban space constraints drive innovation in vertical renewable energy"""
-        
+
         # Mock the nested API structure
         mock_models = Mock()
         mock_models.generate_content.return_value = mock_response
         mock_genai_client.models = mock_models
-        
+
         result = engine.analyze(idea="Vertical wind turbines for cities",
-            topic="renewable energy", 
+            topic="renewable energy",
             context="urban constraints",
             analysis_type=InferenceType.CAUSAL
         )
-        
+
+        # Result should be CausalAnalysis subclass
+        assert isinstance(result, CausalAnalysis)
         assert result.causal_chain is not None
         assert len(result.causal_chain) == 5
         assert result.feedback_loops is not None
@@ -102,7 +109,7 @@ ROOT_CAUSE: Urban space constraints drive innovation in vertical renewable energ
         mock_response = Mock()
         mock_response.text = """CONSTRAINT_ANALYSIS:
 - Space limitation: SATISFIED (90%) - Vertical design minimizes footprint
-- Cost effectiveness: SATISFIED (75%) - Initial cost high but ROI in 5 years  
+- Cost effectiveness: SATISFIED (75%) - Initial cost high but ROI in 5 years
 - Environmental impact: SATISFIED (95%) - Zero emissions, minimal noise
 - Urban regulations: PARTIALLY SATISFIED (60%) - May need zoning approvals
 
@@ -111,20 +118,23 @@ OVERALL_SATISFACTION: 80%
 TRADE_OFFS:
 - Higher upfront cost for better long-term savings
 - Some aesthetic impact for environmental benefits"""
-        
+
         # Mock the nested API structure
         mock_models = Mock()
         mock_models.generate_content.return_value = mock_response
         mock_genai_client.models = mock_models
-        
+
         result = engine.analyze(idea="Rooftop wind turbines",
             topic="renewable energy",
             context="must be cost-effective, environmentally friendly, fit urban regulations",
             analysis_type=InferenceType.CONSTRAINTS
         )
-        
+
+        # Result should be ConstraintAnalysis subclass
+        assert isinstance(result, ConstraintAnalysis)
         assert result.constraint_satisfaction is not None
-        assert result.overall_satisfaction == 80
+        # overall_satisfaction is now 0-1 scale, not 0-100
+        assert result.overall_satisfaction == 0.8
         assert len(result.trade_offs) == 2
     
     def test_analyze_contradiction_detection(self, engine, mock_genai_client):
@@ -133,7 +143,7 @@ TRADE_OFFS:
         mock_response.text = """CONTRADICTIONS_FOUND: 1
 
 CONTRADICTION_1:
-- Conflict: "Anonymous" vs "for teenagers"  
+- Conflict: "Anonymous" vs "for teenagers"
 - Type: Safety requirement conflict
 - Severity: HIGH
 - Explanation: True anonymity prevents safety measures required for minors
@@ -142,18 +152,20 @@ RESOLUTION:
 Use pseudo-anonymity with verified guardian oversight while maintaining peer anonymity
 
 NO_CONTRADICTIONS: False"""
-        
+
         # Mock the nested API structure
         mock_models = Mock()
         mock_models.generate_content.return_value = mock_response
         mock_genai_client.models = mock_models
-        
+
         result = engine.analyze(idea="Anonymous social network for teenagers",
             topic="social networking",
             context="must be safe for minors",
             analysis_type=InferenceType.CONTRADICTION
         )
-        
+
+        # Result should be ContradictionAnalysis subclass
+        assert isinstance(result, ContradictionAnalysis)
         assert result.contradictions is not None
         assert len(result.contradictions) == 1
         assert result.contradictions[0]['severity'] == 'HIGH'
@@ -190,21 +202,19 @@ NO_CONTRADICTIONS: False"""
         assert "Confidence: 90%" in formatted
     
     def test_format_for_display_detailed(self, engine):
-        """Test detailed display formatting."""
-        result = InferenceResult(
+        """Test detailed display formatting with CausalAnalysis."""
+        # Use CausalAnalysis which has causal_chain field
+        result = CausalAnalysis(
             inference_chain=["Step 1", "Step 2"],
             conclusion="Conclusion here",
             confidence=0.85,
             improvements="Improvements here",
-            causal_chain=["Cause 1", "Cause 2"],
-            contradictions=[{"conflict": "A vs B", "severity": "HIGH"}]
+            causal_chain=["Cause 1", "Cause 2"]
         )
-        
+
         formatted = engine.format_for_display(result, verbosity='detailed')
         assert "Causal Analysis:" in formatted
         assert "Cause 1" in formatted
-        assert "Contradictions Found:" in formatted
-        assert "A vs B" in formatted
         assert "Improvements:" in formatted
     
     def test_error_handling_api_failure(self, engine, mock_genai_client):
@@ -213,15 +223,15 @@ NO_CONTRADICTIONS: False"""
         mock_models = Mock()
         mock_models.generate_content.side_effect = RuntimeError("API Error")
         mock_genai_client.models = mock_models
-        
+
         result = engine.analyze(idea="Test idea",
             topic="Test theme",
             context="Test context"
         )
-        
-        assert result.error is not None
-        assert "API Error" in result.error
+
+        # Error is indicated by low confidence and error message in conclusion
         assert result.confidence == 0.0
+        assert "API Error" in result.conclusion or "failed" in result.conclusion.lower()
     
     def test_error_handling_malformed_response(self, engine, mock_genai_client):
         """Test handling of malformed API responses."""
@@ -280,15 +290,17 @@ class TestInferenceResult:
         assert result.improvements == "Test improvements"
     
     def test_inference_result_to_dict(self):
-        """Test converting InferenceResult to dictionary."""
-        result = InferenceResult(
+        """Test converting InferenceResult to dictionary using Pydantic model_dump."""
+        # Use CausalAnalysis to test causal_chain field
+        result = CausalAnalysis(
             inference_chain=["Step 1"],
             conclusion="Conclusion",
             confidence=0.8,
             causal_chain=["Cause 1"]
         )
-        
-        result_dict = result.to_dict()
+
+        # Use Pydantic v2 model_dump() instead of to_dict()
+        result_dict = result.model_dump()
         assert isinstance(result_dict, dict)
         assert result_dict['confidence'] == 0.8
         assert 'causal_chain' in result_dict

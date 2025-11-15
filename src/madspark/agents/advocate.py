@@ -27,8 +27,12 @@ except ImportError:
 # Import constants directly (not in compat_imports yet)
 try:
     from madspark.utils.constants import ADVOCATE_EMPTY_RESPONSE, ADVOCATE_SYSTEM_INSTRUCTION, LANGUAGE_CONSISTENCY_INSTRUCTION
+    from madspark.schemas.advocacy import AdvocacyResponse
+    from madspark.schemas.adapters import pydantic_to_genai_schema
 except ImportError:
     from ..utils.constants import ADVOCATE_EMPTY_RESPONSE, ADVOCATE_SYSTEM_INSTRUCTION, LANGUAGE_CONSISTENCY_INSTRUCTION
+    from ..schemas.advocacy import AdvocacyResponse
+    from ..schemas.adapters import pydantic_to_genai_schema
 
 # Import genai_client using compat helper
 _genai_imports = import_genai_and_constants()
@@ -47,6 +51,9 @@ if GENAI_AVAILABLE:
 else:
     advocate_client = None
     model_name = "mock-model"
+
+# Convert Pydantic model to GenAI schema format at module level (cached)
+_ADVOCATE_GENAI_SCHEMA = pydantic_to_genai_schema(AdvocacyResponse)
 
 
 def advocate_idea(idea: str, evaluation: str, topic: str, context: str, temperature: float = 0.5, use_structured_output: bool = True) -> str:
@@ -129,14 +136,11 @@ def advocate_idea(idea: str, evaluation: str, topic: str, context: str, temperat
   
   try:
     if use_structured_output:
-        # Import the schema
-        from madspark.agents.response_schemas import ADVOCATE_SCHEMA
-        
-        # Create the generation config with structured output
+        # Create the generation config with pre-computed structured output schema
         config = types.GenerateContentConfig(
             temperature=temperature,
             response_mime_type="application/json",
-            response_schema=ADVOCATE_SCHEMA,
+            response_schema=_ADVOCATE_GENAI_SCHEMA,
             system_instruction=ADVOCATE_SYSTEM_INSTRUCTION
         )
     else:

@@ -27,10 +27,14 @@ except ImportError:
 try:
     from madspark.utils.constants import SKEPTIC_EMPTY_RESPONSE, SKEPTIC_SYSTEM_INSTRUCTION, LANGUAGE_CONSISTENCY_INSTRUCTION
     from madspark.agents.genai_client import get_genai_client, get_model_name
+    from madspark.schemas.skepticism import SkepticismResponse
+    from madspark.schemas.adapters import pydantic_to_genai_schema
 except ImportError:
     # Fallback for local development/testing
     from constants import SKEPTIC_EMPTY_RESPONSE, SKEPTIC_SYSTEM_INSTRUCTION, LANGUAGE_CONSISTENCY_INSTRUCTION
     from .genai_client import get_genai_client, get_model_name
+    from ..schemas.skepticism import SkepticismResponse
+    from ..schemas.adapters import pydantic_to_genai_schema
 
 # Configure the Google GenAI client
 if GENAI_AVAILABLE:
@@ -39,6 +43,9 @@ if GENAI_AVAILABLE:
 else:
     skeptic_client = None
     model_name = "mock-model"
+
+# Convert Pydantic model to GenAI schema format at module level (cached)
+_SKEPTIC_GENAI_SCHEMA = pydantic_to_genai_schema(SkepticismResponse)
 
 
 def criticize_idea(idea: str, advocacy: str, topic: str, context: str, temperature: float = 0.5, use_structured_output: bool = True) -> str:
@@ -132,14 +139,11 @@ def criticize_idea(idea: str, advocacy: str, topic: str, context: str, temperatu
   
   try:
     if use_structured_output:
-        # Import the schema
-        from madspark.agents.response_schemas import SKEPTIC_SCHEMA
-        
-        # Create the generation config with structured output
+        # Create the generation config with pre-computed structured output schema
         config = types.GenerateContentConfig(
             temperature=temperature,
             response_mime_type="application/json",
-            response_schema=SKEPTIC_SCHEMA,
+            response_schema=_SKEPTIC_GENAI_SCHEMA,
             system_instruction=SKEPTIC_SYSTEM_INSTRUCTION
         )
     else:

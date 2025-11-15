@@ -10,6 +10,8 @@ from typing import Any, Optional, List, Union
 
 from ..utils.constants import DEFAULT_GOOGLE_GENAI_MODEL
 from ..utils.multimodal_input import build_prompt_with_multimodal
+from madspark.schemas.generation import ImprovementResponse
+from madspark.schemas.adapters import pydantic_to_genai_schema
 
 # Optional import for Google GenAI - graceful fallback for CI/testing
 try:
@@ -23,23 +25,8 @@ except ImportError:
 
 from madspark.utils.constants import IDEA_GENERATOR_SYSTEM_INSTRUCTION
 
-
-# Response schema for structured output
-IMPROVEMENT_RESPONSE_SCHEMA = {
-    "type": "OBJECT",
-    "properties": {
-        "improved_idea": {
-            "type": "STRING",
-            "description": "The improved idea content only, no meta-commentary, no references to original"
-        },
-        "key_improvements": {
-            "type": "ARRAY",
-            "items": {"type": "STRING"},
-            "description": "Brief list of key improvements made (optional)"
-        }
-    },
-    "required": ["improved_idea"]
-}
+# Convert Pydantic model to GenAI schema format at module level (cached)
+_IMPROVEMENT_RESPONSE_GENAI_SCHEMA = pydantic_to_genai_schema(ImprovementResponse)
 
 
 def improve_idea_structured(
@@ -127,12 +114,12 @@ Write ONLY the improved idea. No introductions, no meta-commentary."""
         return f"A revolutionary {context} solution that addresses all feedback points through innovative implementation."
     
     try:
-        # Configure for structured output
+        # Configure for structured output with pre-computed schema
         config = types.GenerateContentConfig(
             temperature=temperature,
             system_instruction=IDEA_GENERATOR_SYSTEM_INSTRUCTION,
             response_mime_type="application/json",
-            response_schema=IMPROVEMENT_RESPONSE_SCHEMA
+            response_schema=_IMPROVEMENT_RESPONSE_GENAI_SCHEMA
         )
 
         response = genai_client.models.generate_content(
@@ -141,10 +128,15 @@ Write ONLY the improved idea. No introductions, no meta-commentary."""
             config=config
         )
         
-        # Parse JSON response
+        # Parse JSON response using Pydantic schema fields
         if response.text:
             try:
                 data = json.loads(response.text)
+                # New Pydantic schema has improved_title and improved_description
+                if "improved_title" in data and "improved_description" in data:
+                    # Combine title and description for backward compatibility
+                    return f"{data['improved_title']}\n\n{data['improved_description']}"
+                # Fallback for legacy "improved_idea" field (shouldn't happen with new schema)
                 return data.get("improved_idea", response.text)
             except json.JSONDecodeError:
                 # Fallback to raw text if not valid JSON

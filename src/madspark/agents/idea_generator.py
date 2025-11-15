@@ -13,6 +13,8 @@ from madspark.utils.utils import parse_batch_json_with_fallback
 from madspark.utils.batch_exceptions import BatchParsingError
 from madspark.utils.content_safety import GeminiSafetyHandler
 from madspark.utils.multimodal_input import build_prompt_with_multimodal
+from madspark.schemas.generation import GeneratedIdeas, ImprovementResponse
+from madspark.schemas.adapters import pydantic_to_genai_schema
 
 # Set up logger
 logger = logging.getLogger(__name__)
@@ -131,13 +133,17 @@ if GENAI_AVAILABLE:
     except ImportError:
         # Fallback for local development/testing
         from .genai_client import get_genai_client, get_model_name
-    
+
     idea_generator_client = get_genai_client()
     model_name = get_model_name()
 else:
     # Mock client for CI environments without genai
     idea_generator_client = None
     model_name = "mock-model"
+
+# Convert Pydantic models to GenAI schema format at module level (cached)
+_IDEA_GENERATOR_GENAI_SCHEMA = pydantic_to_genai_schema(GeneratedIdeas)
+_IMPROVER_GENAI_SCHEMA = pydantic_to_genai_schema(ImprovementResponse)
 
 
 def generate_ideas(
@@ -221,14 +227,11 @@ def generate_ideas(
   
   try:
     if use_structured_output:
-        # Import the schema
-        from madspark.agents.response_schemas import IDEA_GENERATOR_SCHEMA
-        
-        # Create the generation config with structured output
+        # Create the generation config with pre-computed structured output schema
         config = types.GenerateContentConfig(
             temperature=temperature,
             response_mime_type="application/json",
-            response_schema=IDEA_GENERATOR_SCHEMA,
+            response_schema=_IDEA_GENERATOR_GENAI_SCHEMA,
             system_instruction=SYSTEM_INSTRUCTION
         )
     else:

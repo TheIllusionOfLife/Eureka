@@ -7,7 +7,6 @@ Tests caching functionality, TTL, key generation, and statistics.
 import pytest
 import tempfile
 import shutil
-from pathlib import Path
 from pydantic import BaseModel, Field
 
 from madspark.llm.cache import ResponseCache, get_cache, reset_cache, DISKCACHE_AVAILABLE

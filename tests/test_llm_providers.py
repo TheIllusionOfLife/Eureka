@@ -5,7 +5,7 @@ Tests configuration, Ollama provider, Gemini provider, and response handling.
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 from pydantic import BaseModel, Field
 from datetime import datetime
 

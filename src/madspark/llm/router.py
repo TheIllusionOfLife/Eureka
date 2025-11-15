@@ -12,7 +12,7 @@ from pydantic import BaseModel
 
 from madspark.llm.base import LLMProvider
 from madspark.llm.response import LLMResponse
-from madspark.llm.config import get_config, ModelTier
+from madspark.llm.config import get_config
 from madspark.llm.cache import get_cache
 from madspark.llm.exceptions import (
     AllProvidersFailedError,

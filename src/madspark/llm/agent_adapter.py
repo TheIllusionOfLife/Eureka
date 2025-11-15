@@ -11,7 +11,6 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from madspark.llm.router import get_router
-from madspark.llm.response import LLMResponse
 from madspark.llm.exceptions import AllProvidersFailedError
 
 logger = logging.getLogger(__name__)

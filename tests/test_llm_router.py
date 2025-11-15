@@ -5,7 +5,7 @@ Tests provider selection, fallback behavior, caching integration, and metrics.
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 from pathlib import Path
 from pydantic import BaseModel, Field
 

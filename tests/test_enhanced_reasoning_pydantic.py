@@ -177,24 +177,16 @@ class TestEnhancedReasoningPydanticMigration:
     @pytest.mark.integration
     def test_real_api_dimension_score_integration(self):
         """Integration test with real GenAI API to validate Pydantic schema."""
-        import os
         from madspark.core.enhanced_reasoning import MultiDimensionalEvaluator
         from madspark.agents.genai_client import get_genai_client
 
-        # Skip if no API key
-        if not os.getenv('GEMINI_API_KEY'):
-            pytest.skip("GEMINI_API_KEY not set")
-
-        # Use real GenAI client
+        # Use real GenAI client (will skip if GOOGLE_API_KEY not set)
         genai_client = get_genai_client()
+        if genai_client is None:
+            pytest.skip("GOOGLE_API_KEY not set or google-genai not available")
 
-        try:
-            from google import genai
-            types = genai.types
-        except ImportError:
-            pytest.skip("google-genai not available")
-
-        evaluator = MultiDimensionalEvaluator(genai_client=genai_client, types=types)
+        # Create evaluator without types parameter (not accepted by __init__)
+        evaluator = MultiDimensionalEvaluator(genai_client=genai_client)
 
         # Test real evaluation
         idea = "Modular vertical farming system for urban rooftops"

@@ -624,23 +624,30 @@ Consider both positive and negative implications."""
         """Parse constraint satisfaction response into Pydantic ConstraintAnalysis model."""
         # Extract constraint analysis
         constraints_section = self._extract_section(text, "CONSTRAINT_ANALYSIS")
-        constraint_satisfaction = (
+        raw_constraint_satisfaction = (
             self._parse_constraint_list(constraints_section)
             if constraints_section
-            else {"general": 0.5}
+            else {"general": 50.0}  # Default to 50% = 0.5 normalized
         )
 
-        # Extract overall satisfaction
+        # Normalize constraint scores to 0.0-1.0 as expected by Pydantic schema
+        constraint_satisfaction = {
+            name: (value / 100.0 if value > 1 else value)
+            for name, value in raw_constraint_satisfaction.items()
+        }
+
+        # Extract overall satisfaction and normalize to 0.0-1.0
         overall = self._extract_number(text, "OVERALL_SATISFACTION")
-        overall_satisfaction = overall if overall is not None else 0.5
-        confidence = overall_satisfaction / 100.0 if overall_satisfaction > 1 else overall_satisfaction
+        raw_overall = overall if overall is not None else 50.0  # Default to 50%
+        overall_satisfaction = raw_overall / 100.0 if raw_overall > 1 else raw_overall
+        confidence = overall_satisfaction  # Already normalized
 
         # Extract trade-offs
         tradeoffs_section = self._extract_section(text, "TRADE_OFFS")
         trade_offs = self._parse_bullet_list(tradeoffs_section) if tradeoffs_section else []
 
-        # Set conclusion
-        conclusion = f"Constraints satisfied at {int(overall_satisfaction * 100 if overall_satisfaction <= 1 else overall_satisfaction)}% overall"
+        # Set conclusion (overall_satisfaction is already 0.0-1.0)
+        conclusion = f"Constraints satisfied at {int(overall_satisfaction * 100)}% overall"
 
         # Extract inference chain
         inference_chain = ["Constraint analysis step 1", f"Evaluated {len(constraint_satisfaction)} constraints"]

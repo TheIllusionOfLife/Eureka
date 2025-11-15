@@ -204,6 +204,7 @@ Write ONLY the improved idea. No introductions, no meta-commentary."""
         assert "No introductions" in test_prompt
         assert "no meta-commentary" in test_prompt
 
+    @patch('madspark.agents.structured_idea_generator.GENAI_AVAILABLE', True)
     def test_improve_idea_structured_uses_pydantic_parsing(self):
         """Test that improve_idea_structured uses Pydantic adapter for parsing (Task 4)."""
         mock_client = Mock()
@@ -236,6 +237,7 @@ Write ONLY the improved idea. No introductions, no meta-commentary."""
         # Should be title + "\n\n" + description format
         assert "\n\n" in result
 
+    @patch('madspark.agents.structured_idea_generator.GENAI_AVAILABLE', True)
     def test_improve_idea_structured_handles_invalid_json(self):
         """Test fallback when JSON parsing fails with Pydantic."""
         mock_client = Mock()
@@ -257,6 +259,7 @@ Write ONLY the improved idea. No introductions, no meta-commentary."""
         # Should return the raw text as fallback
         assert result == "This is not valid JSON - just plain text response"
 
+    @patch('madspark.agents.structured_idea_generator.GENAI_AVAILABLE', True)
     def test_improve_idea_structured_validates_pydantic_fields(self):
         """Test that Pydantic validation catches invalid/incomplete responses."""
         mock_client = Mock()

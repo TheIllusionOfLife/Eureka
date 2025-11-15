@@ -22,6 +22,12 @@ from madspark.llm.exceptions import (
 )
 from madspark.llm.cache import ResponseCache, get_cache, reset_cache
 from madspark.llm.router import LLMRouter, get_router, reset_router
+from madspark.llm.agent_adapter import (
+    generate_structured_via_router,
+    check_router_health,
+    get_router_metrics,
+    is_router_available,
+)
 
 __all__ = [
     # Base classes
@@ -40,6 +46,11 @@ __all__ = [
     "LLMRouter",
     "get_router",
     "reset_router",
+    # Agent adapter functions
+    "generate_structured_via_router",
+    "check_router_health",
+    "get_router_metrics",
+    "is_router_available",
     # Exceptions
     "LLMProviderError",
     "ProviderUnavailableError",

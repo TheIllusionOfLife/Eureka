@@ -14,10 +14,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 from madspark.utils.logical_inference_engine import LogicalInferenceEngine, InferenceType
 from madspark.schemas.logical_inference import (
     InferenceResult,
-    CausalAnalysis,
-    ConstraintAnalysis,
-    ContradictionAnalysis,
-    ImplicationsAnalysis
+    CausalAnalysis
 )
 
 

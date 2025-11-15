@@ -320,11 +320,11 @@ class BatchOperationsBase:
             elif expected_type == "dict":
                 if len(response) > 0:
                     # If expecting dict but got list, take first item
-                    logger.warning(f"Expected dict but got list, taking first item")
+                    logger.warning("Expected dict but got list, taking first item")
                     return self.normalize_agent_response(response[0], expected_type="dict")
                 else:
                     # Empty list, expecting dict - return empty dict
-                    logger.warning(f"Expected dict but got empty list, returning empty dict")
+                    logger.warning("Expected dict but got empty list, returning empty dict")
                     return {}
             elif expected_type == "str":
                 return json.dumps(response)
@@ -337,7 +337,7 @@ class BatchOperationsBase:
                 return response
             elif expected_type == "list":
                 # If expecting list but got dict, wrap in list
-                logger.warning(f"Expected list but got dict, wrapping in list")
+                logger.warning("Expected list but got dict, wrapping in list")
                 return [response]
             elif expected_type == "str":
                 return json.dumps(response)

@@ -8,7 +8,6 @@ instead of dataclass InferenceResult, with proper validation and type safety.
 import pytest
 import json
 from unittest.mock import Mock, patch
-from typing import Dict, Any
 
 
 class TestLogicalInferencePydanticIntegration:

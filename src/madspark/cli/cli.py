@@ -1056,13 +1056,13 @@ def _show_llm_stats() -> None:
         # Cache stats
         if cache.enabled:
             cache_stats = cache.stats()
-            print(f"\nCache Status:")
+            print("\nCache Status:")
             print(f"  - Size: {cache_stats.get('size', 0)} entries")
             print(f"  - TTL: {cache_stats.get('ttl_seconds', 0)}s")
 
         # Health status
         health = router.health_status()
-        print(f"\nProvider Health:")
+        print("\nProvider Health:")
         print(f"  - Ollama: {'✅' if health['ollama']['healthy'] else '❌'} "
               f"({health['ollama'].get('model', 'N/A')})")
         print(f"  - Gemini: {'✅' if health['gemini']['healthy'] else '❌'} "

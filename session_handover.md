@@ -223,13 +223,13 @@
    - **Estimate**: 6-8 hours for comprehensive completion
    - **Expected Impact**: Additional ~200 line reduction, but diminishing returns on maintainability
 
-3. **[Phase 3] Core Module Type Hints**
+5. **[Phase 3] Core Module Type Hints**
    - **Source**: refactoring_plan_20251106.md Phase 3.3
    - **Context**: Add type hints to core modules (coordinator.py, async_coordinator.py, enhanced_reasoning.py)
    - **Approach**: Similar to PR #176 - TDD with test_[module]_type_hints.py
    - **Estimate**: 6 hours
 
-4. **[Phase 4] Complete Import Consolidation**
+6. **[Phase 4] Complete Import Consolidation**
    - **Source**: PR #172 - Partial completion
    - **Completed**: 4 of 23 files migrated (async_coordinator, batch_processor, coordinator_batch, advocate)
    - **Remaining**: 19 files with import fallbacks (~200 lines)

@@ -82,8 +82,8 @@ class TestAIMultiDimensionalEvaluator:
                 context={"theme": "test"}
             )
 
-        # Should fail with JSON parsing error
-        assert "Failed to parse dimension score JSON" in str(exc_info.value) or "AI returned non-numeric score" in str(exc_info.value)
+        # Should fail with JSON parsing error (updated for Pydantic migration)
+        assert "Failed to parse dimension score" in str(exc_info.value) or "AI returned non-numeric score" in str(exc_info.value)
     
     def test_score_clamping(self):
         """Test that scores are clamped to 1-10 range."""

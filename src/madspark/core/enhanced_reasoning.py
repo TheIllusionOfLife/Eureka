@@ -816,7 +816,6 @@ Respond with only the numeric score (e.g., "6")."""
             # Try to extract the score from JSON and clamp it manually
             try:
                 import json as json_module
-                from pydantic import ValidationError
                 data = json_module.loads(response.text)
                 if 'score' in data:
                     # Extract raw score and clamp it

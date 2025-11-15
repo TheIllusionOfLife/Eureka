@@ -6,9 +6,7 @@ Pydantic DimensionScore schema instead of legacy dict-based DIMENSION_SCORE_SCHE
 """
 
 import pytest
-import json
-from unittest.mock import Mock, patch, MagicMock
-from typing import Dict, Any
+from unittest.mock import Mock, patch
 
 
 class TestEnhancedReasoningPydanticMigration:
@@ -17,8 +15,6 @@ class TestEnhancedReasoningPydanticMigration:
     def test_dimension_evaluation_uses_pydantic_schema(self):
         """Test that dimension evaluation uses Pydantic schema in API config."""
         from madspark.core.enhanced_reasoning import MultiDimensionalEvaluator
-        from madspark.schemas.evaluation import DimensionScore
-        from unittest.mock import call
 
         # Create mock GenAI client
         mock_client = Mock()

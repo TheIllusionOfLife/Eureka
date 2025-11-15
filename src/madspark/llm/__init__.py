@@ -21,6 +21,7 @@ from madspark.llm.exceptions import (
     SchemaValidationError,
 )
 from madspark.llm.cache import ResponseCache, get_cache, reset_cache
+from madspark.llm.router import LLMRouter, get_router, reset_router
 
 __all__ = [
     # Base classes
@@ -35,6 +36,10 @@ __all__ = [
     "ResponseCache",
     "get_cache",
     "reset_cache",
+    # Router
+    "LLMRouter",
+    "get_router",
+    "reset_router",
     # Exceptions
     "LLMProviderError",
     "ProviderUnavailableError",

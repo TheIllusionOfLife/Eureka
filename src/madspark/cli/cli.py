@@ -408,7 +408,51 @@ Examples:
         action='store_true',
         help='Add logical inference analysis (causal chains, constraints, contradictions, implications)'
     )
-    
+
+    # LLM Provider options
+    llm_group = parser.add_argument_group(
+        'LLM provider options',
+        'Control LLM provider selection, caching, and model tier'
+    )
+
+    llm_group.add_argument(
+        '--provider',
+        choices=['auto', 'ollama', 'gemini'],
+        default='auto',
+        help='LLM provider: auto (Ollama primary, Gemini fallback), ollama (local), gemini (cloud)'
+    )
+
+    llm_group.add_argument(
+        '--model-tier',
+        choices=['fast', 'balanced', 'quality'],
+        default=None,
+        help='Model quality tier: fast (4B, quick), balanced (12B, better), quality (Gemini, best)'
+    )
+
+    llm_group.add_argument(
+        '--no-fallback',
+        action='store_true',
+        help='Disable fallback to secondary provider on failure'
+    )
+
+    llm_group.add_argument(
+        '--no-cache',
+        action='store_true',
+        help='Disable response caching (re-generate every time)'
+    )
+
+    llm_group.add_argument(
+        '--clear-cache',
+        action='store_true',
+        help='Clear LLM response cache before running'
+    )
+
+    llm_group.add_argument(
+        '--show-llm-stats',
+        action='store_true',
+        help='Show LLM provider statistics (tokens, cost, cache hits)'
+    )
+
     # Output options
     output_group = parser.add_argument_group('output options')
     
@@ -758,6 +802,42 @@ def _should_suppress_logs(args: argparse.Namespace) -> bool:
     )
 
 
+def _configure_llm_provider(args: argparse.Namespace) -> None:
+    """Configure LLM provider based on CLI arguments.
+
+    Sets environment variables and initializes LLM router with user preferences.
+
+    Args:
+        args: Parsed command-line arguments
+    """
+    # Set environment variables based on CLI args
+    if getattr(args, 'provider', None):
+        os.environ['MADSPARK_LLM_PROVIDER'] = args.provider
+
+    if getattr(args, 'model_tier', None):
+        os.environ['MADSPARK_MODEL_TIER'] = args.model_tier
+
+    if getattr(args, 'no_fallback', False):
+        os.environ['MADSPARK_FALLBACK_ENABLED'] = 'false'
+
+    if getattr(args, 'no_cache', False):
+        os.environ['MADSPARK_CACHE_ENABLED'] = 'false'
+
+    # Handle cache operations
+    if getattr(args, 'clear_cache', False):
+        try:
+            from madspark.llm import get_cache
+            cache = get_cache()
+            if cache.enabled:
+                cache.clear()
+                logger.info("LLM response cache cleared")
+                print("🗑️  LLM response cache cleared")
+        except ImportError:
+            logger.warning("LLM module not available for cache clearing")
+        except Exception as e:
+            logger.warning(f"Failed to clear cache: {e}")
+
+
 def _handle_create_sample_batch(args: argparse.Namespace) -> None:
     """Handle create sample batch file command.
 
@@ -815,6 +895,9 @@ def main() -> None:
     if _should_suppress_logs(args):
         logging.getLogger().setLevel(logging.CRITICAL)
         os.environ["SUPPRESS_MODE_MESSAGE"] = "1"
+
+    # Handle LLM provider configuration early
+    _configure_llm_provider(args)
 
     # Import command handlers
     try:
@@ -935,10 +1018,62 @@ def main() -> None:
             logger.info(f"Results saved to {args.output_file}")
         else:
             print(formatted_output)
-            
+
+        # Show LLM provider statistics if requested
+        if getattr(args, 'show_llm_stats', False):
+            _show_llm_stats()
+
     except Exception as e:
         logger.error(f"Workflow failed: {e}")
         sys.exit(1)
+
+
+def _show_llm_stats() -> None:
+    """Display LLM provider usage statistics."""
+    try:
+        from madspark.llm import get_router, get_cache
+
+        router = get_router()
+        cache = get_cache()
+
+        print("\n" + "=" * 50)
+        print("📊 LLM Provider Statistics")
+        print("=" * 50)
+
+        # Router metrics
+        metrics = router.get_metrics()
+        print(f"Total Requests: {metrics['total_requests']}")
+        print(f"  - Ollama Calls: {metrics['ollama_calls']}")
+        print(f"  - Gemini Calls: {metrics['gemini_calls']}")
+        print(f"  - Cache Hits: {metrics['cache_hits']}")
+        print(f"  - Fallback Triggers: {metrics['fallback_triggers']}")
+        print(f"Total Tokens: {metrics['total_tokens']}")
+        print(f"Total Cost: ${metrics['total_cost']:.6f}")
+        if metrics['total_requests'] > 0:
+            print(f"Cache Hit Rate: {metrics['cache_hit_rate']:.1%}")
+            print(f"Avg Latency: {metrics['avg_latency_ms']:.0f}ms")
+
+        # Cache stats
+        if cache.enabled:
+            cache_stats = cache.stats()
+            print(f"\nCache Status:")
+            print(f"  - Size: {cache_stats.get('size', 0)} entries")
+            print(f"  - TTL: {cache_stats.get('ttl_seconds', 0)}s")
+
+        # Health status
+        health = router.health_status()
+        print(f"\nProvider Health:")
+        print(f"  - Ollama: {'✅' if health['ollama']['healthy'] else '❌'} "
+              f"({health['ollama'].get('model', 'N/A')})")
+        print(f"  - Gemini: {'✅' if health['gemini']['healthy'] else '❌'} "
+              f"({health['gemini'].get('model', 'N/A')})")
+
+        print("=" * 50)
+
+    except ImportError:
+        print("\n⚠️  LLM statistics not available (module not installed)")
+    except Exception as e:
+        logger.warning(f"Failed to show LLM stats: {e}")
 
 
 if __name__ == "__main__":

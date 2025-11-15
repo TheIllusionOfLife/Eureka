@@ -116,8 +116,9 @@ class ResponseCache:
         key_data = {
             "prompt": prompt,
             "schema_name": schema.__name__,
-            "schema_hash": hashlib.md5(
-                json.dumps(schema.model_json_schema(), sort_keys=True).encode()
+            "schema_hash": hashlib.md5(  # noqa: S324
+                json.dumps(schema.model_json_schema(), sort_keys=True).encode(),
+                usedforsecurity=False,
             ).hexdigest(),
             "temperature": temperature,
             "provider": provider,

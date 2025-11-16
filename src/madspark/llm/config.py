@@ -52,22 +52,6 @@ class LLMConfig:
     retry_delay_ms: int = 500
     default_temperature: float = 0.7
 
-    # Token budgets (reserved for future Phase 2 integration)
-    # NOTE: These are infrastructure for per-agent token control but are not yet
-    # used in production. Agents currently rely on OllamaProvider._estimate_token_budget().
-    # Phase 2 will wire agents to use get_token_budget() for explicit control.
-    token_budgets: dict[str, int] = field(
-        default_factory=lambda: {
-            "simple_score": 150,
-            "evaluation": 500,
-            "multi_evaluation": 1000,
-            "idea_generation": 600,
-            "advocacy": 800,
-            "skepticism": 800,
-            "logical_inference": 1000,
-        }
-    )
-
     # Cache settings
     cache_enabled: bool = True
     cache_ttl_seconds: int = 86400  # 24 hours
@@ -177,21 +161,6 @@ class LLMConfig:
         # Both BALANCED and QUALITY use the same model
         # QUALITY tier with Ollama falls back to balanced; use Gemini for true quality
         return self.ollama_model_balanced
-
-    def get_token_budget(self, request_type: str) -> int:
-        """
-        Get token budget for request type.
-
-        NOTE: This is infrastructure for Phase 2. Currently not called by any
-        production code - agents use OllamaProvider._estimate_token_budget().
-
-        Args:
-            request_type: Type of request (e.g., 'evaluation', 'advocacy')
-
-        Returns:
-            Maximum tokens to generate for this request type
-        """
-        return self.token_budgets.get(request_type, 500)
 
     def validate_api_key(self) -> bool:
         """

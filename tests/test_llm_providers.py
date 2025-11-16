@@ -64,18 +64,6 @@ class TestLLMConfig:
         config = LLMConfig(model_tier=ModelTier.QUALITY)
         assert config.get_ollama_model() == "gemma3:12b-it-qat"
 
-    def test_token_budget_known_type(self, reset_config_fixture):
-        """Test known request types return correct budgets."""
-        config = LLMConfig()
-        assert config.get_token_budget("simple_score") == 150
-        assert config.get_token_budget("evaluation") == 500
-        assert config.get_token_budget("advocacy") == 800
-
-    def test_token_budget_unknown_type(self, reset_config_fixture):
-        """Test unknown request type returns default."""
-        config = LLMConfig()
-        assert config.get_token_budget("unknown_type") == 500
-
     def test_from_env_defaults(self, reset_config_fixture, monkeypatch):
         """Test from_env uses defaults when no env vars set."""
         # Clear relevant env vars

@@ -55,6 +55,8 @@ class LLMProvider(ABC):
         images: Optional[list[Union[str, Path]]] = None,
         files: Optional[list[Path]] = None,
         urls: Optional[list[str]] = None,
+        token_budget: Optional[int] = None,
+        **kwargs: Any,
     ) -> tuple[Any, LLMResponse]:
         """
         Generate structured output validated against Pydantic model.
@@ -67,6 +69,8 @@ class LLMProvider(ABC):
             images: Optional list of image paths for multimodal input
             files: Optional list of file paths (PDF, documents) for context
             urls: Optional list of URLs to fetch for context
+            token_budget: Optional maximum tokens for response
+            **kwargs: Additional provider-specific arguments
 
         Returns:
             tuple: (validated_pydantic_object, response_metadata)

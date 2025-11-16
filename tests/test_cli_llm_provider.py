@@ -4,7 +4,6 @@ Tests for LLM provider CLI integration.
 Tests the CLI flags for --provider, --model-tier, --no-cache, etc.
 """
 
-import sys
 import os
 from unittest.mock import patch, Mock
 import argparse
@@ -58,9 +57,7 @@ class TestCLIProviderConfiguration:
         """Test that --provider flag sets environment variable."""
         from madspark.cli.cli import _configure_llm_provider
 
-        # Mock sys.argv to include --provider flag
-        monkeypatch.setattr(sys, 'argv', ['cli.py', '--provider', 'ollama', 'topic'])
-
+        # No need to mock sys.argv - we just check if args.provider is not None
         args = argparse.Namespace(
             provider='ollama',
             model_tier=None,
@@ -81,8 +78,7 @@ class TestCLIProviderConfiguration:
         """Test that --model-tier flag sets environment variable."""
         from madspark.cli.cli import _configure_llm_provider
 
-        monkeypatch.setattr(sys, 'argv', ['cli.py', '--model-tier', 'balanced', 'topic'])
-
+        # No need to mock sys.argv - we just check if args.model_tier is not None
         args = argparse.Namespace(
             provider=None,
             model_tier='balanced',
@@ -164,10 +160,7 @@ class TestCLIProviderConfiguration:
         """Test that multiple flags are listed in the info message."""
         from madspark.cli.cli import _configure_llm_provider
 
-        monkeypatch.setattr(sys, 'argv', [
-            'cli.py', '--provider', 'gemini', '--model-tier', 'quality', 'topic'
-        ])
-
+        # No need to mock sys.argv - we just check if args values are not None
         args = argparse.Namespace(
             provider='gemini',
             model_tier='quality',
@@ -184,39 +177,6 @@ class TestCLIProviderConfiguration:
         assert '--provider gemini' in call_args
         assert '--model-tier quality' in call_args
         assert '--no-fallback' in call_args
-
-
-class TestWasArgProvided:
-    """Test _was_arg_provided helper function."""
-
-    def test_flag_present(self, monkeypatch):
-        """Test detection when flag is present."""
-        from madspark.cli.cli import _was_arg_provided
-
-        monkeypatch.setattr(sys, 'argv', ['cli.py', '--provider', 'ollama'])
-        assert _was_arg_provided('provider') is True
-
-    def test_flag_with_equals(self, monkeypatch):
-        """Test detection when flag uses = syntax."""
-        from madspark.cli.cli import _was_arg_provided
-
-        monkeypatch.setattr(sys, 'argv', ['cli.py', '--provider=ollama'])
-        assert _was_arg_provided('provider') is True
-
-    def test_flag_not_present(self, monkeypatch):
-        """Test detection when flag is not present."""
-        from madspark.cli.cli import _was_arg_provided
-
-        monkeypatch.setattr(sys, 'argv', ['cli.py', 'topic'])
-        assert _was_arg_provided('provider') is False
-
-    def test_similar_flag_not_matched(self, monkeypatch):
-        """Test that similar flags are not matched."""
-        from madspark.cli.cli import _was_arg_provided
-
-        monkeypatch.setattr(sys, 'argv', ['cli.py', '--provider-extra', 'value'])
-        # Should not match --provider when --provider-extra is present
-        assert _was_arg_provided('provider') is False
 
 
 class TestShowLLMStats:

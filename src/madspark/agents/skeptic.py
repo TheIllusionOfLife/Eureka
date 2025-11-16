@@ -6,6 +6,7 @@ and identifying potential flaws or risks.
 """
 import json
 import logging
+import os
 from typing import List, Dict, Any, Tuple
 
 from madspark.utils.utils import parse_batch_json_with_fallback
@@ -23,6 +24,16 @@ except ImportError:
     genai = None
     types = None
     GENAI_AVAILABLE = False
+
+# Optional LLM Router import
+try:
+    from madspark.llm import get_router
+    from madspark.llm.exceptions import AllProvidersFailedError
+    LLM_ROUTER_AVAILABLE = True
+except ImportError:
+    LLM_ROUTER_AVAILABLE = False
+    get_router = None  # type: ignore
+    AllProvidersFailedError = Exception  # type: ignore
 
 try:
     from madspark.utils.constants import SKEPTIC_EMPTY_RESPONSE, SKEPTIC_SYSTEM_INSTRUCTION, LANGUAGE_CONSISTENCY_INSTRUCTION
@@ -48,8 +59,26 @@ else:
 _SKEPTIC_GENAI_SCHEMA = pydantic_to_genai_schema(SkepticismResponse)
 
 
-def criticize_idea(idea: str, advocacy: str, topic: str, context: str, temperature: float = 0.5, use_structured_output: bool = True) -> str:
+def _should_use_router() -> bool:
+    """
+    Check if router should be used based on configuration.
+    """
+    if not LLM_ROUTER_AVAILABLE or get_router is None:
+        return False
+
+    explicit_provider = os.getenv("MADSPARK_LLM_PROVIDER")
+    cache_disabled = os.getenv("MADSPARK_CACHE_ENABLED") == "false"
+    fallback_disabled = os.getenv("MADSPARK_FALLBACK_ENABLED") == "false"
+    model_tier_set = os.getenv("MADSPARK_MODEL_TIER") is not None
+
+    return bool(explicit_provider or cache_disabled or fallback_disabled or model_tier_set)
+
+
+def criticize_idea(idea: str, advocacy: str, topic: str, context: str, temperature: float = 0.5, use_structured_output: bool = True, use_router: bool = True) -> str:
   """Critically analyzes an idea, playing devil's advocate, using the skeptic model.
+
+  When use_router=True and LLM Router is available, routes through the
+  multi-provider abstraction layer for automatic fallback and caching.
 
   Args:
     idea: The idea to be critically analyzed.
@@ -58,6 +87,7 @@ def criticize_idea(idea: str, advocacy: str, topic: str, context: str, temperatu
     context: Additional constraints or criteria for evaluation.
     temperature: Controls randomness in generation (0.0-1.0). Balanced for criticism.
     use_structured_output: Whether to use structured JSON output (default: True)
+    use_router: Whether to use LLM Router for provider abstraction (default: True)
 
   Returns:
     A string containing the critical analysis, counterarguments, and identified risks.
@@ -101,12 +131,31 @@ def criticize_idea(idea: str, advocacy: str, topic: str, context: str, temperatu
       "• [overlooked consequence]\n"
       "• [continue listing gaps]"
   )
-  
+
+  # Try LLM Router first if available and configured
+  should_route = use_router and LLM_ROUTER_AVAILABLE and get_router is not None
+  if should_route and _should_use_router():
+      try:
+          router = get_router()
+          validated, response = router.generate_structured(
+              prompt=prompt,
+              schema=SkepticismResponse,
+              system_instruction=SKEPTIC_SYSTEM_INSTRUCTION,
+              temperature=temperature,
+          )
+
+          logger.info(f"Router generated skepticism via {response.provider} ({response.tokens_used} tokens)")
+          return json.dumps(validated.model_dump())
+
+      except AllProvidersFailedError as e:
+          logger.warning(f"LLM Router failed, falling back to direct API: {e}")
+      except Exception as e:
+          logger.warning(f"Router error, falling back to direct API: {e}")
+
   if not GENAI_AVAILABLE or skeptic_client is None:
     # Return mock criticism for CI/testing environments or when API key is not configured
     if use_structured_output:
         # Return structured mock data
-        import json
         mock_skepticism = {
             "critical_flaws": [
                 {"title": "Implementation Complexity", "description": "Mock flaw: Implementation complexity may be underestimated"},

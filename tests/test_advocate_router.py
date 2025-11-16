@@ -3,6 +3,7 @@ TDD Tests for Advocate Agent LLM Router Integration.
 
 Tests verify router routing with fallback, configuration detection, and backward compatibility.
 """
+import json
 
 from unittest.mock import patch, Mock
 
@@ -49,8 +50,11 @@ class TestAdvocateRouterIntegration:
         assert "Sustainability" in call_kwargs['prompt']
         assert call_kwargs['schema'] == AdvocacyResponse
 
-        # Result should be formatted JSON or text
-        assert "Innovation" in result or "strengths" in result.lower()
+        # Result should be valid JSON with expected structure
+        parsed = json.loads(result)
+        assert "strengths" in parsed
+        assert len(parsed["strengths"]) == 1
+        assert parsed["strengths"][0]["title"] == "Innovation"
 
     def test_advocate_idea_respects_use_router_false(self):
         """Test that router is bypassed when use_router=False."""

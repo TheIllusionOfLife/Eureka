@@ -76,18 +76,23 @@ class TestCriticRouterIntegration:
 
         with patch('madspark.agents.critic.get_router', return_value=mock_router):
             with patch('madspark.agents.critic.LLM_ROUTER_AVAILABLE', True):
-                # use_router=False should skip router entirely
-                result = evaluate_ideas(
-                    ideas="Test idea",
-                    topic="Topic",
-                    context="Context",
-                    use_router=False
-                )
+                with patch('madspark.agents.critic.GENAI_AVAILABLE', False):
+                    # use_router=False should skip router entirely
+                    result = evaluate_ideas(
+                        ideas="Test idea",
+                        topic="Topic",
+                        context="Context",
+                        use_router=False
+                    )
 
         # Router should NOT have been called
         mock_router.generate_structured.assert_not_called()
-        # Should return mock response (no critic_client in test env)
-        assert "score" in result or "Mock" in result
+        # Should return mock structured output (GENAI_AVAILABLE=False)
+        parsed = json.loads(result)
+        assert isinstance(parsed, list)
+        assert len(parsed) == 1
+        assert "score" in parsed[0]
+        assert "comment" in parsed[0]
 
     def test_evaluate_ideas_falls_back_on_router_failure(self):
         """Test fallback to direct API when router fails."""

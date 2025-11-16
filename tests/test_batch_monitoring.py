@@ -214,9 +214,9 @@ class TestBatchIntegration:
     
     @patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry')
     @patch('madspark.utils.agent_retry_wrappers.call_critic_with_retry')
-    @patch('madspark.agents.advocate.advocate_ideas_batch')
-    @patch('madspark.agents.skeptic.criticize_ideas_batch')
-    @patch('madspark.agents.idea_generator.improve_ideas_batch')
+    @patch('madspark.core.coordinator_batch.advocate_ideas_batch')
+    @patch('madspark.core.coordinator_batch.criticize_ideas_batch')
+    @patch('madspark.core.coordinator_batch.improve_ideas_batch')
     def test_coordinator_monitoring(
         self, mock_improve, mock_skeptic, mock_advocate, mock_critic, mock_gen
     ):

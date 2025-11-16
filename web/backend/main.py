@@ -122,6 +122,18 @@ try:
     from madspark.utils.cache_manager import CacheManager, CacheConfig
     from madspark.utils.improved_idea_cleaner import clean_improved_ideas_in_results
     from madspark.utils.structured_output_check import is_structured_output_available
+    # LLM Router imports (optional - may not be available in all environments)
+    try:
+        from madspark.llm import get_router, reset_router
+        from madspark.llm.cache import reset_cache as reset_llm_cache
+        LLM_ROUTER_AVAILABLE = True
+        logging.info("LLM Router available")
+    except ImportError:
+        LLM_ROUTER_AVAILABLE = False
+        get_router = None  # type: ignore
+        reset_router = None  # type: ignore
+        reset_llm_cache = None  # type: ignore
+        logging.info("LLM Router not available")
 except ImportError as e:
     logging.error(f"Failed to import MadSpark modules: {e}")
     # Try alternative paths for different deployment scenarios
@@ -634,9 +646,35 @@ class IdeaGenerationRequest(BaseModel):
         max_items=5,
         description="URLs for multi-modal context (max 5 URLs)"
     )
+    # LLM Router configuration
+    llm_provider: Optional[str] = Field(
+        default="auto",
+        description="LLM provider selection (auto, ollama, gemini)"
+    )
+    model_tier: Optional[str] = Field(
+        default="fast",
+        description="Model tier for inference (fast, balanced, quality)"
+    )
+    use_llm_cache: Optional[bool] = Field(
+        default=True,
+        description="Enable LLM response caching for cost optimization"
+    )
 
     class Config:
         populate_by_name = True  # Accept both alias and original names (Pydantic V2)
+
+
+class LLMMetrics(BaseModel):
+    """LLM Router usage metrics."""
+    total_requests: int = Field(default=0, description="Total LLM API requests")
+    cache_hits: int = Field(default=0, description="Number of cache hits")
+    ollama_calls: int = Field(default=0, description="Number of Ollama API calls")
+    gemini_calls: int = Field(default=0, description="Number of Gemini API calls")
+    fallback_triggers: int = Field(default=0, description="Number of fallback triggers")
+    total_tokens: int = Field(default=0, description="Total tokens consumed")
+    total_cost: float = Field(default=0.0, description="Total cost in USD")
+    cache_hit_rate: float = Field(default=0.0, description="Cache hit rate (0.0-1.0)")
+    avg_latency_ms: float = Field(default=0.0, description="Average latency in milliseconds")
 
 
 class IdeaGenerationResponse(BaseModel):
@@ -646,6 +684,10 @@ class IdeaGenerationResponse(BaseModel):
     processing_time: float
     timestamp: str
     structured_output: bool = False  # Indicates if ideas are using structured output (no cleaning needed)
+    llm_metrics: Optional[LLMMetrics] = Field(
+        default=None,
+        description="LLM Router usage metrics (tokens, cost, cache hits)"
+    )
 
 
 class BookmarkRequest(BaseModel):
@@ -1033,6 +1075,138 @@ async def get_temperature_presets():
     except Exception as e:
         logger.error(f"Failed to get temperature presets: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# LLM Router endpoints
+@app.get(
+    "/api/llm/health",
+    tags=["llm"],
+    summary="Get LLM provider health status",
+    description="Check availability and health of LLM providers (Ollama, Gemini)"
+)
+async def get_llm_health():
+    """Get LLM provider health status."""
+    if not LLM_ROUTER_AVAILABLE or get_router is None:
+        return {
+            "status": "unavailable",
+            "message": "LLM Router not available",
+            "providers": {}
+        }
+
+    try:
+        router = get_router()
+        health = router.health_status()
+        return {
+            "status": "available",
+            "providers": health
+        }
+    except Exception as e:
+        logger.error(f"Failed to get LLM health: {e}")
+        return {
+            "status": "error",
+            "message": str(e),
+            "providers": {}
+        }
+
+
+@app.get(
+    "/api/llm/metrics",
+    tags=["llm"],
+    summary="Get LLM usage metrics",
+    description="Get router usage statistics including tokens, cost, and cache hits"
+)
+async def get_llm_metrics():
+    """Get LLM router usage metrics."""
+    if not LLM_ROUTER_AVAILABLE or get_router is None:
+        return {
+            "status": "unavailable",
+            "message": "LLM Router not available",
+            "metrics": {}
+        }
+
+    try:
+        router = get_router()
+        metrics = router.get_metrics()
+        return {
+            "status": "success",
+            "metrics": metrics
+        }
+    except Exception as e:
+        logger.error(f"Failed to get LLM metrics: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post(
+    "/api/llm/cache/clear",
+    tags=["llm"],
+    summary="Clear LLM response cache",
+    description="Clear the LLM response cache to force fresh API calls"
+)
+async def clear_llm_cache():
+    """Clear LLM response cache."""
+    if not LLM_ROUTER_AVAILABLE or reset_llm_cache is None:
+        return {
+            "status": "unavailable",
+            "message": "LLM Router cache not available"
+        }
+
+    try:
+        reset_llm_cache()
+        return {
+            "status": "success",
+            "message": "LLM cache cleared successfully"
+        }
+    except Exception as e:
+        logger.error(f"Failed to clear LLM cache: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get(
+    "/api/llm/providers",
+    tags=["llm"],
+    summary="Get available LLM providers",
+    description="List available LLM providers and their configurations"
+)
+async def get_llm_providers():
+    """Get available LLM providers and configurations."""
+    return {
+        "status": "success",
+        "providers": [
+            {
+                "id": "auto",
+                "name": "Auto (Ollama-first)",
+                "description": "Automatically selects Ollama (free) with Gemini fallback"
+            },
+            {
+                "id": "ollama",
+                "name": "Ollama (Local)",
+                "description": "Local inference using Ollama (free, requires Ollama server)"
+            },
+            {
+                "id": "gemini",
+                "name": "Gemini (Cloud)",
+                "description": "Cloud inference using Google Gemini API (paid)"
+            }
+        ],
+        "model_tiers": [
+            {
+                "id": "fast",
+                "name": "Fast",
+                "description": "Quick responses with gemma3:4b (Ollama) or gemini-2.5-flash"
+            },
+            {
+                "id": "balanced",
+                "name": "Balanced",
+                "description": "Better quality with gemma3:12b (Ollama)"
+            },
+            {
+                "id": "quality",
+                "name": "Quality",
+                "description": "Best quality with larger models"
+            }
+        ],
+        "router_available": LLM_ROUTER_AVAILABLE
+    }
 
 
 @app.post(

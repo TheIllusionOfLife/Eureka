@@ -233,42 +233,58 @@ class LLMRouter:
         # Check cache first
         should_use_cache = use_cache if use_cache is not None else self._cache_enabled
         cache = get_cache() if should_use_cache else None
-        cache_key = None  # Initialize to avoid unbound variable in fallback
 
-        if cache and cache.enabled:
-            # Build cache key with all inputs that affect output
-            cache_key_kwargs = {
-                "provider": force_provider or "",
-                "system_instruction": system_instruction,
-            }
-            # Include multimodal inputs to avoid incorrect cache hits
-            # Normalize paths with resolve() for consistent caching
-            if images:
-                cache_key_kwargs["images"] = sorted(
-                    [str(Path(p).resolve()) for p in images]
-                )
-            if files:
-                cache_key_kwargs["files"] = sorted(
-                    [str(Path(p).resolve()) for p in files]
-                )
-            if urls:
-                cache_key_kwargs["urls"] = sorted(urls)
-
-            cache_key = cache.make_key(
-                prompt,
-                schema,
-                temperature,
-                **cache_key_kwargs,
-                **kwargs  # Include all other dynamic arguments
+        # Build base cache key kwargs (shared between lookup and storage)
+        base_cache_kwargs = {
+            "system_instruction": system_instruction,
+        }
+        # Include multimodal inputs to avoid incorrect cache hits
+        # Normalize paths with resolve() for consistent caching
+        if images:
+            base_cache_kwargs["images"] = sorted(
+                [str(Path(p).resolve()) for p in images]
             )
-            cached = cache.get(cache_key)
-            if cached:
-                self._metrics["cache_hits"] += 1
-                # Reconstruct validated object from dict
-                validated_dict, response = cached
-                validated = schema.model_validate(validated_dict)
-                logger.info("Cache hit - returning cached response")
-                return validated, response
+        if files:
+            base_cache_kwargs["files"] = sorted(
+                [str(Path(p).resolve()) for p in files]
+            )
+        if urls:
+            base_cache_kwargs["urls"] = sorted(urls)
+
+        # Cache lookup: try to find cached response
+        # Key includes actual provider name to prevent cache poisoning
+        if cache and cache.enabled:
+            if force_provider:
+                # User requested specific provider, only check that provider's cache
+                cache_key = cache.make_key(
+                    prompt, schema, temperature,
+                    provider=force_provider,
+                    **base_cache_kwargs,
+                    **kwargs
+                )
+                cached = cache.get(cache_key)
+                if cached:
+                    self._metrics["cache_hits"] += 1
+                    validated_dict, response = cached
+                    validated = schema.model_validate(validated_dict)
+                    logger.info(f"Cache hit - returning cached {force_provider} response")
+                    return validated, response
+            else:
+                # Auto mode: try preferred providers in order (Ollama first = lower cost)
+                for check_provider in ["ollama", "gemini"]:
+                    cache_key = cache.make_key(
+                        prompt, schema, temperature,
+                        provider=check_provider,
+                        **base_cache_kwargs,
+                        **kwargs
+                    )
+                    cached = cache.get(cache_key)
+                    if cached:
+                        self._metrics["cache_hits"] += 1
+                        validated_dict, response = cached
+                        validated = schema.model_validate(validated_dict)
+                        logger.info(f"Cache hit - returning cached {check_provider} response")
+                        return validated, response
 
         # Select provider
         errors = []
@@ -297,9 +313,15 @@ class LLMRouter:
             # Update metrics
             self._update_metrics(provider_name, response)
 
-            # Cache result
+            # Cache result with actual provider name (prevents cache poisoning)
             if cache and cache.enabled:
-                cache.set(cache_key, (validated, response))
+                actual_cache_key = cache.make_key(
+                    prompt, schema, temperature,
+                    provider=provider_name,  # Use ACTUAL provider, not force_provider
+                    **base_cache_kwargs,
+                    **kwargs
+                )
+                cache.set(actual_cache_key, (validated, response))
 
             logger.info(
                 f"Generated via {provider_name} in {latency:.0f}ms "
@@ -335,8 +357,15 @@ class LLMRouter:
 
                         self._update_metrics(provider_name, response)
 
-                        if cache and cache.enabled and cache_key is not None:
-                            cache.set(cache_key, (validated, response))
+                        # Cache fallback result with actual provider name
+                        if cache and cache.enabled:
+                            actual_cache_key = cache.make_key(
+                                prompt, schema, temperature,
+                                provider=provider_name,  # Use ACTUAL provider
+                                **base_cache_kwargs,
+                                **kwargs
+                            )
+                            cache.set(actual_cache_key, (validated, response))
 
                         return validated, response
 

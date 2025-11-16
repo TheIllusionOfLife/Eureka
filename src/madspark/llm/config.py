@@ -49,7 +49,10 @@ class LLMConfig:
     retry_delay_ms: int = 500
     default_temperature: float = 0.7
 
-    # Token budgets (critical for Ollama performance)
+    # Token budgets (reserved for future Phase 2 integration)
+    # NOTE: These are infrastructure for per-agent token control but are not yet
+    # used in production. Agents currently rely on OllamaProvider._estimate_token_budget().
+    # Phase 2 will wire agents to use get_token_budget() for explicit control.
     token_budgets: dict[str, int] = field(
         default_factory=lambda: {
             "simple_score": 150,
@@ -148,6 +151,9 @@ class LLMConfig:
     def get_token_budget(self, request_type: str) -> int:
         """
         Get token budget for request type.
+
+        NOTE: This is infrastructure for Phase 2. Currently not called by any
+        production code - agents use OllamaProvider._estimate_token_budget().
 
         Args:
             request_type: Type of request (e.g., 'evaluation', 'advocacy')

@@ -241,10 +241,15 @@ class LLMRouter:
                 "system_instruction": system_instruction,
             }
             # Include multimodal inputs to avoid incorrect cache hits
+            # Normalize paths with resolve() for consistent caching
             if images:
-                cache_key_kwargs["images"] = sorted([str(p) for p in images])
+                cache_key_kwargs["images"] = sorted(
+                    [str(Path(p).resolve()) for p in images]
+                )
             if files:
-                cache_key_kwargs["files"] = sorted([str(p) for p in files])
+                cache_key_kwargs["files"] = sorted(
+                    [str(Path(p).resolve()) for p in files]
+                )
             if urls:
                 cache_key_kwargs["urls"] = sorted(urls)
 

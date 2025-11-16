@@ -302,6 +302,9 @@ class GeminiProvider(LLMProvider):
 
         Returns:
             Extracted text content as string
+
+        Raises:
+            ProviderUnavailableError: If API call fails
         """
         extraction_prompt = (
             "Extract and summarize all text content from the provided documents. "
@@ -325,12 +328,18 @@ class GeminiProvider(LLMProvider):
 
         contents.append(extraction_prompt)
 
-        response = self.client.models.generate_content(
-            model=self._model, contents=contents, config=config
-        )
+        try:
+            response = self.client.models.generate_content(
+                model=self._model, contents=contents, config=config
+            )
 
-        logger.info(f"Extracted {len(response.text)} chars from {len(files)} files")
-        return response.text
+            logger.info(f"Extracted {len(response.text)} chars from {len(files)} files")
+            return response.text
+        except Exception as e:
+            logger.error(f"Content extraction failed: {e}")
+            raise ProviderUnavailableError(
+                f"Failed to extract content from files: {e}"
+            ) from e
 
     def get_cost_per_token(self) -> float:
         """

@@ -4,12 +4,13 @@ LLM Router with Automatic Fallback.
 Smart routing between providers with caching integration.
 """
 
+import json
 import logging
 import threading
 import time
 from typing import Any, Optional, Type, Union
 from pathlib import Path
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from madspark.llm.base import LLMProvider
 from madspark.llm.response import LLMResponse
@@ -20,6 +21,10 @@ from madspark.llm.exceptions import (
     ProviderUnavailableError,
     SchemaValidationError,
 )
+
+# Security constants
+MAX_PROMPT_LENGTH = 100_000  # Characters - prevents resource exhaustion
+MAX_FILE_SIZE_MB = 50  # Maximum file size in MB for multimodal inputs
 
 # Lazy imports for providers
 OLLAMA_PROVIDER = None
@@ -102,7 +107,7 @@ class LLMRouter:
         self._ollama: Optional[LLMProvider] = None
         self._gemini: Optional[LLMProvider] = None
 
-        # Metrics tracking
+        # Metrics tracking with thread safety
         self._metrics = {
             "total_requests": 0,
             "cache_hits": 0,
@@ -113,6 +118,7 @@ class LLMRouter:
             "total_cost": 0.0,
             "total_latency_ms": 0,
         }
+        self._metrics_lock = threading.Lock()  # Thread-safe metrics updates
 
         logger.info(
             f"Router initialized: primary={self._primary_provider}, "
@@ -240,6 +246,12 @@ class LLMRouter:
         if not prompt or not prompt.strip():
             raise ValueError("Prompt cannot be empty")
 
+        # Security: prevent resource exhaustion via extremely long prompts
+        if len(prompt) > MAX_PROMPT_LENGTH:
+            raise ValueError(
+                f"Prompt length ({len(prompt)}) exceeds maximum allowed ({MAX_PROMPT_LENGTH})"
+            )
+
         if schema is None:
             raise ValueError("Schema cannot be None")
 
@@ -250,7 +262,8 @@ class LLMRouter:
             # issubclass raises TypeError if schema is not a class
             raise ValueError("Schema must be a Pydantic BaseModel subclass")
 
-        self._metrics["total_requests"] += 1
+        with self._metrics_lock:
+            self._metrics["total_requests"] += 1
 
         # Check cache first
         should_use_cache = use_cache if use_cache is not None else self._cache_enabled
@@ -289,10 +302,11 @@ class LLMRouter:
                     try:
                         validated_dict, response = cached
                         validated = schema.model_validate(validated_dict)
-                        self._metrics["cache_hits"] += 1
+                        with self._metrics_lock:
+                            self._metrics["cache_hits"] += 1
                         logger.info(f"Cache hit - returning cached {force_provider} response")
                         return validated, response
-                    except Exception as e:
+                    except (ValidationError, json.JSONDecodeError, TypeError, KeyError) as e:
                         # Cache entry corrupted/invalid - treat as miss
                         logger.warning(f"Cache entry invalid, treating as miss: {e}")
                         cache.invalidate(cache_key)
@@ -314,10 +328,11 @@ class LLMRouter:
                         try:
                             validated_dict, response = cached
                             validated = schema.model_validate(validated_dict)
-                            self._metrics["cache_hits"] += 1
+                            with self._metrics_lock:
+                                self._metrics["cache_hits"] += 1
                             logger.info("Cache hit - returning cached ollama response")
                             return validated, response
-                        except Exception as e:
+                        except (ValidationError, json.JSONDecodeError, TypeError, KeyError) as e:
                             logger.warning(f"Cache entry invalid, treating as miss: {e}")
                             cache.invalidate(cache_key)
                 else:
@@ -333,10 +348,11 @@ class LLMRouter:
                         try:
                             validated_dict, response = cached
                             validated = schema.model_validate(validated_dict)
-                            self._metrics["cache_hits"] += 1
+                            with self._metrics_lock:
+                                self._metrics["cache_hits"] += 1
                             logger.info("Cache hit - returning cached gemini response (ollama unavailable)")
                             return validated, response
-                        except Exception as e:
+                        except (ValidationError, json.JSONDecodeError, TypeError, KeyError) as e:
                             logger.warning(f"Cache entry invalid, treating as miss: {e}")
                             cache.invalidate(cache_key)
 
@@ -386,10 +402,14 @@ class LLMRouter:
         except (
             ProviderUnavailableError,
             SchemaValidationError,
+            ValidationError,  # Pydantic validation
+            json.JSONDecodeError,  # JSON parsing errors
             RuntimeError,
             OSError,
             ConnectionError,
             TimeoutError,
+            TypeError,  # Type mismatches
+            KeyError,  # Missing keys in responses
         ) as e:
             # Catch specific exceptions, not KeyboardInterrupt/SystemExit
             errors.append((providers_tried[-1] if providers_tried else "unknown", str(e)))
@@ -484,18 +504,21 @@ class LLMRouter:
         """
         Update usage metrics from a provider response.
 
+        Thread-safe via metrics lock.
+
         Args:
             provider_name: Name of the provider ("ollama" or "gemini")
             response: LLMResponse containing usage data
         """
-        if provider_name == "ollama":
-            self._metrics["ollama_calls"] += 1
-        elif provider_name == "gemini":
-            self._metrics["gemini_calls"] += 1
+        with self._metrics_lock:
+            if provider_name == "ollama":
+                self._metrics["ollama_calls"] += 1
+            elif provider_name == "gemini":
+                self._metrics["gemini_calls"] += 1
 
-        self._metrics["total_tokens"] += response.tokens_used
-        self._metrics["total_cost"] += response.cost
-        self._metrics["total_latency_ms"] += response.latency_ms
+            self._metrics["total_tokens"] += response.tokens_used
+            self._metrics["total_cost"] += response.cost
+            self._metrics["total_latency_ms"] += response.latency_ms
 
     def get_metrics(self) -> dict:
         """
@@ -529,15 +552,30 @@ class LLMRouter:
         Returns:
             Dictionary with provider health status
         """
+        # Wrap health checks in try/except to prevent crashes
+        ollama_healthy = False
+        if self.ollama:
+            try:
+                ollama_healthy = self.ollama.health_check()
+            except Exception as e:
+                logger.warning(f"Ollama health check failed: {e}")
+
+        gemini_healthy = False
+        if self.gemini:
+            try:
+                gemini_healthy = self.gemini.health_check()
+            except Exception as e:
+                logger.warning(f"Gemini health check failed: {e}")
+
         return {
             "ollama": {
                 "available": self.ollama is not None,
-                "healthy": self.ollama.health_check() if self.ollama else False,
+                "healthy": ollama_healthy,
                 "model": self.ollama.model_name if self.ollama else None,
             },
             "gemini": {
                 "available": self.gemini is not None,
-                "healthy": self.gemini.health_check() if self.gemini else False,
+                "healthy": gemini_healthy,
                 "model": self.gemini.model_name if self.gemini else None,
             },
             "cache": {

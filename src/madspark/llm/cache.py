@@ -87,13 +87,27 @@ class ResponseCache:
         """Initialize disk cache."""
         cache_path = Path(self._cache_dir).resolve()
 
-        # Security: Validate path doesn't contain path traversal sequences
-        if ".." in str(cache_path):
+        # Security: Validate path is within safe directories
+        # Prevent path traversal attacks (symlinks, URL encoding, etc.)
+        home_dir = Path.home().resolve()
+        safe_prefixes = [
+            home_dir,
+            Path("/tmp").resolve(),
+            Path.cwd().resolve(),
+        ]
+
+        # Check if resolved path is under a safe directory
+        is_safe = any(
+            str(cache_path).startswith(str(safe_prefix))
+            for safe_prefix in safe_prefixes
+        )
+
+        if not is_safe:
             logger.warning(
-                f"Cache directory contains path traversal sequence: {cache_path}. "
+                f"Cache directory {cache_path} is outside safe directories. "
                 f"Using default ~/.cache/madspark/llm"
             )
-            cache_path = Path.home() / ".cache" / "madspark" / "llm"
+            cache_path = home_dir / ".cache" / "madspark" / "llm"
 
         # WARNING: Cache stores prompts and responses in plaintext on disk.
         # Do not use for sensitive data without additional encryption.
@@ -180,7 +194,12 @@ class ResponseCache:
 
             # Convert timestamp string back to datetime if needed
             if "timestamp" in response_dict and isinstance(response_dict["timestamp"], str):
-                response_dict["timestamp"] = datetime.fromisoformat(response_dict["timestamp"])
+                try:
+                    response_dict["timestamp"] = datetime.fromisoformat(response_dict["timestamp"])
+                except ValueError as e:
+                    # Malformed timestamp - use current time as fallback
+                    logger.warning(f"Invalid timestamp in cache entry {key[:16]}...: {e}")
+                    response_dict["timestamp"] = datetime.now()
             response = LLMResponse(**response_dict)
             response.cached = True
 

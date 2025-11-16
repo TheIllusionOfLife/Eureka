@@ -233,7 +233,12 @@ class LLMRouter:
 
         Raises:
             AllProvidersFailedError: If all providers fail
+            ValueError: If prompt is empty
         """
+        # Input validation
+        if not prompt or not prompt.strip():
+            raise ValueError("Prompt cannot be empty")
+
         self._metrics["total_requests"] += 1
 
         # Check cache first
@@ -367,9 +372,10 @@ class LLMRouter:
             )
             return validated, response
 
-        except (ProviderUnavailableError, Exception) as e:
+        except (ProviderUnavailableError, SchemaValidationError, RuntimeError, OSError) as e:
+            # Catch specific exceptions, not KeyboardInterrupt/SystemExit
             errors.append((providers_tried[-1] if providers_tried else "unknown", str(e)))
-            logger.warning(f"Primary provider failed: {e}")
+            logger.warning(f"Primary provider failed: {type(e).__name__}: {e}")
 
             # Try fallback if enabled
             if self._fallback_enabled and not force_provider:

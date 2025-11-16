@@ -69,7 +69,8 @@ class LLMConfig:
     # Cache settings
     cache_enabled: bool = True
     cache_ttl_seconds: int = 86400  # 24 hours
-    cache_dir: str = ".cache/llm"
+    # Default uses absolute path to avoid permission issues from arbitrary directories
+    cache_dir: str = field(default_factory=lambda: str(Path.home() / ".cache" / "madspark" / "llm"))
 
     @classmethod
     def from_env(cls) -> "LLMConfig":
@@ -178,6 +179,16 @@ class LLMConfig:
         Warns if key looks like a placeholder (contains 'your-', 'replace', etc.)
         """
         if not self.gemini_api_key:
+            return False
+
+        # Google API keys are typically 39 characters
+        # Minimum length check to catch truncated or invalid keys
+        min_key_length = 20
+        if len(self.gemini_api_key) < min_key_length:
+            logger.warning(
+                f"API key too short ({len(self.gemini_api_key)} chars, minimum {min_key_length}). "
+                f"Please set a valid GOOGLE_API_KEY in your environment."
+            )
             return False
 
         placeholder_patterns = [

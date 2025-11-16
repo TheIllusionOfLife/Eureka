@@ -4,6 +4,7 @@ import IdeaGenerationForm from './components/IdeaGenerationForm';
 import ResultsDisplay from './components/ResultsDisplay';
 import ProgressIndicator from './components/ProgressIndicator';
 import BookmarkManager from './components/BookmarkManager';
+import LLMMetricsDisplay from './components/LLMMetricsDisplay';
 import DuplicateWarningDialog from './components/DuplicateWarningDialog';
 import KeyboardShortcutsDialog from './components/KeyboardShortcutsDialog';
 import { bookmarkService } from './services/bookmarkService';
@@ -15,14 +16,15 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import './App.css';
 import 'react-toastify/dist/ReactToastify.css';
 
-import { 
-  IdeaResult, 
-  IdeaGenerationResponse, 
-  ProgressUpdate, 
+import {
+  IdeaResult,
+  IdeaGenerationResponse,
+  ProgressUpdate,
   ConnectionStatus,
   SavedBookmark,
   SimilarBookmark,
-  KeyboardShortcut
+  KeyboardShortcut,
+  LLMMetrics
 } from './types';
 
 function App() {
@@ -37,7 +39,8 @@ function App() {
   const [savedBookmarks, setSavedBookmarks] = useState<SavedBookmark[]>([]);
   const [showBookmarkManager, setShowBookmarkManager] = useState(false);
   const [selectedBookmarkIds, setSelectedBookmarkIds] = useState<string[]>([]);
-  
+  const [llmMetrics, setLlmMetrics] = useState<LLMMetrics | null>(null);
+
   // WebSocket connection status
   const [wsConnectionStatus, setWsConnectionStatus] = useState<ConnectionStatus>('connecting');
   
@@ -291,6 +294,7 @@ function App() {
     setError(null);
     setResults([]);
     setProgress(null);
+    setLlmMetrics(null);
 
     const startTime = Date.now();
     logUserAction('generate_ideas', { theme: formData.theme, numCandidates: formData.num_top_candidates });
@@ -299,23 +303,29 @@ function App() {
     try {
       const response = await api.post<IdeaGenerationResponse>('/api/generate-ideas', formData);
       const duration = Date.now() - startTime;
-      
+
       logApiCall('POST', '/api/generate-ideas', response.status, duration);
-      
+
       if (response.data.status === 'success') {
         const resultsCount = response.data.results?.length || 0;
         logger.ideaGeneration('completed', { resultsCount, duration });
         setResults(response.data.results || []);
         const isStructuredOutput = response.data.structured_output || false;
         setStructuredOutput(isStructuredOutput);
-        
+
+        // Capture LLM metrics if available
+        if (response.data.llm_metrics) {
+          setLlmMetrics(response.data.llm_metrics);
+          logger.debug('LLM metrics captured', 'LLM_ROUTER', response.data.llm_metrics);
+        }
+
         // Log structured output detection for debugging
         if (isStructuredOutput) {
           logger.debug('Structured output detected - skipping idea cleaning', 'STRUCTURED_OUTPUT');
         } else {
           logger.debug('Standard output detected - applying idea cleaning', 'STRUCTURED_OUTPUT');
         }
-        
+
         // Validate that we actually have results
         if (!response.data.results || response.data.results.length === 0) {
           setError('No ideas were generated. Please try with different parameters.');
@@ -331,10 +341,10 @@ function App() {
     } catch (err: any) {
       const duration = Date.now() - startTime;
       const errorDetails = handleIdeaGenerationError(err);
-      
+
       logApiCall('POST', '/api/generate-ideas', err.response?.status, duration);
       logger.ideaGeneration('error', { error: errorDetails, duration });
-      
+
       setError(errorDetails.message);
     } finally {
       setIsLoading(false);
@@ -596,10 +606,13 @@ function App() {
               }}
               savedBookmarks={savedBookmarks}
             />
+
+            {/* LLM Usage Metrics */}
+            <LLMMetricsDisplay metrics={llmMetrics} />
           </div>
         </div>
       </main>
-      
+
       {/* Bookmark Manager Modal */}
       <BookmarkManager
         isOpen={showBookmarkManager}

@@ -110,6 +110,32 @@ export interface IdeaResult {
   logical_inference?: LogicalInferenceResult;
 }
 
+// LLM Provider types (defined here to avoid circular dependency)
+export type LLMProvider = 'auto' | 'ollama' | 'gemini';
+export type ModelTier = 'fast' | 'balanced' | 'quality';
+
+export interface LLMMetrics {
+  total_requests: number;
+  cache_hits: number;
+  ollama_calls: number;
+  gemini_calls: number;
+  total_tokens: number;
+  total_cost: number;
+  cache_hit_rate: number;
+  avg_latency_ms: number;
+}
+
+export interface LLMProviderHealth {
+  available: boolean;
+  latency_ms?: number;
+  error?: string;
+}
+
+export interface LLMHealthStatus {
+  ollama: LLMProviderHealth;
+  gemini: LLMProviderHealth;
+}
+
 export interface IdeaGenerationResponse {
   status: 'success' | 'error';
   message: string;
@@ -117,4 +143,5 @@ export interface IdeaGenerationResponse {
   processing_time: number;
   timestamp: string;
   structured_output?: boolean;  // Indicates if ideas are using structured output (no cleaning needed)
+  llm_metrics?: LLMMetrics;  // LLM router usage metrics (tokens, cost, cache hits, etc.)
 }

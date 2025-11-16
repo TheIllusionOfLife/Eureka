@@ -148,9 +148,22 @@ class ResponseCache:
         Returns:
             SHA256 hash as cache key
         """
+        # Hash long strings to avoid memory overhead in key_data
+        # Threshold: strings longer than 10KB are hashed
+        LONG_STRING_THRESHOLD = 10_000
+
+        def hash_if_long(value: Any) -> Any:
+            """Hash string values if they exceed threshold to reduce memory overhead."""
+            if isinstance(value, str) and len(value) > LONG_STRING_THRESHOLD:
+                return f"sha256:{hashlib.sha256(value.encode()).hexdigest()}"
+            return value
+
+        # Process kwargs to hash long strings (e.g., system_instruction)
+        processed_kwargs = {k: hash_if_long(v) for k, v in kwargs.items()}
+
         # Create deterministic representation
         key_data = {
-            "prompt": prompt,
+            "prompt": hash_if_long(prompt),  # Hash very long prompts
             "schema_name": f"{schema.__module__}.{schema.__name__}",  # Full path to avoid collisions
             "schema_hash": hashlib.sha256(
                 json.dumps(schema.model_json_schema(), sort_keys=True).encode()
@@ -158,7 +171,7 @@ class ResponseCache:
             "temperature": temperature,
             "provider": provider,
             "model": model,
-            **kwargs,
+            **processed_kwargs,
         }
 
         key_str = json.dumps(key_data, sort_keys=True)

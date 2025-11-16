@@ -10,6 +10,7 @@ import os
 import time
 from typing import Any, Optional, Type, Union
 from pathlib import Path
+from urllib.parse import urlparse
 from pydantic import BaseModel, SecretStr
 
 from madspark.llm.base import LLMProvider
@@ -265,9 +266,9 @@ class GeminiProvider(LLMProvider):
             SchemaValidationError: If output doesn't match schema
             ImportError: If schema adapters not available
         """
-        # Log unknown kwargs at debug level (info for development, not noisy in production)
+        # Log unknown kwargs at warning level to catch potential misconfigurations
         if kwargs:
-            logger.debug(
+            logger.warning(
                 f"GeminiProvider.generate_structured() received unexpected kwargs: "
                 f"{list(kwargs.keys())}. These will be ignored."
             )
@@ -317,6 +318,13 @@ class GeminiProvider(LLMProvider):
                 contents.append(part)
 
         if urls:
+            # Validate URL format before use
+            for url in urls:
+                parsed = urlparse(url)
+                if not parsed.scheme or not parsed.netloc:
+                    raise ValueError(f"Invalid URL format: {url}")
+                if parsed.scheme not in ("http", "https"):
+                    raise ValueError(f"URL must use http or https scheme: {url}")
             url_context = "\n".join([f"Analyze this URL: {url}" for url in urls])
             prompt = f"{url_context}\n\n{prompt}"
 

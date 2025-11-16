@@ -9,6 +9,7 @@ import logging
 import threading
 import time
 from typing import Any, Optional, Type, Union
+from typing_extensions import TypedDict
 from pathlib import Path
 from pydantic import BaseModel, ValidationError
 
@@ -25,6 +26,19 @@ from madspark.llm.exceptions import (
 # Security constants
 MAX_PROMPT_LENGTH = 100_000  # Characters - prevents resource exhaustion
 MAX_FILE_SIZE_MB = 50  # Maximum file size in MB for multimodal inputs
+
+
+class RouterMetrics(TypedDict):
+    """Type-safe metrics dictionary for router usage tracking."""
+
+    total_requests: int
+    cache_hits: int
+    ollama_calls: int
+    gemini_calls: int
+    fallback_triggers: int
+    total_tokens: int
+    total_cost: float
+    total_latency_ms: float
 
 # Lazy imports for providers
 OLLAMA_PROVIDER = None
@@ -107,8 +121,8 @@ class LLMRouter:
         self._ollama: Optional[LLMProvider] = None
         self._gemini: Optional[LLMProvider] = None
 
-        # Metrics tracking with thread safety
-        self._metrics = {
+        # Metrics tracking with thread safety (TypedDict for type safety)
+        self._metrics: RouterMetrics = {
             "total_requests": 0,
             "cache_hits": 0,
             "ollama_calls": 0,
@@ -116,7 +130,7 @@ class LLMRouter:
             "fallback_triggers": 0,
             "total_tokens": 0,
             "total_cost": 0.0,
-            "total_latency_ms": 0,
+            "total_latency_ms": 0.0,
         }
         self._metrics_lock = threading.Lock()  # Thread-safe metrics updates
 

@@ -234,11 +234,21 @@ class LLMRouter:
 
         Raises:
             AllProvidersFailedError: If all providers fail
-            ValueError: If prompt is empty
+            ValueError: If prompt is empty or schema is invalid
         """
         # Input validation
         if not prompt or not prompt.strip():
             raise ValueError("Prompt cannot be empty")
+
+        if schema is None:
+            raise ValueError("Schema cannot be None")
+
+        try:
+            if not issubclass(schema, BaseModel):
+                raise ValueError("Schema must be a Pydantic BaseModel subclass")
+        except TypeError:
+            # issubclass raises TypeError if schema is not a class
+            raise ValueError("Schema must be a Pydantic BaseModel subclass")
 
         self._metrics["total_requests"] += 1
 
@@ -373,7 +383,14 @@ class LLMRouter:
             )
             return validated, response
 
-        except (ProviderUnavailableError, SchemaValidationError, RuntimeError, OSError) as e:
+        except (
+            ProviderUnavailableError,
+            SchemaValidationError,
+            RuntimeError,
+            OSError,
+            ConnectionError,
+            TimeoutError,
+        ) as e:
             # Catch specific exceptions, not KeyboardInterrupt/SystemExit
             errors.append((providers_tried[-1] if providers_tried else "unknown", str(e)))
             logger.warning(f"Primary provider failed: {type(e).__name__}: {e}")
@@ -383,6 +400,16 @@ class LLMRouter:
                 try:
                     fallback_provider = self._get_fallback_provider(providers_tried)
                     if fallback_provider:
+                        # Check multimodal support for fallback provider
+                        if images and not fallback_provider.supports_multimodal:
+                            logger.warning(
+                                f"Fallback provider {fallback_provider.provider_name} "
+                                f"doesn't support multimodal input"
+                            )
+                            raise ProviderUnavailableError(
+                                "No provider supports multimodal input for images"
+                            )
+
                         provider_name = fallback_provider.provider_name
                         providers_tried.append(provider_name)
                         self._metrics["fallback_triggers"] += 1

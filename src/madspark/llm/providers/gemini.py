@@ -15,7 +15,7 @@ from pydantic import BaseModel
 from madspark.llm.base import LLMProvider
 from madspark.llm.response import LLMResponse
 from madspark.llm.exceptions import ProviderUnavailableError, SchemaValidationError
-from madspark.llm.config import get_config
+from madspark.llm.config import get_config, LLMConfig
 
 # Type alias for time.time() return value
 TimeFloat = float
@@ -91,9 +91,10 @@ class GeminiProvider(LLMProvider):
                 "GOOGLE_API_KEY not set. Required for Gemini provider."
             )
 
-        # Validate API key is not a placeholder
-        config.gemini_api_key = self._api_key  # Temporarily set for validation
-        if not config.validate_api_key():
+        # Validate API key is not a placeholder (without modifying shared config)
+        # Create temporary config with our API key for validation
+        temp_config = LLMConfig(gemini_api_key=self._api_key)
+        if not temp_config.validate_api_key():
             logger.warning(
                 "API key may be a placeholder. Gemini calls may fail. "
                 "Set a valid GOOGLE_API_KEY in your environment."

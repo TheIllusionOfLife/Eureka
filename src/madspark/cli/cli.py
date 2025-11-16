@@ -453,6 +453,12 @@ Examples:
         help='Show LLM provider statistics (tokens, cost, cache hits)'
     )
 
+    llm_group.add_argument(
+        '--no-router',
+        action='store_true',
+        help='Disable LLM router entirely (use direct Gemini API calls instead)'
+    )
+
     # Output options
     output_group = parser.add_argument_group('output options')
     
@@ -835,6 +841,10 @@ def _configure_llm_provider(args: argparse.Namespace) -> bool:
     if getattr(args, 'no_cache', False):
         os.environ['MADSPARK_CACHE_ENABLED'] = 'false'
         provider_flags_used.append('--no-cache')
+
+    if getattr(args, 'no_router', False):
+        os.environ['MADSPARK_NO_ROUTER'] = 'true'
+        provider_flags_used.append('--no-router')
 
     # Info message about partial integration
     if provider_flags_used:

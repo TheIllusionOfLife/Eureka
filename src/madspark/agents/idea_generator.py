@@ -6,6 +6,7 @@ and contextual information.
 """
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Any, List, Dict, Tuple, Optional, Union
 
@@ -29,6 +30,17 @@ except ImportError:
     genai = None
     types = None
     GENAI_AVAILABLE = False
+
+# Optional LLM Router import
+try:
+    from madspark.llm import get_router
+    from madspark.llm.exceptions import AllProvidersFailedError
+    LLM_ROUTER_AVAILABLE = True
+except ImportError:
+    LLM_ROUTER_AVAILABLE = False
+    get_router = None  # type: ignore
+    AllProvidersFailedError = Exception  # type: ignore
+
 try:
     from madspark.utils.errors import ValidationError
 except ImportError:
@@ -50,16 +62,31 @@ _IMPROVER_SAFETY_SETTINGS = _safety_handler.get_safety_settings()
 
 def _validate_non_empty_string(value: Any, param_name: str) -> None:
   """Validates that a value is a non-empty string.
-  
+
   Args:
     value: The value to validate.
     param_name: The parameter name for error messages.
-    
+
   Raises:
     ValidationError: If the value is not a non-empty string.
   """
   if not isinstance(value, str) or not value.strip():
     raise ValidationError(f"Input '{param_name}' must be a non-empty string.")
+
+
+def _should_use_router() -> bool:
+    """
+    Check if router should be used based on configuration.
+    """
+    if not LLM_ROUTER_AVAILABLE or get_router is None:
+        return False
+
+    explicit_provider = os.getenv("MADSPARK_LLM_PROVIDER")
+    cache_disabled = os.getenv("MADSPARK_CACHE_ENABLED") == "false"
+    fallback_disabled = os.getenv("MADSPARK_FALLBACK_ENABLED") == "false"
+    model_tier_set = os.getenv("MADSPARK_MODEL_TIER") is not None
+
+    return bool(explicit_provider or cache_disabled or fallback_disabled or model_tier_set)
 
 
 def build_generation_prompt(topic: str, context: str, use_structured_output: bool = False) -> str:
@@ -152,9 +179,13 @@ def generate_ideas(
     temperature: float = 0.9,
     use_structured_output: bool = True,
     multimodal_files: Optional[List[Union[str, Path]]] = None,
-    multimodal_urls: Optional[List[str]] = None
+    multimodal_urls: Optional[List[str]] = None,
+    use_router: bool = True
 ) -> str:
   """Generates ideas based on a topic and context using the idea generator model.
+
+  When use_router=True and LLM Router is available, routes through the
+  multi-provider abstraction layer for automatic fallback and caching.
 
   Args:
     topic: The main topic for which ideas should be generated.
@@ -163,6 +194,7 @@ def generate_ideas(
     use_structured_output: Whether to use structured JSON output (default: True)
     multimodal_files: Optional list of file paths (images, PDFs, documents) for context.
     multimodal_urls: Optional list of URLs for context.
+    use_router: Whether to use LLM Router for provider abstraction (default: True)
 
   Returns:
     A string containing the generated ideas. If use_structured_output is True,
@@ -184,12 +216,33 @@ def generate_ideas(
       multimodal_files=multimodal_files,
       multimodal_urls=multimodal_urls
   )
-  
+
+  # Try LLM Router first if available and configured
+  # Note: Router doesn't support multimodal yet, so skip if multimodal inputs are present
+  has_multimodal = bool(multimodal_files or multimodal_urls)
+  should_route = use_router and LLM_ROUTER_AVAILABLE and get_router is not None and not has_multimodal
+  if should_route and _should_use_router():
+      try:
+          router = get_router()
+          validated, response = router.generate_structured(
+              prompt=text_prompt,
+              schema=GeneratedIdeas,
+              system_instruction=SYSTEM_INSTRUCTION,
+              temperature=temperature,
+          )
+
+          logger.info(f"Router generated ideas via {response.provider} ({response.tokens_used} tokens)")
+          return json.dumps([idea.model_dump() for idea in validated.root])
+
+      except AllProvidersFailedError as e:
+          logger.warning(f"LLM Router failed, falling back to direct API: {e}")
+      except Exception as e:
+          logger.warning(f"Router error, falling back to direct API: {e}")
+
   if not GENAI_AVAILABLE or idea_generator_client is None:
     # Return mock response for CI/testing environments or when API key is not configured
     if use_structured_output:
         # Return structured mock data
-        import json
         mock_ideas = [
             {
                 "idea_number": 1,

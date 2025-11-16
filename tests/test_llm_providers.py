@@ -123,6 +123,52 @@ class TestLLMConfig:
         config2 = get_config()
         assert config1 is not config2
 
+    def test_validate_api_key_valid(self, reset_config_fixture):
+        """Test validate_api_key returns True for valid keys."""
+        config = LLMConfig(gemini_api_key="AIzaSyD1234567890abcdefg")
+        assert config.validate_api_key() is True
+
+    def test_validate_api_key_none(self, reset_config_fixture):
+        """Test validate_api_key returns False when key is None."""
+        config = LLMConfig(gemini_api_key=None)
+        assert config.validate_api_key() is False
+
+    def test_validate_api_key_placeholder_patterns(self, reset_config_fixture):
+        """Test validate_api_key detects placeholder patterns."""
+        placeholder_keys = [
+            "your-api-key-here",
+            "YOUR_API_KEY",
+            "replace-this",
+            "placeholder",
+            "example-key",
+            "xxx",
+            "API_KEY_HERE",
+        ]
+        for key in placeholder_keys:
+            config = LLMConfig(gemini_api_key=key)
+            assert config.validate_api_key() is False, f"Failed for key: {key}"
+
+    def test_from_env_invalid_cache_ttl(self, reset_config_fixture, monkeypatch):
+        """Test from_env handles invalid MADSPARK_CACHE_TTL gracefully."""
+        monkeypatch.setenv("MADSPARK_CACHE_TTL", "not-a-number")
+
+        config = LLMConfig.from_env()
+        assert config.cache_ttl_seconds == 86400  # Default value
+
+    def test_from_env_negative_cache_ttl(self, reset_config_fixture, monkeypatch):
+        """Test from_env handles negative MADSPARK_CACHE_TTL."""
+        monkeypatch.setenv("MADSPARK_CACHE_TTL", "-100")
+
+        config = LLMConfig.from_env()
+        assert config.cache_ttl_seconds == 86400  # Default value
+
+    def test_from_env_valid_cache_ttl(self, reset_config_fixture, monkeypatch):
+        """Test from_env accepts valid MADSPARK_CACHE_TTL."""
+        monkeypatch.setenv("MADSPARK_CACHE_TTL", "7200")
+
+        config = LLMConfig.from_env()
+        assert config.cache_ttl_seconds == 7200
+
 
 class TestLLMResponse:
     """Test LLM response metadata."""

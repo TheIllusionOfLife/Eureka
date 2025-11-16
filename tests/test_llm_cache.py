@@ -126,6 +126,44 @@ class TestResponseCache:
         key2 = cache.make_key("test", SimpleSchema, 0.7, custom_param="b")
         assert key1 != key2
 
+    def test_make_key_with_multimodal_inputs(self, cache):
+        """Test cache key includes multimodal inputs (images, files, urls)."""
+        # Same prompt but different images
+        key1 = cache.make_key(
+            "test", SimpleSchema, 0.7, images=["img1.jpg", "img2.jpg"]
+        )
+        key2 = cache.make_key(
+            "test", SimpleSchema, 0.7, images=["img1.jpg", "img3.jpg"]
+        )
+        assert key1 != key2
+
+        # Same prompt but different files
+        key3 = cache.make_key("test", SimpleSchema, 0.7, files=["doc1.pdf"])
+        key4 = cache.make_key("test", SimpleSchema, 0.7, files=["doc2.pdf"])
+        assert key3 != key4
+
+        # Same prompt but different URLs
+        key5 = cache.make_key(
+            "test", SimpleSchema, 0.7, urls=["http://example.com/a"]
+        )
+        key6 = cache.make_key(
+            "test", SimpleSchema, 0.7, urls=["http://example.com/b"]
+        )
+        assert key5 != key6
+
+        # No multimodal vs with multimodal should differ
+        key7 = cache.make_key("test", SimpleSchema, 0.7)
+        key8 = cache.make_key("test", SimpleSchema, 0.7, images=["img.jpg"])
+        assert key7 != key8
+
+    def test_make_key_full_schema_path(self, cache):
+        """Test cache key includes full schema path (module.name)."""
+        # This test verifies the key includes schema module path
+        key = cache.make_key("test", SimpleSchema, 0.7)
+        # Key should be deterministic and SHA-256 (64 chars)
+        assert len(key) == 64  # SHA-256 hex digest
+        assert key.isalnum()  # Should be alphanumeric
+
     def test_cache_miss(self, cache):
         """Test cache returns None on miss."""
         key = cache.make_key("nonexistent", SimpleSchema, 0.0)

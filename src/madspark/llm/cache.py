@@ -118,7 +118,7 @@ class ResponseCache:
             "schema_name": f"{schema.__module__}.{schema.__name__}",  # Full path to avoid collisions
             "schema_hash": hashlib.sha256(
                 json.dumps(schema.model_json_schema(), sort_keys=True).encode()
-            ).hexdigest()[:32],  # Truncate for reasonable key size
+            ).hexdigest()[:64],  # Use 64 chars to minimize collision risk
             "temperature": temperature,
             "provider": provider,
             "model": model,
@@ -156,7 +156,7 @@ class ResponseCache:
             return validated_dict, response
 
         except Exception as e:
-            logger.warning(f"Cache get failed: {e}")
+            logger.error(f"Cache get failed: {e}")
             return None
 
     def set(
@@ -199,7 +199,7 @@ class ResponseCache:
             return True
 
         except Exception as e:
-            logger.warning(f"Cache set failed: {e}")
+            logger.error(f"Cache set failed: {e}")
             return False
 
     def invalidate(self, key: str) -> bool:

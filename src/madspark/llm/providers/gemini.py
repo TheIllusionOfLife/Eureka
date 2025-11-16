@@ -194,7 +194,7 @@ class GeminiProvider(LLMProvider):
         prompt: str,
         schema: Type[BaseModel],
         system_instruction: str = "",
-        temperature: float = 0.7,
+        temperature: float = 0.0,  # Default 0 for deterministic structured output
         files: Optional[list[Path]] = None,
         urls: Optional[list[str]] = None,
         images: Optional[list[Union[str, Path]]] = None,  # For compatibility

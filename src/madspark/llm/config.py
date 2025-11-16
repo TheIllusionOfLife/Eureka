@@ -90,6 +90,25 @@ class LLMConfig:
         except ValueError:
             tier = ModelTier.FAST
 
+        # Parse cache TTL with validation
+        cache_ttl = 86400  # Default: 24 hours
+        cache_ttl_env = os.getenv("MADSPARK_CACHE_TTL")
+        if cache_ttl_env:
+            try:
+                cache_ttl = int(cache_ttl_env)
+                if cache_ttl < 0:
+                    logger.warning(
+                        f"Invalid MADSPARK_CACHE_TTL value '{cache_ttl_env}' (negative). "
+                        f"Using default: 86400"
+                    )
+                    cache_ttl = 86400
+            except ValueError:
+                logger.warning(
+                    f"Invalid MADSPARK_CACHE_TTL value '{cache_ttl_env}' (not an integer). "
+                    f"Using default: 86400"
+                )
+                cache_ttl = 86400
+
         return cls(
             default_provider=os.getenv("MADSPARK_LLM_PROVIDER", "auto"),
             model_tier=tier,
@@ -104,7 +123,7 @@ class LLMConfig:
             gemini_model=os.getenv("GOOGLE_GENAI_MODEL", "gemini-2.5-flash"),
             cache_enabled=os.getenv("MADSPARK_CACHE_ENABLED", "true").lower()
             == "true",
-            cache_ttl_seconds=int(os.getenv("MADSPARK_CACHE_TTL", "86400")),
+            cache_ttl_seconds=cache_ttl,
             cache_dir=os.getenv("MADSPARK_CACHE_DIR", ".cache/llm"),
         )
 

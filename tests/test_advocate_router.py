@@ -165,19 +165,29 @@ class TestAdvocateRouterConfiguration:
     """Test _should_use_router configuration detection."""
 
     def test_should_use_router_with_provider_env_var(self, monkeypatch):
-        """Test router used when MADSPARK_LLM_PROVIDER is set."""
+        """Test router used when MADSPARK_LLM_PROVIDER is set (and NO_ROUTER not set)."""
         from madspark.agents.advocate import _should_use_router
 
+        # Remove NO_ROUTER flag to enable router (conftest sets this by default)
+        monkeypatch.delenv("MADSPARK_NO_ROUTER", raising=False)
         monkeypatch.setenv("MADSPARK_LLM_PROVIDER", "ollama")
         assert _should_use_router() is True
 
-    def test_should_use_router_false_when_no_env_vars(self, monkeypatch):
-        """Test router not used when no router env vars are set."""
+    def test_should_use_router_true_by_default_when_available(self, monkeypatch):
+        """Test router is used by default when available (Ollama-first behavior)."""
         from madspark.agents.advocate import _should_use_router
 
+        # Remove NO_ROUTER flag to enable router (conftest sets this by default)
+        monkeypatch.delenv("MADSPARK_NO_ROUTER", raising=False)
+        # Don't set any specific provider - should default to True
         monkeypatch.delenv("MADSPARK_LLM_PROVIDER", raising=False)
-        monkeypatch.delenv("MADSPARK_MODEL_TIER", raising=False)
-        monkeypatch.delenv("MADSPARK_CACHE_ENABLED", raising=False)
-        monkeypatch.delenv("MADSPARK_FALLBACK_ENABLED", raising=False)
+
+        assert _should_use_router() is True
+
+    def test_should_use_router_false_when_no_router_flag_set(self, monkeypatch):
+        """Test router not used when MADSPARK_NO_ROUTER is set."""
+        from madspark.agents.advocate import _should_use_router
+
+        monkeypatch.setenv("MADSPARK_NO_ROUTER", "true")
 
         assert _should_use_router() is False

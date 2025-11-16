@@ -243,8 +243,8 @@ class TestLLMRouter:
         mock_ollama_cls.return_value = Mock(return_value=mock_ollama_provider)
         mock_gemini_cls.return_value = Mock(return_value=mock_gemini_provider)
 
-        mock_ollama_provider.generate_structured.side_effect = Exception("Ollama error")
-        mock_gemini_provider.generate_structured.side_effect = Exception("Gemini error")
+        mock_ollama_provider.generate_structured.side_effect = RuntimeError("Ollama error")
+        mock_gemini_provider.generate_structured.side_effect = RuntimeError("Gemini error")
 
         router = LLMRouter(cache_enabled=False, fallback_enabled=True)
         router._ollama = mock_ollama_provider
@@ -335,7 +335,7 @@ class TestLLMRouter:
         mock_ollama_cls.return_value = Mock(return_value=mock_ollama_provider)
         mock_gemini_cls.return_value = Mock(return_value=mock_gemini_provider)
 
-        mock_ollama_provider.generate_structured.side_effect = Exception("Ollama error")
+        mock_ollama_provider.generate_structured.side_effect = RuntimeError("Ollama error")
 
         router = LLMRouter(cache_enabled=False, fallback_enabled=False)
         router._ollama = mock_ollama_provider

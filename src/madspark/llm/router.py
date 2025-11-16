@@ -18,6 +18,7 @@ from madspark.llm.cache import get_cache, reset_cache
 from madspark.llm.exceptions import (
     AllProvidersFailedError,
     ProviderUnavailableError,
+    SchemaValidationError,
 )
 
 # Lazy imports for providers

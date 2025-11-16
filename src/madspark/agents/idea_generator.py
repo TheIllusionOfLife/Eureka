@@ -399,7 +399,10 @@ def improve_idea(
   """
   # Try to import and use structured version
   try:
-    from madspark.agents.structured_idea_generator import improve_idea_structured
+    from madspark.agents.structured_idea_generator import improve_idea_structured, _should_use_router
+    # When CLI flags indicate router should be used, pass None for genai_client
+    # so the router takes over instead of using direct Gemini API
+    client_to_use = None if _should_use_router() else idea_generator_client
     # Use structured output version if available
     return improve_idea_structured(
         original_idea=original_idea,
@@ -410,7 +413,7 @@ def improve_idea(
         context=context,
         logical_inference=logical_inference,
         temperature=temperature,
-        genai_client=idea_generator_client,
+        genai_client=client_to_use,
         model_name=model_name,
         multimodal_files=multimodal_files,
         multimodal_urls=multimodal_urls

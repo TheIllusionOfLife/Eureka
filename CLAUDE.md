@@ -174,11 +174,149 @@ See **[docs/ci-policy.md](docs/ci-policy.md)** for complete guidelines on:
 
 ## Dependencies
 - **Python**: 3.10+ required for TypedDict and modern features
-- **Core**: google-genai, python-dotenv (from `config/requirements.txt`)
+- **Core**: google-genai, python-dotenv, ollama, diskcache (from `config/requirements.txt`)
 - **Testing**: pytest, pytest-mock, pytest-asyncio
-- **Caching**: redis (available but optional)
+- **Caching**: redis (available but optional), diskcache (LLM response caching)
 - **Optional**: ruff for linting, mypy for type checking
 - **Web**: FastAPI, React 18.2, TypeScript, Docker (in `web/` directory)
+
+## LLM Provider Abstraction Layer (NEW - Partially Integrated)
+
+**⚠️ IMPORTANT: Phase 1.5 - Partial Integration Complete**
+
+This is the foundation layer for multi-provider support. The router, cache, and provider classes are fully implemented and tested. **One workflow step is now integrated**:
+- ✅ `improve_idea_structured()` uses the router (Ollama/Gemini selection, caching, fallback)
+- ❌ Other agents (Generator, Evaluator, Advocate, Skeptic) still use `madspark.agents.genai_client` directly
+- CLI flags (`--provider`, `--model-tier`, etc.) affect the idea improvement step
+- The `agent_adapter.generate_structured_via_router()` function exists but is not called (alternative integration path)
+
+**Phase 2 (Future Work)**: Wire up remaining agents to use the router instead of direct genai_client calls. This will enable full Ollama/fallback/caching features across the entire workflow.
+
+**⚠️ Current Limitations:**
+- Only idea improvement step uses router; other steps require Google API key
+- `--show-llm-stats` shows metrics only from idea improvement (other steps not tracked)
+- setup.sh only configures Google API, no Ollama setup instructions
+- Web backend uses Gemini directly (no router support)
+
+MadSpark now supports multiple LLM providers through an abstraction layer with automatic fallback and caching.
+
+### Package Structure
+```text
+src/madspark/llm/
+├── __init__.py          # Main exports
+├── base.py              # LLMProvider abstract base class
+├── config.py            # LLMConfig, ModelTier configuration (⚠️ token_budgets defined but not used)
+├── response.py          # LLMResponse metadata dataclass
+├── exceptions.py        # Provider-specific exceptions
+├── cache.py             # ResponseCache with diskcache backend
+├── router.py            # LLMRouter with fallback logic
+├── agent_adapter.py     # Bridge for agent integration (⚠️ defined but not called by any agent)
+└── providers/
+    ├── ollama.py        # OllamaProvider (local, free)
+    └── gemini.py        # GeminiProvider (cloud, paid)
+```
+
+**Note on Dead Code**: The following components are defined but not yet integrated:
+- `agent_adapter.py`: Provides `generate_structured_via_router()` but no agent imports it
+- `config.py` token_budgets: Defines per-request budgets but no production code calls `get_token_budget()`
+- These are infrastructure for Phase 2 integration work
+
+### Usage Pattern
+```python
+from madspark.llm import get_router, LLMConfig, ModelTier
+from pydantic import BaseModel
+
+# Define schema
+class MySchema(BaseModel):
+    score: float
+    comment: str
+
+# Get router (singleton)
+router = get_router()
+
+# Generate with automatic provider selection
+validated, response = router.generate_structured(
+    prompt="Rate this idea",
+    schema=MySchema,
+    temperature=0.7
+)
+
+# Access results
+print(validated.score)  # Validated Pydantic object
+print(response.provider)  # "ollama" or "gemini"
+print(response.tokens_used)
+print(response.cost)  # $0.0 for Ollama
+
+# Check metrics
+metrics = router.get_metrics()
+print(f"Cache hit rate: {metrics['cache_hit_rate']:.1%}")
+```
+
+### CLI Integration
+**Note: Router is now integrated into `improve_idea_structured()`. Flags affect idea improvement step.**
+**Other workflow steps (generation, evaluation, advocacy, skepticism) still use direct Gemini API.**
+
+```bash
+# Provider selection (ACTIVE for idea improvement step)
+ms "topic" --provider auto         # Default: Ollama primary, Gemini fallback
+ms "topic" --provider ollama       # Force local inference
+ms "topic" --provider gemini       # Force cloud API
+
+# Model tier (ACTIVE for idea improvement step)
+ms "topic" --model-tier fast       # gemma3:4b-it-qat (quick)
+ms "topic" --model-tier balanced   # gemma3:12b-it-qat (better)
+ms "topic" --model-tier quality    # gemini-2.5-flash (best)
+
+# Cache control (ACTIVE for idea improvement step)
+ms "topic" --no-cache              # Disable caching
+ms --clear-cache "topic"           # Clear cache first
+
+# Statistics (shows actual metrics for router usage)
+ms "topic" --show-llm-stats        # Display usage metrics
+```
+
+### Environment Variables
+```bash
+MADSPARK_LLM_PROVIDER=auto        # auto, ollama, gemini
+MADSPARK_MODEL_TIER=fast           # fast, balanced, quality
+MADSPARK_FALLBACK_ENABLED=true     # Enable provider fallback
+MADSPARK_CACHE_ENABLED=true        # Enable response caching
+MADSPARK_CACHE_TTL=86400           # Cache TTL in seconds (24h)
+MADSPARK_CACHE_DIR=~/.cache/madspark/llm  # Cache directory (absolute path)
+OLLAMA_HOST=http://localhost:11434 # Ollama server
+OLLAMA_MODEL_FAST=gemma3:4b-it-qat # Fast tier model
+OLLAMA_MODEL_BALANCED=gemma3:12b-it-qat # Balanced tier model
+```
+
+### Key Features
+**✅ Active for idea improvement step | ❌ Not yet active for other workflow steps**
+- **Zero-Cost Local Inference**: Ollama provides free inference with gemma3 models
+- **Automatic Fallback**: Routes to Gemini when Ollama unavailable
+- **Response Caching**: Disk cache with corruption resilience (invalid entries auto-invalidated)
+- **Usage Metrics**: Track tokens, cost, latency, cache hit rate
+- **Provider Health Monitoring**: Check availability via router.health_status()
+- **Multimodal Support**: Images via Ollama, PDF/URL via Gemini
+- **Security**: Thread-safe metrics, prompt length validation, path traversal protection, SecretStr for API keys
+
+### Cache Security and Management
+**Important**: The response cache stores prompts and responses in plaintext on disk (default: `.cache/llm/`). For sensitive deployments:
+- Cache directory has restrictive permissions (0o700)
+- Consider disabling cache for sensitive prompts: `ms "topic" --no-cache`
+- Cache entries expire based on TTL (default 24 hours)
+- Clear cache manually: `ms --clear-cache` or `rm -rf .cache/llm/`
+- Add `.cache/` to `.gitignore` (already configured)
+
+**Cache Cleanup Strategy**:
+```bash
+# Clear all cached responses
+ms --clear-cache
+
+# Manual cleanup of old cache files
+rm -rf .cache/llm/
+
+# Check cache statistics
+python -c "from madspark.llm.cache import get_cache; print(get_cache().stats())"
+```
 
 ## CLI Output Formatting Architecture
 
@@ -406,7 +544,8 @@ schema = pydantic_to_genai_schema(NewAgentResponse)
 - ✅ **Phase 3 Complete:** Integration & cleanup (enhanced_reasoning, LogicalInferenceEngine, response normalization, structured output parsing)
 - ✅ **Migrated Components:** Critic, Advocate, Skeptic, Idea Generator, Logical Inference Engine, MultiDimensionalEvaluator, structured_idea_generator
 - ✅ **Test Coverage:** 181 comprehensive tests (149 Phase 1&2 + 32 Phase 3)
-- ⏳ **Phase 4 (Future):** Provider abstraction for multi-LLM support
+- ✅ **LLM Provider Abstraction:** Multi-provider support with Ollama/Gemini (see LLM Provider section above)
+- ⏳ **Phase 4 (Future):** Extend Pydantic schemas to support additional LLM providers
 - ⏳ **Phase 5 (Future):** Remove legacy dict schemas completely
 
 ### Testing Pydantic Schemas

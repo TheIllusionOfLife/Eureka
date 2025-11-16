@@ -50,7 +50,9 @@ class WorkflowExecutor(CommandHandler):
         try:
             # Show progress message to user (unless in mock mode)
             if os.getenv("MADSPARK_MODE") != "mock":
-                print("\n🚀 Generating ideas with Google Gemini API...")
+                # Note: Currently agents use Gemini directly (Phase 1)
+                # Phase 2 will route through madspark.llm for provider selection
+                print("\n🚀 Generating ideas with AI model...")
                 print("⏳ This may take 30-60 seconds for quality results...\n")
 
             # Determine number of candidates and execution mode

@@ -290,7 +290,7 @@ class TestOllamaProvider:
         """Test successful structured output generation."""
         mock_response = Mock()
         mock_response.message.content = '{"score": 8.5, "comment": "Great idea"}'
-        mock_response.get.return_value = 50
+        mock_response.eval_count = 50  # Use attribute, not dict-like .get()
 
         mock_client = Mock()
         mock_client.chat.return_value = mock_response

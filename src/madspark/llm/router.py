@@ -5,6 +5,7 @@ Smart routing between providers with caching integration.
 """
 
 import logging
+import threading
 import time
 from typing import Any, Optional, Type, Union
 from pathlib import Path
@@ -13,7 +14,7 @@ from pydantic import BaseModel
 from madspark.llm.base import LLMProvider
 from madspark.llm.response import LLMResponse
 from madspark.llm.config import get_config
-from madspark.llm.cache import get_cache
+from madspark.llm.cache import get_cache, reset_cache
 from madspark.llm.exceptions import (
     AllProvidersFailedError,
     ProviderUnavailableError,
@@ -423,24 +424,33 @@ class LLMRouter:
         }
 
 
-# Singleton router instance
+# Singleton router instance with thread safety
 _router_instance: Optional[LLMRouter] = None
+_router_lock = threading.Lock()
 
 
 def get_router() -> LLMRouter:
     """
     Get singleton router instance.
 
+    Thread-safe via double-checked locking pattern.
+
     Returns:
         LLMRouter instance
     """
     global _router_instance
     if _router_instance is None:
-        _router_instance = LLMRouter()
+        with _router_lock:
+            if _router_instance is None:  # Double-checked locking
+                _router_instance = LLMRouter()
     return _router_instance
 
 
 def reset_router() -> None:
-    """Reset router singleton (for testing)."""
+    """Reset router singleton (for testing). Thread-safe."""
     global _router_instance
-    _router_instance = None
+    with _router_lock:
+        if _router_instance is not None:
+            # Close associated cache to prevent resource leaks
+            reset_cache()
+        _router_instance = None

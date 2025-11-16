@@ -6,6 +6,7 @@ Centralized configuration management for LLM providers.
 
 import logging
 import os
+import threading
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
@@ -184,8 +185,9 @@ class LLMConfig:
         return True
 
 
-# Singleton config instance
+# Singleton config instance with thread safety
 _config_instance: Optional[LLMConfig] = None
+_config_lock = threading.Lock()
 
 
 def get_config() -> LLMConfig:
@@ -193,13 +195,16 @@ def get_config() -> LLMConfig:
     Get singleton config instance.
 
     Lazily initializes from environment variables on first call.
+    Thread-safe via double-checked locking pattern.
 
     Returns:
         LLMConfig instance
     """
     global _config_instance
     if _config_instance is None:
-        _config_instance = LLMConfig.from_env()
+        with _config_lock:
+            if _config_instance is None:  # Double-checked locking
+                _config_instance = LLMConfig.from_env()
     return _config_instance
 
 
@@ -208,6 +213,8 @@ def reset_config() -> None:
     Reset config singleton.
 
     Useful for testing or configuration reload.
+    Thread-safe via lock.
     """
     global _config_instance
-    _config_instance = None
+    with _config_lock:
+        _config_instance = None

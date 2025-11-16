@@ -66,6 +66,11 @@ class OllamaProvider(LLMProvider):
         self._client = None
         self._config = config
 
+        # Health check caching with TTL (30 seconds)
+        self._last_health_check: Optional[bool] = None
+        self._last_health_check_time: float = 0.0
+        self._health_check_ttl: float = 30.0  # seconds
+
     @property
     def client(self):
         """Lazy initialization of Ollama client."""
@@ -93,27 +98,46 @@ class OllamaProvider(LLMProvider):
         """
         Check if Ollama server is running and model is available.
 
+        Uses TTL-based caching (30 seconds) to avoid repeated network calls.
+
         Returns:
             True if server is up and model is pulled
         """
+        # Check cache first
+        if (
+            self._last_health_check is not None
+            and (time.time() - self._last_health_check_time) < self._health_check_ttl
+        ):
+            return self._last_health_check
+
         try:
             models = self.client.list()
             model_names = [m.get("name", "") for m in models.get("models", [])]
             # Check if model is available
             # Strict matching: exact match or model matches without tag
             # e.g., "gemma3:4b-it-qat" matches "gemma3:4b-it-qat" or "gemma3"
+            result = False
             for name in model_names:
                 # Exact match
                 if name == self._model:
-                    return True
+                    result = True
+                    break
                 # Model name without tag matches (gemma3:4b-it-qat -> gemma3)
                 model_base = self._model.split(":")[0]
                 name_base = name.split(":")[0]
                 if model_base == name_base:
-                    return True
-            return False
+                    result = True
+                    break
+
+            # Cache the result
+            self._last_health_check = result
+            self._last_health_check_time = time.time()
+            return result
         except Exception as e:
             logger.warning(f"Ollama health check failed: {e}")
+            # Cache failure for a short time to avoid hammering
+            self._last_health_check = False
+            self._last_health_check_time = time.time()
             return False
 
     def generate(
@@ -168,7 +192,7 @@ class OllamaProvider(LLMProvider):
             text=response.message.content,
             provider=self.provider_name,
             model=self._model,
-            tokens_used=response.get("eval_count", 0),
+            tokens_used=getattr(response, "eval_count", 0),
             latency_ms=latency,
             cost=0.0,  # Free!
         )
@@ -265,14 +289,14 @@ class OllamaProvider(LLMProvider):
             text=response.message.content,
             provider=self.provider_name,
             model=self._model,
-            tokens_used=response.get("eval_count", 0),
+            tokens_used=getattr(response, "eval_count", 0),
             latency_ms=latency,
             cost=0.0,
         )
 
         logger.info(
             f"Ollama generated structured output in {latency:.0f}ms "
-            f"({response.get('eval_count', 0)} tokens)"
+            f"({getattr(response, 'eval_count', 0)} tokens)"
         )
 
         return validated, llm_response

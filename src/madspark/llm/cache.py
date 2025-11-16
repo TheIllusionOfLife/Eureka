@@ -8,6 +8,7 @@ Estimated 30-50% reduction in API calls.
 import hashlib
 import json
 import logging
+import threading
 from pathlib import Path
 from typing import Any, Optional, Type
 from pydantic import BaseModel
@@ -271,27 +272,41 @@ class ResponseCache:
             self._cache.close()
             logger.debug("Cache closed")
 
+    def __enter__(self):
+        """Context manager entry."""
+        return self
 
-# Singleton cache instance
+    def __exit__(self, *args):
+        """Context manager exit - close cache."""
+        self.close()
+
+
+# Singleton cache instance with thread safety
 _cache_instance: Optional[ResponseCache] = None
+_cache_lock = threading.Lock()
 
 
 def get_cache() -> ResponseCache:
     """
     Get singleton cache instance.
 
+    Thread-safe via double-checked locking pattern.
+
     Returns:
         ResponseCache instance
     """
     global _cache_instance
     if _cache_instance is None:
-        _cache_instance = ResponseCache()
+        with _cache_lock:
+            if _cache_instance is None:  # Double-checked locking
+                _cache_instance = ResponseCache()
     return _cache_instance
 
 
 def reset_cache() -> None:
-    """Reset cache singleton (for testing)."""
+    """Reset cache singleton (for testing). Thread-safe."""
     global _cache_instance
-    if _cache_instance is not None:
-        _cache_instance.close()
-    _cache_instance = None
+    with _cache_lock:
+        if _cache_instance is not None:
+            _cache_instance.close()
+        _cache_instance = None

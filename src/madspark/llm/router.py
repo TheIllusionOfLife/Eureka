@@ -266,11 +266,16 @@ class LLMRouter:
                 )
                 cached = cache.get(cache_key)
                 if cached:
-                    self._metrics["cache_hits"] += 1
-                    validated_dict, response = cached
-                    validated = schema.model_validate(validated_dict)
-                    logger.info(f"Cache hit - returning cached {force_provider} response")
-                    return validated, response
+                    try:
+                        validated_dict, response = cached
+                        validated = schema.model_validate(validated_dict)
+                        self._metrics["cache_hits"] += 1
+                        logger.info(f"Cache hit - returning cached {force_provider} response")
+                        return validated, response
+                    except Exception as e:
+                        # Cache entry corrupted/invalid - treat as miss
+                        logger.warning(f"Cache entry invalid, treating as miss: {e}")
+                        cache.invalidate(cache_key)
             else:
                 # Auto mode: try preferred providers in order (Ollama first = lower cost)
                 for check_provider in ["ollama", "gemini"]:
@@ -282,11 +287,16 @@ class LLMRouter:
                     )
                     cached = cache.get(cache_key)
                     if cached:
-                        self._metrics["cache_hits"] += 1
-                        validated_dict, response = cached
-                        validated = schema.model_validate(validated_dict)
-                        logger.info(f"Cache hit - returning cached {check_provider} response")
-                        return validated, response
+                        try:
+                            validated_dict, response = cached
+                            validated = schema.model_validate(validated_dict)
+                            self._metrics["cache_hits"] += 1
+                            logger.info(f"Cache hit - returning cached {check_provider} response")
+                            return validated, response
+                        except Exception as e:
+                            # Cache entry corrupted/invalid - treat as miss
+                            logger.warning(f"Cache entry invalid, treating as miss: {e}")
+                            cache.invalidate(cache_key)
 
         # Select provider
         errors = []

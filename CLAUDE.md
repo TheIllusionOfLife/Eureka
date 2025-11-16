@@ -198,16 +198,21 @@ MadSpark now supports multiple LLM providers through an abstraction layer with a
 src/madspark/llm/
 ├── __init__.py          # Main exports
 ├── base.py              # LLMProvider abstract base class
-├── config.py            # LLMConfig, ModelTier configuration
+├── config.py            # LLMConfig, ModelTier configuration (⚠️ token_budgets defined but not used)
 ├── response.py          # LLMResponse metadata dataclass
 ├── exceptions.py        # Provider-specific exceptions
 ├── cache.py             # ResponseCache with diskcache backend
 ├── router.py            # LLMRouter with fallback logic
-├── agent_adapter.py     # Bridge for agent integration
+├── agent_adapter.py     # Bridge for agent integration (⚠️ defined but not called by any agent)
 └── providers/
     ├── ollama.py        # OllamaProvider (local, free)
     └── gemini.py        # GeminiProvider (cloud, paid)
 ```
+
+**Note on Dead Code**: The following components are defined but not yet integrated:
+- `agent_adapter.py`: Provides `generate_structured_via_router()` but no agent imports it
+- `config.py` token_budgets: Defines per-request budgets but no production code calls `get_token_budget()`
+- These are infrastructure for Phase 2 integration work
 
 ### Usage Pattern
 ```python
@@ -274,9 +279,10 @@ OLLAMA_MODEL_BALANCED=gemma3:12b-it-qat # Balanced tier model
 ```
 
 ### Key Features
+**⚠️ Note: These features are implemented but not active until Phase 2 agent integration**
 - **Zero-Cost Local Inference**: Ollama provides free inference with gemma3 models
 - **Automatic Fallback**: Routes to Gemini when Ollama unavailable
-- **Response Caching**: 30-50% reduction in API calls via disk cache
+- **Response Caching**: Disk cache with corruption resilience (invalid entries auto-invalidated)
 - **Usage Metrics**: Track tokens, cost, latency, cache hit rate
 - **Provider Health Monitoring**: Check availability via router.health_status()
 - **Multimodal Support**: Images via Ollama, PDF/URL via Gemini

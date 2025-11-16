@@ -212,8 +212,8 @@ class TestBatchIntegration:
         """Reset monitor before each test."""
         reset_batch_monitor()
     
-    @patch('madspark.utils.agent_retry_wrappers.call_idea_generator_with_retry')
-    @patch('madspark.utils.agent_retry_wrappers.call_critic_with_retry')
+    @patch('madspark.core.coordinator_batch.call_idea_generator_with_retry')
+    @patch('madspark.core.coordinator_batch.call_critic_with_retry')
     @patch('madspark.core.coordinator_batch.advocate_ideas_batch')
     @patch('madspark.core.coordinator_batch.criticize_ideas_batch')
     @patch('madspark.core.coordinator_batch.improve_ideas_batch')

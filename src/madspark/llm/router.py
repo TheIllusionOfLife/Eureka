@@ -277,11 +277,15 @@ class LLMRouter:
                         logger.warning(f"Cache entry invalid, treating as miss: {e}")
                         cache.invalidate(cache_key)
             else:
-                # Auto mode: try preferred providers in order (Ollama first = lower cost)
-                for check_provider in ["ollama", "gemini"]:
+                # Auto mode: respect provider preference
+                # Only use cache if preferred provider is unavailable OR cache matches preferred
+                ollama_available = self.ollama and self.ollama.health_check()
+
+                if ollama_available:
+                    # Ollama is primary and available - only use Ollama cache
                     cache_key = cache.make_key(
                         prompt, schema, temperature,
-                        provider=check_provider,
+                        provider="ollama",
                         **base_cache_kwargs,
                         **kwargs
                     )
@@ -291,10 +295,28 @@ class LLMRouter:
                             validated_dict, response = cached
                             validated = schema.model_validate(validated_dict)
                             self._metrics["cache_hits"] += 1
-                            logger.info(f"Cache hit - returning cached {check_provider} response")
+                            logger.info("Cache hit - returning cached ollama response")
                             return validated, response
                         except Exception as e:
-                            # Cache entry corrupted/invalid - treat as miss
+                            logger.warning(f"Cache entry invalid, treating as miss: {e}")
+                            cache.invalidate(cache_key)
+                else:
+                    # Ollama unavailable - check Gemini cache as fallback
+                    cache_key = cache.make_key(
+                        prompt, schema, temperature,
+                        provider="gemini",
+                        **base_cache_kwargs,
+                        **kwargs
+                    )
+                    cached = cache.get(cache_key)
+                    if cached:
+                        try:
+                            validated_dict, response = cached
+                            validated = schema.model_validate(validated_dict)
+                            self._metrics["cache_hits"] += 1
+                            logger.info("Cache hit - returning cached gemini response (ollama unavailable)")
+                            return validated, response
+                        except Exception as e:
                             logger.warning(f"Cache entry invalid, treating as miss: {e}")
                             cache.invalidate(cache_key)
 

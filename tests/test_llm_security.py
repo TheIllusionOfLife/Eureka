@@ -116,7 +116,6 @@ class TestPathTraversalProtection:
     def test_relative_to_prevents_prefix_bypass(self):
         """Test that /home/user doesn't match /home/user_evil via relative_to()."""
         from madspark.llm.cache import ResponseCache
-        import logging
 
         # This test verifies that relative_to() properly checks path containment
         # A path like /fake_home/user_evil should NOT match /fake_home/user

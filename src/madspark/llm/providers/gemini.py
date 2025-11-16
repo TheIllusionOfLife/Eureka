@@ -10,7 +10,7 @@ import os
 import time
 from typing import Any, Optional, Type, Union
 from pathlib import Path
-from pydantic import BaseModel
+from pydantic import BaseModel, SecretStr
 
 from madspark.llm.base import LLMProvider
 from madspark.llm.response import LLMResponse
@@ -82,18 +82,21 @@ class GeminiProvider(LLMProvider):
             )
 
         config = get_config()
-        self._api_key = api_key or config.gemini_api_key or os.getenv("GOOGLE_API_KEY")
+        raw_api_key = api_key or config.gemini_api_key or os.getenv("GOOGLE_API_KEY")
         self._model = model or config.gemini_model
         self._client = None
 
-        if not self._api_key:
+        if not raw_api_key:
             raise ProviderUnavailableError(
                 "GOOGLE_API_KEY not set. Required for Gemini provider."
             )
 
+        # Store API key as SecretStr for memory safety (won't appear in repr/logs)
+        self._api_key: SecretStr = SecretStr(raw_api_key)
+
         # Validate API key is not a placeholder (without modifying shared config)
         # Create temporary config with our API key for validation
-        temp_config = LLMConfig(gemini_api_key=self._api_key)
+        temp_config = LLMConfig(gemini_api_key=raw_api_key)
         if not temp_config.validate_api_key():
             logger.warning(
                 "API key may be a placeholder. Gemini calls may fail. "
@@ -110,7 +113,8 @@ class GeminiProvider(LLMProvider):
         """Lazy initialization of Gemini client."""
         if self._client is None:
             # Client uses API key from parameter or environment
-            self._client = genai.Client(api_key=self._api_key)
+            # SecretStr.get_secret_value() retrieves the actual value
+            self._client = genai.Client(api_key=self._api_key.get_secret_value())
         return self._client
 
     @property
@@ -128,18 +132,22 @@ class GeminiProvider(LLMProvider):
         """Gemini supports full multimodal (PDF, URL, images)."""
         return True
 
-    def health_check(self) -> bool:
+    def health_check(self, force_refresh: bool = False) -> bool:
         """
         Check if Gemini API is accessible.
 
         Uses TTL-based caching (60 seconds) to avoid repeated API calls that consume quota.
 
+        Args:
+            force_refresh: If True, bypass cache and check API directly
+
         Returns:
             True if API is reachable
         """
-        # Check cache first to avoid expensive API calls
+        # Check cache first to avoid expensive API calls (unless force refresh)
         if (
-            self._last_health_check is not None
+            not force_refresh
+            and self._last_health_check is not None
             and (time.time() - self._last_health_check_time) < self._health_check_ttl
         ):
             return self._last_health_check
@@ -192,6 +200,13 @@ class GeminiProvider(LLMProvider):
 
         if files:
             for file_path in files:
+                # Validate file path exists before API call
+                if not file_path.exists():
+                    logger.warning(f"File not found: {file_path}")
+                    raise FileNotFoundError(f"File not found: {file_path}")
+                if not file_path.is_file():
+                    logger.warning(f"Path is not a file: {file_path}")
+                    raise ValueError(f"Path is not a file: {file_path}")
                 part = types.Part.from_file(str(file_path))
                 contents.append(part)
 
@@ -281,10 +296,23 @@ class GeminiProvider(LLMProvider):
         # Handle images (for compatibility with Ollama interface)
         if images:
             for img_path in images:
-                contents.append(types.Part.from_file(str(img_path)))
+                path = Path(img_path)
+                if not path.exists():
+                    logger.warning(f"Image file not found: {path}")
+                    raise FileNotFoundError(f"Image file not found: {path}")
+                if not path.is_file():
+                    logger.warning(f"Image path is not a file: {path}")
+                    raise ValueError(f"Image path is not a file: {path}")
+                contents.append(types.Part.from_file(str(path)))
 
         if files:
             for file_path in files:
+                if not file_path.exists():
+                    logger.warning(f"File not found: {file_path}")
+                    raise FileNotFoundError(f"File not found: {file_path}")
+                if not file_path.is_file():
+                    logger.warning(f"Path is not a file: {file_path}")
+                    raise ValueError(f"Path is not a file: {file_path}")
                 part = types.Part.from_file(str(file_path))
                 contents.append(part)
 

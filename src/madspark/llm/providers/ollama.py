@@ -93,18 +93,22 @@ class OllamaProvider(LLMProvider):
         # gemma3 models support images
         return "gemma3" in self._model
 
-    def health_check(self) -> bool:
+    def health_check(self, force_refresh: bool = False) -> bool:
         """
         Check if Ollama server is running and model is available.
 
         Uses TTL-based caching (30 seconds) to avoid repeated network calls.
 
+        Args:
+            force_refresh: If True, bypass cache and check server directly
+
         Returns:
             True if server is up and model is pulled
         """
-        # Check cache first
+        # Check cache first (unless force refresh requested)
         if (
-            self._last_health_check is not None
+            not force_refresh
+            and self._last_health_check is not None
             and (time.time() - self._last_health_check_time) < self._health_check_ttl
         ):
             return self._last_health_check
@@ -179,8 +183,18 @@ class OllamaProvider(LLMProvider):
 
         user_message: dict[str, Any] = {"role": "user", "content": prompt}
         if images:
-            # Convert paths to strings, Ollama handles base64 or file paths
-            user_message["images"] = [str(img) for img in images]
+            # Validate image paths exist before API call
+            validated_images = []
+            for img in images:
+                img_path = Path(img)
+                if not img_path.exists():
+                    logger.warning(f"Image file not found: {img_path}")
+                    raise FileNotFoundError(f"Image file not found: {img_path}")
+                if not img_path.is_file():
+                    logger.warning(f"Image path is not a file: {img_path}")
+                    raise ValueError(f"Image path is not a file: {img_path}")
+                validated_images.append(str(img_path))
+            user_message["images"] = validated_images
         messages.append(user_message)
 
         options: dict[str, Any] = {"temperature": temperature}
@@ -264,7 +278,18 @@ class OllamaProvider(LLMProvider):
 
         user_message: dict[str, Any] = {"role": "user", "content": enhanced_prompt}
         if images:
-            user_message["images"] = [str(img) for img in images]
+            # Validate image paths exist before API call
+            validated_images = []
+            for img in images:
+                img_path = Path(img)
+                if not img_path.exists():
+                    logger.warning(f"Image file not found: {img_path}")
+                    raise FileNotFoundError(f"Image file not found: {img_path}")
+                if not img_path.is_file():
+                    logger.warning(f"Image path is not a file: {img_path}")
+                    raise ValueError(f"Image path is not a file: {img_path}")
+                validated_images.append(str(img_path))
+            user_message["images"] = validated_images
         messages.append(user_message)
 
         start = time.time()

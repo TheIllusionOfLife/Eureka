@@ -27,6 +27,10 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+# Constants for cache configuration
+SCHEMA_HASH_LENGTH = 64  # Characters of SHA256 hash to use (full hash is 64 chars)
+DEFAULT_CACHE_PERMISSIONS = 0o700  # User-only read/write/execute
+
 
 class ResponseCache:
     """
@@ -94,7 +98,7 @@ class ResponseCache:
         # WARNING: Cache stores prompts and responses in plaintext on disk.
         # Do not use for sensitive data without additional encryption.
         # Restrictive permissions (0o700) limit access to current user only.
-        cache_path.mkdir(parents=True, exist_ok=True, mode=0o700)
+        cache_path.mkdir(parents=True, exist_ok=True, mode=DEFAULT_CACHE_PERMISSIONS)
         self._cache = diskcache.Cache(str(cache_path))
         logger.info(f"Initialized cache at {cache_path}")
 
@@ -132,7 +136,7 @@ class ResponseCache:
             "schema_name": f"{schema.__module__}.{schema.__name__}",  # Full path to avoid collisions
             "schema_hash": hashlib.sha256(
                 json.dumps(schema.model_json_schema(), sort_keys=True).encode()
-            ).hexdigest()[:64],  # Use 64 chars to minimize collision risk
+            ).hexdigest()[:SCHEMA_HASH_LENGTH],  # Full SHA256 hash to minimize collision risk
             "temperature": temperature,
             "provider": provider,
             "model": model,
@@ -161,8 +165,19 @@ class ResponseCache:
                 logger.debug(f"Cache miss: {key[:16]}...")
                 return None
 
-            # Deserialize
+            # Type guard: ensure cached data is a tuple of (dict, dict)
+            if not isinstance(cached_data, tuple) or len(cached_data) != 2:
+                logger.warning(f"Invalid cache format for {key[:16]}..., invalidating")
+                self.invalidate(key)
+                return None
+
             validated_dict, response_dict = cached_data
+
+            if not isinstance(validated_dict, dict) or not isinstance(response_dict, dict):
+                logger.warning(f"Invalid cache data types for {key[:16]}..., invalidating")
+                self.invalidate(key)
+                return None
+
             # Convert timestamp string back to datetime if needed
             if "timestamp" in response_dict and isinstance(response_dict["timestamp"], str):
                 response_dict["timestamp"] = datetime.fromisoformat(response_dict["timestamp"])

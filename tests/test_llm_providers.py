@@ -388,7 +388,8 @@ class TestGeminiProvider:
 
         provider = GeminiProvider()
         assert provider.provider_name == "gemini"
-        assert provider._api_key == "test-key"
+        # API key is stored as SecretStr for memory safety
+        assert provider._api_key.get_secret_value() == "test-key"
 
     @patch("madspark.llm.providers.gemini.genai")
     def test_supports_multimodal(self, mock_genai, monkeypatch):

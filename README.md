@@ -180,24 +180,27 @@ ideas = generate_ideas(
 
 **📖 See [Multi-Modal Guide](docs/MULTIMODAL_GUIDE.md) for comprehensive documentation, examples, and best practices.**
 
-### LLM Provider Selection (NEW!)
+### LLM Provider Selection (NEW! - Phase 1 Infrastructure)
 
-MadSpark now supports multiple LLM providers with automatic fallback and response caching:
+> **⚠️ Note: Phase 1 Infrastructure Only**
+> The LLM provider abstraction layer (router, cache, providers) is fully implemented and tested, but **not yet integrated into the main agent workflow**. Currently, agents still use Gemini directly via `genai_client`. The CLI flags configure the router infrastructure, which will be wired into agents in Phase 2. Full Ollama/fallback/caching features are not yet active.
+
+MadSpark now has infrastructure for multiple LLM providers with automatic fallback and response caching:
 
 ```bash
 # Default: Auto-select provider (Ollama primary, Gemini fallback)
 ms "urban farming" --show-llm-stats
 
-# Force specific provider
+# Force specific provider (infrastructure ready, not yet active in agents)
 ms "AI healthcare" --provider ollama        # Local inference (free)
 ms "quantum computing" --provider gemini    # Cloud API (paid)
 
-# Control model quality tier
+# Control model quality tier (Ollama models only currently)
 ms "space exploration" --model-tier fast      # 4B model (quick)
 ms "climate solutions" --model-tier balanced  # 12B model (better)
-ms "renewable energy" --model-tier quality    # Gemini (best)
+ms "renewable energy" --model-tier quality    # 12B model (same as balanced)
 
-# Cache management
+# Cache management (infrastructure ready)
 ms "education innovation" --no-cache       # Disable caching
 ms --clear-cache "healthcare AI"           # Clear cache first
 
@@ -205,7 +208,7 @@ ms --clear-cache "healthcare AI"           # Clear cache first
 ms "future transportation" --no-fallback
 ```
 
-**Provider Features:**
+**Provider Features (Phase 2 Integration Pending):**
 - **Ollama (Primary)**: Local inference with gemma3 models, $0 cost, image support
 - **Gemini (Fallback)**: Cloud inference, PDF/URL support, higher quality
 - **Response Caching**: Disk-based cache with 24h TTL, 30-50% fewer API calls

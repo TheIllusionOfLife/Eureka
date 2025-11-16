@@ -180,7 +180,16 @@ See **[docs/ci-policy.md](docs/ci-policy.md)** for complete guidelines on:
 - **Optional**: ruff for linting, mypy for type checking
 - **Web**: FastAPI, React 18.2, TypeScript, Docker (in `web/` directory)
 
-## LLM Provider Abstraction Layer (NEW)
+## LLM Provider Abstraction Layer (NEW - Infrastructure Only)
+
+**⚠️ IMPORTANT: Phase 1 Infrastructure Only**
+
+This is the foundation layer for multi-provider support. The router, cache, and provider classes are fully implemented and tested, but **not yet integrated into the main agent workflow**. Currently:
+- Agents still use `madspark.agents.genai_client` directly (Gemini-only)
+- CLI flags (`--provider`, `--model-tier`, etc.) configure the router but agents don't use it
+- The `agent_adapter.generate_structured_via_router()` function exists but is not called
+
+**Phase 2 (Future Work)**: Wire up all agents to use the router instead of direct genai_client calls. This will enable the advertised Ollama/fallback/caching features.
 
 MadSpark now supports multiple LLM providers through an abstraction layer with automatic fallback and caching.
 

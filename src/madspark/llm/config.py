@@ -132,11 +132,17 @@ class LLMConfig:
         """
         Get Ollama model based on current tier.
 
+        Note: QUALITY tier returns balanced model since Ollama doesn't have
+        a higher tier. For true quality tier, use Gemini provider directly
+        via --provider gemini flag.
+
         Returns:
             Model name for the configured tier
         """
         if self.model_tier == ModelTier.FAST:
             return self.ollama_model_fast
+        # Both BALANCED and QUALITY use the same model
+        # QUALITY tier with Ollama falls back to balanced; use Gemini for true quality
         return self.ollama_model_balanced
 
     def get_token_budget(self, request_type: str) -> int:

@@ -815,11 +815,18 @@ def _configure_llm_provider(args: argparse.Namespace) -> bool:
         False otherwise.
     """
     # Set environment variables based on CLI args
-    if getattr(args, 'provider', None):
-        os.environ['MADSPARK_LLM_PROVIDER'] = args.provider
+    # Only override if explicitly specified (not default value)
+    # Check if the argument was explicitly provided by user (not just default)
+    if hasattr(args, 'provider') and args.provider is not None:
+        # Only set if user explicitly provided --provider flag
+        # This preserves existing env var when using default
+        if '--provider' in sys.argv or any(arg.startswith('--provider=') for arg in sys.argv):
+            os.environ['MADSPARK_LLM_PROVIDER'] = args.provider
 
-    if getattr(args, 'model_tier', None):
-        os.environ['MADSPARK_MODEL_TIER'] = args.model_tier
+    if hasattr(args, 'model_tier') and args.model_tier is not None:
+        # Only set if user explicitly provided --model-tier flag
+        if '--model-tier' in sys.argv or any(arg.startswith('--model-tier=') for arg in sys.argv):
+            os.environ['MADSPARK_MODEL_TIER'] = args.model_tier
 
     if getattr(args, 'no_fallback', False):
         os.environ['MADSPARK_FALLBACK_ENABLED'] = 'false'
@@ -845,7 +852,7 @@ def _configure_llm_provider(args: argparse.Namespace) -> bool:
 
         # If this was the only major action, signal to main to exit
         is_other_action = any([
-            getattr(args, 'topic', None),  # Standardized parameter name
+            getattr(args, 'theme', None),  # Argument name is 'theme' in parser (backward compat)
             getattr(args, 'batch', None),
             getattr(args, 'interactive', False),
             getattr(args, 'list_bookmarks', False),

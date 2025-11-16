@@ -32,11 +32,38 @@ _IMPROVEMENT_RESPONSE_GENAI_SCHEMA = pydantic_to_genai_schema(ImprovementRespons
 try:
     from madspark.llm import get_router
     from madspark.llm.exceptions import AllProvidersFailedError
+    from madspark.llm.config import get_config as get_llm_config
     LLM_ROUTER_AVAILABLE = True
 except ImportError:
     LLM_ROUTER_AVAILABLE = False
     get_router = None  # type: ignore
     AllProvidersFailedError = Exception  # type: ignore
+    get_llm_config = None  # type: ignore
+
+
+def _should_use_router() -> bool:
+    """
+    Check if router should be used based on configuration.
+
+    Returns True if:
+    - LLM Router is available
+    - User explicitly configured provider via env var (e.g., --provider flag)
+    - Provider is not set to 'auto' (which would just use Gemini anyway)
+    """
+    if not LLM_ROUTER_AVAILABLE or get_llm_config is None:
+        return False
+
+    import os
+    # Check if user explicitly set provider (indicating they want router control)
+    explicit_provider = os.getenv("MADSPARK_LLM_PROVIDER")
+
+    # Also check for other router-related flags
+    cache_disabled = os.getenv("MADSPARK_CACHE_ENABLED") == "false"
+    fallback_disabled = os.getenv("MADSPARK_FALLBACK_ENABLED") == "false"
+    model_tier_set = os.getenv("MADSPARK_MODEL_TIER") is not None
+
+    # Use router if any router-related flag was explicitly set
+    return bool(explicit_provider or cache_disabled or fallback_disabled or model_tier_set)
 
 
 def improve_idea_structured(
@@ -128,8 +155,11 @@ Write ONLY the improved idea. No introductions, no meta-commentary."""
         multimodal_urls=multimodal_urls
     )
 
-    # Try LLM Router first if available and no explicit client provided
-    if use_router and LLM_ROUTER_AVAILABLE and genai_client is None and get_router is not None:
+    # Try LLM Router first if available and router is explicitly configured
+    # Priority: Use router when user sets --provider/--model-tier/--no-cache flags
+    # This allows router to serve real traffic instead of being bypassed
+    should_route = use_router and LLM_ROUTER_AVAILABLE and get_router is not None
+    if should_route and (genai_client is None or _should_use_router()):
         try:
             router = get_router()
             # Router generates structured output with automatic provider selection

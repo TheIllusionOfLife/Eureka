@@ -27,6 +27,18 @@ from madspark.llm.exceptions import (
 MAX_PROMPT_LENGTH = 100_000  # Characters - prevents resource exhaustion
 MAX_FILE_SIZE_MB = 50  # Maximum file size in MB for multimodal inputs
 
+# Shared metrics key constants - prevents key mismatch bugs between router and CLI
+METRIC_TOTAL_REQUESTS = "total_requests"
+METRIC_CACHE_HITS = "cache_hits"
+METRIC_OLLAMA_CALLS = "ollama_calls"
+METRIC_GEMINI_CALLS = "gemini_calls"
+METRIC_FALLBACK_TRIGGERS = "fallback_triggers"
+METRIC_TOTAL_TOKENS = "total_tokens"
+METRIC_TOTAL_COST = "total_cost"
+METRIC_TOTAL_LATENCY_MS = "total_latency_ms"
+METRIC_CACHE_HIT_RATE = "cache_hit_rate"
+METRIC_AVG_LATENCY_MS = "avg_latency_ms"
+
 
 class RouterMetrics(TypedDict):
     """Type-safe metrics dictionary for router usage tracking."""

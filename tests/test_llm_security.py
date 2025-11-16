@@ -364,3 +364,158 @@ class TestTimestampConsistency:
                 _, response = result
                 # The timestamp should be timezone-aware (UTC)
                 assert response.timestamp.tzinfo is not None or response.timestamp.tzinfo == timezone.utc
+
+
+class TestCacheKeyKwargsValidation:
+    """Test cache key kwargs type validation."""
+
+    def test_rejects_non_serializable_function(self):
+        """Test that functions are rejected as kwargs."""
+        from madspark.llm.cache import ResponseCache
+
+        cache = ResponseCache(enabled=False)
+
+        def my_func():
+            pass
+
+        with pytest.raises(TypeError, match="non-JSON-serializable"):
+            cache.make_key("prompt", SimpleSchema, callback=my_func)
+
+    def test_rejects_non_serializable_object(self):
+        """Test that custom objects are rejected as kwargs."""
+        from madspark.llm.cache import ResponseCache
+
+        cache = ResponseCache(enabled=False)
+
+        class CustomObj:
+            pass
+
+        with pytest.raises(TypeError, match="non-JSON-serializable"):
+            cache.make_key("prompt", SimpleSchema, custom=CustomObj())
+
+    def test_accepts_json_serializable_types(self):
+        """Test that all JSON-serializable types are accepted."""
+        from madspark.llm.cache import ResponseCache
+
+        cache = ResponseCache(enabled=False)
+
+        # Should not raise
+        key = cache.make_key(
+            "prompt",
+            SimpleSchema,
+            string_param="test",
+            int_param=42,
+            float_param=3.14,
+            bool_param=True,
+            none_param=None,
+            list_param=["a", "b", "c"],
+            dict_param={"nested": "value"},
+        )
+
+        # Should return valid hash
+        assert isinstance(key, str)
+        assert len(key) == 64  # SHA256 hex digest
+
+    def test_rejects_nested_non_serializable(self):
+        """Test that nested non-serializable types are caught."""
+        from madspark.llm.cache import ResponseCache
+
+        cache = ResponseCache(enabled=False)
+
+        def bad_func():
+            pass
+
+        with pytest.raises(TypeError, match="non-JSON-serializable"):
+            cache.make_key("prompt", SimpleSchema, nested_list=[1, 2, bad_func])
+
+    def test_rejects_dict_with_non_serializable_value(self):
+        """Test that dicts with non-serializable values are caught."""
+        from madspark.llm.cache import ResponseCache
+
+        cache = ResponseCache(enabled=False)
+
+        class BadClass:
+            pass
+
+        with pytest.raises(TypeError, match="non-JSON-serializable"):
+            cache.make_key("prompt", SimpleSchema, nested_dict={"key": BadClass()})
+
+
+class TestRouterProductionIntegration:
+    """Test router is actually used in production code paths."""
+
+    def test_router_used_when_provider_env_var_set(self, monkeypatch):
+        """Test that router is used when MADSPARK_LLM_PROVIDER is set."""
+        from madspark.agents.structured_idea_generator import _should_use_router
+
+        monkeypatch.setenv("MADSPARK_LLM_PROVIDER", "ollama")
+        monkeypatch.delenv("MADSPARK_CACHE_ENABLED", raising=False)
+        monkeypatch.delenv("MADSPARK_FALLBACK_ENABLED", raising=False)
+        monkeypatch.delenv("MADSPARK_MODEL_TIER", raising=False)
+
+        assert _should_use_router() is True
+
+    def test_router_used_when_cache_disabled(self, monkeypatch):
+        """Test that router is used when cache is explicitly disabled."""
+        from madspark.agents.structured_idea_generator import _should_use_router
+
+        monkeypatch.delenv("MADSPARK_LLM_PROVIDER", raising=False)
+        monkeypatch.setenv("MADSPARK_CACHE_ENABLED", "false")
+        monkeypatch.delenv("MADSPARK_FALLBACK_ENABLED", raising=False)
+        monkeypatch.delenv("MADSPARK_MODEL_TIER", raising=False)
+
+        assert _should_use_router() is True
+
+    def test_router_used_when_model_tier_set(self, monkeypatch):
+        """Test that router is used when model tier is set."""
+        from madspark.agents.structured_idea_generator import _should_use_router
+
+        monkeypatch.delenv("MADSPARK_LLM_PROVIDER", raising=False)
+        monkeypatch.delenv("MADSPARK_CACHE_ENABLED", raising=False)
+        monkeypatch.delenv("MADSPARK_FALLBACK_ENABLED", raising=False)
+        monkeypatch.setenv("MADSPARK_MODEL_TIER", "balanced")
+
+        assert _should_use_router() is True
+
+    def test_router_not_used_by_default(self, monkeypatch):
+        """Test that router is not used when no env vars are set."""
+        from madspark.agents.structured_idea_generator import _should_use_router
+
+        monkeypatch.delenv("MADSPARK_LLM_PROVIDER", raising=False)
+        monkeypatch.delenv("MADSPARK_CACHE_ENABLED", raising=False)
+        monkeypatch.delenv("MADSPARK_FALLBACK_ENABLED", raising=False)
+        monkeypatch.delenv("MADSPARK_MODEL_TIER", raising=False)
+
+        assert _should_use_router() is False
+
+    def test_improve_idea_uses_router_when_configured(self, monkeypatch):
+        """Test that improve_idea_structured uses router when CLI flags are set."""
+        from madspark.agents.structured_idea_generator import improve_idea_structured
+
+        monkeypatch.setenv("MADSPARK_LLM_PROVIDER", "ollama")
+
+        with patch("madspark.agents.structured_idea_generator.LLM_ROUTER_AVAILABLE", True):
+            with patch("madspark.agents.structured_idea_generator.get_router") as mock_get_router:
+                mock_router = Mock()
+                mock_validated = Mock()
+                mock_validated.improved_title = "Improved Title"
+                mock_validated.improved_description = "Improved Description"
+                mock_response = Mock()
+                mock_response.provider = "ollama"
+                mock_response.tokens_used = 100
+                mock_router.generate_structured.return_value = (mock_validated, mock_response)
+                mock_get_router.return_value = mock_router
+
+                result = improve_idea_structured(
+                    original_idea="Test idea",
+                    critique="Test critique",
+                    advocacy_points="- Point 1",
+                    skeptic_points="- Concern 1",
+                    topic="Test topic",
+                    context="Test context",
+                )
+
+                # Verify router was called
+                assert mock_router.generate_structured.called
+                assert "Improved Title" in result
+                assert "Improved Description" in result

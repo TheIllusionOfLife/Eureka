@@ -1091,6 +1091,17 @@ def _show_llm_stats() -> None:
     """Display LLM provider usage statistics."""
     try:
         from madspark.llm import get_router, get_cache
+        from madspark.llm.router import (
+            METRIC_TOTAL_REQUESTS,
+            METRIC_CACHE_HITS,
+            METRIC_OLLAMA_CALLS,
+            METRIC_GEMINI_CALLS,
+            METRIC_FALLBACK_TRIGGERS,
+            METRIC_TOTAL_TOKENS,
+            METRIC_TOTAL_COST,
+            METRIC_CACHE_HIT_RATE,
+            METRIC_AVG_LATENCY_MS,
+        )
 
         router = get_router()
         cache = get_cache()
@@ -1103,23 +1114,23 @@ def _show_llm_stats() -> None:
         metrics = router.get_metrics()
 
         # Check if router was actually used
-        if metrics['total_requests'] == 0:
+        if metrics[METRIC_TOTAL_REQUESTS] == 0:
             print("⚠️  NOTE: LLM Router was not used in this workflow.")
             print("   The multi-provider routing infrastructure is ready but")
             print("   not yet integrated into the main workflow (Phase 2).")
             print("   Current workflow uses direct Gemini API calls.")
             print("")
 
-        print(f"Total Requests: {metrics['total_requests']}")
-        print(f"  - Ollama Calls: {metrics['ollama_calls']}")
-        print(f"  - Gemini Calls: {metrics['gemini_calls']}")
-        print(f"  - Cache Hits: {metrics['cache_hits']}")
-        print(f"  - Fallback Triggers: {metrics['fallback_triggers']}")
-        print(f"Total Tokens: {metrics['total_tokens']}")
-        print(f"Total Cost: ${metrics['total_cost']:.6f}")
-        if metrics['total_requests'] > 0:
-            print(f"Cache Hit Rate: {metrics['cache_hit_rate']:.1%}")
-            print(f"Avg Latency: {metrics['avg_latency_ms']:.0f}ms")
+        print(f"Total Requests: {metrics[METRIC_TOTAL_REQUESTS]}")
+        print(f"  - Ollama Calls: {metrics[METRIC_OLLAMA_CALLS]}")
+        print(f"  - Gemini Calls: {metrics[METRIC_GEMINI_CALLS]}")
+        print(f"  - Cache Hits: {metrics[METRIC_CACHE_HITS]}")
+        print(f"  - Fallback Triggers: {metrics[METRIC_FALLBACK_TRIGGERS]}")
+        print(f"Total Tokens: {metrics[METRIC_TOTAL_TOKENS]}")
+        print(f"Total Cost: ${metrics[METRIC_TOTAL_COST]:.6f}")
+        if metrics[METRIC_TOTAL_REQUESTS] > 0:
+            print(f"Cache Hit Rate: {metrics[METRIC_CACHE_HIT_RATE]:.1%}")
+            print(f"Avg Latency: {metrics[METRIC_AVG_LATENCY_MS]:.0f}ms")
 
         # Cache stats
         if cache.enabled:

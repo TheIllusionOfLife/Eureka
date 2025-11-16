@@ -153,6 +153,9 @@ class ResponseCache:
 
         Returns:
             SHA256 hash as cache key
+
+        Raises:
+            TypeError: If kwargs contain non-JSON-serializable values
         """
         # Hash long strings to avoid memory overhead in key_data
         # Threshold: strings longer than 10KB are hashed
@@ -164,8 +167,26 @@ class ResponseCache:
                 return f"sha256:{hashlib.sha256(value.encode()).hexdigest()}"
             return value
 
-        # Process kwargs to hash long strings (e.g., system_instruction)
-        processed_kwargs = {k: hash_if_long(v) for k, v in kwargs.items()}
+        def validate_json_serializable(key: str, value: Any) -> Any:
+            """Validate that value is JSON-serializable and process it."""
+            # Allow JSON-serializable types only
+            if value is None or isinstance(value, (bool, int, float, str)):
+                return hash_if_long(value)
+            elif isinstance(value, (list, tuple)):
+                # Recursively validate list/tuple elements
+                return [validate_json_serializable(f"{key}[{i}]", item) for i, item in enumerate(value)]
+            elif isinstance(value, dict):
+                # Recursively validate dict values
+                return {k: validate_json_serializable(f"{key}.{k}", v) for k, v in value.items()}
+            else:
+                raise TypeError(
+                    f"Cache key kwargs['{key}'] contains non-JSON-serializable type: "
+                    f"{type(value).__name__}. Only JSON-serializable types allowed "
+                    f"(None, bool, int, float, str, list, dict)."
+                )
+
+        # Process kwargs to validate and hash long strings (e.g., system_instruction)
+        processed_kwargs = {k: validate_json_serializable(k, v) for k, v in kwargs.items()}
 
         # Create deterministic representation
         key_data = {

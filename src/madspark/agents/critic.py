@@ -6,7 +6,6 @@ and context, providing scores and textual feedback.
 """
 import json
 import logging
-import os
 
 # Optional import for Google GenAI - graceful fallback for CI/testing
 try:

@@ -6,7 +6,6 @@ and contextual information.
 """
 import json
 import logging
-import os
 from pathlib import Path
 from typing import Any, List, Dict, Tuple, Optional, Union
 

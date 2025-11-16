@@ -6,7 +6,6 @@ an idea, considering its evaluation and context.
 """
 import json
 import logging
-import os
 from typing import List, Dict, Any, Tuple
 
 from madspark.utils.utils import parse_batch_json_with_fallback

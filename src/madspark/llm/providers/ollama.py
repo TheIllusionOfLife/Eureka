@@ -122,9 +122,13 @@ class OllamaProvider(LLMProvider):
                     result = True
                     break
                 # Precise prefix matching: pulled model must start with requested model
+                # followed by a delimiter (-, :, or end of string)
                 # e.g., requested "gemma3:4b" matches pulled "gemma3:4b-it-qat"
-                # but "gemma3:4b" does NOT match "gemma3:12b-it-qat"
-                if name.startswith(f"{self._model}"):
+                # but "gemma3:4b" does NOT match "gemma3:12b-it-qat" or "gemma3:4bx"
+                if name.startswith(f"{self._model}") and (
+                    len(name) == len(self._model)
+                    or name[len(self._model)] in ("-", ":", "_")
+                ):
                     result = True
                     break
 

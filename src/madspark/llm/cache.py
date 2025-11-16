@@ -81,7 +81,16 @@ class ResponseCache:
 
     def _init_cache(self) -> None:
         """Initialize disk cache."""
-        cache_path = Path(self._cache_dir)
+        cache_path = Path(self._cache_dir).resolve()
+
+        # Security: Validate path doesn't contain path traversal sequences
+        if ".." in str(cache_path):
+            logger.warning(
+                f"Cache directory contains path traversal sequence: {cache_path}. "
+                f"Using default ~/.cache/madspark/llm"
+            )
+            cache_path = Path.home() / ".cache" / "madspark" / "llm"
+
         # WARNING: Cache stores prompts and responses in plaintext on disk.
         # Do not use for sensitive data without additional encryption.
         # Restrictive permissions (0o700) limit access to current user only.

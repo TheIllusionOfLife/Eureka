@@ -802,6 +802,19 @@ def _should_suppress_logs(args: argparse.Namespace) -> bool:
     )
 
 
+def _was_arg_provided(arg_name: str) -> bool:
+    """Check if a CLI argument was explicitly provided by the user.
+
+    Args:
+        arg_name: Name of the argument (e.g., 'provider', 'model-tier')
+
+    Returns:
+        True if user explicitly passed the flag
+    """
+    flag = f'--{arg_name}'
+    return flag in sys.argv or any(arg.startswith(f'{flag}=') for arg in sys.argv)
+
+
 def _configure_llm_provider(args: argparse.Namespace) -> bool:
     """Configure LLM provider based on CLI arguments.
 
@@ -816,17 +829,11 @@ def _configure_llm_provider(args: argparse.Namespace) -> bool:
     """
     # Set environment variables based on CLI args
     # Only override if explicitly specified (not default value)
-    # Check if the argument was explicitly provided by user (not just default)
-    if hasattr(args, 'provider') and args.provider is not None:
-        # Only set if user explicitly provided --provider flag
-        # This preserves existing env var when using default
-        if '--provider' in sys.argv or any(arg.startswith('--provider=') for arg in sys.argv):
-            os.environ['MADSPARK_LLM_PROVIDER'] = args.provider
+    if hasattr(args, 'provider') and args.provider is not None and _was_arg_provided('provider'):
+        os.environ['MADSPARK_LLM_PROVIDER'] = args.provider
 
-    if hasattr(args, 'model_tier') and args.model_tier is not None:
-        # Only set if user explicitly provided --model-tier flag
-        if '--model-tier' in sys.argv or any(arg.startswith('--model-tier=') for arg in sys.argv):
-            os.environ['MADSPARK_MODEL_TIER'] = args.model_tier
+    if hasattr(args, 'model_tier') and args.model_tier is not None and _was_arg_provided('model-tier'):
+        os.environ['MADSPARK_MODEL_TIER'] = args.model_tier
 
     if getattr(args, 'no_fallback', False):
         os.environ['MADSPARK_FALLBACK_ENABLED'] = 'false'

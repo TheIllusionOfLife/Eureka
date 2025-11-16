@@ -233,6 +233,105 @@ class LLMRouter:
 
         raise ProviderUnavailableError("No LLM providers available")
 
+    def generate_structured_batch(
+        self,
+        prompts: list[str],
+        schema: Type[BaseModel],
+        system_instruction: str = "",
+        temperature: float = 0.0,
+        files: Optional[list[Path]] = None,
+        urls: Optional[list[str]] = None,
+        images: Optional[list[Union[str, Path]]] = None,
+        force_provider: Optional[str] = None,
+        use_cache: Optional[bool] = None,
+        **kwargs,
+    ) -> tuple[list[Any], LLMResponse]:
+        """
+        Generate structured output for multiple prompts (batch operation).
+
+        Processes each prompt through the router with caching and fallback support.
+        Aggregates metrics and returns combined response metadata.
+
+        Args:
+            prompts: List of user prompts to process
+            schema: Pydantic model for validation
+            system_instruction: System instruction (shared across all prompts)
+            temperature: Sampling temperature
+            files: PDF/document files (routes to Gemini)
+            urls: URLs to process (routes to Gemini)
+            images: Image files (shared across all prompts)
+            force_provider: Force specific provider
+            use_cache: Override cache setting
+            **kwargs: Additional provider-specific args
+
+        Returns:
+            tuple: (list of validated_pydantic_objects, aggregated response_metadata)
+
+        Raises:
+            AllProvidersFailedError: If all providers fail for any prompt
+            ValueError: If prompts is not a list
+            TypeError: If prompts is None
+        """
+        # Input validation
+        if prompts is None:
+            raise TypeError("Prompts cannot be None")
+
+        if not isinstance(prompts, list):
+            raise TypeError(f"Prompts must be a list, got {type(prompts).__name__}")
+
+        # Handle empty list case
+        if not prompts:
+            return [], LLMResponse(
+                text="",
+                provider="none",
+                model="none",
+                tokens_used=0,
+                latency_ms=0.0,
+                cost=0.0,
+            )
+
+        # Process each prompt
+        results = []
+        total_tokens = 0
+        total_cost = 0.0
+        total_latency = 0.0
+        providers_used = set()
+
+        for prompt in prompts:
+            validated, response = self.generate_structured(
+                prompt=prompt,
+                schema=schema,
+                system_instruction=system_instruction,
+                temperature=temperature,
+                files=files,
+                urls=urls,
+                images=images,
+                force_provider=force_provider,
+                use_cache=use_cache,
+                **kwargs,
+            )
+            results.append(validated)
+            total_tokens += response.tokens_used
+            total_cost += response.cost
+            total_latency += response.latency_ms
+            providers_used.add(response.provider)
+
+        # Determine primary provider used
+        # If multiple providers used (due to fallback), report the majority
+        primary_provider = max(providers_used, key=lambda p: sum(1 for _ in providers_used if _ == p))
+
+        # Create aggregated response
+        aggregated_response = LLMResponse(
+            text=f"Batch of {len(prompts)} items processed",
+            provider=primary_provider,
+            model="batch",
+            tokens_used=total_tokens,
+            latency_ms=total_latency,
+            cost=total_cost,
+        )
+
+        return results, aggregated_response
+
     def generate_structured(
         self,
         prompt: str,

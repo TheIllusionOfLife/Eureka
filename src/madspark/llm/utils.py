@@ -26,6 +26,9 @@ def should_use_router(router_available: bool = False, get_router_func=None) -> b
     This function centralizes the router availability detection logic used
     by all agents (critic, advocate, skeptic, idea_generator).
 
+    The router is used BY DEFAULT when available (Ollama-first behavior).
+    Use MADSPARK_NO_ROUTER=true to bypass the router.
+
     Args:
         router_available: Whether the LLM Router module is available
         get_router_func: The get_router function (None if unavailable)
@@ -33,19 +36,20 @@ def should_use_router(router_available: bool = False, get_router_func=None) -> b
     Returns:
         True if:
         - LLM Router is available and importable
-        - User explicitly configured provider via env var (e.g., --provider flag)
-        - Any router-related flag is set (cache, fallback, model tier)
+        - MADSPARK_NO_ROUTER is not set to "true"
+        False if:
+        - Router not available
+        - MADSPARK_NO_ROUTER is set to "true" (--no-router flag)
     """
     if not router_available or get_router_func is None:
         return False
 
-    # Check if user explicitly set provider (indicating they want router control)
-    explicit_provider = os.getenv("MADSPARK_LLM_PROVIDER")
+    # Check if user explicitly disabled router via --no-router flag
+    no_router = os.getenv("MADSPARK_NO_ROUTER", "").lower() in ("true", "1", "yes")
+    if no_router:
+        logger.info("Router disabled via MADSPARK_NO_ROUTER environment variable")
+        return False
 
-    # Also check for other router-related flags
-    cache_disabled = os.getenv("MADSPARK_CACHE_ENABLED") == "false"
-    fallback_disabled = os.getenv("MADSPARK_FALLBACK_ENABLED") == "false"
-    model_tier_set = os.getenv("MADSPARK_MODEL_TIER") is not None
-
-    # Use router if any router-related flag was explicitly set
-    return bool(explicit_provider or cache_disabled or fallback_disabled or model_tier_set)
+    # Router is enabled by default when available (Ollama-first behavior)
+    logger.debug("Router enabled by default (Ollama-first behavior)")
+    return True

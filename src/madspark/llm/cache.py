@@ -9,7 +9,7 @@ import hashlib
 import json
 import logging
 import threading
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional, Type
 from pydantic import BaseModel
@@ -100,10 +100,16 @@ class ResponseCache:
         ]
 
         # Check if resolved path is under a safe directory
-        is_safe = any(
-            str(cache_path).startswith(str(safe_prefix))
-            for safe_prefix in safe_prefixes
-        )
+        # Use relative_to() for proper path containment check (prevents /home/user matching /home/user_evil)
+        is_safe = False
+        for safe_prefix in safe_prefixes:
+            try:
+                cache_path.relative_to(safe_prefix)
+                is_safe = True
+                break
+            except ValueError:
+                # cache_path is not under this safe_prefix
+                continue
 
         if not is_safe:
             logger.warning(
@@ -209,14 +215,24 @@ class ResponseCache:
                 self.invalidate(key)
                 return None
 
+            # Validate required fields exist in response_dict
+            required_response_fields = ["text", "provider", "model"]
+            if not all(field in response_dict for field in required_response_fields):
+                missing = [f for f in required_response_fields if f not in response_dict]
+                logger.warning(
+                    f"Missing required fields {missing} in cached response {key[:16]}..., invalidating"
+                )
+                self.invalidate(key)
+                return None
+
             # Convert timestamp string back to datetime if needed
             if "timestamp" in response_dict and isinstance(response_dict["timestamp"], str):
                 try:
                     response_dict["timestamp"] = datetime.fromisoformat(response_dict["timestamp"])
                 except ValueError as e:
-                    # Malformed timestamp - use current time as fallback
+                    # Malformed timestamp - use current UTC time as fallback
                     logger.warning(f"Invalid timestamp in cache entry {key[:16]}...: {e}")
-                    response_dict["timestamp"] = datetime.now()
+                    response_dict["timestamp"] = datetime.now(timezone.utc)
             response = LLMResponse(**response_dict)
             response.cached = True
 

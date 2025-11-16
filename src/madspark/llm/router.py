@@ -422,8 +422,8 @@ class LLMRouter:
             OSError,
             ConnectionError,
             TimeoutError,
-            TypeError,  # Type mismatches
-            KeyError,  # Missing keys in responses
+            # Note: TypeError and KeyError are NOT caught here - they indicate
+            # programming bugs that should fail fast during development
         ) as e:
             # Catch specific exceptions, not KeyboardInterrupt/SystemExit
             errors.append((providers_tried[-1] if providers_tried else "unknown", str(e)))

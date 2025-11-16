@@ -8,6 +8,8 @@ Fallback provider and PDF/URL processor.
 import logging
 import os
 import time
+import ipaddress
+import socket
 from typing import Any, Optional, Type, Union
 from pathlib import Path
 from urllib.parse import urlparse
@@ -42,6 +44,37 @@ except ImportError:
     genai_response_to_pydantic = None  # type: ignore
 
 logger = logging.getLogger(__name__)
+
+
+def _is_private_ip(hostname: str) -> bool:
+    """
+    Check if hostname resolves to a private/internal IP address.
+
+    Security: Prevents SSRF attacks by blocking access to internal networks.
+
+    Args:
+        hostname: DNS hostname or IP address
+
+    Returns:
+        True if hostname is private/internal, False otherwise
+    """
+    try:
+        # Resolve hostname to IP
+        ip_str = socket.gethostbyname(hostname)
+        ip = ipaddress.ip_address(ip_str)
+
+        # Check for private, loopback, link-local, or reserved addresses
+        return (
+            ip.is_private
+            or ip.is_loopback
+            or ip.is_link_local
+            or ip.is_reserved
+            or ip.is_multicast
+        )
+    except (socket.gaierror, ValueError):
+        # If we can't resolve, treat as potentially dangerous
+        logger.warning(f"Cannot resolve hostname: {hostname}")
+        return True
 
 
 class GeminiProvider(LLMProvider):
@@ -318,13 +351,18 @@ class GeminiProvider(LLMProvider):
                 contents.append(part)
 
         if urls:
-            # Validate URL format before use
+            # Validate URL format and security before use
             for url in urls:
                 parsed = urlparse(url)
                 if not parsed.scheme or not parsed.netloc:
                     raise ValueError(f"Invalid URL format: {url}")
                 if parsed.scheme not in ("http", "https"):
                     raise ValueError(f"URL must use http or https scheme: {url}")
+                # SSRF protection: block private/internal IP addresses
+                if _is_private_ip(parsed.hostname or ""):
+                    raise ValueError(
+                        f"URL points to private/internal network (SSRF protection): {url}"
+                    )
             url_context = "\n".join([f"Analyze this URL: {url}" for url in urls])
             prompt = f"{url_context}\n\n{prompt}"
 

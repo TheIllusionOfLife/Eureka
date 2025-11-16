@@ -24,6 +24,17 @@ except ImportError:
     types = None
     GENAI_AVAILABLE = False
 
+# Optional LLM Router import
+try:
+    from madspark.llm import get_router, should_use_router
+    from madspark.llm.exceptions import AllProvidersFailedError
+    LLM_ROUTER_AVAILABLE = True
+except ImportError:
+    LLM_ROUTER_AVAILABLE = False
+    get_router = None  # type: ignore
+    should_use_router = None  # type: ignore
+    AllProvidersFailedError = Exception  # type: ignore
+
 # Import constants directly (not in compat_imports yet)
 try:
     from madspark.utils.constants import ADVOCATE_EMPTY_RESPONSE, ADVOCATE_SYSTEM_INSTRUCTION, LANGUAGE_CONSISTENCY_INSTRUCTION
@@ -56,8 +67,27 @@ else:
 _ADVOCATE_GENAI_SCHEMA = pydantic_to_genai_schema(AdvocacyResponse)
 
 
-def advocate_idea(idea: str, evaluation: str, topic: str, context: str, temperature: float = 0.5, use_structured_output: bool = True) -> str:
+def _should_use_router() -> bool:
+    """
+    Check if router should be used based on configuration.
+
+    Returns True if:
+    - LLM Router is available
+    - User explicitly configured provider via env var (e.g., --provider flag)
+    - Any router-related flag is set
+
+    Note: Delegates to shared utility in madspark.llm.utils for DRY compliance.
+    """
+    if should_use_router is None:
+        return False
+    return should_use_router(LLM_ROUTER_AVAILABLE, get_router)
+
+
+def advocate_idea(idea: str, evaluation: str, topic: str, context: str, temperature: float = 0.5, use_structured_output: bool = True, use_router: bool = True) -> str:
   """Advocates for an idea using its evaluation, topic, and context via the advocate model.
+
+  When use_router=True and LLM Router is available, routes through the
+  multi-provider abstraction layer for automatic fallback and caching.
 
   Args:
     idea: The idea to advocate for.
@@ -65,7 +95,10 @@ def advocate_idea(idea: str, evaluation: str, topic: str, context: str, temperat
     topic: The main topic or theme being explored.
     context: Additional constraints or criteria for evaluation.
     temperature: Controls randomness in generation (0.0-1.0). Balanced for argumentation.
-    use_structured_output: Whether to use structured JSON output (default: True)
+    use_structured_output: Whether to use structured JSON output (default: True).
+        Note: When routing through LLM Router, always returns structured JSON regardless
+        of this flag, as router enforces Pydantic schema validation for type safety.
+    use_router: Whether to use LLM Router for provider abstraction (default: True)
 
   Returns:
     A string containing the persuasive arguments for the idea. If use_structured_output is True,
@@ -103,12 +136,38 @@ def advocate_idea(idea: str, evaluation: str, topic: str, context: str, temperat
       "• [how criticism 2 can be addressed]\n"
       "• [continue addressing key concerns from the evaluation]"
   )
-  
+
+  # Try LLM Router first if available and configured
+  # Router only used when use_structured_output=True since router inherently returns structured JSON
+  should_route = use_router and use_structured_output and LLM_ROUTER_AVAILABLE and get_router is not None
+  if should_route and _should_use_router():
+      try:
+          router = get_router()
+          # Router generates structured output with automatic provider selection
+          validated, response = router.generate_structured(
+              prompt=prompt,
+              schema=AdvocacyResponse,
+              system_instruction=ADVOCATE_SYSTEM_INSTRUCTION,
+              temperature=temperature,
+          )
+
+          # Successfully got structured response via router
+          logger.info(f"Router generated advocacy via {response.provider} ({response.tokens_used} tokens)")
+
+          # Convert validated Pydantic model to JSON string for backward compatibility
+          return json.dumps(validated.model_dump())
+
+      except AllProvidersFailedError as e:
+          logger.warning(f"LLM Router failed, falling back to direct API: {e}")
+          # Fall through to direct API call
+      except Exception as e:
+          logger.warning(f"Router error, falling back to direct API: {e}")
+          # Fall through to direct API call
+
   if not GENAI_AVAILABLE or advocate_client is None:
     # Return mock advocacy for CI/testing environments or when API key is not configured
     if use_structured_output:
         # Return structured mock data
-        import json
         mock_advocacy = {
             "strengths": [
                 {"title": "Strong Foundation", "description": "Mock strength: Strong foundational concept"},

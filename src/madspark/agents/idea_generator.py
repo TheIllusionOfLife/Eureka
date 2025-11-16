@@ -29,6 +29,18 @@ except ImportError:
     genai = None
     types = None
     GENAI_AVAILABLE = False
+
+# Optional LLM Router import
+try:
+    from madspark.llm import get_router, should_use_router
+    from madspark.llm.exceptions import AllProvidersFailedError
+    LLM_ROUTER_AVAILABLE = True
+except ImportError:
+    LLM_ROUTER_AVAILABLE = False
+    get_router = None  # type: ignore
+    should_use_router = None  # type: ignore
+    AllProvidersFailedError = Exception  # type: ignore
+
 try:
     from madspark.utils.errors import ValidationError
 except ImportError:
@@ -50,16 +62,27 @@ _IMPROVER_SAFETY_SETTINGS = _safety_handler.get_safety_settings()
 
 def _validate_non_empty_string(value: Any, param_name: str) -> None:
   """Validates that a value is a non-empty string.
-  
+
   Args:
     value: The value to validate.
     param_name: The parameter name for error messages.
-    
+
   Raises:
     ValidationError: If the value is not a non-empty string.
   """
   if not isinstance(value, str) or not value.strip():
     raise ValidationError(f"Input '{param_name}' must be a non-empty string.")
+
+
+def _should_use_router() -> bool:
+    """
+    Check if router should be used based on configuration.
+
+    Note: Delegates to shared utility in madspark.llm.utils for DRY compliance.
+    """
+    if should_use_router is None:
+        return False
+    return should_use_router(LLM_ROUTER_AVAILABLE, get_router)
 
 
 def build_generation_prompt(topic: str, context: str, use_structured_output: bool = False) -> str:
@@ -152,17 +175,25 @@ def generate_ideas(
     temperature: float = 0.9,
     use_structured_output: bool = True,
     multimodal_files: Optional[List[Union[str, Path]]] = None,
-    multimodal_urls: Optional[List[str]] = None
+    multimodal_urls: Optional[List[str]] = None,
+    use_router: bool = True
 ) -> str:
   """Generates ideas based on a topic and context using the idea generator model.
+
+  When use_router=True and LLM Router is available, routes through the
+  multi-provider abstraction layer for automatic fallback and caching.
 
   Args:
     topic: The main topic for which ideas should be generated.
     context: Supporting context, constraints, or inspiration for the ideas.
     temperature: Controls randomness in generation (0.0-1.0). Higher values increase creativity.
-    use_structured_output: Whether to use structured JSON output (default: True)
+    use_structured_output: Whether to use structured JSON output (default: True).
+        Note: When routing through LLM Router, always returns structured JSON regardless
+        of this flag, as router enforces Pydantic schema validation for type safety.
+        Multimodal inputs (files/URLs) bypass router and use direct GenAI API.
     multimodal_files: Optional list of file paths (images, PDFs, documents) for context.
     multimodal_urls: Optional list of URLs for context.
+    use_router: Whether to use LLM Router for provider abstraction (default: True)
 
   Returns:
     A string containing the generated ideas. If use_structured_output is True,
@@ -184,12 +215,34 @@ def generate_ideas(
       multimodal_files=multimodal_files,
       multimodal_urls=multimodal_urls
   )
-  
+
+  # Try LLM Router first if available and configured
+  # Note: Router doesn't support multimodal yet, so skip if multimodal inputs are present
+  has_multimodal = bool(multimodal_files or multimodal_urls)
+  # Router only used when use_structured_output=True since router inherently returns structured JSON
+  should_route = use_router and use_structured_output and LLM_ROUTER_AVAILABLE and get_router is not None and not has_multimodal
+  if should_route and _should_use_router():
+      try:
+          router = get_router()
+          validated, response = router.generate_structured(
+              prompt=text_prompt,
+              schema=GeneratedIdeas,
+              system_instruction=SYSTEM_INSTRUCTION,
+              temperature=temperature,
+          )
+
+          logger.info(f"Router generated ideas via {response.provider} ({response.tokens_used} tokens)")
+          return json.dumps([idea.model_dump() for idea in validated.root])
+
+      except AllProvidersFailedError as e:
+          logger.warning(f"LLM Router failed, falling back to direct API: {e}")
+      except Exception as e:
+          logger.warning(f"Router error, falling back to direct API: {e}")
+
   if not GENAI_AVAILABLE or idea_generator_client is None:
     # Return mock response for CI/testing environments or when API key is not configured
     if use_structured_output:
         # Return structured mock data
-        import json
         mock_ideas = [
             {
                 "idea_number": 1,

@@ -351,8 +351,10 @@ class TestBatchLogicalInferenceIntegration:
         elapsed = time.time() - start_time
 
         # Should complete in ~0.1s (concurrent) not ~0.2s (sequential)
-        # Threshold set to 1.0s to allow for CI environment variability
-        assert elapsed < 1.0, f"Concurrent execution too slow: {elapsed}s"
+        # Since both tasks sleep 0.1s and run concurrently, total should be ~0.1s
+        # We use 0.3s threshold to allow for CI overhead while still verifying concurrency
+        # If tasks ran sequentially, they would take at least 0.2s
+        assert elapsed < 0.3, f"Concurrent execution too slow: {elapsed}s (expected <0.3s for concurrent, >0.2s would indicate sequential)"
         assert len(logical_results) == 2
 
 

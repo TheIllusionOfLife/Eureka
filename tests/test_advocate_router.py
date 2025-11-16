@@ -86,15 +86,41 @@ class TestAdvocateRouterIntegration:
         with patch('madspark.agents.advocate.get_router', return_value=mock_router):
             with patch('madspark.agents.advocate.LLM_ROUTER_AVAILABLE', True):
                 with patch('madspark.agents.advocate._should_use_router', return_value=True):
-                    result = advocate_idea(
-                        idea="Test",
-                        evaluation="Eval",
-                        topic="Topic",
-                        context="Context"
-                    )
+                    with patch('madspark.agents.advocate.GENAI_AVAILABLE', False):
+                        result = advocate_idea(
+                            idea="Test",
+                            evaluation="Eval",
+                            topic="Topic",
+                            context="Context"
+                        )
 
         mock_router.generate_structured.assert_called_once()
         assert result is not None
+
+    def test_advocate_idea_skips_router_when_structured_output_false(self):
+        """Test that router is bypassed when use_structured_output=False."""
+        from madspark.agents.advocate import advocate_idea
+
+        mock_router = Mock()
+
+        with patch('madspark.agents.advocate.get_router', return_value=mock_router):
+            with patch('madspark.agents.advocate.LLM_ROUTER_AVAILABLE', True):
+                with patch('madspark.agents.advocate._should_use_router', return_value=True):
+                    with patch('madspark.agents.advocate.GENAI_AVAILABLE', False):
+                        result = advocate_idea(
+                            idea="Test idea",
+                            evaluation="Good evaluation",
+                            topic="Topic",
+                            context="Context",
+                            use_structured_output=False,  # Legacy text mode
+                            use_router=True  # Router enabled but should be skipped
+                        )
+
+        # Router should NOT have been called when use_structured_output=False
+        mock_router.generate_structured.assert_not_called()
+        # Result should be plaintext, not JSON
+        assert result is not None
+        assert "STRENGTHS:" in result or "Mock" in result
 
     def test_advocate_ideas_batch_returns_results(self):
         """Test that batch advocacy returns expected results in mock mode."""

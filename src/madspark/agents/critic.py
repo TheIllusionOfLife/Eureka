@@ -114,7 +114,8 @@ def evaluate_ideas(ideas: str, topic: str, context: str, temperature: float = DE
   )
 
   # Try LLM Router first if available and configured
-  should_route = use_router and LLM_ROUTER_AVAILABLE and get_router is not None
+  # Router only used when use_structured_output=True since router inherently returns structured JSON
+  should_route = use_router and use_structured_output and LLM_ROUTER_AVAILABLE and get_router is not None
   if should_route and _should_use_router():
       try:
           router = get_router()

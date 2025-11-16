@@ -219,7 +219,8 @@ def generate_ideas(
   # Try LLM Router first if available and configured
   # Note: Router doesn't support multimodal yet, so skip if multimodal inputs are present
   has_multimodal = bool(multimodal_files or multimodal_urls)
-  should_route = use_router and LLM_ROUTER_AVAILABLE and get_router is not None and not has_multimodal
+  # Router only used when use_structured_output=True since router inherently returns structured JSON
+  should_route = use_router and use_structured_output and LLM_ROUTER_AVAILABLE and get_router is not None and not has_multimodal
   if should_route and _should_use_router():
       try:
           router = get_router()

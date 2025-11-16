@@ -8,6 +8,34 @@ import sys
 import os
 from unittest.mock import patch, Mock
 import argparse
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def clean_llm_env_vars(monkeypatch):
+    """
+    Automatically clean up LLM-related environment variables after each test.
+
+    This prevents environment pollution between tests when _configure_llm_provider
+    mutates os.environ globally.
+    """
+    # Store original values
+    env_vars = [
+        'MADSPARK_LLM_PROVIDER',
+        'MADSPARK_MODEL_TIER',
+        'MADSPARK_FALLBACK_ENABLED',
+        'MADSPARK_CACHE_ENABLED',
+    ]
+
+    # Yield control to the test
+    yield
+
+    # Cleanup: remove any env vars that were set during the test
+    # monkeypatch handles this automatically when used, but we need to be explicit
+    # for tests that don't use monkeypatch directly
+    for var in env_vars:
+        if var in os.environ:
+            del os.environ[var]
 
 
 class TestCLIProviderConfiguration:
@@ -55,9 +83,12 @@ class TestCLIProviderConfiguration:
 
         assert os.environ.get('MADSPARK_MODEL_TIER') == 'balanced'
 
-    def test_no_fallback_flag_sets_env_var(self):
+    def test_no_fallback_flag_sets_env_var(self, monkeypatch):
         """Test that --no-fallback flag sets environment variable."""
         from madspark.cli.cli import _configure_llm_provider
+
+        # Clean environment before test
+        monkeypatch.delenv('MADSPARK_FALLBACK_ENABLED', raising=False)
 
         args = argparse.Namespace(
             provider=None,
@@ -72,9 +103,12 @@ class TestCLIProviderConfiguration:
 
         assert os.environ.get('MADSPARK_FALLBACK_ENABLED') == 'false'
 
-    def test_no_cache_flag_sets_env_var(self):
+    def test_no_cache_flag_sets_env_var(self, monkeypatch):
         """Test that --no-cache flag sets environment variable."""
         from madspark.cli.cli import _configure_llm_provider
+
+        # Clean environment before test
+        monkeypatch.delenv('MADSPARK_CACHE_ENABLED', raising=False)
 
         args = argparse.Namespace(
             provider=None,
@@ -89,9 +123,15 @@ class TestCLIProviderConfiguration:
 
         assert os.environ.get('MADSPARK_CACHE_ENABLED') == 'false'
 
-    def test_no_flags_no_warning(self):
+    def test_no_flags_no_warning(self, monkeypatch):
         """Test that no warning is issued when no provider flags are used."""
         from madspark.cli.cli import _configure_llm_provider
+
+        # Ensure clean environment state
+        monkeypatch.delenv('MADSPARK_LLM_PROVIDER', raising=False)
+        monkeypatch.delenv('MADSPARK_MODEL_TIER', raising=False)
+        monkeypatch.delenv('MADSPARK_FALLBACK_ENABLED', raising=False)
+        monkeypatch.delenv('MADSPARK_CACHE_ENABLED', raising=False)
 
         args = argparse.Namespace(
             provider=None,

@@ -380,8 +380,8 @@ class LLMRouter:
             )
             latency = (time.time() - start) * 1000
 
-            # Update metrics
-            self._update_metrics(provider_name, response)
+            # Update metrics (pass measured latency for accurate tracking)
+            self._update_metrics(provider_name, response, latency_ms=latency)
 
             # Cache result with actual provider name (prevents cache poisoning)
             if cache and cache.enabled:
@@ -512,7 +512,12 @@ class LLMRouter:
 
         return None
 
-    def _update_metrics(self, provider_name: str, response: LLMResponse) -> None:
+    def _update_metrics(
+        self,
+        provider_name: str,
+        response: LLMResponse,
+        latency_ms: Optional[float] = None,
+    ) -> None:
         """
         Update usage metrics from a provider response.
 
@@ -521,6 +526,7 @@ class LLMRouter:
         Args:
             provider_name: Name of the provider ("ollama" or "gemini")
             response: LLMResponse containing usage data
+            latency_ms: Optional measured latency (overrides response.latency_ms if provided)
         """
         with self._metrics_lock:
             if provider_name == "ollama":
@@ -530,7 +536,10 @@ class LLMRouter:
 
             self._metrics["total_tokens"] += response.tokens_used
             self._metrics["total_cost"] += response.cost
-            self._metrics["total_latency_ms"] += response.latency_ms
+            # Use measured latency if provided, otherwise fall back to response latency
+            self._metrics["total_latency_ms"] += (
+                latency_ms if latency_ms is not None else response.latency_ms
+            )
 
     def get_metrics(self) -> dict:
         """

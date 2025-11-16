@@ -4,7 +4,9 @@ This module defines the Critic agent and its associated tools.
 The agent is responsible for evaluating ideas based on specified criteria
 and context, providing scores and textual feedback.
 """
+import json
 import logging
+import os
 
 # Optional import for Google GenAI - graceful fallback for CI/testing
 try:
@@ -15,6 +17,16 @@ except ImportError:
     genai = None
     types = None
     GENAI_AVAILABLE = False
+
+# Optional LLM Router import
+try:
+    from madspark.llm import get_router
+    from madspark.llm.exceptions import AllProvidersFailedError
+    LLM_ROUTER_AVAILABLE = True
+except ImportError:
+    LLM_ROUTER_AVAILABLE = False
+    get_router = None  # type: ignore
+    AllProvidersFailedError = Exception  # type: ignore
 
 try:
     from madspark.agents.genai_client import get_genai_client, get_model_name
@@ -40,8 +52,35 @@ else:
 _CRITIC_GENAI_SCHEMA = pydantic_to_genai_schema(CriticEvaluations)
 
 
-def evaluate_ideas(ideas: str, topic: str, context: str, temperature: float = DEFAULT_CRITIC_TEMPERATURE, use_structured_output: bool = True) -> str:
+def _should_use_router() -> bool:
+    """
+    Check if router should be used based on configuration.
+
+    Returns True if:
+    - LLM Router is available
+    - User explicitly configured provider via env var (e.g., --provider flag)
+    - Any router-related flag is set
+    """
+    if not LLM_ROUTER_AVAILABLE or get_router is None:
+        return False
+
+    # Check if user explicitly set provider (indicating they want router control)
+    explicit_provider = os.getenv("MADSPARK_LLM_PROVIDER")
+
+    # Also check for other router-related flags
+    cache_disabled = os.getenv("MADSPARK_CACHE_ENABLED") == "false"
+    fallback_disabled = os.getenv("MADSPARK_FALLBACK_ENABLED") == "false"
+    model_tier_set = os.getenv("MADSPARK_MODEL_TIER") is not None
+
+    # Use router if any router-related flag was explicitly set
+    return bool(explicit_provider or cache_disabled or fallback_disabled or model_tier_set)
+
+
+def evaluate_ideas(ideas: str, topic: str, context: str, temperature: float = DEFAULT_CRITIC_TEMPERATURE, use_structured_output: bool = True, use_router: bool = True) -> str:
   """Evaluates ideas based on topic and context using the critic model.
+
+  When use_router=True and LLM Router is available, routes through the
+  multi-provider abstraction layer for automatic fallback and caching.
 
   Args:
     ideas: A string containing the ideas to be evaluated, typically newline-separated.
@@ -49,6 +88,7 @@ def evaluate_ideas(ideas: str, topic: str, context: str, temperature: float = DE
     context: The constraints or additional context for evaluation.
     temperature: Controls randomness in generation (0.0-1.0). Lower values increase consistency.
     use_structured_output: Whether to use structured JSON output (default: True)
+    use_router: Whether to use LLM Router for provider abstraction (default: True)
 
   Returns:
     A string from the LLM. If use_structured_output is True, returns JSON string.
@@ -78,7 +118,34 @@ def evaluate_ideas(ideas: str, topic: str, context: str, temperature: float = DE
       f"Context for evaluation:\n{context}\n\n"
       "Provide your JSON evaluations now (one per line, in the same order as the input ideas):"
   )
-  
+
+  # Try LLM Router first if available and configured
+  should_route = use_router and LLM_ROUTER_AVAILABLE and get_router is not None
+  if should_route and _should_use_router():
+      try:
+          router = get_router()
+          # Router generates structured output with automatic provider selection
+          validated, response = router.generate_structured(
+              prompt=prompt,
+              schema=CriticEvaluations,
+              system_instruction=CRITIC_SYSTEM_INSTRUCTION,
+              temperature=temperature,
+          )
+
+          # Successfully got structured response via router
+          logging.info(f"Router generated evaluation via {response.provider} ({response.tokens_used} tokens)")
+
+          # Convert validated Pydantic model to JSON string for backward compatibility
+          # CriticEvaluations is a RootModel containing list[CriticEvaluation]
+          return json.dumps([eval_item.model_dump() for eval_item in validated.root])
+
+      except AllProvidersFailedError as e:
+          logging.warning(f"LLM Router failed, falling back to direct API: {e}")
+          # Fall through to direct API call
+      except Exception as e:
+          logging.warning(f"Router error, falling back to direct API: {e}")
+          # Fall through to direct API call
+
   if not GENAI_AVAILABLE or critic_client is None:
     # Return mock evaluation for CI/testing environments or when API key is not configured
     # Simple language detection for mock responses
@@ -86,7 +153,6 @@ def evaluate_ideas(ideas: str, topic: str, context: str, temperature: float = DE
     
     if use_structured_output:
         # Return structured mock data
-        import json
         ideas_list = [idea.strip() for idea in ideas.split('\n') if idea.strip()]
         mock_evaluations = []
         

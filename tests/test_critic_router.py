@@ -7,7 +7,7 @@ when configured, with proper fallback to direct API when router fails.
 
 import json
 import pytest
-from unittest.mock import patch, Mock, MagicMock
+from unittest.mock import patch, Mock
 
 from madspark.schemas.evaluation import CriticEvaluations
 from madspark.llm.response import LLMResponse
@@ -295,8 +295,8 @@ class TestCriticRouterConfiguration:
         with patch('madspark.agents.critic.LLM_ROUTER_AVAILABLE', False):
             from madspark.agents.critic import _should_use_router
             # Even with env var set, should return False if router unavailable
-            # Note: This depends on implementation checking LLM_ROUTER_AVAILABLE
-            pass  # Implementation will handle this
+            result = _should_use_router()
+            assert result is False
 
 
 class TestCriticRouterErrorHandling:

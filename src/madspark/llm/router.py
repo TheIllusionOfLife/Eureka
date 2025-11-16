@@ -170,7 +170,7 @@ class LLMRouter:
                     return self.ollama, "ollama"
                 raise ProviderUnavailableError("Ollama requested but not available")
             elif force_provider == "gemini":
-                if self.gemini:
+                if self.gemini and self.gemini.health_check():
                     return self.gemini, "gemini"
                 raise ProviderUnavailableError("Gemini requested but not available")
             else:
@@ -233,6 +233,7 @@ class LLMRouter:
         # Check cache first
         should_use_cache = use_cache if use_cache is not None else self._cache_enabled
         cache = get_cache() if should_use_cache else None
+        cache_key = None  # Initialize to avoid unbound variable in fallback
 
         if cache and cache.enabled:
             # Build cache key with all inputs that affect output
@@ -334,7 +335,7 @@ class LLMRouter:
 
                         self._update_metrics(provider_name, response)
 
-                        if cache and cache.enabled:
+                        if cache and cache.enabled and cache_key is not None:
                             cache.set(cache_key, (validated, response))
 
                         return validated, response

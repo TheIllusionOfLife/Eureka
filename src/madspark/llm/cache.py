@@ -187,12 +187,16 @@ class ResponseCache:
         try:
             validated_obj, response = value
 
-            # Serialize to cacheable format
-            # Convert Pydantic model to dict if needed
-            if hasattr(validated_obj, "model_dump"):
+            # Serialize to cacheable format with explicit type checking
+            if isinstance(validated_obj, BaseModel):
                 validated_dict = validated_obj.model_dump()
-            else:
+            elif isinstance(validated_obj, dict):
                 validated_dict = validated_obj
+            else:
+                raise TypeError(
+                    f"Cannot cache object of type {type(validated_obj).__name__}. "
+                    f"Expected BaseModel or dict."
+                )
 
             response_dict = response.to_dict()
 

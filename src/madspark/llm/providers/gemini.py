@@ -17,6 +17,9 @@ from madspark.llm.response import LLMResponse
 from madspark.llm.exceptions import ProviderUnavailableError, SchemaValidationError
 from madspark.llm.config import get_config
 
+# Type alias for time.time() return value
+TimeFloat = float
+
 try:
     from google import genai
     from google.genai import types
@@ -96,6 +99,11 @@ class GeminiProvider(LLMProvider):
                 "Set a valid GOOGLE_API_KEY in your environment."
             )
 
+        # Health check caching with TTL (60 seconds - longer than Ollama since it costs quota)
+        self._last_health_check: Optional[bool] = None
+        self._last_health_check_time: TimeFloat = 0.0
+        self._health_check_ttl: TimeFloat = 60.0  # seconds (longer than Ollama to save quota)
+
     @property
     def client(self):
         """Lazy initialization of Gemini client."""
@@ -123,16 +131,30 @@ class GeminiProvider(LLMProvider):
         """
         Check if Gemini API is accessible.
 
+        Uses TTL-based caching (60 seconds) to avoid repeated API calls that consume quota.
+
         Returns:
             True if API is reachable
         """
+        # Check cache first to avoid expensive API calls
+        if (
+            self._last_health_check is not None
+            and (time.time() - self._last_health_check_time) < self._health_check_ttl
+        ):
+            return self._last_health_check
+
         try:
-            # Quick check - just verify client works
-            list(self.client.models.list())
-            return True
+            # Quick check - use iterator to avoid loading full list into memory
+            next(iter(self.client.models.list()), None) is not None
+            result = True
         except Exception as e:
             logger.warning(f"Gemini health check failed: {e}")
-            return False
+            result = False
+
+        # Cache the result
+        self._last_health_check = result
+        self._last_health_check_time = time.time()
+        return result
 
     def generate(
         self,

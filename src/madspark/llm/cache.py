@@ -204,8 +204,11 @@ class ResponseCache:
 
             response_dict = response.to_dict()
 
-            # Store with TTL
+            # Store with TTL (validate TTL is positive)
             expire = ttl if ttl is not None else self._ttl
+            if expire <= 0:
+                logger.warning(f"Invalid TTL {expire}s, using default {self._ttl}s")
+                expire = self._ttl
             self._cache.set(key, (validated_dict, response_dict), expire=expire)
 
             logger.debug(f"Cached: {key[:16]}... (TTL: {expire}s)")

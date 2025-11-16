@@ -35,7 +35,8 @@ def _get_ollama_provider():
             from madspark.llm.providers.ollama import OllamaProvider
 
             OLLAMA_PROVIDER = OllamaProvider
-        except ImportError:
+        except ImportError as e:
+            logger.debug(f"OllamaProvider not available: {e}")
             OLLAMA_PROVIDER = False  # Mark as unavailable
     return OLLAMA_PROVIDER if OLLAMA_PROVIDER else None
 
@@ -48,7 +49,8 @@ def _get_gemini_provider():
             from madspark.llm.providers.gemini import GeminiProvider
 
             GEMINI_PROVIDER = GeminiProvider
-        except ImportError:
+        except ImportError as e:
+            logger.debug(f"GeminiProvider not available: {e}")
             GEMINI_PROVIDER = False
     return GEMINI_PROVIDER if GEMINI_PROVIDER else None
 
@@ -400,8 +402,11 @@ class LLMRouter:
         if "gemini" not in already_tried and self.gemini:
             # Note: Gemini health check is less critical than Ollama since it's cloud-based,
             # but we check for consistency and to avoid returning an uninitialized provider
-            if self.gemini.health_check():
-                return self.gemini
+            try:
+                if self.gemini.health_check():
+                    return self.gemini
+            except Exception as e:
+                logger.warning(f"Gemini health check failed during fallback: {e}")
 
         return None
 

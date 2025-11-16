@@ -834,6 +834,13 @@ def _configure_llm_provider(args: argparse.Namespace) -> bool:
     if getattr(args, 'no_cache', False):
         os.environ['MADSPARK_CACHE_ENABLED'] = 'false'
 
+    # Reset config singleton after environment changes to pick up new values
+    try:
+        from madspark.llm.config import reset_config
+        reset_config()
+    except ImportError:
+        pass  # LLM module not available
+
     # Handle cache operations
     if getattr(args, 'clear_cache', False):
         try:

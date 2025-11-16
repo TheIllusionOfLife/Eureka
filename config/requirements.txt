@@ -6,6 +6,10 @@ pytest-asyncio>=0.23.0
 pytest-cov>=4.1.0
 redis>=5.0.0
 
+# LLM Provider Support
+ollama>=0.6.0
+diskcache>=5.6.0
+
 # Web backend dependencies (required for multi-modal API tests)
 fastapi>=0.104.1
 uvicorn[standard]>=0.24.0

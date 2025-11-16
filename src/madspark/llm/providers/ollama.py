@@ -199,7 +199,11 @@ class OllamaProvider(LLMProvider):
         """
         # Note: files and urls are not supported by Ollama, included for interface compatibility
         if files or urls:
-            logger.debug("Ollama does not support files/urls, ignoring these parameters")
+            logger.warning(
+                "Ollama does not support files/urls parameters. "
+                "Consider using Gemini provider for PDF/URL processing. "
+                f"Ignoring: files={files}, urls={urls}"
+            )
         if not self.health_check():
             raise ProviderUnavailableError(f"Ollama not available. Model: {self._model}")
 

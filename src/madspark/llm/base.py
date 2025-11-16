@@ -140,3 +140,26 @@ class LLMProvider(ABC):
             Estimated token count
         """
         return len(text) // 4
+
+    @staticmethod
+    def validate_temperature(temperature: float) -> float:
+        """
+        Validate and clamp temperature to valid range.
+
+        Args:
+            temperature: Sampling temperature value
+
+        Returns:
+            Validated temperature (clamped to [0.0, 2.0])
+
+        Raises:
+            ValueError: If temperature is not a valid number
+        """
+        if not isinstance(temperature, (int, float)):
+            raise ValueError(f"Temperature must be a number, got {type(temperature)}")
+
+        if temperature < 0.0:
+            return 0.0
+        elif temperature > 2.0:
+            return 2.0
+        return float(temperature)

@@ -5,7 +5,7 @@ Provides a standardized response format for all LLM providers.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 @dataclass
@@ -31,7 +31,7 @@ class LLMResponse:
     latency_ms: float = 0.0
     cost: float = 0.0
     cached: bool = False
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     def to_dict(self) -> dict:
         """Convert to dictionary for serialization."""

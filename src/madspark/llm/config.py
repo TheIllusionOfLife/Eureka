@@ -4,10 +4,13 @@ LLM Provider Configuration.
 Centralized configuration management for LLM providers.
 """
 
+import logging
 import os
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 
 class ModelTier(Enum):
@@ -127,6 +130,39 @@ class LLMConfig:
             Maximum tokens to generate for this request type
         """
         return self.token_budgets.get(request_type, 500)
+
+    def validate_api_key(self) -> bool:
+        """
+        Validate that API key is not a placeholder value.
+
+        Returns:
+            True if API key appears valid, False if it's a placeholder
+
+        Warns if key looks like a placeholder (contains 'your-', 'replace', etc.)
+        """
+        if not self.gemini_api_key:
+            return False
+
+        placeholder_patterns = [
+            "your-",
+            "your_",
+            "replace",
+            "placeholder",
+            "example",
+            "xxx",
+            "API_KEY_HERE",
+        ]
+
+        key_lower = self.gemini_api_key.lower()
+        for pattern in placeholder_patterns:
+            if pattern.lower() in key_lower:
+                logger.warning(
+                    f"API key appears to be a placeholder (contains '{pattern}'). "
+                    f"Please set a valid GOOGLE_API_KEY in your environment."
+                )
+                return False
+
+        return True
 
 
 # Singleton config instance

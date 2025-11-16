@@ -802,13 +802,17 @@ def _should_suppress_logs(args: argparse.Namespace) -> bool:
     )
 
 
-def _configure_llm_provider(args: argparse.Namespace) -> None:
+def _configure_llm_provider(args: argparse.Namespace) -> bool:
     """Configure LLM provider based on CLI arguments.
 
     Sets environment variables and initializes LLM router with user preferences.
 
     Args:
         args: Parsed command-line arguments
+
+    Returns:
+        True if an early exit is warranted (e.g., --clear-cache used alone),
+        False otherwise.
     """
     # Set environment variables based on CLI args
     if getattr(args, 'provider', None):
@@ -832,10 +836,27 @@ def _configure_llm_provider(args: argparse.Namespace) -> None:
                 cache.clear()
                 logger.info("LLM response cache cleared")
                 print("🗑️  LLM response cache cleared")
+            else:
+                print("ℹ️  Cache is disabled, nothing to clear")
         except ImportError:
             logger.warning("LLM module not available for cache clearing")
         except Exception as e:
             logger.warning(f"Failed to clear cache: {e}")
+
+        # If this was the only major action, signal to main to exit
+        is_other_action = any([
+            getattr(args, 'theme', None),
+            getattr(args, 'batch', None),
+            getattr(args, 'interactive', False),
+            getattr(args, 'list_bookmarks', False),
+            getattr(args, 'search_bookmarks', None),
+            getattr(args, 'remove_bookmark', None),
+            getattr(args, 'create_sample_batch', None),
+        ])
+        if not is_other_action:
+            return True
+
+    return False
 
 
 def _handle_create_sample_batch(args: argparse.Namespace) -> None:
@@ -897,7 +918,9 @@ def main() -> None:
         os.environ["SUPPRESS_MODE_MESSAGE"] = "1"
 
     # Handle LLM provider configuration early
-    _configure_llm_provider(args)
+    if _configure_llm_provider(args):
+        # Early exit requested (e.g., --clear-cache used alone)
+        return
 
     # Import command handlers
     try:

@@ -234,12 +234,24 @@ class LLMRouter:
         cache = get_cache() if should_use_cache else None
 
         if cache and cache.enabled:
+            # Build cache key with all inputs that affect output
+            cache_key_kwargs = {
+                "provider": force_provider or "",
+                "system_instruction": system_instruction,
+            }
+            # Include multimodal inputs to avoid incorrect cache hits
+            if images:
+                cache_key_kwargs["images"] = sorted([str(p) for p in images])
+            if files:
+                cache_key_kwargs["files"] = sorted([str(p) for p in files])
+            if urls:
+                cache_key_kwargs["urls"] = sorted(urls)
+
             cache_key = cache.make_key(
                 prompt,
                 schema,
                 temperature,
-                provider=force_provider or "",
-                system_instruction=system_instruction,
+                **cache_key_kwargs
             )
             cached = cache.get(cache_key)
             if cached:

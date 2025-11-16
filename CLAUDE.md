@@ -191,6 +191,12 @@ This is the foundation layer for multi-provider support. The router, cache, and 
 
 **Phase 2 (Future Work)**: Wire up all agents to use the router instead of direct genai_client calls. This will enable the advertised Ollama/fallback/caching features.
 
+**⚠️ Current Limitations:**
+- Agents require Google API key (no key = mock mode, even with Ollama installed)
+- `--show-llm-stats` always shows zeros (router isn't used by agents yet)
+- setup.sh only configures Google API, no Ollama setup instructions
+- Web backend uses Gemini directly (no router support)
+
 MadSpark now supports multiple LLM providers through an abstraction layer with automatic fallback and caching.
 
 ### Package Structure
@@ -272,7 +278,7 @@ MADSPARK_MODEL_TIER=fast           # fast, balanced, quality
 MADSPARK_FALLBACK_ENABLED=true     # Enable provider fallback
 MADSPARK_CACHE_ENABLED=true        # Enable response caching
 MADSPARK_CACHE_TTL=86400           # Cache TTL in seconds (24h)
-MADSPARK_CACHE_DIR=.cache/llm      # Cache directory
+MADSPARK_CACHE_DIR=~/.cache/madspark/llm  # Cache directory (absolute path)
 OLLAMA_HOST=http://localhost:11434 # Ollama server
 OLLAMA_MODEL_FAST=gemma3:4b-it-qat # Fast tier model
 OLLAMA_MODEL_BALANCED=gemma3:12b-it-qat # Balanced tier model

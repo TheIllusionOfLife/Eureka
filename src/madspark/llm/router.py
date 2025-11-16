@@ -184,10 +184,14 @@ class LLMRouter:
                 return self.gemini, "gemini"
             raise ProviderUnavailableError("Gemini required for file/URL processing but not available")
 
-        # For text/images, prefer Ollama (free)
+        # For text/images, prefer Ollama (free) but check multimodal support for images
         if self._primary_provider == "auto" or self._primary_provider == "ollama":
             if self.ollama and self.ollama.health_check():
-                return self.ollama, "ollama"
+                # Check if Ollama supports multimodal when images are provided
+                if images and not self.ollama.supports_multimodal:
+                    logger.info("Ollama model doesn't support images, falling back to Gemini")
+                else:
+                    return self.ollama, "ollama"
 
         # Fallback to Gemini
         if self._primary_provider == "gemini" or self._fallback_enabled:

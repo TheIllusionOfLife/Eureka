@@ -9,6 +9,7 @@ import os
 import threading
 from dataclasses import dataclass, field
 from enum import Enum
+from pathlib import Path
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -113,6 +114,10 @@ class LLMConfig:
                 )
                 cache_ttl = 86400
 
+        # Use absolute path for cache to avoid permission issues when CLI runs from arbitrary directories
+        default_cache_dir = str(Path.home() / ".cache" / "madspark" / "llm")
+        cache_dir = os.getenv("MADSPARK_CACHE_DIR", default_cache_dir)
+
         return cls(
             default_provider=os.getenv("MADSPARK_LLM_PROVIDER", "auto"),
             model_tier=tier,
@@ -128,7 +133,7 @@ class LLMConfig:
             cache_enabled=os.getenv("MADSPARK_CACHE_ENABLED", "true").lower()
             == "true",
             cache_ttl_seconds=cache_ttl,
-            cache_dir=os.getenv("MADSPARK_CACHE_DIR", ".cache/llm"),
+            cache_dir=cache_dir,
         )
 
     def get_ollama_model(self) -> str:

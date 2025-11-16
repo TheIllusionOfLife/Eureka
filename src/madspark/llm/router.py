@@ -257,7 +257,8 @@ class LLMRouter:
                 prompt,
                 schema,
                 temperature,
-                **cache_key_kwargs
+                **cache_key_kwargs,
+                **kwargs  # Include all other dynamic arguments
             )
             cached = cache.get(cache_key)
             if cached:

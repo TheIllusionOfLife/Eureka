@@ -118,14 +118,14 @@ class OllamaProvider(LLMProvider):
             # e.g., "gemma3:4b-it-qat" matches "gemma3:4b-it-qat" or "gemma3"
             result = False
             for name in model_names:
-                # Exact match
+                # Exact match (highest priority)
                 if name == self._model:
                     result = True
                     break
-                # Model name without tag matches (gemma3:4b-it-qat -> gemma3)
+                # More precise fallback: check if pulled model starts with requested base
+                # e.g., requested "gemma3:4b" matches pulled "gemma3:4b-it-qat"
                 model_base = self._model.split(":")[0]
-                name_base = name.split(":")[0]
-                if model_base == name_base:
+                if name == self._model or name.startswith(f"{model_base}:"):
                     result = True
                     break
 

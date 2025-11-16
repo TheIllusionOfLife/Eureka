@@ -274,7 +274,10 @@ class TestLLMRouter:
         assert metrics["ollama_calls"] == 3
         assert metrics["total_tokens"] == 150  # 50 * 3
         assert metrics["total_cost"] == 0.0
-        assert metrics["avg_latency_ms"] == 1000
+        # Latency is now measured in real time (time.time() measurement),
+        # not from mock response.latency_ms, so it will be very small in tests
+        assert metrics["avg_latency_ms"] >= 0  # Should be a valid positive number
+        assert metrics["total_latency_ms"] >= 0  # Total latency tracked
 
     @patch("madspark.llm.router._get_ollama_provider")
     @patch("madspark.llm.router._get_gemini_provider")

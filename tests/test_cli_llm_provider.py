@@ -12,14 +12,14 @@ import pytest
 
 
 @pytest.fixture(autouse=True)
-def clean_llm_env_vars(monkeypatch):
+def clean_llm_env_vars():
     """
     Automatically clean up LLM-related environment variables after each test.
 
     This prevents environment pollution between tests when _configure_llm_provider
-    mutates os.environ globally.
+    mutates os.environ globally. Saves and restores the original state explicitly.
     """
-    # Store original values
+    # List of env vars to track
     env_vars = [
         'MADSPARK_LLM_PROVIDER',
         'MADSPARK_MODEL_TIER',
@@ -27,15 +27,28 @@ def clean_llm_env_vars(monkeypatch):
         'MADSPARK_CACHE_ENABLED',
     ]
 
+    # Store original values before test
+    original_values = {}
+    for var in env_vars:
+        if var in os.environ:
+            original_values[var] = os.environ[var]
+        else:
+            original_values[var] = None
+        # Remove from environment to start clean
+        os.environ.pop(var, None)
+
     # Yield control to the test
     yield
 
-    # Cleanup: remove any env vars that were set during the test
-    # monkeypatch handles this automatically when used, but we need to be explicit
-    # for tests that don't use monkeypatch directly
+    # Cleanup: Restore original state after test completes
+    # This handles both cases:
+    # 1. Var was set before test -> restore original value
+    # 2. Var was not set before test -> remove it
     for var in env_vars:
-        if var in os.environ:
-            del os.environ[var]
+        if original_values[var] is not None:
+            os.environ[var] = original_values[var]
+        else:
+            os.environ.pop(var, None)
 
 
 class TestCLIProviderConfiguration:

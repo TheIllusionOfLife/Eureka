@@ -27,12 +27,13 @@ except ImportError:
 
 # Optional LLM Router import
 try:
-    from madspark.llm import get_router
+    from madspark.llm import get_router, should_use_router
     from madspark.llm.exceptions import AllProvidersFailedError
     LLM_ROUTER_AVAILABLE = True
 except ImportError:
     LLM_ROUTER_AVAILABLE = False
     get_router = None  # type: ignore
+    should_use_router = None  # type: ignore
     AllProvidersFailedError = Exception  # type: ignore
 
 try:
@@ -62,16 +63,12 @@ _SKEPTIC_GENAI_SCHEMA = pydantic_to_genai_schema(SkepticismResponse)
 def _should_use_router() -> bool:
     """
     Check if router should be used based on configuration.
+
+    Note: Delegates to shared utility in madspark.llm.utils for DRY compliance.
     """
-    if not LLM_ROUTER_AVAILABLE or get_router is None:
+    if should_use_router is None:
         return False
-
-    explicit_provider = os.getenv("MADSPARK_LLM_PROVIDER")
-    cache_disabled = os.getenv("MADSPARK_CACHE_ENABLED") == "false"
-    fallback_disabled = os.getenv("MADSPARK_FALLBACK_ENABLED") == "false"
-    model_tier_set = os.getenv("MADSPARK_MODEL_TIER") is not None
-
-    return bool(explicit_provider or cache_disabled or fallback_disabled or model_tier_set)
+    return should_use_router(LLM_ROUTER_AVAILABLE, get_router)
 
 
 def criticize_idea(idea: str, advocacy: str, topic: str, context: str, temperature: float = 0.5, use_structured_output: bool = True, use_router: bool = True) -> str:

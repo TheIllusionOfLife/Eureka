@@ -272,6 +272,26 @@ OLLAMA_MODEL_BALANCED=gemma3:12b-it-qat # Balanced tier model
 - **Provider Health Monitoring**: Check availability via router.health_status()
 - **Multimodal Support**: Images via Ollama, PDF/URL via Gemini
 
+### Cache Security and Management
+**Important**: The response cache stores prompts and responses in plaintext on disk (default: `.cache/llm/`). For sensitive deployments:
+- Cache directory has restrictive permissions (0o700)
+- Consider disabling cache for sensitive prompts: `ms "topic" --no-cache`
+- Cache entries expire based on TTL (default 24 hours)
+- Clear cache manually: `ms --clear-cache` or `rm -rf .cache/llm/`
+- Add `.cache/` to `.gitignore` (already configured)
+
+**Cache Cleanup Strategy**:
+```bash
+# Clear all cached responses
+ms --clear-cache
+
+# Manual cleanup of old cache files
+rm -rf .cache/llm/
+
+# Check cache statistics
+python -c "from madspark.llm.cache import get_cache; print(get_cache().stats())"
+```
+
 ## CLI Output Formatting Architecture
 
 The CLI uses a **Strategy Pattern** for output formatting, enabling clean separation of concerns and easy extensibility.

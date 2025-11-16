@@ -289,9 +289,10 @@ class TestResponseCache:
 
         key = cache.make_key("test", SimpleSchema, 0.0)
         assert cache.get(key) is None
+        # set() returns True (no-op success, not failure) when cache is disabled
         assert cache.set(key, ({}, LLMResponse(
             text="", provider="", model="", tokens_used=0, latency_ms=0
-        ))) is False
+        ))) is True
         assert cache.invalidate(key) is False
         assert cache.clear() is False
 

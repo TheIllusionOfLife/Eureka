@@ -182,7 +182,7 @@ class ResponseCache:
             True if cached successfully
         """
         if not self._enabled or self._cache is None:
-            return False
+            return True  # Not a failure, just no-op when disabled
 
         try:
             validated_obj, response = value

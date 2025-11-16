@@ -88,6 +88,14 @@ class GeminiProvider(LLMProvider):
                 "GOOGLE_API_KEY not set. Required for Gemini provider."
             )
 
+        # Validate API key is not a placeholder
+        config.gemini_api_key = self._api_key  # Temporarily set for validation
+        if not config.validate_api_key():
+            logger.warning(
+                "API key may be a placeholder. Gemini calls may fail. "
+                "Set a valid GOOGLE_API_KEY in your environment."
+            )
+
     @property
     def client(self):
         """Lazy initialization of Gemini client."""

@@ -124,9 +124,9 @@ def is_router_available() -> bool:
         health = router.health_status()
 
         ollama_healthy = health.get("ollama", {}).get("healthy", False)
-        gemini_available = health.get("gemini", {}).get("available", False)
+        gemini_healthy = health.get("gemini", {}).get("healthy", False)
 
-        return ollama_healthy or gemini_available
+        return ollama_healthy or gemini_healthy
     except Exception as e:
         logger.warning(f"Router availability check failed: {e}")
         return False

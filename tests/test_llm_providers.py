@@ -125,7 +125,8 @@ class TestLLMConfig:
 
     def test_validate_api_key_valid(self, reset_config_fixture):
         """Test validate_api_key returns True for valid keys."""
-        config = LLMConfig(gemini_api_key="AIzaSyD1234567890abcdefg")
+        # Use obviously fake key to avoid triggering secret scanners
+        config = LLMConfig(gemini_api_key="valid_gemini_key_1234567890")
         assert config.validate_api_key() is True
 
     def test_validate_api_key_none(self, reset_config_fixture):

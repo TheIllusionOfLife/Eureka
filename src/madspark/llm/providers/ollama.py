@@ -122,10 +122,10 @@ class OllamaProvider(LLMProvider):
                 if name == self._model:
                     result = True
                     break
-                # More precise fallback: check if pulled model starts with requested base
+                # Precise prefix matching: pulled model must start with requested model
                 # e.g., requested "gemma3:4b" matches pulled "gemma3:4b-it-qat"
-                model_base = self._model.split(":")[0]
-                if name == self._model or name.startswith(f"{model_base}:"):
+                # but "gemma3:4b" does NOT match "gemma3:12b-it-qat"
+                if name.startswith(f"{self._model}"):
                     result = True
                     break
 
@@ -285,18 +285,23 @@ class OllamaProvider(LLMProvider):
             logger.error(f"Schema validation failed: {e}")
             raise SchemaValidationError(f"Ollama output doesn't match schema: {e}")
 
+        tokens_used = getattr(response, "eval_count", None)
+        if tokens_used is None:
+            logger.warning("Ollama response missing eval_count, defaulting to 0")
+            tokens_used = 0
+
         llm_response = LLMResponse(
             text=response.message.content,
             provider=self.provider_name,
             model=self._model,
-            tokens_used=getattr(response, "eval_count", 0),
+            tokens_used=tokens_used,
             latency_ms=latency,
             cost=0.0,
         )
 
         logger.info(
             f"Ollama generated structured output in {latency:.0f}ms "
-            f"({getattr(response, 'eval_count', 0)} tokens)"
+            f"({tokens_used} tokens)"
         )
 
         return validated, llm_response

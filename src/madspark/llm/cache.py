@@ -82,7 +82,10 @@ class ResponseCache:
     def _init_cache(self) -> None:
         """Initialize disk cache."""
         cache_path = Path(self._cache_dir)
-        cache_path.mkdir(parents=True, exist_ok=True, mode=0o700)  # Restrictive permissions
+        # WARNING: Cache stores prompts and responses in plaintext on disk.
+        # Do not use for sensitive data without additional encryption.
+        # Restrictive permissions (0o700) limit access to current user only.
+        cache_path.mkdir(parents=True, exist_ok=True, mode=0o700)
         self._cache = diskcache.Cache(str(cache_path))
         logger.info(f"Initialized cache at {cache_path}")
 
@@ -253,7 +256,7 @@ class ResponseCache:
             logger.warning(f"Cache clear failed: {e}")
             return False
 
-    def stats(self) -> dict:
+    def stats(self) -> dict[str, Any]:
         """
         Get cache statistics.
 

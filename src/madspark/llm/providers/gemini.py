@@ -145,8 +145,7 @@ class GeminiProvider(LLMProvider):
 
         try:
             # Quick check - use iterator to avoid loading full list into memory
-            next(iter(self.client.models.list()), None) is not None
-            result = True
+            result = next(iter(self.client.models.list()), None) is not None
         except Exception as e:
             logger.warning(f"Gemini health check failed: {e}")
             result = False

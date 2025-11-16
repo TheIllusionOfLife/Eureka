@@ -146,7 +146,7 @@ class LLMRouter:
         self,
         files: Optional[list[Path]] = None,
         urls: Optional[list[str]] = None,
-        images: Optional[list] = None,
+        images: Optional[list[Union[str, Path]]] = None,
         force_provider: Optional[str] = None,
     ) -> tuple[LLMProvider, str]:
         """

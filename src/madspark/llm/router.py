@@ -202,7 +202,7 @@ class LLMRouter:
 
         # Fallback to Gemini
         if self._primary_provider == "gemini" or self._fallback_enabled:
-            if self.gemini:
+            if self.gemini and self.gemini.health_check():
                 return self.gemini, "gemini"
 
         raise ProviderUnavailableError("No LLM providers available")
@@ -432,7 +432,8 @@ class LLMRouter:
 
                         provider_name = fallback_provider.provider_name
                         providers_tried.append(provider_name)
-                        self._metrics["fallback_triggers"] += 1
+                        with self._metrics_lock:
+                            self._metrics["fallback_triggers"] += 1
 
                         logger.info(f"Attempting fallback to {provider_name}")
 

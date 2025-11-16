@@ -61,6 +61,7 @@ class ResponseCache:
         cache_dir: Optional[str] = None,
         ttl_seconds: Optional[int] = None,
         enabled: Optional[bool] = None,
+        max_size_mb: Optional[int] = None,
     ) -> None:
         """
         Initialize response cache.
@@ -69,11 +70,13 @@ class ResponseCache:
             cache_dir: Directory for cache storage (default from config)
             ttl_seconds: Time-to-live for cache entries (default from config)
             enabled: Whether caching is enabled (default from config)
+            max_size_mb: Maximum cache size in MB (default from config)
         """
         config = get_config()
         self._enabled = enabled if enabled is not None else config.cache_enabled
         self._ttl = ttl_seconds if ttl_seconds is not None else config.cache_ttl_seconds
         self._cache_dir = cache_dir or config.cache_dir
+        self._max_size_bytes = (max_size_mb or config.cache_max_size_mb) * 1024 * 1024
         self._cache = None
 
         if self._enabled:
@@ -113,8 +116,9 @@ class ResponseCache:
         # Do not use for sensitive data without additional encryption.
         # Restrictive permissions (0o700) limit access to current user only.
         cache_path.mkdir(parents=True, exist_ok=True, mode=DEFAULT_CACHE_PERMISSIONS)
-        self._cache = diskcache.Cache(str(cache_path))
-        logger.info(f"Initialized cache at {cache_path}")
+        # Set size limit to prevent unbounded disk usage
+        self._cache = diskcache.Cache(str(cache_path), size_limit=self._max_size_bytes)
+        logger.info(f"Initialized cache at {cache_path} (max size: {self._max_size_bytes // (1024*1024)}MB)")
 
     @property
     def enabled(self) -> bool:

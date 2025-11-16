@@ -69,6 +69,7 @@ class LLMConfig:
     # Cache settings
     cache_enabled: bool = True
     cache_ttl_seconds: int = 86400  # 24 hours
+    cache_max_size_mb: int = 1000  # 1GB default - prevents unbounded disk usage
     # Default uses absolute path to avoid permission issues from arbitrary directories
     cache_dir: str = field(default_factory=lambda: str(Path.home() / ".cache" / "madspark" / "llm"))
 
@@ -88,6 +89,7 @@ class LLMConfig:
         - GOOGLE_GENAI_MODEL: Gemini model name
         - MADSPARK_CACHE_ENABLED: true/false
         - MADSPARK_CACHE_TTL: TTL in seconds
+        - MADSPARK_CACHE_MAX_SIZE_MB: Maximum cache size in MB
         - MADSPARK_CACHE_DIR: Cache directory path
         """
         tier_str = os.getenv("MADSPARK_MODEL_TIER", "fast").lower()
@@ -115,6 +117,25 @@ class LLMConfig:
                 )
                 cache_ttl = 86400
 
+        # Parse cache max size with validation
+        cache_max_size_mb = 1000  # Default: 1GB
+        cache_max_size_env = os.getenv("MADSPARK_CACHE_MAX_SIZE_MB")
+        if cache_max_size_env:
+            try:
+                cache_max_size_mb = int(cache_max_size_env)
+                if cache_max_size_mb < 0:
+                    logger.warning(
+                        f"Invalid MADSPARK_CACHE_MAX_SIZE_MB value '{cache_max_size_env}' (negative). "
+                        f"Using default: 1000"
+                    )
+                    cache_max_size_mb = 1000
+            except ValueError:
+                logger.warning(
+                    f"Invalid MADSPARK_CACHE_MAX_SIZE_MB value '{cache_max_size_env}' (not an integer). "
+                    f"Using default: 1000"
+                )
+                cache_max_size_mb = 1000
+
         # Use absolute path for cache to avoid permission issues when CLI runs from arbitrary directories
         default_cache_dir = str(Path.home() / ".cache" / "madspark" / "llm")
         cache_dir = os.getenv("MADSPARK_CACHE_DIR", default_cache_dir)
@@ -134,6 +155,7 @@ class LLMConfig:
             cache_enabled=os.getenv("MADSPARK_CACHE_ENABLED", "true").lower()
             == "true",
             cache_ttl_seconds=cache_ttl,
+            cache_max_size_mb=cache_max_size_mb,
             cache_dir=cache_dir,
         )
 

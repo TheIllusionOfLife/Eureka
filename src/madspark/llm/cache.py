@@ -80,7 +80,7 @@ class ResponseCache:
     def _init_cache(self) -> None:
         """Initialize disk cache."""
         cache_path = Path(self._cache_dir)
-        cache_path.mkdir(parents=True, exist_ok=True)
+        cache_path.mkdir(parents=True, exist_ok=True, mode=0o700)  # Restrictive permissions
         self._cache = diskcache.Cache(str(cache_path))
         logger.info(f"Initialized cache at {cache_path}")
 
@@ -115,7 +115,7 @@ class ResponseCache:
         # Create deterministic representation
         key_data = {
             "prompt": prompt,
-            "schema_name": schema.__name__,
+            "schema_name": f"{schema.__module__}.{schema.__name__}",  # Full path to avoid collisions
             "schema_hash": hashlib.sha256(
                 json.dumps(schema.model_json_schema(), sort_keys=True).encode()
             ).hexdigest()[:32],  # Truncate for reasonable key size

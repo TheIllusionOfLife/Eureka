@@ -99,10 +99,19 @@ class OllamaProvider(LLMProvider):
         try:
             models = self.client.list()
             model_names = [m.get("name", "") for m in models.get("models", [])]
-            # Check if model is available (exact match or partial)
-            return any(
-                self._model in name or name in self._model for name in model_names
-            )
+            # Check if model is available
+            # Strict matching: exact match or model matches without tag
+            # e.g., "gemma3:4b-it-qat" matches "gemma3:4b-it-qat" or "gemma3"
+            for name in model_names:
+                # Exact match
+                if name == self._model:
+                    return True
+                # Model name without tag matches (gemma3:4b-it-qat -> gemma3)
+                model_base = self._model.split(":")[0]
+                name_base = name.split(":")[0]
+                if model_base == name_base:
+                    return True
+            return False
         except Exception as e:
             logger.warning(f"Ollama health check failed: {e}")
             return False

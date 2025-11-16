@@ -351,8 +351,11 @@ class LLMRouter:
             Fallback provider or None
         """
         if "ollama" not in already_tried and self.ollama:
-            if self.ollama.health_check():
-                return self.ollama
+            try:
+                if self.ollama.health_check():
+                    return self.ollama
+            except Exception as e:
+                logger.warning(f"Ollama health check failed during fallback: {e}")
 
         if "gemini" not in already_tried and self.gemini:
             return self.gemini

@@ -179,7 +179,8 @@ class ResponseCache:
             ttl: Optional TTL override in seconds
 
         Returns:
-            True if cached successfully
+            True if cached successfully or cache is disabled (no-op success),
+            False only on actual storage failure
         """
         if not self._enabled or self._cache is None:
             return True  # Not a failure, just no-op when disabled

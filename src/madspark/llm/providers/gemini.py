@@ -249,9 +249,9 @@ class GeminiProvider(LLMProvider):
             SchemaValidationError: If output doesn't match schema
             ImportError: If schema adapters not available
         """
-        # Warn about unknown kwargs to prevent hidden bugs
+        # Log unknown kwargs at debug level (info for development, not noisy in production)
         if kwargs:
-            logger.warning(
+            logger.debug(
                 f"GeminiProvider.generate_structured() received unexpected kwargs: "
                 f"{list(kwargs.keys())}. These will be ignored."
             )

@@ -38,16 +38,17 @@ class TestRouterIntegration:
 
         with patch('madspark.agents.structured_idea_generator.get_router', return_value=mock_router):
             with patch('madspark.agents.structured_idea_generator.LLM_ROUTER_AVAILABLE', True):
-                result = improve_idea_structured(
-                    original_idea="Original idea",
-                    critique="Good evaluation",
-                    advocacy_points="Strong points",
-                    skeptic_points="Some concerns",
-                    topic="Test topic",
-                    context="Test context",
-                    use_router=True,
-                    genai_client=None  # No direct client, should use router
-                )
+                with patch('madspark.agents.structured_idea_generator._should_use_router', return_value=True):
+                    result = improve_idea_structured(
+                        original_idea="Original idea",
+                        critique="Good evaluation",
+                        advocacy_points="Strong points",
+                        skeptic_points="Some concerns",
+                        topic="Test topic",
+                        context="Test context",
+                        use_router=True,
+                        genai_client=None  # No direct client, should use router
+                    )
 
         # Verify router was called
         mock_router.generate_structured.assert_called_once()
@@ -90,15 +91,16 @@ class TestRouterIntegration:
             mock_get_router.return_value = mock_router
 
             with patch('madspark.agents.structured_idea_generator.LLM_ROUTER_AVAILABLE', True):
-                improve_idea_structured(
-                    original_idea="Idea",
-                    critique="Eval",
-                    advocacy_points="Points",
-                    skeptic_points="Concerns",
-                    topic="Topic",
-                    context="Context",
-                    use_router=True
-                )
+                with patch('madspark.agents.structured_idea_generator._should_use_router', return_value=True):
+                    improve_idea_structured(
+                        original_idea="Idea",
+                        critique="Eval",
+                        advocacy_points="Points",
+                        skeptic_points="Concerns",
+                        topic="Topic",
+                        context="Context",
+                        use_router=True
+                    )
 
         # Router's generate_structured was called
         mock_router.generate_structured.assert_called_once()
@@ -139,15 +141,16 @@ class TestRouterIntegration:
 
         with patch('madspark.agents.structured_idea_generator.get_router', return_value=mock_router):
             with patch('madspark.agents.structured_idea_generator.LLM_ROUTER_AVAILABLE', True):
-                # Should fall back to mock response (no genai_client available)
-                result = improve_idea_structured(
-                    original_idea="Idea",
-                    critique="Eval",
-                    advocacy_points="Points",
-                    skeptic_points="Concerns",
-                    topic="Topic",
-                    context="Test Context"
-                )
+                with patch('madspark.agents.structured_idea_generator._should_use_router', return_value=True):
+                    # Should fall back to mock response (no genai_client available)
+                    result = improve_idea_structured(
+                        original_idea="Idea",
+                        critique="Eval",
+                        advocacy_points="Points",
+                        skeptic_points="Concerns",
+                        topic="Topic",
+                        context="Test Context"
+                    )
 
         # Router was called but failed
         mock_router.generate_structured.assert_called_once()
@@ -207,16 +210,17 @@ class TestRouterIntegration:
 
         with patch('madspark.agents.structured_idea_generator.get_router', return_value=mock_router):
             with patch('madspark.agents.structured_idea_generator.LLM_ROUTER_AVAILABLE', True):
-                result = improve_idea_structured(
-                    original_idea="Idea",
-                    critique="Eval",
-                    advocacy_points="Points",
-                    skeptic_points="Concerns",
-                    topic="Topic",
-                    context="Context",
-                    multimodal_files=None,  # No files
-                    multimodal_urls=None  # No URLs
-                )
+                with patch('madspark.agents.structured_idea_generator._should_use_router', return_value=True):
+                    result = improve_idea_structured(
+                        original_idea="Idea",
+                        critique="Eval",
+                        advocacy_points="Points",
+                        skeptic_points="Concerns",
+                        topic="Topic",
+                        context="Context",
+                        multimodal_files=None,  # No files
+                        multimodal_urls=None  # No URLs
+                    )
 
         # Verify None values are passed correctly
         call_kwargs = mock_router.generate_structured.call_args[1]

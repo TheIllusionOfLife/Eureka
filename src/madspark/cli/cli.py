@@ -827,19 +827,34 @@ def _configure_llm_provider(args: argparse.Namespace) -> bool:
         True if an early exit is warranted (e.g., --clear-cache used alone),
         False otherwise.
     """
+    # Track if any provider flags were explicitly set
+    provider_flags_used = []
+
     # Set environment variables based on CLI args
     # Only override if explicitly specified (not default value)
     if hasattr(args, 'provider') and args.provider is not None and _was_arg_provided('provider'):
         os.environ['MADSPARK_LLM_PROVIDER'] = args.provider
+        provider_flags_used.append(f'--provider {args.provider}')
 
     if hasattr(args, 'model_tier') and args.model_tier is not None and _was_arg_provided('model-tier'):
         os.environ['MADSPARK_MODEL_TIER'] = args.model_tier
+        provider_flags_used.append(f'--model-tier {args.model_tier}')
 
     if getattr(args, 'no_fallback', False):
         os.environ['MADSPARK_FALLBACK_ENABLED'] = 'false'
+        provider_flags_used.append('--no-fallback')
 
     if getattr(args, 'no_cache', False):
         os.environ['MADSPARK_CACHE_ENABLED'] = 'false'
+        provider_flags_used.append('--no-cache')
+
+    # Warn users that these flags don't affect current workflow
+    if provider_flags_used:
+        logger.warning(
+            f"LLM provider flags ({', '.join(provider_flags_used)}) are set but "
+            f"not yet integrated into the workflow. Current workflow uses direct "
+            f"Gemini API calls. Phase 2 integration required."
+        )
 
     # Reset config singleton after environment changes to pick up new values
     try:
@@ -1086,6 +1101,15 @@ def _show_llm_stats() -> None:
 
         # Router metrics
         metrics = router.get_metrics()
+
+        # Check if router was actually used
+        if metrics['total_requests'] == 0:
+            print("⚠️  NOTE: LLM Router was not used in this workflow.")
+            print("   The multi-provider routing infrastructure is ready but")
+            print("   not yet integrated into the main workflow (Phase 2).")
+            print("   Current workflow uses direct Gemini API calls.")
+            print("")
+
         print(f"Total Requests: {metrics['total_requests']}")
         print(f"  - Ollama Calls: {metrics['ollama_calls']}")
         print(f"  - Gemini Calls: {metrics['gemini_calls']}")

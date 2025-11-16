@@ -252,23 +252,26 @@ print(f"Cache hit rate: {metrics['cache_hit_rate']:.1%}")
 ```
 
 ### CLI Integration
+**⚠️ IMPORTANT: These CLI flags are infrastructure-only and do NOT affect current workflow execution.**
+**The main workflow still uses direct Gemini API calls. Phase 2 integration is required to activate these flags.**
+
 ```bash
-# Provider selection
+# Provider selection (NOT YET ACTIVE - sets router config but router not used)
 ms "topic" --provider auto         # Default: Ollama primary, Gemini fallback
 ms "topic" --provider ollama       # Force local inference
 ms "topic" --provider gemini       # Force cloud API
 
-# Model tier
+# Model tier (NOT YET ACTIVE - sets router config but router not used)
 ms "topic" --model-tier fast       # gemma3:4b-it-qat (quick)
 ms "topic" --model-tier balanced   # gemma3:12b-it-qat (better)
 ms "topic" --model-tier quality    # gemini-2.5-flash (best)
 
-# Cache control
+# Cache control (NOT YET ACTIVE - cache remains empty without router usage)
 ms "topic" --no-cache              # Disable caching
 ms --clear-cache "topic"           # Clear cache first
 
-# Statistics
-ms "topic" --show-llm-stats        # Display usage metrics
+# Statistics (shows zeros until Phase 2 integration)
+ms "topic" --show-llm-stats        # Display usage metrics (will warn if router unused)
 ```
 
 ### Environment Variables

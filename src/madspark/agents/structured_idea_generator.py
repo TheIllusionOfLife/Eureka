@@ -156,10 +156,10 @@ Write ONLY the improved idea. No introductions, no meta-commentary."""
     )
 
     # Try LLM Router first if available and router is explicitly configured
-    # Priority: Use router when user sets --provider/--model-tier/--no-cache flags
-    # This allows router to serve real traffic instead of being bypassed
+    # Priority: Respect explicit genai_client (bypasses router), else use router when configured
+    # This honors the docstring contract that passing genai_client bypasses the router
     should_route = use_router and LLM_ROUTER_AVAILABLE and get_router is not None
-    if should_route and (genai_client is None or _should_use_router()):
+    if should_route and genai_client is None and _should_use_router():
         try:
             router = get_router()
             # Router generates structured output with automatic provider selection

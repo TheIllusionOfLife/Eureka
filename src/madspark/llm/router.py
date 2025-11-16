@@ -303,6 +303,12 @@ class LLMRouter:
                     raise ValueError(f"Image file not found: {path}")
                 if not path.is_file():
                     raise ValueError(f"Image path is not a file: {path}")
+                # Enforce file size limit to prevent resource exhaustion
+                file_size_mb = path.stat().st_size / (1024 * 1024)
+                if file_size_mb > MAX_FILE_SIZE_MB:
+                    raise ValueError(
+                        f"Image file too large: {path} ({file_size_mb:.1f}MB > {MAX_FILE_SIZE_MB}MB)"
+                    )
         if files:
             for file_path in files:
                 path = Path(file_path).resolve()
@@ -310,6 +316,12 @@ class LLMRouter:
                     raise FileNotFoundError(f"File not found: {path}")
                 if not path.is_file():
                     raise ValueError(f"Path is not a file: {path}")
+                # Enforce file size limit to prevent resource exhaustion
+                file_size_mb = path.stat().st_size / (1024 * 1024)
+                if file_size_mb > MAX_FILE_SIZE_MB:
+                    raise ValueError(
+                        f"File too large: {path} ({file_size_mb:.1f}MB > {MAX_FILE_SIZE_MB}MB)"
+                    )
 
         # Build base cache key kwargs (shared between lookup and storage)
         base_cache_kwargs = {
@@ -595,7 +607,9 @@ class LLMRouter:
         Returns:
             Dictionary with usage statistics
         """
-        metrics = self._metrics.copy()
+        # Thread-safe metrics copy to prevent race conditions
+        with self._metrics_lock:
+            metrics = self._metrics.copy()
         if metrics["total_requests"] > 0:
             metrics["cache_hit_rate"] = metrics["cache_hits"] / metrics["total_requests"]
             metrics["avg_latency_ms"] = metrics["total_latency_ms"] / metrics["total_requests"]
@@ -677,9 +691,12 @@ def get_router() -> LLMRouter:
 
 def reset_router() -> None:
     """Reset router singleton (for testing). Thread-safe."""
-    global _router_instance
+    global _router_instance, OLLAMA_PROVIDER, GEMINI_PROVIDER
     with _router_lock:
         if _router_instance is not None:
             # Close associated cache to prevent resource leaks
             reset_cache()
         _router_instance = None
+        # Reset lazy-loaded provider classes to allow re-initialization
+        OLLAMA_PROVIDER = None
+        GEMINI_PROVIDER = None

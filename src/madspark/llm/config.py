@@ -46,10 +46,6 @@ class LLMConfig:
     gemini_model: str = "gemini-2.5-flash"
 
     # Performance tuning
-    # TODO: Implement retry logic in LLMRouter.generate_structured() for Phase 2
-    # These settings are defined but not yet used by any provider or router code.
-    max_retries: int = 2
-    retry_delay_ms: int = 500
     default_temperature: float = 0.7
 
     # Cache settings

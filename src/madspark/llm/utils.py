@@ -2,6 +2,16 @@
 Shared utility functions for LLM Router integration.
 
 This module centralizes common router configuration logic used across agents.
+
+Note on Import Pattern:
+Each agent module has its own try/except block for importing router components
+(get_router, AllProvidersFailedError, etc.). This is intentional:
+- Standard Python pattern for optional dependencies
+- Allows module-level availability detection (LLM_ROUTER_AVAILABLE)
+- Each agent can independently handle missing router package
+
+The configuration LOGIC (should_use_router) is centralized here to avoid
+duplication of the env var detection code (~20 lines per agent).
 """
 import os
 import logging

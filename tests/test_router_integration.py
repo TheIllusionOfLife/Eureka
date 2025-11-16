@@ -30,10 +30,9 @@ class TestRouterWorkflowIntegration:
         monkeypatch.setenv("MADSPARK_MODEL_TIER", "balanced")
 
         from madspark.llm.utils import should_use_router
-        from madspark.llm import LLM_ROUTER_AVAILABLE
 
-        if LLM_ROUTER_AVAILABLE:
-            assert should_use_router(True, lambda: Mock()) is True
+        # Router should be enabled since MADSPARK_NO_ROUTER is not set
+        assert should_use_router(True, lambda: Mock()) is True
 
     def test_router_disabled_via_env_var(self, monkeypatch):
         """Test that MADSPARK_NO_ROUTER=true disables router."""
@@ -86,7 +85,7 @@ class TestRouterWorkflowIntegration:
         reset_config()
         config = get_config()
 
-        assert config.provider in ["auto", "ollama", "gemini"]
+        assert config.default_provider in ["auto", "ollama", "gemini"]
 
     def test_model_tier_configuration(self, enable_router_env, monkeypatch):
         """Test model tier selection from environment."""
@@ -151,9 +150,9 @@ class TestRouterBackwardCompatibility:
         """Test that coordinator works when router is disabled."""
         monkeypatch.setenv("MADSPARK_NO_ROUTER", "true")
 
-        from madspark.core.coordinator import IdeaCoordinator
+        from madspark.core.async_coordinator import AsyncCoordinator
 
-        coordinator = IdeaCoordinator()
+        coordinator = AsyncCoordinator()
         assert coordinator is not None
 
     def test_cli_argument_parsing_includes_router_flags(self):

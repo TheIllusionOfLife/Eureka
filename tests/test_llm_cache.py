@@ -188,6 +188,29 @@ class TestResponseCache:
         assert cached_response.provider == "ollama"
         assert cached_response.cached is True  # Marked as cached
 
+    def test_cache_timestamp_round_trip(self, cache, sample_validated, sample_response):
+        """Test that timestamp is correctly serialized and deserialized."""
+        from datetime import datetime
+
+        key = cache.make_key("timestamp test", SimpleSchema, 0.0)
+
+        # Ensure sample_response has a timestamp
+        assert isinstance(sample_response.timestamp, datetime)
+        original_timestamp = sample_response.timestamp
+
+        # Cache the response
+        success = cache.set(key, (sample_validated, sample_response))
+        assert success is True
+
+        # Retrieve and verify timestamp is still datetime
+        result = cache.get(key)
+        assert result is not None
+
+        cached_obj, cached_response = result
+        assert isinstance(cached_response.timestamp, datetime)
+        # Timestamps should be equal (isoformat round-trip preserves precision)
+        assert cached_response.timestamp == original_timestamp
+
     def test_cache_set_dict(self, cache, sample_response):
         """Test caching dict objects (not just Pydantic)."""
         key = cache.make_key("test", SimpleSchema, 0.0)

@@ -9,6 +9,7 @@ import hashlib
 import json
 import logging
 import threading
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional, Type
 from pydantic import BaseModel
@@ -150,6 +151,9 @@ class ResponseCache:
 
             # Deserialize
             validated_dict, response_dict = cached_data
+            # Convert timestamp string back to datetime if needed
+            if "timestamp" in response_dict and isinstance(response_dict["timestamp"], str):
+                response_dict["timestamp"] = datetime.fromisoformat(response_dict["timestamp"])
             response = LLMResponse(**response_dict)
             response.cached = True
 

@@ -845,7 +845,7 @@ def _configure_llm_provider(args: argparse.Namespace) -> bool:
 
         # If this was the only major action, signal to main to exit
         is_other_action = any([
-            getattr(args, 'theme', None),
+            getattr(args, 'topic', None),  # Standardized parameter name
             getattr(args, 'batch', None),
             getattr(args, 'interactive', False),
             getattr(args, 'list_bookmarks', False),

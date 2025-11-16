@@ -80,7 +80,9 @@ def evaluate_ideas(ideas: str, topic: str, context: str, temperature: float = DE
     topic: The main topic/theme for the ideas.
     context: The constraints or additional context for evaluation.
     temperature: Controls randomness in generation (0.0-1.0). Lower values increase consistency.
-    use_structured_output: Whether to use structured JSON output (default: True)
+    use_structured_output: Whether to use structured JSON output (default: True).
+        Note: When routing through LLM Router, always returns structured JSON regardless
+        of this flag, as router enforces Pydantic schema validation for type safety.
     use_router: Whether to use LLM Router for provider abstraction (default: True)
 
   Returns:

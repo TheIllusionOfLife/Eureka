@@ -83,7 +83,9 @@ def criticize_idea(idea: str, advocacy: str, topic: str, context: str, temperatu
     topic: The main topic or theme being explored.
     context: Additional constraints or criteria for evaluation.
     temperature: Controls randomness in generation (0.0-1.0). Balanced for criticism.
-    use_structured_output: Whether to use structured JSON output (default: True)
+    use_structured_output: Whether to use structured JSON output (default: True).
+        Note: When routing through LLM Router, always returns structured JSON regardless
+        of this flag, as router enforces Pydantic schema validation for type safety.
     use_router: Whether to use LLM Router for provider abstraction (default: True)
 
   Returns:

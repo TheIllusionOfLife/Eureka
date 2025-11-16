@@ -188,7 +188,10 @@ def generate_ideas(
     topic: The main topic for which ideas should be generated.
     context: Supporting context, constraints, or inspiration for the ideas.
     temperature: Controls randomness in generation (0.0-1.0). Higher values increase creativity.
-    use_structured_output: Whether to use structured JSON output (default: True)
+    use_structured_output: Whether to use structured JSON output (default: True).
+        Note: When routing through LLM Router, always returns structured JSON regardless
+        of this flag, as router enforces Pydantic schema validation for type safety.
+        Multimodal inputs (files/URLs) bypass router and use direct GenAI API.
     multimodal_files: Optional list of file paths (images, PDFs, documents) for context.
     multimodal_urls: Optional list of URLs for context.
     use_router: Whether to use LLM Router for provider abstraction (default: True)

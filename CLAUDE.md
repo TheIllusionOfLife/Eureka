@@ -180,23 +180,30 @@ See **[docs/ci-policy.md](docs/ci-policy.md)** for complete guidelines on:
 - **Optional**: ruff for linting, mypy for type checking
 - **Web**: FastAPI, React 18.2, TypeScript, Docker (in `web/` directory)
 
-## LLM Provider Abstraction Layer (NEW - Partially Integrated)
+## LLM Provider Abstraction Layer (Ollama-First by Default)
 
-**⚠️ IMPORTANT: Phase 1.5 - Partial Integration Complete**
+**✅ FULL INTEGRATION COMPLETE - Router enabled by default!**
 
-This is the foundation layer for multi-provider support. The router, cache, and provider classes are fully implemented and tested. **One workflow step is now integrated**:
-- ✅ `improve_idea_structured()` uses the router (Ollama/Gemini selection, caching, fallback)
-- ❌ Other agents (Generator, Evaluator, Advocate, Skeptic) still use `madspark.agents.genai_client` directly
-- CLI flags (`--provider`, `--model-tier`, etc.) affect the idea improvement step
-- The `agent_adapter.generate_structured_via_router()` function exists but is not called (alternative integration path)
+MadSpark now uses **Ollama as the primary LLM provider** by default for cost-free local inference, with automatic fallback to Gemini:
 
-**Phase 2 (Future Work)**: Wire up remaining agents to use the router instead of direct genai_client calls. This will enable full Ollama/fallback/caching features across the entire workflow.
+- ✅ Router is enabled by DEFAULT (Ollama-first behavior)
+- ✅ Web backend integrates router with configurable provider/tier/cache
+- ✅ Frontend has LLM provider selector and metrics display
+- ✅ Docker Compose includes Ollama service with persistent model storage
+- ✅ CLI has `--no-router` flag for backward compatibility
+- ✅ Tests use MADSPARK_NO_ROUTER=true by default for backward compatibility
+- ✅ Individual agent calls can route through router when `use_router=True`
+
+**Key Changes:**
+- `should_use_router()` returns `True` by default (opt-out instead of opt-in)
+- Web API sets router env vars from request parameters
+- Response includes LLM metrics (tokens, cost, cache hits, latency)
+- `tests/conftest.py` sets MADSPARK_NO_ROUTER=true to maintain backward compatibility
 
 **⚠️ Current Limitations:**
-- Only idea improvement step uses router; other steps require Google API key
-- `--show-llm-stats` shows metrics only from idea improvement (other steps not tracked)
-- setup.sh only configures Google API, no Ollama setup instructions
-- Web backend uses Gemini directly (no router support)
+- Batch operations still use direct Gemini API for efficiency (single call for all items)
+- Some agent functions don't have `use_router` parameter yet
+- Ollama requires local installation or Docker container
 
 MadSpark now supports multiple LLM providers through an abstraction layer with automatic fallback and caching.
 
@@ -253,26 +260,28 @@ print(f"Cache hit rate: {metrics['cache_hit_rate']:.1%}")
 ```
 
 ### CLI Integration
-**Note: Router is now integrated into `improve_idea_structured()`. Flags affect idea improvement step.**
-**Other workflow steps (generation, evaluation, advocacy, skepticism) still use direct Gemini API.**
+**Router is enabled by default. Use `--no-router` to disable and use direct Gemini API.**
 
 ```bash
-# Provider selection (ACTIVE for idea improvement step)
+# Provider selection (router enabled by default)
 ms "topic" --provider auto         # Default: Ollama primary, Gemini fallback
-ms "topic" --provider ollama       # Force local inference
+ms "topic" --provider ollama       # Force local inference (FREE)
 ms "topic" --provider gemini       # Force cloud API
 
-# Model tier (ACTIVE for idea improvement step)
+# Model tier
 ms "topic" --model-tier fast       # gemma3:4b-it-qat (quick)
 ms "topic" --model-tier balanced   # gemma3:12b-it-qat (better)
 ms "topic" --model-tier quality    # gemini-2.5-flash (best)
 
-# Cache control (ACTIVE for idea improvement step)
+# Cache control (enabled by default)
 ms "topic" --no-cache              # Disable caching
 ms --clear-cache "topic"           # Clear cache first
 
-# Statistics (shows actual metrics for router usage)
+# Statistics
 ms "topic" --show-llm-stats        # Display usage metrics
+
+# Disable router entirely (backward compatibility)
+ms "topic" --no-router             # Use direct Gemini API
 ```
 
 ### Environment Variables
@@ -283,13 +292,13 @@ MADSPARK_FALLBACK_ENABLED=true     # Enable provider fallback
 MADSPARK_CACHE_ENABLED=true        # Enable response caching
 MADSPARK_CACHE_TTL=86400           # Cache TTL in seconds (24h)
 MADSPARK_CACHE_DIR=~/.cache/madspark/llm  # Cache directory (absolute path)
+MADSPARK_NO_ROUTER=false           # Set to true to disable router
 OLLAMA_HOST=http://localhost:11434 # Ollama server
 OLLAMA_MODEL_FAST=gemma3:4b-it-qat # Fast tier model
 OLLAMA_MODEL_BALANCED=gemma3:12b-it-qat # Balanced tier model
 ```
 
 ### Key Features
-**✅ Active for idea improvement step | ❌ Not yet active for other workflow steps**
 - **Zero-Cost Local Inference**: Ollama provides free inference with gemma3 models
 - **Automatic Fallback**: Routes to Gemini when Ollama unavailable
 - **Response Caching**: Disk cache with corruption resilience (invalid entries auto-invalidated)

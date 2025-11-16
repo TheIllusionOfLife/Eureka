@@ -180,40 +180,48 @@ ideas = generate_ideas(
 
 **📖 See [Multi-Modal Guide](docs/MULTIMODAL_GUIDE.md) for comprehensive documentation, examples, and best practices.**
 
-### LLM Provider Selection (NEW! - Phase 1 Infrastructure)
+### LLM Provider Selection (Ollama-First by Default!)
 
-> **⚠️ Note: Phase 1 Infrastructure Only**
-> The LLM provider abstraction layer (router, cache, providers) is fully implemented and tested, but **not yet integrated into the main agent workflow**. Currently, agents still use Gemini directly via `genai_client`. The CLI flags configure the router infrastructure, which will be wired into agents in Phase 2. Full Ollama/fallback/caching features are not yet active.
-
-MadSpark now has infrastructure for multiple LLM providers with automatic fallback and response caching:
+MadSpark uses a multi-LLM provider system with **Ollama as the default** for cost-free local inference, automatically falling back to Gemini when needed:
 
 ```bash
 # Default: Auto-select provider (Ollama primary, Gemini fallback)
+# Runs on Ollama for FREE when available!
 ms "urban farming" --show-llm-stats
 
-# Force specific provider (infrastructure ready, not yet active in agents)
-ms "AI healthcare" --provider ollama        # Local inference (free)
+# Force specific provider
+ms "AI healthcare" --provider ollama        # Local inference (FREE)
 ms "quantum computing" --provider gemini    # Cloud API (paid)
 
-# Control model quality tier (Ollama models only currently)
-ms "space exploration" --model-tier fast      # 4B model (quick)
-ms "climate solutions" --model-tier balanced  # 12B model (better)
-ms "renewable energy" --model-tier quality    # 12B model (same as balanced)
+# Control model quality tier
+ms "space exploration" --model-tier fast      # gemma3:4b (quick)
+ms "climate solutions" --model-tier balanced  # gemma3:12b (better)
+ms "renewable energy" --model-tier quality    # gemini-2.5-flash (best)
 
-# Cache management (infrastructure ready)
+# Cache management (enabled by default)
 ms "education innovation" --no-cache       # Disable caching
 ms --clear-cache "healthcare AI"           # Clear cache first
 
 # Disable fallback (fail if primary provider unavailable)
 ms "future transportation" --no-fallback
+
+# Disable router entirely (use direct Gemini API like before)
+ms "legacy workflow" --no-router
 ```
 
-**Provider Features (Phase 2 Integration Pending):**
+**Provider Features:**
 - **Ollama (Primary)**: Local inference with gemma3 models, $0 cost, image support
 - **Gemini (Fallback)**: Cloud inference, PDF/URL support, higher quality
 - **Response Caching**: Disk-based cache with 24h TTL, 30-50% fewer API calls
 - **Automatic Fallback**: Seamlessly switches providers on failure
 - **Usage Statistics**: Track tokens, cost, cache hits with `--show-llm-stats`
+
+**Web Interface LLM Controls:**
+The web interface includes advanced LLM settings:
+- AI Provider selector (Auto/Ollama/Gemini)
+- Model Quality Tier (Fast/Balanced/Quality)
+- Response Caching toggle
+- LLM usage metrics display (tokens, cost, cache hit rate)
 
 ### Standard CLI Usage
 

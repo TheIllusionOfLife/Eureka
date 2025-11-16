@@ -180,20 +180,21 @@ See **[docs/ci-policy.md](docs/ci-policy.md)** for complete guidelines on:
 - **Optional**: ruff for linting, mypy for type checking
 - **Web**: FastAPI, React 18.2, TypeScript, Docker (in `web/` directory)
 
-## LLM Provider Abstraction Layer (NEW - Infrastructure Only)
+## LLM Provider Abstraction Layer (NEW - Partially Integrated)
 
-**⚠️ IMPORTANT: Phase 1 Infrastructure Only**
+**⚠️ IMPORTANT: Phase 1.5 - Partial Integration Complete**
 
-This is the foundation layer for multi-provider support. The router, cache, and provider classes are fully implemented and tested, but **not yet integrated into the main agent workflow**. Currently:
-- Agents still use `madspark.agents.genai_client` directly (Gemini-only)
-- CLI flags (`--provider`, `--model-tier`, etc.) configure the router but agents don't use it
-- The `agent_adapter.generate_structured_via_router()` function exists but is not called
+This is the foundation layer for multi-provider support. The router, cache, and provider classes are fully implemented and tested. **One workflow step is now integrated**:
+- ✅ `improve_idea_structured()` uses the router (Ollama/Gemini selection, caching, fallback)
+- ❌ Other agents (Generator, Evaluator, Advocate, Skeptic) still use `madspark.agents.genai_client` directly
+- CLI flags (`--provider`, `--model-tier`, etc.) affect the idea improvement step
+- The `agent_adapter.generate_structured_via_router()` function exists but is not called (alternative integration path)
 
-**Phase 2 (Future Work)**: Wire up all agents to use the router instead of direct genai_client calls. This will enable the advertised Ollama/fallback/caching features.
+**Phase 2 (Future Work)**: Wire up remaining agents to use the router instead of direct genai_client calls. This will enable full Ollama/fallback/caching features across the entire workflow.
 
 **⚠️ Current Limitations:**
-- Agents require Google API key (no key = mock mode, even with Ollama installed)
-- `--show-llm-stats` always shows zeros (router isn't used by agents yet)
+- Only idea improvement step uses router; other steps require Google API key
+- `--show-llm-stats` shows metrics only from idea improvement (other steps not tracked)
 - setup.sh only configures Google API, no Ollama setup instructions
 - Web backend uses Gemini directly (no router support)
 
@@ -288,13 +289,14 @@ OLLAMA_MODEL_BALANCED=gemma3:12b-it-qat # Balanced tier model
 ```
 
 ### Key Features
-**⚠️ Note: These features are implemented but not active until Phase 2 agent integration**
+**✅ Active for idea improvement step | ❌ Not yet active for other workflow steps**
 - **Zero-Cost Local Inference**: Ollama provides free inference with gemma3 models
 - **Automatic Fallback**: Routes to Gemini when Ollama unavailable
 - **Response Caching**: Disk cache with corruption resilience (invalid entries auto-invalidated)
 - **Usage Metrics**: Track tokens, cost, latency, cache hit rate
 - **Provider Health Monitoring**: Check availability via router.health_status()
 - **Multimodal Support**: Images via Ollama, PDF/URL via Gemini
+- **Security**: Thread-safe metrics, prompt length validation, path traversal protection, SecretStr for API keys
 
 ### Cache Security and Management
 **Important**: The response cache stores prompts and responses in plaintext on disk (default: `.cache/llm/`). For sensitive deployments:

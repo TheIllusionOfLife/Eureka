@@ -461,9 +461,20 @@ class LLMRouter:
 
                         return validated, response
 
-                except Exception as fallback_error:
+                except (
+                    ProviderUnavailableError,
+                    SchemaValidationError,
+                    ValidationError,
+                    json.JSONDecodeError,
+                    RuntimeError,
+                    OSError,
+                    ConnectionError,
+                    TimeoutError,
+                    TypeError,
+                    KeyError,
+                ) as fallback_error:
                     errors.append((providers_tried[-1], str(fallback_error)))
-                    logger.error(f"Fallback also failed: {fallback_error}")
+                    logger.error(f"Fallback also failed: {type(fallback_error).__name__}: {fallback_error}")
 
         raise AllProvidersFailedError(f"All providers failed: {errors}")
 

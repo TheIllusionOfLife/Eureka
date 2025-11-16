@@ -352,11 +352,14 @@ class LLMRouter:
         """
         Get fallback provider that hasn't been tried.
 
+        Attempts to find an available provider that hasn't been used yet,
+        performing health checks before returning.
+
         Args:
             already_tried: List of provider names already attempted
 
         Returns:
-            Fallback provider or None
+            Healthy fallback provider instance, or None if no fallback available
         """
         if "ollama" not in already_tried and self.ollama:
             try:
@@ -366,12 +369,21 @@ class LLMRouter:
                 logger.warning(f"Ollama health check failed during fallback: {e}")
 
         if "gemini" not in already_tried and self.gemini:
-            return self.gemini
+            # Note: Gemini health check is less critical than Ollama since it's cloud-based,
+            # but we check for consistency and to avoid returning an uninitialized provider
+            if self.gemini.health_check():
+                return self.gemini
 
         return None
 
     def _update_metrics(self, provider_name: str, response: LLMResponse) -> None:
-        """Update usage metrics."""
+        """
+        Update usage metrics from a provider response.
+
+        Args:
+            provider_name: Name of the provider ("ollama" or "gemini")
+            response: LLMResponse containing usage data
+        """
         if provider_name == "ollama":
             self._metrics["ollama_calls"] += 1
         elif provider_name == "gemini":

@@ -50,7 +50,7 @@ class LLMConfig:
     default_temperature: float = 0.7
 
     # Token budgets (critical for Ollama performance)
-    token_budgets: dict = field(
+    token_budgets: dict[str, int] = field(
         default_factory=lambda: {
             "simple_score": 150,
             "evaluation": 500,

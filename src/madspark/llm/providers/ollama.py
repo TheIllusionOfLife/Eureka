@@ -64,7 +64,6 @@ class OllamaProvider(LLMProvider):
         self._model = model or config.get_ollama_model()
         self._host = host or config.ollama_host
         self._client = None
-        self._config = config
 
         # Health check caching with TTL (30 seconds)
         self._last_health_check: Optional[bool] = None

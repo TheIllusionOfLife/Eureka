@@ -7,6 +7,7 @@ Fallback provider and PDF/URL processor.
 
 import logging
 import os
+import threading
 import time
 import ipaddress
 import socket
@@ -141,6 +142,7 @@ class GeminiProvider(LLMProvider):
         self._last_health_check: Optional[bool] = None
         self._last_health_check_time: TimeFloat = 0.0
         self._health_check_ttl: TimeFloat = 60.0  # seconds (longer than Ollama to save quota)
+        self._health_check_lock = threading.Lock()  # Thread-safe health check
 
     @property
     def client(self):
@@ -171,6 +173,7 @@ class GeminiProvider(LLMProvider):
         Check if Gemini API is accessible.
 
         Uses TTL-based caching (60 seconds) to avoid repeated API calls that consume quota.
+        Thread-safe with lock to prevent race conditions.
 
         Args:
             force_refresh: If True, bypass cache and check API directly
@@ -178,25 +181,27 @@ class GeminiProvider(LLMProvider):
         Returns:
             True if API is reachable
         """
-        # Check cache first to avoid expensive API calls (unless force refresh)
-        if (
-            not force_refresh
-            and self._last_health_check is not None
-            and (time.time() - self._last_health_check_time) < self._health_check_ttl
-        ):
-            return self._last_health_check
+        # Thread-safe health check with lock
+        with self._health_check_lock:
+            # Check cache first to avoid expensive API calls (unless force refresh)
+            if (
+                not force_refresh
+                and self._last_health_check is not None
+                and (time.time() - self._last_health_check_time) < self._health_check_ttl
+            ):
+                return self._last_health_check
 
-        try:
-            # Quick check - use iterator to avoid loading full list into memory
-            result = next(iter(self.client.models.list()), None) is not None
-        except Exception as e:
-            logger.warning(f"Gemini health check failed: {e}")
-            result = False
+            try:
+                # Quick check - use iterator to avoid loading full list into memory
+                result = next(iter(self.client.models.list()), None) is not None
+            except Exception as e:
+                logger.warning(f"Gemini health check failed: {e}")
+                result = False
 
-        # Cache the result
-        self._last_health_check = result
-        self._last_health_check_time = time.time()
-        return result
+            # Cache the result
+            self._last_health_check = result
+            self._last_health_check_time = time.time()
+            return result
 
     def generate(
         self,

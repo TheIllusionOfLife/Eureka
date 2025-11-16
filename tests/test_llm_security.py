@@ -441,6 +441,62 @@ class TestCacheKeyKwargsValidation:
             cache.make_key("prompt", SimpleSchema, nested_dict={"key": BadClass()})
 
 
+class TestRouterFileValidation:
+    """Test router validates file inputs early."""
+
+    def test_router_rejects_nonexistent_image(self):
+        """Test that router rejects non-existent image files."""
+        from madspark.llm.router import LLMRouter
+
+        router = LLMRouter(cache_enabled=False)
+
+        with pytest.raises(ValueError, match="Image file not found"):
+            router.generate_structured(
+                prompt="Test",
+                schema=SimpleSchema,
+                images=["/nonexistent/image.jpg"]
+            )
+
+    def test_router_rejects_nonexistent_file(self):
+        """Test that router rejects non-existent files."""
+        from madspark.llm.router import LLMRouter
+
+        router = LLMRouter(cache_enabled=False)
+
+        with pytest.raises(FileNotFoundError, match="File not found"):
+            router.generate_structured(
+                prompt="Test",
+                schema=SimpleSchema,
+                files=[Path("/nonexistent/document.pdf")]
+            )
+
+    def test_router_rejects_directory_as_image(self):
+        """Test that router rejects directories passed as images."""
+        from madspark.llm.router import LLMRouter
+
+        router = LLMRouter(cache_enabled=False)
+
+        with pytest.raises(ValueError, match="not a file"):
+            router.generate_structured(
+                prompt="Test",
+                schema=SimpleSchema,
+                images=["/tmp"]  # /tmp is a directory
+            )
+
+    def test_router_rejects_directory_as_file(self):
+        """Test that router rejects directories passed as files."""
+        from madspark.llm.router import LLMRouter
+
+        router = LLMRouter(cache_enabled=False)
+
+        with pytest.raises(ValueError, match="not a file"):
+            router.generate_structured(
+                prompt="Test",
+                schema=SimpleSchema,
+                files=[Path("/tmp")]  # /tmp is a directory
+            )
+
+
 class TestRouterProductionIntegration:
     """Test router is actually used in production code paths."""
 

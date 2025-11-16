@@ -6,6 +6,7 @@ Primary provider for cost-effective inference.
 """
 
 import logging
+import threading
 import time
 from typing import Any, Optional, Type, Union
 from pathlib import Path
@@ -69,6 +70,7 @@ class OllamaProvider(LLMProvider):
         self._last_health_check: Optional[bool] = None
         self._last_health_check_time: float = 0.0
         self._health_check_ttl: float = 30.0  # seconds
+        self._health_check_lock = threading.Lock()  # Thread-safe health check
 
     @property
     def client(self):
@@ -98,6 +100,7 @@ class OllamaProvider(LLMProvider):
         Check if Ollama server is running and model is available.
 
         Uses TTL-based caching (30 seconds) to avoid repeated network calls.
+        Thread-safe with lock to prevent race conditions.
 
         Args:
             force_refresh: If True, bypass cache and check server directly
@@ -105,47 +108,49 @@ class OllamaProvider(LLMProvider):
         Returns:
             True if server is up and model is pulled
         """
-        # Check cache first (unless force refresh requested)
-        if (
-            not force_refresh
-            and self._last_health_check is not None
-            and (time.time() - self._last_health_check_time) < self._health_check_ttl
-        ):
-            return self._last_health_check
+        # Thread-safe health check with lock
+        with self._health_check_lock:
+            # Check cache first (unless force refresh requested)
+            if (
+                not force_refresh
+                and self._last_health_check is not None
+                and (time.time() - self._last_health_check_time) < self._health_check_ttl
+            ):
+                return self._last_health_check
 
-        try:
-            models = self.client.list()
-            model_names = [m.get("name", "") for m in models.get("models", [])]
-            # Check if model is available
-            # Strict matching: exact match or model matches without tag
-            # e.g., "gemma3:4b-it-qat" matches "gemma3:4b-it-qat" or "gemma3"
-            result = False
-            for name in model_names:
-                # Exact match (highest priority)
-                if name == self._model:
-                    result = True
-                    break
-                # Precise prefix matching: pulled model must start with requested model
-                # followed by a delimiter (-, :, or end of string)
-                # e.g., requested "gemma3:4b" matches pulled "gemma3:4b-it-qat"
-                # but "gemma3:4b" does NOT match "gemma3:12b-it-qat" or "gemma3:4bx"
-                if name.startswith(f"{self._model}") and (
-                    len(name) == len(self._model)
-                    or name[len(self._model)] in ("-", ":", "_")
-                ):
-                    result = True
-                    break
+            try:
+                models = self.client.list()
+                model_names = [m.get("name", "") for m in models.get("models", [])]
+                # Check if model is available
+                # Strict matching: exact match or model matches without tag
+                # e.g., "gemma3:4b-it-qat" matches "gemma3:4b-it-qat" or "gemma3"
+                result = False
+                for name in model_names:
+                    # Exact match (highest priority)
+                    if name == self._model:
+                        result = True
+                        break
+                    # Precise prefix matching: pulled model must start with requested model
+                    # followed by a delimiter (-, :, or end of string)
+                    # e.g., requested "gemma3:4b" matches pulled "gemma3:4b-it-qat"
+                    # but "gemma3:4b" does NOT match "gemma3:12b-it-qat" or "gemma3:4bx"
+                    if name.startswith(f"{self._model}") and (
+                        len(name) == len(self._model)
+                        or name[len(self._model)] in ("-", ":", "_")
+                    ):
+                        result = True
+                        break
 
-            # Cache the result
-            self._last_health_check = result
-            self._last_health_check_time = time.time()
-            return result
-        except Exception as e:
-            logger.warning(f"Ollama health check failed: {e}")
-            # Cache failure for a short time to avoid hammering
-            self._last_health_check = False
-            self._last_health_check_time = time.time()
-            return False
+                # Cache the result
+                self._last_health_check = result
+                self._last_health_check_time = time.time()
+                return result
+            except Exception as e:
+                logger.warning(f"Ollama health check failed: {e}")
+                # Cache failure for a short time to avoid hammering
+                self._last_health_check = False
+                self._last_health_check_time = time.time()
+                return False
 
     def generate(
         self,

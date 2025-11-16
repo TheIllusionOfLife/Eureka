@@ -295,6 +295,22 @@ class LLMRouter:
         should_use_cache = use_cache if use_cache is not None else self._cache_enabled
         cache = get_cache() if should_use_cache else None
 
+        # Early validation of file inputs (fail fast before provider call)
+        if images:
+            for img in images:
+                path = Path(img).resolve()
+                if not path.exists():
+                    raise ValueError(f"Image file not found: {path}")
+                if not path.is_file():
+                    raise ValueError(f"Image path is not a file: {path}")
+        if files:
+            for file_path in files:
+                path = Path(file_path).resolve()
+                if not path.exists():
+                    raise FileNotFoundError(f"File not found: {path}")
+                if not path.is_file():
+                    raise ValueError(f"Path is not a file: {path}")
+
         # Build base cache key kwargs (shared between lookup and storage)
         base_cache_kwargs = {
             "system_instruction": system_instruction,
@@ -417,7 +433,10 @@ class LLMRouter:
                     **base_cache_kwargs,
                     **kwargs
                 )
-                cache.set(actual_cache_key, (validated, response))
+                # Explicitly serialize Pydantic model to dict for cache storage
+                # This makes the serialization explicit rather than relying on cache.set() internals
+                validated_dict = validated.model_dump() if hasattr(validated, 'model_dump') else validated
+                cache.set(actual_cache_key, (validated_dict, response))
 
             logger.info(
                 f"Generated via {provider_name} in {latency:.0f}ms "
@@ -484,7 +503,9 @@ class LLMRouter:
                                 **base_cache_kwargs,
                                 **kwargs
                             )
-                            cache.set(actual_cache_key, (validated, response))
+                            # Explicitly serialize Pydantic model for cache storage
+                            validated_dict = validated.model_dump() if hasattr(validated, 'model_dump') else validated
+                            cache.set(actual_cache_key, (validated_dict, response))
 
                         return validated, response
 
@@ -497,8 +518,8 @@ class LLMRouter:
                     OSError,
                     ConnectionError,
                     TimeoutError,
-                    TypeError,
-                    KeyError,
+                    # Note: TypeError and KeyError are intentionally caught in fallback
+                    # to give fallback a chance even if primary has a bug
                 ) as fallback_error:
                     errors.append((providers_tried[-1], str(fallback_error)))
                     logger.error(f"Fallback also failed: {type(fallback_error).__name__}: {fallback_error}")

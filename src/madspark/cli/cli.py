@@ -848,12 +848,12 @@ def _configure_llm_provider(args: argparse.Namespace) -> bool:
         os.environ['MADSPARK_CACHE_ENABLED'] = 'false'
         provider_flags_used.append('--no-cache')
 
-    # Warn users that these flags don't affect current workflow
+    # Info message about partial integration
     if provider_flags_used:
-        logger.warning(
-            f"LLM provider flags ({', '.join(provider_flags_used)}) are set but "
-            f"not yet integrated into the workflow. Current workflow uses direct "
-            f"Gemini API calls. Phase 2 integration required."
+        logger.info(
+            f"LLM provider flags ({', '.join(provider_flags_used)}) configured. "
+            f"Router is active for idea improvement step. Other workflow steps "
+            f"still use direct Gemini API."
         )
 
     # Reset config singleton after environment changes to pick up new values

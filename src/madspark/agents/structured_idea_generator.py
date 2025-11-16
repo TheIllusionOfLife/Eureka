@@ -28,6 +28,16 @@ from madspark.utils.constants import IDEA_GENERATOR_SYSTEM_INSTRUCTION
 # Convert Pydantic model to GenAI schema format at module level (cached)
 _IMPROVEMENT_RESPONSE_GENAI_SCHEMA = pydantic_to_genai_schema(ImprovementResponse)
 
+# Optional LLM Router import
+try:
+    from madspark.llm import get_router
+    from madspark.llm.exceptions import AllProvidersFailedError
+    LLM_ROUTER_AVAILABLE = True
+except ImportError:
+    LLM_ROUTER_AVAILABLE = False
+    get_router = None  # type: ignore
+    AllProvidersFailedError = Exception  # type: ignore
+
 
 def improve_idea_structured(
     original_idea: str,
@@ -41,33 +51,42 @@ def improve_idea_structured(
     genai_client: Optional[Any] = None,
     model_name: str = DEFAULT_GOOGLE_GENAI_MODEL,
     multimodal_files: Optional[List[Union[str, Path]]] = None,
-    multimodal_urls: Optional[List[str]] = None
+    multimodal_urls: Optional[List[str]] = None,
+    use_router: bool = True
 ) -> str:
     """Improves an idea using structured output for clean responses.
 
     This function uses Gemini's structured output capabilities to ensure
     the response contains only the improved idea without meta-commentary.
 
+    When use_router=True and LLM Router is available, routes through the
+    multi-provider abstraction layer for automatic fallback and caching.
+
     Args:
         original_idea: The original idea to improve
         critique: The critic's evaluation
         advocacy_points: The advocate's bullet points
         skeptic_points: The skeptic's concerns
+        topic: The topic for idea improvement
         context: The original context for improvement
+        logical_inference: Optional logical analysis
         temperature: Controls randomness (0.0-1.0)
-        genai_client: Optional GenAI client instance
+        genai_client: Optional GenAI client instance (bypasses router)
         model_name: Model to use for generation
-        
+        multimodal_files: Optional files for multimodal input
+        multimodal_urls: Optional URLs for multimodal input
+        use_router: Whether to use LLM Router for provider abstraction
+
     Returns:
         The improved idea text without any meta-commentary
-        
+
     Raises:
         ValidationError: If inputs are invalid
         ConfigurationError: If API is not configured
     """
     # Import validation helper from idea_generator to maintain DRY principle
     from madspark.agents.idea_generator import _validate_non_empty_string
-    
+
     # Validate inputs using the same logic as the main module
     _validate_non_empty_string(original_idea, 'original_idea')
     _validate_non_empty_string(critique, 'critique')
@@ -75,7 +94,7 @@ def improve_idea_structured(
     _validate_non_empty_string(skeptic_points, 'skeptic_points')
     _validate_non_empty_string(topic, 'topic')
     _validate_non_empty_string(context, 'context')
-    
+
     # Build focused prompt
     text_prompt = f"""Topic: {topic}
 Context: {context}
@@ -108,11 +127,37 @@ Write ONLY the improved idea. No introductions, no meta-commentary."""
         multimodal_files=multimodal_files,
         multimodal_urls=multimodal_urls
     )
-    
+
+    # Try LLM Router first if available and no explicit client provided
+    if use_router and LLM_ROUTER_AVAILABLE and genai_client is None and get_router is not None:
+        try:
+            router = get_router()
+            # Router generates structured output with automatic provider selection
+            validated, response = router.generate_structured(
+                prompt=text_prompt,
+                schema=ImprovementResponse,
+                system_instruction=IDEA_GENERATOR_SYSTEM_INSTRUCTION,
+                temperature=temperature,
+                # Note: multimodal files/urls require specific provider (Gemini)
+                files=[Path(f) for f in multimodal_files] if multimodal_files else None,
+                urls=multimodal_urls,
+            )
+
+            # Successfully got structured response via router
+            logging.info(f"Router generated improvement via {response.provider} ({response.tokens_used} tokens)")
+            return f"{validated.improved_title}\n\n{validated.improved_description}"
+
+        except AllProvidersFailedError as e:
+            logging.warning(f"LLM Router failed, falling back to direct API: {e}")
+            # Fall through to direct API call
+        except Exception as e:
+            logging.warning(f"Router error, falling back to direct API: {e}")
+            # Fall through to direct API call
+
     if not GENAI_AVAILABLE or genai_client is None:
         # Mock response for testing
         return f"A revolutionary {context} solution that addresses all feedback points through innovative implementation."
-    
+
     try:
         # Configure for structured output with pre-computed schema
         config = types.GenerateContentConfig(

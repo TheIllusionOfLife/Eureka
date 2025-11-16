@@ -33,9 +33,9 @@ class TestCLIProviderConfiguration:
             _configure_llm_provider(args)
 
         assert os.environ.get('MADSPARK_LLM_PROVIDER') == 'ollama'
-        # Should warn that flags are not active
-        mock_logger.warning.assert_called_once()
-        assert 'not yet integrated' in str(mock_logger.warning.call_args)
+        # Should log info about partial integration
+        mock_logger.info.assert_called_once()
+        assert 'Router is active' in str(mock_logger.info.call_args)
 
     def test_model_tier_flag_sets_env_var(self, monkeypatch):
         """Test that --model-tier flag sets environment variable."""
@@ -108,8 +108,8 @@ class TestCLIProviderConfiguration:
         # No warning should be issued
         mock_logger.warning.assert_not_called()
 
-    def test_multiple_flags_combined_warning(self, monkeypatch):
-        """Test that multiple flags are listed in the warning."""
+    def test_multiple_flags_combined_info(self, monkeypatch):
+        """Test that multiple flags are listed in the info message."""
         from madspark.cli.cli import _configure_llm_provider
 
         monkeypatch.setattr(sys, 'argv', [
@@ -127,8 +127,8 @@ class TestCLIProviderConfiguration:
         with patch('madspark.cli.cli.logger') as mock_logger:
             _configure_llm_provider(args)
 
-        # Should warn about multiple flags
-        call_args = str(mock_logger.warning.call_args)
+        # Should log info about multiple flags
+        call_args = str(mock_logger.info.call_args)
         assert '--provider gemini' in call_args
         assert '--model-tier quality' in call_args
         assert '--no-fallback' in call_args

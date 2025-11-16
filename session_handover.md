@@ -23,6 +23,11 @@
     - ✅ Timestamp parsing error handling with fallback
     - ✅ More specific exception types (ValidationError, JSONDecodeError, TypeError, KeyError)
     - ✅ Wrapped health_check() calls in try/except
+    - ✅ Fixed router latency tracking to pass measured latency to _update_metrics
+    - ✅ Isolated test environment mutations with monkeypatch fixture (prevents os.environ pollution)
+    - ✅ Added cache size limits (cache_max_size_mb with environment variable support)
+    - ✅ Health check added in Gemini fallback selection (validates provider before use)
+    - ✅ Race condition fixed in fallback_triggers (wrapped in _metrics_lock)
   - **Current Status**: Awaiting CI completion and final reviewer approval
   - **Deferred Items (Future PRs)**:
     - **File Size Validation**: Add MAX_FILE_SIZE_MB checks for multimodal inputs (constant defined but not enforced)
@@ -32,10 +37,11 @@
     - **Token Budget Estimation**: Enhance heuristic to account for string length constraints, enum options, array sizes
     - **Import Warning Level**: Change provider import failures from DEBUG to WARNING level
     - **Production Integration**: Migrate remaining agent calls to use router (currently only improve_idea_structured)
-  - **Commits This Session** (3 commits):
+  - **Commits This Session** (4 commits):
     - f4ffe33b: fix: add robustness and security improvements to LLM providers
     - dde76b7b: fix: remove unused imports and variables in test files
     - af4dc558: fix: add comprehensive security and robustness improvements
+    - f9515ceb: fix: improve router metrics and test environment isolation
   - **Test Coverage**: 58 router/provider tests passing, 15 CLI tests added
   - **Known Limitations**:
     - Ollama response format: Uses attribute access (response.message.content) as per ollama-python library, not dict access as some reviewers suggested

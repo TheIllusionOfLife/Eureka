@@ -797,17 +797,23 @@ class EnhancedBookmarkResponse(BaseModel):
     similar_bookmarks: List[SimilarBookmark] = []
 
 
-def _create_success_response(results: List[Dict[str, Any]], start_time: datetime, message: str) -> IdeaGenerationResponse:
+def _create_success_response(
+    results: List[Dict[str, Any]],
+    start_time: datetime,
+    message: str,
+    llm_metrics: Optional[LLMMetrics] = None
+) -> IdeaGenerationResponse:
     """Create a successful IdeaGenerationResponse with structured output detection.
-    
+
     Args:
         results: Generated results from the coordinator containing idea data.
-                Expected format: List of dicts with keys like 'idea', 'improved_idea', 
+                Expected format: List of dicts with keys like 'idea', 'improved_idea',
                 'initial_score', 'improved_score', etc.
         start_time: Request start time (datetime object) used to calculate the total
                    processing duration in seconds
         message: Success message to include in response (e.g., "Generated 5 ideas successfully")
-        
+        llm_metrics: Optional LLM router metrics (tokens, cost, cache hits, etc.)
+
     Returns:
         Formatted IdeaGenerationResponse with:
         - status: "success"
@@ -816,10 +822,11 @@ def _create_success_response(results: List[Dict[str, Any]], start_time: datetime
         - processing_time: Duration in seconds
         - timestamp: ISO format timestamp
         - structured_output: Boolean flag indicating if structured output was used
+        - llm_metrics: Optional LLM usage statistics
     """
     processing_time = (datetime.now() - start_time).total_seconds()
     structured_output_used = detect_structured_output_usage(results)
-    
+
     # Log logical inference results
     logger.info(f"Creating success response with {len(results)} results")
     for i, result in enumerate(results):
@@ -827,14 +834,15 @@ def _create_success_response(results: List[Dict[str, Any]], start_time: datetime
         logger.info(f"Result {i}: has_logical_inference={has_logical_inference}")
         if has_logical_inference:
             logger.info(f"  Logical inference confidence: {result['logical_inference'].get('confidence', 'N/A')}")
-    
+
     return IdeaGenerationResponse(
         status="success",
         message=message,
         results=format_results_for_frontend(results, structured_output_used),
         processing_time=processing_time,
         timestamp=start_time.isoformat(),
-        structured_output=structured_output_used
+        structured_output=structured_output_used,
+        llm_metrics=llm_metrics
     )
 
 
@@ -1377,15 +1385,32 @@ async def generate_ideas(
             progress_callback=progress_callback,
             cache_manager=cache_manager
         )
-        
+
         # Add timeout handling
         timeout_seconds = idea_request.timeout if idea_request.timeout else DEFAULT_REQUEST_TIMEOUT
-        
+
         # Log logical inference request
         logger.info(f"Running workflow with logical_inference={idea_request.logical_inference}, reasoning_engine={reasoning_eng is not None}")
         if reasoning_eng and hasattr(reasoning_eng, 'logical_inference_engine'):
             logger.info(f"Logical inference engine available: {reasoning_eng.logical_inference_engine is not None}")
-        
+
+        # Configure LLM Router based on request parameters
+        original_env = {}
+        if LLM_ROUTER_AVAILABLE:
+            # Save original environment variables
+            env_vars_to_set = {
+                "MADSPARK_LLM_PROVIDER": idea_request.llm_provider or "auto",
+                "MADSPARK_MODEL_TIER": idea_request.model_tier or "fast",
+                "MADSPARK_CACHE_ENABLED": str(idea_request.use_llm_cache).lower() if idea_request.use_llm_cache is not None else "true"
+            }
+            for key, value in env_vars_to_set.items():
+                original_env[key] = os.environ.get(key)
+                os.environ[key] = value
+            logger.info(f"LLM Router configured: provider={idea_request.llm_provider}, tier={idea_request.model_tier}, cache={idea_request.use_llm_cache}")
+
+            # Reset router to pick up new configuration
+            reset_router()
+
         try:
             try:
                 results = await asyncio.wait_for(
@@ -1413,12 +1438,43 @@ async def generate_ideas(
                     detail=f"Request timed out after {timeout_seconds} seconds. Please try with fewer candidates or simpler constraints."
                 )
 
+            # Capture LLM metrics if router is available
+            llm_metrics = None
+            if LLM_ROUTER_AVAILABLE:
+                try:
+                    router = get_router()
+                    metrics = router.get_metrics()
+                    llm_metrics = LLMMetrics(
+                        total_requests=metrics.get("total_requests", 0),
+                        cache_hits=metrics.get("cache_hits", 0),
+                        ollama_calls=metrics.get("ollama_calls", 0),
+                        gemini_calls=metrics.get("gemini_calls", 0),
+                        total_tokens=metrics.get("total_tokens", 0),
+                        total_cost=metrics.get("total_cost", 0.0),
+                        cache_hit_rate=metrics.get("cache_hit_rate", 0.0),
+                        avg_latency_ms=metrics.get("avg_latency_ms", 0.0)
+                    )
+                    logger.info(f"LLM metrics captured: {llm_metrics}")
+                except Exception as metrics_error:
+                    logger.warning(f"Failed to capture LLM metrics: {metrics_error}")
+
             return _create_success_response(
                 results=results,
                 start_time=start_time,
-                message=f"Generated {len(results)} ideas successfully"
+                message=f"Generated {len(results)} ideas successfully",
+                llm_metrics=llm_metrics
             )
         finally:
+            # Restore original environment variables
+            if LLM_ROUTER_AVAILABLE and original_env:
+                for key, value in original_env.items():
+                    if value is None:
+                        os.environ.pop(key, None)
+                    else:
+                        os.environ[key] = value
+                # Reset router to restore original configuration
+                reset_router()
+
             # Clean up temp files after processing (success or failure)
             for temp_file in temp_files:
                 try:

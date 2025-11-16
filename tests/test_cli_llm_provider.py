@@ -4,10 +4,9 @@ Tests for LLM provider CLI integration.
 Tests the CLI flags for --provider, --model-tier, --no-cache, etc.
 """
 
-import pytest
 import sys
 import os
-from unittest.mock import patch, Mock, MagicMock
+from unittest.mock import patch, Mock
 import argparse
 
 
@@ -16,7 +15,7 @@ class TestCLIProviderConfiguration:
 
     def test_provider_flag_sets_env_var(self, monkeypatch):
         """Test that --provider flag sets environment variable."""
-        from madspark.cli.cli import _configure_llm_provider, _was_arg_provided
+        from madspark.cli.cli import _configure_llm_provider
 
         # Mock sys.argv to include --provider flag
         monkeypatch.setattr(sys, 'argv', ['cli.py', '--provider', 'ollama', 'topic'])
@@ -244,8 +243,6 @@ class TestShowLLMStats:
         # Simulate ImportError by patching the import itself
         import madspark.llm as llm_module
 
-        original_get_router = getattr(llm_module, 'get_router', None)
-
         def raise_import_error():
             raise ImportError("Module not found")
 
@@ -278,7 +275,7 @@ class TestClearCache:
         # Patch at the madspark.llm module level (where it's imported from)
         with patch('madspark.llm.get_cache', return_value=mock_cache):
             with patch('madspark.cli.cli.logger'):
-                result = _configure_llm_provider(args)
+                _configure_llm_provider(args)
 
         mock_cache.clear.assert_called_once()
         output = capsys.readouterr().out
@@ -301,7 +298,7 @@ class TestClearCache:
 
         with patch('madspark.llm.get_cache', return_value=mock_cache):
             with patch('madspark.cli.cli.logger'):
-                result = _configure_llm_provider(args)
+                _configure_llm_provider(args)
 
         mock_cache.clear.assert_not_called()
         output = capsys.readouterr().out

@@ -4,9 +4,7 @@ Tests for LLM Router integration with agents.
 Verifies that the router is actually called during workflow execution.
 """
 
-import pytest
-from unittest.mock import patch, Mock, MagicMock
-from pathlib import Path
+from unittest.mock import patch, Mock
 
 from madspark.schemas.generation import ImprovementResponse
 from madspark.llm.response import LLMResponse
@@ -65,7 +63,7 @@ class TestRouterIntegration:
     def test_improve_idea_structured_increments_metrics(self):
         """Test that router metrics are incremented during call."""
         from madspark.agents.structured_idea_generator import improve_idea_structured
-        from madspark.llm import get_router, reset_router
+        from madspark.llm import reset_router
 
         # Reset router to get fresh metrics
         reset_router()

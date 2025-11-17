@@ -1579,13 +1579,8 @@ async def generate_ideas_async(request: Request, idea_request: IdeaGenerationReq
             cache_manager=cache_manager
         )
 
-        # Process multimodal files/URLs if provided (same as sync endpoint)
-        multimodal_file_paths = []
-        multimodal_url_list = []
-        if idea_request.multimodal_files:
-            multimodal_file_paths = idea_request.multimodal_files
-        if idea_request.multimodal_urls:
-            multimodal_url_list = idea_request.multimodal_urls.split(',') if isinstance(idea_request.multimodal_urls, str) else idea_request.multimodal_urls
+        # Process multimodal URLs if provided (async endpoint supports URLs only, not file uploads)
+        multimodal_url_list = idea_request.multimodal_urls if idea_request.multimodal_urls else None
 
         # Run the async workflow with router config and multimodal support
         results = await async_coordinator.run_workflow(
@@ -1600,8 +1595,8 @@ async def generate_ideas_async(request: Request, idea_request: IdeaGenerationReq
             multi_dimensional_eval=True,  # Always enabled as a core feature
             logical_inference=idea_request.logical_inference,
             reasoning_engine=reasoning_eng,
-            multimodal_files=multimodal_file_paths if multimodal_file_paths else None,
-            multimodal_urls=multimodal_url_list if multimodal_url_list else None
+            multimodal_files=None,  # Async endpoint does not support file uploads
+            multimodal_urls=multimodal_url_list
         )
 
         # Capture LLM metrics if router is available (same as sync endpoint)

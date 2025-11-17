@@ -288,9 +288,18 @@ class LLMRouter:
             tuple: (list of validated_pydantic_objects, aggregated response_metadata)
 
         Raises:
-            AllProvidersFailedError: If all providers fail for any prompt
+            AllProvidersFailedError: If all providers fail for any prompt.
+                **Fail-fast behavior**: Processing stops immediately on first failure.
+                Previously processed results are lost. This ensures consistent error
+                reporting but does not support partial success.
             ValueError: If prompts is not a list
             TypeError: If prompts is None
+
+        Note:
+            Sequential Processing: Prompts are processed one at a time (O(N) API calls).
+            This is intentional to maintain consistent error handling and avoid
+            complexity of managing concurrent provider state. For async batch processing,
+            consider using AsyncCoordinator with gather() instead.
         """
         # Input validation
         if prompts is None:

@@ -157,6 +157,17 @@ except ImportError as e:
         from src.madspark.utils.bookmark_system import BookmarkManager
         from src.madspark.utils.cache_manager import CacheManager, CacheConfig
         from src.madspark.utils.improved_idea_cleaner import clean_improved_ideas_in_results
+        # Try to import router in fallback path
+        try:
+            from src.madspark.llm.router import get_router, reset_router
+            from src.madspark.llm.cache import reset_cache as reset_llm_cache
+            LLM_ROUTER_AVAILABLE = True
+        except ImportError:
+            LLM_ROUTER_AVAILABLE = False
+            get_router = None  # type: ignore
+            reset_router = None  # type: ignore
+            reset_llm_cache = None  # type: ignore
+            logging.info("LLM Router not available in fallback path")
     except ImportError as e2:
         logging.error(f"Failed to import MadSpark modules with fallback paths: {e2}")
         raise e

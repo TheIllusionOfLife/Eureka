@@ -468,3 +468,50 @@ class TestRouterCacheIntegration:
 
         # get_cache should not be called when cache is disabled
         assert mock_get_cache.called is False
+
+
+class TestFileHashComputation:
+    """Test file content hashing for cache invalidation."""
+
+    def test_compute_file_hash_consistent(self, tmp_path):
+        """Hash should be consistent for same file content."""
+        from madspark.llm.router import _compute_file_hash
+        
+        file = tmp_path / "test.txt"
+        file.write_text("content")
+        hash1 = _compute_file_hash(file)
+        hash2 = _compute_file_hash(file)
+        assert hash1 == hash2
+        assert len(hash1) == 16  # First 16 chars of hex digest
+
+    def test_compute_file_hash_detects_changes(self, tmp_path):
+        """Hash should change when file content changes."""
+        from madspark.llm.router import _compute_file_hash
+        
+        file = tmp_path / "test.txt"
+        file.write_text("content1")
+        hash1 = _compute_file_hash(file)
+        file.write_text("content2")
+        hash2 = _compute_file_hash(file)
+        assert hash1 != hash2
+
+    def test_compute_file_hash_missing_file(self):
+        """Should raise clear error for missing file."""
+        from madspark.llm.router import _compute_file_hash
+        
+        with pytest.raises(FileNotFoundError):
+            _compute_file_hash(Path("/nonexistent/file.txt"))
+
+    def test_compute_file_hash_binary_files(self, tmp_path):
+        """Hash should work with binary files."""
+        from madspark.llm.router import _compute_file_hash
+        
+        file = tmp_path / "test.bin"
+        file.write_bytes(b"\x00\x01\x02\x03\x04")
+        hash1 = _compute_file_hash(file)
+        assert len(hash1) == 16
+        
+        # Modify binary content
+        file.write_bytes(b"\x00\x01\x02\x03\x05")
+        hash2 = _compute_file_hash(file)
+        assert hash1 != hash2

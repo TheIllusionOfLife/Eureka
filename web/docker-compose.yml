@@ -29,9 +29,10 @@ services:
       - llm-cache:/cache/llm  # LLM response cache
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     depends_on:
-      - redis
-      - ollama:
-          condition: service_healthy
+      redis:
+        condition: service_started
+      ollama:
+        condition: service_healthy
     networks:
       - madspark-network
 

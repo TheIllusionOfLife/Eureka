@@ -9,8 +9,7 @@ Tests verify router works correctly in real-world scenarios including:
 - Backward compatibility
 """
 import pytest
-import os
-from unittest.mock import patch, Mock
+from unittest.mock import Mock
 
 
 class TestRouterWorkflowIntegration:

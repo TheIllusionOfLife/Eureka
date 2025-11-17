@@ -6,7 +6,7 @@ Following TDD - tests written first before implementation.
 """
 
 import pytest
-from unittest.mock import Mock, patch, call
+from unittest.mock import Mock, patch
 from pydantic import BaseModel, Field
 from typing import List
 

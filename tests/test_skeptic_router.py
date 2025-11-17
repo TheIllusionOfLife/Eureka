@@ -81,17 +81,27 @@ class TestSkepticRouterIntegration:
 class TestSkepticRouterConfiguration:
     """Test _should_use_router configuration detection."""
 
-    def test_should_use_router_with_provider_env_var(self, monkeypatch):
-        """Test router used when MADSPARK_LLM_PROVIDER is set."""
+    def test_should_use_router_enabled_by_default(self, monkeypatch):
+        """Test router is enabled by default (Ollama-first behavior)."""
         from madspark.agents.skeptic import _should_use_router
-        monkeypatch.setenv("MADSPARK_LLM_PROVIDER", "ollama")
-        assert _should_use_router() is True
 
-    def test_should_use_router_false_when_no_env_vars(self, monkeypatch):
-        """Test router not used when no router env vars are set."""
-        from madspark.agents.skeptic import _should_use_router
+        # Clean environment - router should be ON by default
+        monkeypatch.delenv("MADSPARK_NO_ROUTER", raising=False)
         monkeypatch.delenv("MADSPARK_LLM_PROVIDER", raising=False)
         monkeypatch.delenv("MADSPARK_MODEL_TIER", raising=False)
         monkeypatch.delenv("MADSPARK_CACHE_ENABLED", raising=False)
-        monkeypatch.delenv("MADSPARK_FALLBACK_ENABLED", raising=False)
+
+        assert _should_use_router() is True
+
+    def test_should_use_router_with_provider_env_var(self, monkeypatch):
+        """Test router remains enabled when MADSPARK_LLM_PROVIDER is set."""
+        from madspark.agents.skeptic import _should_use_router
+        monkeypatch.delenv("MADSPARK_NO_ROUTER", raising=False)
+        monkeypatch.setenv("MADSPARK_LLM_PROVIDER", "ollama")
+        assert _should_use_router() is True
+
+    def test_should_use_router_false_when_explicitly_disabled(self, monkeypatch):
+        """Test router disabled when MADSPARK_NO_ROUTER=true (opt-out behavior)."""
+        from madspark.agents.skeptic import _should_use_router
+        monkeypatch.setenv("MADSPARK_NO_ROUTER", "true")
         assert _should_use_router() is False

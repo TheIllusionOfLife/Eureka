@@ -64,18 +64,30 @@ class TestRouterWorkflowIntegration:
         monkeypatch.setenv("MADSPARK_CACHE_DIR", str(cache_dir))
 
         from madspark.llm.cache import reset_cache, get_cache
+        from madspark.llm.response import LLMResponse
 
         reset_cache()
         cache = get_cache()
 
         if cache.enabled:
             test_key = "test_prompt_123"
-            test_value = {"response": "test", "provider": "ollama"}
-            cache.set(test_key, test_value, ttl_seconds=3600)
+            # Cache expects tuple of (validated_object, LLMResponse)
+            mock_response = LLMResponse(
+                text='{"response": "test"}',
+                provider="ollama",
+                model="gemma3:4b",
+                tokens_used=10,
+                latency_ms=100.0,
+                cost=0.0
+            )
+            test_value = ({"response": "test"}, mock_response)
+            cache.set(test_key, test_value, ttl=3600)
 
             retrieved = cache.get(test_key)
             assert retrieved is not None
-            assert retrieved["response"] == "test"
+            validated_obj, llm_response = retrieved
+            assert validated_obj["response"] == "test"
+            assert llm_response.provider == "ollama"
 
     def test_provider_selection_defaults_to_auto(self, enable_router_env):
         """Test that default provider selection is 'auto' (Ollama-first)."""

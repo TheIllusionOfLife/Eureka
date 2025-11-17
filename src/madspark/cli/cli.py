@@ -846,12 +846,12 @@ def _configure_llm_provider(args: argparse.Namespace) -> bool:
         os.environ['MADSPARK_NO_ROUTER'] = 'true'
         provider_flags_used.append('--no-router')
 
-    # Info message about partial integration
+    # Info message about router configuration
     if provider_flags_used:
+        router_status = "disabled (--no-router)" if getattr(args, 'no_router', False) else "enabled (Ollama-first default)"
         logger.info(
             f"LLM provider flags ({', '.join(provider_flags_used)}) configured. "
-            f"Router is active for idea improvement step. Other workflow steps "
-            f"still use direct Gemini API."
+            f"Router is {router_status}."
         )
 
     # Reset config singleton after environment changes to pick up new values

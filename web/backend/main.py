@@ -12,6 +12,7 @@ import os
 import random
 import uuid
 import sys
+import threading
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Any
@@ -169,6 +170,10 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
+
+# Lock for protecting router configuration from concurrent request races
+# Prevents two requests from modifying os.environ/router singleton simultaneously
+_router_config_lock = threading.Lock()
 
 # Enhanced error tracking
 class ErrorTracker:
@@ -1394,22 +1399,26 @@ async def generate_ideas(
         if reasoning_eng and hasattr(reasoning_eng, 'logical_inference_engine'):
             logger.info(f"Logical inference engine available: {reasoning_eng.logical_inference_engine is not None}")
 
-        # Configure LLM Router based on request parameters
+        # Configure LLM Router for this request
+        # Use lock to prevent concurrent requests from racing on router configuration
         original_env = {}
         if LLM_ROUTER_AVAILABLE:
-            # Save original environment variables
-            env_vars_to_set = {
-                "MADSPARK_LLM_PROVIDER": idea_request.llm_provider or "auto",
-                "MADSPARK_MODEL_TIER": idea_request.model_tier or "fast",
-                "MADSPARK_CACHE_ENABLED": str(idea_request.use_llm_cache).lower() if idea_request.use_llm_cache is not None else "true"
-            }
-            for key, value in env_vars_to_set.items():
-                original_env[key] = os.environ.get(key)
-                os.environ[key] = value
-            logger.info(f"LLM Router configured: provider={idea_request.llm_provider}, tier={idea_request.model_tier}, cache={idea_request.use_llm_cache}")
+            with _router_config_lock:
+                env_vars_to_set = {
+                    "MADSPARK_LLM_PROVIDER": idea_request.llm_provider or "auto",
+                    "MADSPARK_MODEL_TIER": idea_request.model_tier or "fast",
+                    "MADSPARK_CACHE_ENABLED": str(idea_request.use_llm_cache).lower() if idea_request.use_llm_cache is not None else "true"
+                }
 
-            # Reset router to pick up new configuration
-            reset_router()
+                # Save and set environment variables
+                for key, value in env_vars_to_set.items():
+                    original_env[key] = os.environ.get(key)
+                    os.environ[key] = value
+
+                # Reset router singleton to pick up new configuration
+                # This creates the router with request-specific settings
+                reset_router()
+                logger.info(f"LLM Router configured: provider={idea_request.llm_provider}, tier={idea_request.model_tier}, cache={idea_request.use_llm_cache}")
 
         try:
             try:
@@ -1465,15 +1474,16 @@ async def generate_ideas(
                 llm_metrics=llm_metrics
             )
         finally:
-            # Restore original environment variables
+            # Restore original environment variables (with lock for thread safety)
             if LLM_ROUTER_AVAILABLE and original_env:
-                for key, value in original_env.items():
-                    if value is None:
-                        os.environ.pop(key, None)
-                    else:
-                        os.environ[key] = value
-                # Reset router to restore original configuration
-                reset_router()
+                with _router_config_lock:
+                    for key, value in original_env.items():
+                        if value is None:
+                            os.environ.pop(key, None)
+                        else:
+                            os.environ[key] = value
+                    # Reset router to restore original configuration
+                    reset_router()
 
             # Clean up temp files after processing (success or failure)
             for temp_file in temp_files:
@@ -1513,12 +1523,31 @@ async def generate_ideas(
 async def generate_ideas_async(request: Request, idea_request: IdeaGenerationRequest):
     """Generate ideas using the async MadSpark workflow for better performance."""
     start_time = datetime.now()
-    
+
+    # Configure LLM Router for this request (with lock for thread safety)
+    original_env = {}
+    if LLM_ROUTER_AVAILABLE:
+        with _router_config_lock:
+            env_vars_to_set = {
+                "MADSPARK_LLM_PROVIDER": idea_request.llm_provider or "auto",
+                "MADSPARK_MODEL_TIER": idea_request.model_tier or "fast",
+                "MADSPARK_CACHE_ENABLED": str(idea_request.use_llm_cache).lower() if idea_request.use_llm_cache is not None else "true"
+            }
+
+            # Save and set environment variables
+            for key, value in env_vars_to_set.items():
+                original_env[key] = os.environ.get(key)
+                os.environ[key] = value
+
+            # Reset router singleton to pick up new configuration
+            reset_router()
+            logger.info(f"Async LLM Router configured: provider={idea_request.llm_provider}, tier={idea_request.model_tier}, cache={idea_request.use_llm_cache}")
+
     try:
         # Define progress callback
         async def progress_callback(message: str, progress: float):
             await ws_manager.send_progress_update(message, progress)
-        
+
         # Setup temperature manager
         if idea_request.temperature_preset:
             temp_mgr = TemperatureManager.from_preset(idea_request.temperature_preset)
@@ -1526,10 +1555,10 @@ async def generate_ideas_async(request: Request, idea_request: IdeaGenerationReq
             temp_mgr = TemperatureManager.from_base_temperature(idea_request.temperature)
         else:
             temp_mgr = temp_manager or TemperatureManager()
-        
+
         # Always setup reasoning engine for multi-dimensional evaluation (now a core feature)
         reasoning_eng = reasoning_engine
-        
+
         # Parse and validate MAX_CONCURRENT_AGENTS environment variable
         max_concurrent_agents = 10  # default
         env_val = os.getenv("MAX_CONCURRENT_AGENTS", "10")
@@ -1541,15 +1570,23 @@ async def generate_ideas_async(request: Request, idea_request: IdeaGenerationReq
                 logger.warning(f"MAX_CONCURRENT_AGENTS must be > 0, got {parsed_val}. Using default: 10")
         else:
             logger.warning(f"MAX_CONCURRENT_AGENTS must be a positive integer, got '{env_val}'. Using default: 10")
-        
+
         # Create async coordinator with cache
         async_coordinator = AsyncCoordinator(
             max_concurrent_agents=max_concurrent_agents,
             progress_callback=progress_callback,
             cache_manager=cache_manager
         )
-        
-        # Run the async workflow
+
+        # Process multimodal files/URLs if provided (same as sync endpoint)
+        multimodal_file_paths = []
+        multimodal_url_list = []
+        if idea_request.multimodal_files:
+            multimodal_file_paths = idea_request.multimodal_files
+        if idea_request.multimodal_urls:
+            multimodal_url_list = idea_request.multimodal_urls.split(',') if isinstance(idea_request.multimodal_urls, str) else idea_request.multimodal_urls
+
+        # Run the async workflow with router config and multimodal support
         results = await async_coordinator.run_workflow(
             topic=idea_request.topic,
             context=idea_request.context,
@@ -1561,19 +1598,53 @@ async def generate_ideas_async(request: Request, idea_request: IdeaGenerationReq
             enhanced_reasoning=idea_request.enhanced_reasoning,
             multi_dimensional_eval=True,  # Always enabled as a core feature
             logical_inference=idea_request.logical_inference,
-            reasoning_engine=reasoning_eng
+            reasoning_engine=reasoning_eng,
+            multimodal_files=multimodal_file_paths if multimodal_file_paths else None,
+            multimodal_urls=multimodal_url_list if multimodal_url_list else None
         )
-        
+
+        # Capture LLM metrics if router is available (same as sync endpoint)
+        llm_metrics = None
+        if LLM_ROUTER_AVAILABLE:
+            try:
+                router = get_router()
+                metrics = router.get_metrics()
+                llm_metrics = LLMMetrics(
+                    total_requests=metrics.get("total_requests", 0),
+                    cache_hits=metrics.get("cache_hits", 0),
+                    ollama_calls=metrics.get("ollama_calls", 0),
+                    gemini_calls=metrics.get("gemini_calls", 0),
+                    total_tokens=metrics.get("total_tokens", 0),
+                    total_cost=metrics.get("total_cost", 0.0),
+                    cache_hit_rate=metrics.get("cache_hit_rate", 0.0),
+                    avg_latency_ms=metrics.get("avg_latency_ms", 0.0)
+                )
+                logger.info(f"Async LLM metrics captured: {llm_metrics}")
+            except Exception as metrics_error:
+                logger.warning(f"Failed to capture async LLM metrics: {metrics_error}")
+
         return _create_success_response(
             results=results,
             start_time=start_time,
-            message=f"Generated {len(results)} ideas successfully (async)"
+            message=f"Generated {len(results)} ideas successfully (async)",
+            llm_metrics=llm_metrics
         )
-        
+
     except Exception as e:
         logger.error(f"Async idea generation failed: {e}")
         await ws_manager.send_progress_update(f"Error: {str(e)}", 0.0)
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        # Restore original environment variables (with lock for thread safety)
+        if LLM_ROUTER_AVAILABLE and original_env:
+            with _router_config_lock:
+                for key, value in original_env.items():
+                    if value is None:
+                        os.environ.pop(key, None)
+                    else:
+                        os.environ[key] = value
+                # Reset router to restore original configuration
+                reset_router()
 
 
 @app.post(

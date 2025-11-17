@@ -295,7 +295,7 @@ class LLMRouter:
         total_tokens = 0
         total_cost = 0.0
         total_latency = 0.0
-        providers_used = set()
+        provider_counts: dict[str, int] = {}  # Track count of each provider used
 
         for prompt in prompts:
             validated, response = self.generate_structured(
@@ -314,11 +314,12 @@ class LLMRouter:
             total_tokens += response.tokens_used
             total_cost += response.cost
             total_latency += response.latency_ms
-            providers_used.add(response.provider)
+            # Track provider usage counts (not just unique providers)
+            provider_counts[response.provider] = provider_counts.get(response.provider, 0) + 1
 
         # Determine primary provider used
-        # If multiple providers used (due to fallback), report the majority
-        primary_provider = max(providers_used, key=lambda p: sum(1 for _ in providers_used if _ == p))
+        # If multiple providers used (due to fallback), report the one used most frequently
+        primary_provider = max(provider_counts.keys(), key=lambda p: provider_counts[p])
 
         # Create aggregated response
         aggregated_response = LLMResponse(

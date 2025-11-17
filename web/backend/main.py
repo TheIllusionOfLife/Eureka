@@ -25,6 +25,7 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from fastapi.openapi.utils import get_openapi
 from pydantic import BaseModel, Field, validator
+from typing import Literal
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -652,11 +653,11 @@ class IdeaGenerationRequest(BaseModel):
         description="URLs for multi-modal context (max 5 URLs)"
     )
     # LLM Router configuration
-    llm_provider: Optional[str] = Field(
+    llm_provider: Optional[Literal['auto', 'ollama', 'gemini']] = Field(
         default="auto",
         description="LLM provider selection (auto, ollama, gemini)"
     )
-    model_tier: Optional[str] = Field(
+    model_tier: Optional[Literal['fast', 'balanced', 'quality']] = Field(
         default="fast",
         description="Model tier for inference (fast, balanced, quality)"
     )

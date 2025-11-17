@@ -4,6 +4,7 @@ LLM Router with Automatic Fallback.
 Smart routing between providers with caching integration.
 """
 
+import hashlib
 import json
 import logging
 import threading
@@ -26,6 +27,25 @@ from madspark.llm.exceptions import (
 # Security constants
 MAX_PROMPT_LENGTH = 100_000  # Characters - prevents resource exhaustion
 MAX_FILE_SIZE_MB = 50  # Maximum file size in MB for multimodal inputs
+
+
+def _compute_file_hash(file_path: Path) -> str:
+    """
+    Compute SHA256 hash of file contents for cache invalidation.
+
+    Args:
+        file_path: Path to file
+
+    Returns:
+        Hex digest of file contents (first 16 chars for brevity)
+    """
+    hasher = hashlib.sha256()
+    with open(file_path, 'rb') as f:
+        # Read in chunks to handle large files efficiently
+        for chunk in iter(lambda: f.read(8192), b''):
+            hasher.update(chunk)
+    # Use first 16 chars of hash for reasonable cache key length
+    return hasher.hexdigest()[:16]
 
 # Shared metrics key constants - prevents key mismatch bugs between router and CLI
 METRIC_TOTAL_REQUESTS = "total_requests"
@@ -428,14 +448,14 @@ class LLMRouter:
             "system_instruction": system_instruction,
         }
         # Include multimodal inputs to avoid incorrect cache hits
-        # Normalize paths with resolve() for consistent caching
+        # For files, include content hash to detect changes (not just path)
         if images:
             base_cache_kwargs["images"] = sorted(
-                [str(Path(p).resolve()) for p in images]
+                [f"{Path(p).resolve()}:{_compute_file_hash(Path(p))}" for p in images]
             )
         if files:
             base_cache_kwargs["files"] = sorted(
-                [str(Path(p).resolve()) for p in files]
+                [f"{Path(p).resolve()}:{_compute_file_hash(Path(p))}" for p in files]
             )
         if urls:
             base_cache_kwargs["urls"] = sorted(urls)

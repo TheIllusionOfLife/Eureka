@@ -56,6 +56,10 @@ export interface IdeaGenerationRequest {
   show_detailed_results: boolean;
   bookmark_ids?: string[];
   multimodal_urls?: string[];
+  // LLM Router configuration fields
+  llm_provider?: 'auto' | 'ollama' | 'gemini';
+  model_tier?: 'fast' | 'balanced' | 'quality';
+  use_llm_cache?: boolean;
 }
 
 export interface MultiDimensionalEvaluation {
@@ -123,6 +127,7 @@ export interface LLMMetrics {
   total_cost: number;
   cache_hit_rate: number;
   avg_latency_ms: number;
+  fallback_triggers: number;
 }
 
 export interface LLMProviderHealth {

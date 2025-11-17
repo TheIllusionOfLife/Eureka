@@ -653,11 +653,11 @@ class IdeaGenerationRequest(BaseModel):
         description="URLs for multi-modal context (max 5 URLs)"
     )
     # LLM Router configuration
-    llm_provider: Optional[Literal['auto', 'ollama', 'gemini']] = Field(
+    llm_provider: Literal['auto', 'ollama', 'gemini'] = Field(
         default="auto",
         description="LLM provider selection (auto, ollama, gemini)"
     )
-    model_tier: Optional[Literal['fast', 'balanced', 'quality']] = Field(
+    model_tier: Literal['fast', 'balanced', 'quality'] = Field(
         default="fast",
         description="Model tier for inference (fast, balanced, quality)"
     )

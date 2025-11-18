@@ -1450,8 +1450,9 @@ async def generate_ideas(
             llm_metrics = None
             if LLM_ROUTER_AVAILABLE:
                 try:
-                    router = get_router()
-                    metrics = router.get_metrics()
+                    # Use request-scoped router for metrics (not singleton)
+                    metrics_router = request_router if request_router is not None else get_router()
+                    metrics = metrics_router.get_metrics()
                     llm_metrics = LLMMetrics(
                         total_requests=metrics.get("total_requests", 0),
                         cache_hits=metrics.get("cache_hits", 0),
@@ -1598,8 +1599,9 @@ async def generate_ideas_async(request: Request, idea_request: IdeaGenerationReq
         llm_metrics = None
         if LLM_ROUTER_AVAILABLE:
             try:
-                router = get_router()
-                metrics = router.get_metrics()
+                # Use request-scoped router for metrics (not singleton)
+                metrics_router = request_router if request_router is not None else get_router()
+                metrics = metrics_router.get_metrics()
                 llm_metrics = LLMMetrics(
                     total_requests=metrics.get("total_requests", 0),
                     cache_hits=metrics.get("cache_hits", 0),

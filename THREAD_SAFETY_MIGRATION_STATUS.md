@@ -254,10 +254,10 @@ PYTHONPATH=src pytest tests/test_thread_safety_load.py -v --timeout=600
 
 **Agents** (5 total):
 - `src/madspark/agents/critic.py` ✅ (done)
-- `src/madspark/agents/advocate.py` ⏳ (pending)
-- `src/madspark/agents/skeptic.py` ⏳ (pending)
-- `src/madspark/agents/idea_generator.py` ⏳ (pending)
-- `src/madspark/agents/structured_idea_generator.py` ⏳ (pending)
+- `src/madspark/agents/advocate.py` ✅ (done)
+- `src/madspark/agents/skeptic.py` ✅ (done)
+- `src/madspark/agents/idea_generator.py` ✅ (done)
+- `src/madspark/agents/structured_idea_generator.py` ✅ (done)
 
 **Backend**:
 - `web/backend/main.py` - Endpoints (lines 1414-1433, 1540-1557)

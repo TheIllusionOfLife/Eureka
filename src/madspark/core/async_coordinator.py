@@ -9,7 +9,10 @@ import atexit
 import concurrent.futures
 import logging
 from pathlib import Path
-from typing import List, Optional, Callable, Awaitable, Union
+from typing import List, Optional, Callable, Awaitable, Union, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..llm.router import LLMRouter
 
 from .coordinator import EvaluatedIdea, CandidateData, calculate_ideas_to_generate
 from .batch_operations_base import BatchOperationsBase
@@ -217,6 +220,7 @@ class AsyncCoordinator(BatchOperationsBase):
         max_concurrent_agents: int = 10,
         progress_callback: Optional[ProgressCallback] = None,
         cache_manager: Optional[CacheManager] = None,
+        router: Optional["LLMRouter"] = None,
     ):
         """Initialize the async coordinator.
 
@@ -224,12 +228,25 @@ class AsyncCoordinator(BatchOperationsBase):
             max_concurrent_agents: Maximum number of concurrent agent calls
             progress_callback: Optional async callback for progress updates
             cache_manager: Optional cache manager for result caching
+            router: Optional LLMRouter instance for request-scoped routing (Phase 2)
+                   If provided, this router will be passed to all agent functions.
+                   If None, agents will use their default behavior (backward compatible).
+
+        Example:
+            # Request-scoped router (thread-safe, recommended for backends)
+            from madspark.llm import LLMRouter
+            router = LLMRouter(primary_provider="ollama", model_tier="fast")
+            coordinator = AsyncCoordinator(router=router)
+
+            # Legacy mode (backward compatible)
+            coordinator = AsyncCoordinator()  # Uses global config
         """
         super().__init__()  # Initialize batch operations
         self.max_concurrent_agents = max_concurrent_agents
         self.progress_callback = progress_callback
         self.semaphore = asyncio.Semaphore(max_concurrent_agents)
         self.cache_manager = cache_manager
+        self.router = router  # Store router for passing to agents
         self.orchestrator: Optional[WorkflowOrchestrator] = None  # Initialized in run_workflow_async
 
     async def _send_progress(self, message: str, progress: float):

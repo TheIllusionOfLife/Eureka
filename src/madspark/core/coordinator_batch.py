@@ -259,22 +259,24 @@ def _run_workflow_internal(
             context=context,
             monitor=monitor
         )
-    
-    # Step 3: Advocacy Processing using orchestrator
-    top_candidates, _ = orchestrator.process_advocacy_with_monitoring(
-        candidates=top_candidates,
-        topic=topic,
-        context=context,
-        monitor=monitor
-    )
 
-    # Step 4: Skepticism Processing using orchestrator
-    top_candidates, _ = orchestrator.process_skepticism_with_monitoring(
-        candidates=top_candidates,
-        topic=topic,
-        context=context,
-        monitor=monitor
-    )
+    # Step 3: Advocacy Processing using orchestrator (if enhanced reasoning enabled)
+    if enable_reasoning:
+        top_candidates, _ = orchestrator.process_advocacy_with_monitoring(
+            candidates=top_candidates,
+            topic=topic,
+            context=context,
+            monitor=monitor
+        )
+
+    # Step 4: Skepticism Processing using orchestrator (if enhanced reasoning enabled)
+    if enable_reasoning:
+        top_candidates, _ = orchestrator.process_skepticism_with_monitoring(
+            candidates=top_candidates,
+            topic=topic,
+            context=context,
+            monitor=monitor
+        )
 
     # Step 4.5: Logical Inference Processing (if enabled)
     if logical_inference and engine and engine.logical_inference_engine:

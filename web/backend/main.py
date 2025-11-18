@@ -236,13 +236,29 @@ def create_request_router(idea_request: "IdeaGenerationRequest") -> Optional["LL
         return None
 
     from madspark.llm import LLMRouter
+    from madspark.llm.config import LLMConfig, ModelTier
 
-    router = LLMRouter(
-        primary_provider=idea_request.llm_provider or "auto",
+    # Map string tier to ModelTier enum
+    tier_map = {
+        "fast": ModelTier.FAST,
+        "balanced": ModelTier.BALANCED,
+        "quality": ModelTier.QUALITY,
+    }
+    model_tier = tier_map.get(idea_request.model_tier, ModelTier.FAST)
+
+    # Create custom config with request-specific tier
+    config = LLMConfig(
+        default_provider=idea_request.llm_provider or "auto",
+        model_tier=model_tier,
         fallback_enabled=not getattr(idea_request, 'no_fallback', False),
         cache_enabled=idea_request.use_llm_cache if idea_request.use_llm_cache is not None else True,
     )
-    logger.info(f"Request-scoped LLM Router created: provider={router._primary_provider}, cache={router._cache_enabled}")
+
+    router = LLMRouter(config=config)
+    logger.info(
+        f"Request-scoped LLM Router created: provider={router._primary_provider}, "
+        f"tier={model_tier}, cache={router._cache_enabled}"
+    )
     return router
 
 

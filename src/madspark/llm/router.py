@@ -187,6 +187,9 @@ class LLMRouter:
         if config is None:
             config = get_config()
 
+        # Store config for later use (thread-safe)
+        self._config = config
+
         # Apply parameter overrides (parameters take precedence over config)
         self._primary_provider = primary_provider or config.default_provider
         self._fallback_enabled = (
@@ -283,8 +286,7 @@ class LLMRouter:
             raise ProviderUnavailableError("Gemini required for file/URL processing but not available")
 
         # If quality tier requested, prefer Gemini for best results
-        config = get_config()
-        if config.model_tier == ModelTier.QUALITY and not force_provider:
+        if self._config.model_tier == ModelTier.QUALITY and not force_provider:
             if self.gemini and self.gemini.health_check():
                 logger.info("Quality tier requested, using Gemini for best results")
                 return self.gemini, "gemini"

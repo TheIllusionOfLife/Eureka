@@ -296,7 +296,10 @@ class AsyncCoordinator(BatchOperationsBase):
         Example:
             # Request-scoped router (thread-safe, recommended for backends)
             from madspark.llm import LLMRouter
-            router = LLMRouter(primary_provider="ollama", model_tier="fast")
+            from madspark.llm.config import LLMConfig, ModelTier
+
+            config = LLMConfig(default_provider="ollama", model_tier=ModelTier.FAST)
+            router = LLMRouter(config=config)
             coordinator = AsyncCoordinator(router=router)
 
             # Legacy mode (backward compatible)
@@ -381,6 +384,7 @@ class AsyncCoordinator(BatchOperationsBase):
                     temperature_manager=None,
                     reasoning_engine=None,
                     verbose=False,
+                    router=self.router,  # Pass request-scoped router for thread safety
                 )
 
             updated_candidates, _ = await orch.process_advocacy_async(
@@ -418,6 +422,7 @@ class AsyncCoordinator(BatchOperationsBase):
                     temperature_manager=None,
                     reasoning_engine=None,
                     verbose=False,
+                    router=self.router,  # Pass request-scoped router for thread safety
                 )
 
             updated_candidates, _ = await orch.process_skepticism_async(
@@ -455,6 +460,7 @@ class AsyncCoordinator(BatchOperationsBase):
                     temperature_manager=None,
                     reasoning_engine=None,
                     verbose=False,
+                    router=self.router,  # Pass request-scoped router for thread safety
                 )
 
             updated_candidates, _ = await orch.improve_ideas_async(

@@ -606,6 +606,7 @@ class AsyncCoordinator(BatchOperationsBase):
                 context=context,  # Use original context to avoid bias
                 temperature=eval_temp,
                 use_structured_output=True,
+                router=self.router,  # Pass request-scoped router
             )
 
             # Parse re-evaluations
@@ -1224,6 +1225,7 @@ class AsyncCoordinator(BatchOperationsBase):
                         context=context,
                         temperature=advocacy_temp,
                         use_structured_output=True,
+                        router=self.router,  # Pass request-scoped router
                     )
                 ),
                 timeout=TimeoutConfig.ADVOCACY_TIMEOUT,
@@ -1240,6 +1242,7 @@ class AsyncCoordinator(BatchOperationsBase):
                         context=context,
                         temperature=skepticism_temp,
                         use_structured_output=True,
+                        router=self.router,  # Pass request-scoped router
                     )
                 ),
                 timeout=TimeoutConfig.SKEPTICISM_TIMEOUT,
@@ -1327,6 +1330,7 @@ class AsyncCoordinator(BatchOperationsBase):
                         topic=topic,
                         context=context,
                         temperature=idea_temp,
+                        router=self.router,  # Pass request-scoped router
                     )
                 ),
                 timeout=TimeoutConfig.IMPROVEMENT_TIMEOUT,
@@ -1369,6 +1373,7 @@ class AsyncCoordinator(BatchOperationsBase):
                                 context=context,  # Use original context to avoid bias
                                 temperature=eval_temp,
                                 use_structured_output=True,
+                                router=self.router,  # Pass request-scoped router
                             )
                         ),
                         timeout=TimeoutConfig.REEVALUATION_TIMEOUT,

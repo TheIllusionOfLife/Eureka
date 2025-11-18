@@ -1591,8 +1591,20 @@ async def generate_ideas_async(request: Request, idea_request: IdeaGenerationReq
             cache_manager=cache_manager
         )
 
-        # Process multimodal URLs if provided (async endpoint supports URLs only, not file uploads)
-        multimodal_url_list = idea_request.multimodal_urls if idea_request.multimodal_urls else None
+        # Process and validate multimodal URLs if provided (async endpoint supports URLs only, not file uploads)
+        multimodal_url_list = None
+        if idea_request.multimodal_urls:
+            multimodal_url_list = []
+            mm_input = MultiModalInput()
+            for url in idea_request.multimodal_urls:
+                try:
+                    mm_input.validate_url(url)
+                    multimodal_url_list.append(url)
+                except ValueError as e:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Invalid multimodal URL: {str(e)}"
+                    )
 
         # Run the async workflow with router config and multimodal support
         results = await async_coordinator.run_workflow(

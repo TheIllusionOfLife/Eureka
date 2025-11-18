@@ -290,8 +290,10 @@ def _run_workflow_internal(
     # Step 6.5: Multi-Dimensional Re-evaluation using orchestrator (if enabled)
     if multi_dimensional_eval and orchestrator.reasoning_engine:
         # Temporarily swap fields to evaluate improved_idea instead of text
+        # IMPORTANT: Preserve the initial multi_dimensional_evaluation before it gets overwritten
         for candidate in top_candidates:
             candidate["_original_text"] = candidate.get("text", candidate.get("idea", ""))
+            candidate["_initial_multi_dimensional_evaluation"] = candidate.get("multi_dimensional_evaluation", None)
             candidate["text"] = candidate.get("improved_idea", candidate["_original_text"])
 
         top_candidates = orchestrator.add_multi_dimensional_evaluation_with_monitoring(
@@ -307,10 +309,12 @@ def _run_workflow_internal(
         # Future work: Enhance orchestrator method with evaluation_field parameter
         # to support evaluating arbitrary fields without temporary mutation.
         # Reference: gemini-code-assist review comment (PR #181)
-        # Restore original text and move multi-dimensional eval to improved field
+        # Restore original text and restore initial eval, move improved eval to separate field
         for candidate in top_candidates:
             candidate["text"] = candidate["_original_text"]
+            # Keep BOTH evaluations - initial for original idea, improved for improved idea
             candidate["improved_multi_dimensional_evaluation"] = candidate.pop("multi_dimensional_evaluation", None)
+            candidate["multi_dimensional_evaluation"] = candidate.pop("_initial_multi_dimensional_evaluation", None)
             del candidate["_original_text"]
     
     # Step 9: Build final results

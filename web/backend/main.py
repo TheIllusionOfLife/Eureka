@@ -126,14 +126,13 @@ try:
     from madspark.utils.structured_output_check import is_structured_output_available
     # LLM Router imports (optional - may not be available in all environments)
     try:
-        from madspark.llm import get_router, reset_router
+        from madspark.llm import get_router
         from madspark.llm.cache import reset_cache as reset_llm_cache
         LLM_ROUTER_AVAILABLE = True
         logging.info("LLM Router available")
     except ImportError:
         LLM_ROUTER_AVAILABLE = False
         get_router = None  # type: ignore
-        reset_router = None  # type: ignore
         reset_llm_cache = None  # type: ignore
         logging.info("LLM Router not available")
 except ImportError as e:
@@ -159,13 +158,12 @@ except ImportError as e:
         from src.madspark.utils.improved_idea_cleaner import clean_improved_ideas_in_results
         # Try to import router in fallback path
         try:
-            from src.madspark.llm.router import get_router, reset_router
+            from src.madspark.llm.router import get_router
             from src.madspark.llm.cache import reset_cache as reset_llm_cache
             LLM_ROUTER_AVAILABLE = True
         except ImportError:
             LLM_ROUTER_AVAILABLE = False
             get_router = None  # type: ignore
-            reset_router = None  # type: ignore
             reset_llm_cache = None  # type: ignore
             logging.info("LLM Router not available in fallback path")
     except ImportError as e2:
@@ -183,9 +181,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Lock for protecting router configuration from concurrent request races
-# Prevents two requests from modifying os.environ/router singleton simultaneously
-_router_config_lock = threading.Lock()
+# Note: Thread-safety is now achieved through request-scoped router instances
+# No global lock needed - each request creates its own independent router
 
 # Enhanced error tracking
 class ErrorTracker:
@@ -1396,11 +1393,23 @@ async def generate_ideas(
                     logger.warning(f"Failed to clean up temp file {temp_file}: {cleanup_error}")
             raise
 
-        # Create async coordinator with cache and progress callback
+        # Create request-scoped router for thread-safe configuration
+        request_router = None
+        if LLM_ROUTER_AVAILABLE:
+            from madspark.llm import LLMRouter
+            request_router = LLMRouter(
+                primary_provider=idea_request.llm_provider or "auto",
+                fallback_enabled=not getattr(idea_request, 'no_fallback', False),
+                cache_enabled=idea_request.use_llm_cache if idea_request.use_llm_cache is not None else True,
+            )
+            logger.info(f"LLM Router created: provider={idea_request.llm_provider}, cache={idea_request.use_llm_cache}")
+
+        # Create async coordinator with cache, progress callback, and request-scoped router
         async_coordinator = AsyncCoordinator(
             max_concurrent_agents=max_concurrent_agents,
             progress_callback=progress_callback,
-            cache_manager=cache_manager
+            cache_manager=cache_manager,
+            router=request_router,  # Pass request-scoped router for thread safety
         )
 
         # Add timeout handling
@@ -1410,27 +1419,6 @@ async def generate_ideas(
         logger.info(f"Running workflow with logical_inference={idea_request.logical_inference}, reasoning_engine={reasoning_eng is not None}")
         if reasoning_eng and hasattr(reasoning_eng, 'logical_inference_engine'):
             logger.info(f"Logical inference engine available: {reasoning_eng.logical_inference_engine is not None}")
-
-        # Configure LLM Router for this request
-        # Use lock to prevent concurrent requests from racing on router configuration
-        original_env = {}
-        if LLM_ROUTER_AVAILABLE:
-            with _router_config_lock:
-                env_vars_to_set = {
-                    "MADSPARK_LLM_PROVIDER": idea_request.llm_provider or "auto",
-                    "MADSPARK_MODEL_TIER": idea_request.model_tier or "fast",
-                    "MADSPARK_CACHE_ENABLED": str(idea_request.use_llm_cache).lower() if idea_request.use_llm_cache is not None else "true"
-                }
-
-                # Save and set environment variables
-                for key, value in env_vars_to_set.items():
-                    original_env[key] = os.environ.get(key)
-                    os.environ[key] = value
-
-                # Reset router singleton to pick up new configuration
-                # This creates the router with request-specific settings
-                reset_router()
-                logger.info(f"LLM Router configured: provider={idea_request.llm_provider}, tier={idea_request.model_tier}, cache={idea_request.use_llm_cache}")
 
         try:
             try:
@@ -1487,17 +1475,6 @@ async def generate_ideas(
                 llm_metrics=llm_metrics
             )
         finally:
-            # Restore original environment variables (with lock for thread safety)
-            if LLM_ROUTER_AVAILABLE and original_env:
-                with _router_config_lock:
-                    for key, value in original_env.items():
-                        if value is None:
-                            os.environ.pop(key, None)
-                        else:
-                            os.environ[key] = value
-                    # Reset router to restore original configuration
-                    reset_router()
-
             # Clean up temp files after processing (success or failure)
             for temp_file in temp_files:
                 try:
@@ -1537,59 +1514,53 @@ async def generate_ideas_async(request: Request, idea_request: IdeaGenerationReq
     """Generate ideas using the async MadSpark workflow for better performance."""
     start_time = datetime.now()
 
-    # Configure LLM Router for this request (with lock for thread safety)
-    original_env = {}
+    # Define progress callback
+    async def progress_callback(message: str, progress: float):
+        await ws_manager.send_progress_update(message, progress)
+
+    # Setup temperature manager
+    if idea_request.temperature_preset:
+        temp_mgr = TemperatureManager.from_preset(idea_request.temperature_preset)
+    elif idea_request.temperature:
+        temp_mgr = TemperatureManager.from_base_temperature(idea_request.temperature)
+    else:
+        temp_mgr = temp_manager or TemperatureManager()
+
+    # Always setup reasoning engine for multi-dimensional evaluation (now a core feature)
+    reasoning_eng = reasoning_engine
+
+    # Parse and validate MAX_CONCURRENT_AGENTS environment variable
+    max_concurrent_agents = 10  # default
+    env_val = os.getenv("MAX_CONCURRENT_AGENTS", "10")
+    if env_val.isdigit():
+        parsed_val = int(env_val)
+        if parsed_val > 0:
+            max_concurrent_agents = parsed_val
+        else:
+            logger.warning(f"MAX_CONCURRENT_AGENTS must be > 0, got {parsed_val}. Using default: 10")
+    else:
+        logger.warning(f"MAX_CONCURRENT_AGENTS must be a positive integer, got '{env_val}'. Using default: 10")
+
+    # Create request-scoped router for thread-safe configuration
+    request_router = None
     if LLM_ROUTER_AVAILABLE:
-        with _router_config_lock:
-            env_vars_to_set = {
-                "MADSPARK_LLM_PROVIDER": idea_request.llm_provider or "auto",
-                "MADSPARK_MODEL_TIER": idea_request.model_tier or "fast",
-                "MADSPARK_CACHE_ENABLED": str(idea_request.use_llm_cache).lower() if idea_request.use_llm_cache is not None else "true"
-            }
+        from madspark.llm import LLMRouter
+        request_router = LLMRouter(
+            primary_provider=idea_request.llm_provider or "auto",
+            fallback_enabled=not getattr(idea_request, 'no_fallback', False),
+            cache_enabled=idea_request.use_llm_cache if idea_request.use_llm_cache is not None else True,
+        )
+        logger.info(f"Async LLM Router created: provider={idea_request.llm_provider}, cache={idea_request.use_llm_cache}")
 
-            # Save and set environment variables
-            for key, value in env_vars_to_set.items():
-                original_env[key] = os.environ.get(key)
-                os.environ[key] = value
-
-            # Reset router singleton to pick up new configuration
-            reset_router()
-            logger.info(f"Async LLM Router configured: provider={idea_request.llm_provider}, tier={idea_request.model_tier}, cache={idea_request.use_llm_cache}")
+    # Create async coordinator with cache and request-scoped router
+    async_coordinator = AsyncCoordinator(
+        max_concurrent_agents=max_concurrent_agents,
+        progress_callback=progress_callback,
+        cache_manager=cache_manager,
+        router=request_router,  # Pass request-scoped router for thread safety
+    )
 
     try:
-        # Define progress callback
-        async def progress_callback(message: str, progress: float):
-            await ws_manager.send_progress_update(message, progress)
-
-        # Setup temperature manager
-        if idea_request.temperature_preset:
-            temp_mgr = TemperatureManager.from_preset(idea_request.temperature_preset)
-        elif idea_request.temperature:
-            temp_mgr = TemperatureManager.from_base_temperature(idea_request.temperature)
-        else:
-            temp_mgr = temp_manager or TemperatureManager()
-
-        # Always setup reasoning engine for multi-dimensional evaluation (now a core feature)
-        reasoning_eng = reasoning_engine
-
-        # Parse and validate MAX_CONCURRENT_AGENTS environment variable
-        max_concurrent_agents = 10  # default
-        env_val = os.getenv("MAX_CONCURRENT_AGENTS", "10")
-        if env_val.isdigit():
-            parsed_val = int(env_val)
-            if parsed_val > 0:
-                max_concurrent_agents = parsed_val
-            else:
-                logger.warning(f"MAX_CONCURRENT_AGENTS must be > 0, got {parsed_val}. Using default: 10")
-        else:
-            logger.warning(f"MAX_CONCURRENT_AGENTS must be a positive integer, got '{env_val}'. Using default: 10")
-
-        # Create async coordinator with cache
-        async_coordinator = AsyncCoordinator(
-            max_concurrent_agents=max_concurrent_agents,
-            progress_callback=progress_callback,
-            cache_manager=cache_manager
-        )
 
         # Process and validate multimodal URLs if provided (async endpoint supports URLs only, not file uploads)
         multimodal_url_list = None
@@ -1657,16 +1628,8 @@ async def generate_ideas_async(request: Request, idea_request: IdeaGenerationReq
         await ws_manager.send_progress_update(f"Error: {str(e)}", 0.0)
         raise HTTPException(status_code=500, detail=str(e))
     finally:
-        # Restore original environment variables (with lock for thread safety)
-        if LLM_ROUTER_AVAILABLE and original_env:
-            with _router_config_lock:
-                for key, value in original_env.items():
-                    if value is None:
-                        os.environ.pop(key, None)
-                    else:
-                        os.environ[key] = value
-                # Reset router to restore original configuration
-                reset_router()
+        # Router cleanup not needed - request-scoped router will be garbage collected
+        pass
 
 
 @app.post(

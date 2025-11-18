@@ -3,7 +3,7 @@
 **PR**: #208
 **Branch**: `fix/backend-thread-safety`
 **Started**: 2025-11-18
-**Status**: 40% Complete (Phase 1-2 Partial)
+**Status**: 65% Complete (Phase 1-2 Mostly Done)
 
 ---
 
@@ -16,7 +16,7 @@ Eliminate thread-safety issues in backend by implementing request-scoped router 
 
 ---
 
-## ✅ Completed (40%)
+## ✅ Completed (65%)
 
 ### Phase 1: Immutable Configuration ✅
 - `LLMConfig` accepts constructor parameters
@@ -25,18 +25,40 @@ Eliminate thread-safety issues in backend by implementing request-scoped router 
 - 11 tests passing
 - **Commit**: c0226b9d
 
-### Phase 2: Request-Scoped Support (Partial) ⚠️
-- `AsyncCoordinator` accepts `router` parameter ✅
-- `Critic` agent accepts `router` parameter ✅
-- 6 tests passing
-- **Commit**: 5ccc1d13
+### Phase 2: Request-Scoped Support ⚠️ (Mostly Complete)
+
+**Core Infrastructure** ✅:
+- `AsyncCoordinator` accepts `router` parameter
+- Backend endpoints create request-scoped routers
+- All 5 agents accept `router` parameter
+- Environment variable manipulation removed
+- Thread-safety locks removed (no longer needed)
+- 16 tests passing
+
+**Agents Updated** ✅:
+- `Critic` (evaluate_ideas) - **Commit**: 5ccc1d13
+- `Advocate` (advocate_idea) - **Commit**: 67cc890c
+- `Skeptic` (criticize_idea) - **Commit**: 67cc890c
+- `IdeaGenerator` (generate_ideas) - **Commit**: 9e802483
+- `StructuredIdeaGenerator` (improve_idea_structured) - **Commit**: 9e802483
+
+**Backend Updated** ✅:
+- Multimodal endpoint (line ~1400) - **Commit**: 8fd3f151
+- Async endpoint (line ~1520) - **Commit**: 8fd3f151
+- Removed `_router_config_lock` and `reset_router` imports
+- Removed environment save/restore blocks
 
 **Files Modified**:
-- `src/madspark/llm/router.py`
-- `src/madspark/core/async_coordinator.py`
-- `src/madspark/agents/critic.py`
-- `tests/test_thread_safety_phase1.py` (new)
-- `tests/test_thread_safety_phase2.py` (new)
+- `src/madspark/llm/router.py` (Phase 1)
+- `src/madspark/core/async_coordinator.py` (accepts router)
+- `src/madspark/agents/critic.py` (router param)
+- `src/madspark/agents/advocate.py` (router param)
+- `src/madspark/agents/skeptic.py` (router param)
+- `src/madspark/agents/idea_generator.py` (router param)
+- `src/madspark/agents/structured_idea_generator.py` (router param)
+- `web/backend/main.py` (request-scoped routers, removed env writes)
+- `tests/test_thread_safety_phase1.py` (new, 11 tests)
+- `tests/test_thread_safety_phase2.py` (new, 16 tests)
 
 ---
 

@@ -6,7 +6,10 @@ and identifying potential flaws or risks.
 """
 import json
 import logging
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..llm.router import LLMRouter
 
 from madspark.utils.utils import parse_batch_json_with_fallback
 from madspark.utils.batch_exceptions import BatchParsingError
@@ -70,7 +73,7 @@ def _should_use_router() -> bool:
     return should_use_router(LLM_ROUTER_AVAILABLE, get_router)
 
 
-def criticize_idea(idea: str, advocacy: str, topic: str, context: str, temperature: float = 0.5, use_structured_output: bool = True, use_router: bool = True) -> str:
+def criticize_idea(idea: str, advocacy: str, topic: str, context: str, temperature: float = 0.5, use_structured_output: bool = True, use_router: bool = True, router: Optional["LLMRouter"] = None) -> str:
   """Critically analyzes an idea, playing devil's advocate, using the skeptic model.
 
   When use_router=True and LLM Router is available, routes through the
@@ -86,6 +89,9 @@ def criticize_idea(idea: str, advocacy: str, topic: str, context: str, temperatu
         Note: When routing through LLM Router, always returns structured JSON regardless
         of this flag, as router enforces Pydantic schema validation for type safety.
     use_router: Whether to use LLM Router for provider abstraction (default: True)
+    router: Optional LLMRouter instance for request-scoped routing (Phase 2).
+        If provided, uses this router instead of calling get_router().
+        Enables thread-safe concurrent operation in backend environments.
 
   Returns:
     A string containing the critical analysis, counterarguments, and identified risks.
@@ -132,11 +138,12 @@ def criticize_idea(idea: str, advocacy: str, topic: str, context: str, temperatu
 
   # Try LLM Router first if available and configured
   # Router only used when use_structured_output=True since router inherently returns structured JSON
-  should_route = use_router and use_structured_output and LLM_ROUTER_AVAILABLE and get_router is not None
+  should_route = use_router and use_structured_output and LLM_ROUTER_AVAILABLE and (router is not None or get_router is not None)
   if should_route and _should_use_router():
       try:
-          router = get_router()
-          validated, response = router.generate_structured(
+          # Use provided router or fall back to singleton (backward compatible)
+          router_instance = router if router is not None else get_router()
+          validated, response = router_instance.generate_structured(
               prompt=prompt,
               schema=SkepticismResponse,
               system_instruction=SKEPTIC_SYSTEM_INSTRUCTION,

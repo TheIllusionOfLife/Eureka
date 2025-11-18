@@ -6,7 +6,10 @@ an idea, considering its evaluation and context.
 """
 import json
 import logging
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..llm.router import LLMRouter
 
 from madspark.utils.utils import parse_batch_json_with_fallback
 from madspark.utils.compat_imports import import_genai_and_constants
@@ -83,7 +86,7 @@ def _should_use_router() -> bool:
     return should_use_router(LLM_ROUTER_AVAILABLE, get_router)
 
 
-def advocate_idea(idea: str, evaluation: str, topic: str, context: str, temperature: float = 0.5, use_structured_output: bool = True, use_router: bool = True) -> str:
+def advocate_idea(idea: str, evaluation: str, topic: str, context: str, temperature: float = 0.5, use_structured_output: bool = True, use_router: bool = True, router: Optional["LLMRouter"] = None) -> str:
   """Advocates for an idea using its evaluation, topic, and context via the advocate model.
 
   When use_router=True and LLM Router is available, routes through the
@@ -99,6 +102,9 @@ def advocate_idea(idea: str, evaluation: str, topic: str, context: str, temperat
         Note: When routing through LLM Router, always returns structured JSON regardless
         of this flag, as router enforces Pydantic schema validation for type safety.
     use_router: Whether to use LLM Router for provider abstraction (default: True)
+    router: Optional LLMRouter instance for request-scoped routing (Phase 2).
+        If provided, uses this router instead of calling get_router().
+        Enables thread-safe concurrent operation in backend environments.
 
   Returns:
     A string containing the persuasive arguments for the idea. If use_structured_output is True,
@@ -139,12 +145,13 @@ def advocate_idea(idea: str, evaluation: str, topic: str, context: str, temperat
 
   # Try LLM Router first if available and configured
   # Router only used when use_structured_output=True since router inherently returns structured JSON
-  should_route = use_router and use_structured_output and LLM_ROUTER_AVAILABLE and get_router is not None
+  should_route = use_router and use_structured_output and LLM_ROUTER_AVAILABLE and (router is not None or get_router is not None)
   if should_route and _should_use_router():
       try:
-          router = get_router()
+          # Use provided router or fall back to singleton (backward compatible)
+          router_instance = router if router is not None else get_router()
           # Router generates structured output with automatic provider selection
-          validated, response = router.generate_structured(
+          validated, response = router_instance.generate_structured(
               prompt=prompt,
               schema=AdvocacyResponse,
               system_instruction=ADVOCATE_SYSTEM_INSTRUCTION,

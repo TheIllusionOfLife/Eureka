@@ -64,7 +64,7 @@ MADSPARK_MODE="mock"
 
 def test_setup_default_behavior():
     """Test that setup.sh defaults to mock mode on empty input."""
-    setup_sh = Path(__file__).parent.parent / "setup.sh"
+    setup_sh = Path(__file__).parent.parent / "scripts" / "setup.sh"
     
     # Read the script
     with open(setup_sh, 'r') as f:

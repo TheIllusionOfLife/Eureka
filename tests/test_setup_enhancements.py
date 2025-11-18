@@ -22,7 +22,7 @@ class TestSetupEnhancements:
                 f.write("pytest>=7.4.0\n")
             
             # Copy setup.sh to temp dir (will be modified)
-            setup_src = os.path.join(os.path.dirname(__file__), "..", "setup.sh")
+            setup_src = os.path.join(os.path.dirname(__file__), "..", "scripts", "setup.sh")
             if os.path.exists(setup_src):
                 shutil.copy2(setup_src, tmpdir)
             
@@ -131,7 +131,7 @@ class TestSetupEnhancements:
     def test_setup_shows_colored_output(self):
         """Test that setup uses colors for better UX."""
         # Check if setup.sh script contains ANSI color codes
-        setup_script = os.path.join(os.path.dirname(__file__), "..", "setup.sh")
+        setup_script = os.path.join(os.path.dirname(__file__), "..", "scripts", "setup.sh")
         
         if os.path.exists(setup_script):
             with open(setup_script, 'r') as f:

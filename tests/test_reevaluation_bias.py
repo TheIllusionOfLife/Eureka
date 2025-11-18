@@ -231,7 +231,7 @@ class TestBiasReduction:
         def mock_improve(*args, **kwargs):
             return ([{"improved_idea": "Good original idea with minor tweak", "key_improvements": ["minor change"]}], 100)
 
-        async def mock_evaluate(ideas, topic, context, temperature, use_structured_output=True):
+        async def mock_evaluate(ideas, topic, context, temperature, use_structured_output=True, router=None):
             # If improvement is minimal, score shouldn't increase much
             if "minor tweak" in ideas:
                 return json.dumps([{"score": 8, "comment": "No significant improvement"}])

@@ -165,8 +165,11 @@ Write ONLY the improved idea. No introductions, no meta-commentary."""
     # Try LLM Router first if available and router is explicitly configured
     # Priority: Respect explicit genai_client (bypasses router), else use router when configured
     # This honors the docstring contract that passing genai_client bypasses the router
+    # If router parameter is provided, use it directly (request-scoped routing)
+    # Otherwise, check env vars to decide whether to use singleton router
     should_route = use_router and LLM_ROUTER_AVAILABLE and (router is not None or get_router is not None)
-    if should_route and genai_client is None and _should_use_router():
+    use_provided_or_env_router = router is not None or _should_use_router()
+    if should_route and genai_client is None and use_provided_or_env_router:
         try:
             # Use provided router or fall back to singleton (backward compatible)
             router_instance = router if router is not None else get_router()

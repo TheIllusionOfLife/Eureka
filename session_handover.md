@@ -1,51 +1,72 @@
 # Session Handover
 
-### Last Updated: November 16, 2025 05:00 PM JST
+### Last Updated: November 18, 2025 02:00 AM JST
 
 ### Work In Progress
 
-- 🚧 **[PR #204](https://github.com/TheIllusionOfLife/Eureka/pull/204)**: Multi-LLM Provider Support with Ollama/Gemini Routing - **IN REVIEW**
-  - **Core Achievement**: Implemented comprehensive LLM provider abstraction layer with automatic fallback
+- 🚧 **[PR #206](https://github.com/TheIllusionOfLife/Eureka/pull/206)**: Full LLM Router Integration - **READY FOR MERGE**
+  - **Core Achievement**: Completed full LLM router integration with Ollama-first default behavior
   - **Key Features Implemented**:
-    - `LLMRouter` with automatic provider selection and fallback
-    - `OllamaProvider` for local, cost-free inference
-    - `GeminiProvider` for cloud-based inference with multimodal support
-    - Response caching with TTL-based disk cache (diskcache backend)
-    - CLI integration with `--provider`, `--model-tier`, `--no-cache`, `--clear-cache` flags
-    - Router metrics tracking (tokens, cost, latency, cache hit rate)
-  - **Security Improvements** (Current Session):
-    - ✅ MAX_PROMPT_LENGTH (100k chars) to prevent resource exhaustion
-    - ✅ Thread-safe metrics with `threading.Lock`
-    - ✅ Improved cache path traversal protection with safe directory whitelist
-    - ✅ SecretStr for API key memory safety in Gemini provider
-    - ✅ File/image path validation before API calls
-    - ✅ Type guards for cache get validation
-    - ✅ Timestamp parsing error handling with fallback
-    - ✅ More specific exception types (ValidationError, JSONDecodeError, TypeError, KeyError)
-    - ✅ Wrapped health_check() calls in try/except
-    - ✅ Fixed router latency tracking to pass measured latency to _update_metrics
-    - ✅ Isolated test environment mutations with monkeypatch fixture (prevents os.environ pollution)
-    - ✅ Added cache size limits (cache_max_size_mb with environment variable support)
-    - ✅ Health check added in Gemini fallback selection (validates provider before use)
-    - ✅ Race condition fixed in fallback_triggers (wrapped in _metrics_lock)
-  - **Current Status**: Awaiting CI completion and final reviewer approval
-  - **Deferred Items (Future PRs)**:
-    - **File Size Validation**: Add MAX_FILE_SIZE_MB checks for multimodal inputs (constant defined but not enforced)
-    - **Allowed Directory Checks**: Add whitelist for file input directories (currently validates existence only)
-    - **Base Class LSP Violation**: Update LLMProvider base class to include files/urls/token_budget parameters
-    - **Dead Code Cleanup**: Remove or integrate agent_adapter.py (exists but unused)
-    - **Token Budget Estimation**: Enhance heuristic to account for string length constraints, enum options, array sizes
-    - **Import Warning Level**: Change provider import failures from DEBUG to WARNING level
-    - **Production Integration**: Migrate remaining agent calls to use router (currently only improve_idea_structured)
-  - **Commits This Session** (4 commits):
-    - f4ffe33b: fix: add robustness and security improvements to LLM providers
-    - dde76b7b: fix: remove unused imports and variables in test files
-    - af4dc558: fix: add comprehensive security and robustness improvements
-    - f9515ceb: fix: improve router metrics and test environment isolation
-  - **Test Coverage**: 58 router/provider tests passing, 15 CLI tests added
-  - **Known Limitations**:
-    - Ollama response format: Uses attribute access (response.message.content) as per ollama-python library, not dict access as some reviewers suggested
-    - Router partially integrated: Only improve_idea_structured() uses router, other agents still use direct Gemini calls
+    - Router enabled by DEFAULT (Ollama-first, with automatic Gemini fallback)
+    - Web API integration with configurable provider/tier/cache per request
+    - Frontend LLM provider selector and metrics display with fallback tracking
+    - Docker Compose with Ollama service (healthcheck, persistent storage)
+    - Quality tier automatically selects Gemini for best results
+    - SSRF protection for async multimodal URLs
+  - **Security & Robustness Improvements** (November 18 Session):
+    - ✅ File size validation (MAX_FILE_SIZE_MB=50) with clear error messages
+    - ✅ Comprehensive error handling in `_compute_file_hash()` (FileNotFoundError, PermissionError, IOError)
+    - ✅ Input validation for batch operations (prompt type and length checks)
+    - ✅ SSRF validation added to async endpoint multimodal URLs
+    - ✅ CLI test environment cleanup (MADSPARK_NO_ROUTER added to fixture)
+    - ✅ LLM metrics UI improvements (cent formatting, fallback_triggers display)
+    - ✅ Docker healthcheck using `ollama list` command (curl not available in image)
+    - ✅ Quality tier routing logic (prefers Gemini, documented fallback to Ollama)
+  - **CI Status**: All 18/18 checks passing ✅
+  - **Review Process**: Addressed 25+ issues across 3 comprehensive reviews
+    - ✅ Fixed: 14 issues (security, validation, Docker, UI, routing)
+    - ✅ Already correct: 6 non-issues verified
+    - ⚠️ Deferred: 4 architectural limitations (documented below)
+    - ℹ️ Documentation: 2 nice-to-have improvements for future
+  - **Architectural Limitations (Requires Major Refactor)**:
+    - **Thread-Safety in Backend API** (CRITICAL - deferred to future PR):
+      - **Issue**: Environment variable manipulation per-request is not thread-safe
+      - **Root Cause**: Global router singleton with per-request env var configuration
+      - **Impact**: Concurrent requests can overwrite each other's provider/tier settings and metrics
+      - **Current Mitigation**: Lock protects environment mutations (prevents crashes but not cross-contamination)
+      - **Proper Fix**: Requires request-scoped routers or direct config passing (not env vars)
+      - **Recommendation**: File separate architectural improvement issue for dedicated PR
+      - **Files Affected**: `web/backend/main.py` lines 1401-1408, 1540-1557
+    - **Sequential Batch Processing** (Performance tradeoff - acceptable):
+      - **Issue**: O(N) API calls instead of parallel processing
+      - **Design Decision**: Intentional for error handling simplicity
+      - **Documented**: Docstring explains sequential processing, suggests AsyncCoordinator for concurrency
+      - **Impact**: Batch of 10 prompts takes 10x single prompt time
+      - **Status**: Acceptable design choice - simplicity over performance
+    - **Fail-Fast Batch Behavior** (Design choice - acceptable):
+      - **Issue**: Batch processing stops on first error, losing previous results
+      - **Design Decision**: Consistent error reporting over partial results
+      - **Documented**: Clearly stated in docstring with fail-fast note
+      - **Impact**: Large batches waste work on late failures
+      - **Status**: Acceptable - prioritizes consistency over resilience
+    - **Backend Integration Tests Skipped** (Infrastructure limitation):
+      - **Issue**: Tests require Docker/full stack environment
+      - **Root Cause**: True integration tests need running servers
+      - **Status**: Not a code issue, infrastructure constraint
+  - **Commits This Session** (7 commits):
+    - fbac0fc7: fix: correct Docker Compose depends_on syntax
+    - aa7c5d3e: fix: use ollama CLI for healthcheck instead of curl
+    - f0432643: fix: add SSRF validation to async multimodal URLs
+    - 30a9a3ac: feat: quality tier now prefers Gemini provider
+    - b73c7192: fix: improve LLM metrics display formatting
+    - 8b903ee2: fix: add missing MultiModalInput import in async endpoint
+    - cadc936d: feat: enhance router security and validation
+  - **Test Coverage**: 181 comprehensive tests (149 Pydantic + 32 router integration) + 5 new hash validation tests
+  - **Migration from PR #204**:
+    - All PR #204 security improvements carried forward
+    - Router now fully integrated (not just partial)
+    - Web interface has complete router controls
+    - Docker deployment production-ready
 
 ### Recently Completed
 
@@ -283,9 +304,83 @@
 
 #### Known Issues / Blockers
 
-**None currently**: All major issues resolved. Web interface enhanced reasoning working correctly since PR #161 (August 2025).
+**Thread-Safety Issue Deferred**: Backend API router configuration has known thread-safety limitation with concurrent requests. Documented as architectural issue requiring request-scoped routers. Current mitigation (lock on env vars) prevents crashes but not cross-contamination. Acceptable for current low-concurrency deployment, but must be addressed before high-traffic production use.
 
 #### Session Learnings
+
+##### From PR #206 (Full LLM Router Integration - November 18, 2025)
+
+###### Systematic Multi-Review Response Protocol
+- **Success**: Addressed 25+ issues across 3 comprehensive reviews (10 critical issues, 25+ total findings)
+- **Pattern**: Categorize by severity (CRITICAL→HIGH→MEDIUM→LOW), fix highest priority first, verify all non-issues
+- **Coverage**: Security (4 fixes), Docker deployment (3 fixes), UI improvements (2 fixes), routing logic (2 fixes), validation (3 fixes)
+- **Result**: All 18/18 CI checks passing, PR ready for merge
+- **Key**: Don't assume reviewers are correct - verify "issues" against actual code, some are misunderstandings
+
+###### File Size Validation Pattern
+- **Pattern**: Validate file size BEFORE expensive operations (hashing, API calls)
+- **Implementation**: Check `file_path.stat().st_size` against `MAX_FILE_SIZE_MB * 1024 * 1024` before reading
+- **Error Handling**: Raise ValueError with human-readable message showing actual size vs limit
+- **Benefit**: Prevents resource exhaustion attacks, provides clear user feedback
+- **Example**: "File large.bin (51.0MB) exceeds maximum size of 50MB"
+
+###### Comprehensive Error Handling in Utility Functions
+- **Discovery**: Utility functions like `_compute_file_hash()` need extensive error handling
+- **Pattern**: Handle FileNotFoundError, PermissionError, IOError with try/except blocks
+- **Documentation**: Update docstring Raises section with all possible exceptions
+- **Testing**: Add tests for each error case (missing file, oversized file, permission denied)
+- **Impact**: Prevents router crashes when files are deleted/moved/locked during processing
+
+###### Input Validation in Batch Operations
+- **Discovery**: Batch methods must validate individual items, not just list type
+- **Pattern**: Loop through items validating type (str) and constraints (MAX_PROMPT_LENGTH)
+- **Error Messages**: Include item index in error messages for debugging
+- **Example**: "Prompt 5 exceeds max length (150000 > 100000)"
+- **Benefit**: Fails early with clear messages instead of cryptic API errors
+
+###### Docker Healthcheck Command Availability
+- **Issue**: Common assumption that `curl` is available in containers is often wrong
+- **Pattern**: Use commands that ship with the primary service (e.g., `ollama list` for Ollama)
+- **Alternative**: Use shell builtins or minimal tools guaranteed in base images
+- **Testing**: Always verify healthcheck command works in actual container
+- **Impact**: Prevents infinite wait for services that never become "healthy"
+
+###### Quality Tier Routing Logic
+- **Pattern**: Higher tiers can override provider selection for better results
+- **Implementation**: Check `config.model_tier == ModelTier.QUALITY` before Ollama fallback
+- **Logging**: Log tier-based routing decisions for debugging
+- **Fallback**: Document what happens when preferred provider unavailable
+- **Documentation**: Keep README and code behavior aligned
+
+###### Architectural Limitation Documentation
+- **Discovery**: Some issues require major refactoring and cannot be fixed in current PR
+- **Pattern**: Document architectural limitations clearly in session handover
+- **Include**: Root cause, current mitigation, proper fix approach, recommendation for future
+- **Benefit**: Future developers understand why issue exists and how to properly fix it
+- **Example**: Thread-safety issue documented with specific files/lines affected
+
+###### SSRF Validation in Async Endpoints
+- **Discovery**: Async endpoints can lack security checks present in sync versions
+- **Pattern**: Always audit async implementations for security parity with sync
+- **Fix**: Add same `MultiModalInput.validate_url()` checks as synchronous endpoint
+- **Testing**: Verify both endpoints reject malicious URLs (localhost, private IPs)
+- **Benefit**: Prevents subtle security holes from implementation divergence
+
+###### CI Test Environment Cleanup Discipline
+- **Discovery**: Tests can pollute environment with flags that affect subsequent tests
+- **Pattern**: Track ALL environment variables that tests mutate, not just obvious ones
+- **Example**: `MADSPARK_NO_ROUTER` was missing from cleanup fixture
+- **Fix**: Add to `env_vars` list in autouse fixture
+- **Impact**: Prevents test interdependencies and flaky test failures
+
+###### UI Metrics Display Completeness
+- **Discovery**: Backend can return metrics fields that UI doesn't display
+- **Pattern**: Review backend response schemas when updating UI components
+- **Example**: `fallback_triggers` field added to backend but not shown in UI
+- **Fix**: Add conditional display for new metrics (e.g., fallback warning badge)
+- **Benefit**: Users see complete picture of system behavior
+
+
 
 ##### From PR #190 (Phase 1: Configuration Centralization)
 

@@ -6,8 +6,14 @@ advocate, skeptic, and improvement processing.
 """
 import logging
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import TYPE_CHECKING, Any, List, Optional, Union
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
+
+if TYPE_CHECKING:
+    try:
+        from madspark.utils.logical_inference_engine import LogicalInferenceEngine
+    except ImportError:
+        LogicalInferenceEngine = Any  # type: ignore
 
 from madspark.config.execution_constants import ConcurrencyConfig
 from madspark.utils.batch_monitor import get_batch_monitor
@@ -20,7 +26,9 @@ from madspark.utils.text_similarity import is_meaningful_improvement
 from madspark.utils.constants import (
     MEANINGFUL_IMPROVEMENT_SIMILARITY_THRESHOLD,
     MEANINGFUL_IMPROVEMENT_SCORE_DELTA,
-    LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD
+    LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD,
+    TOKENS_PER_WORD_ESTIMATE,
+    OUTPUT_TOKENS_PER_INFERENCE
 )
 from madspark.utils.temperature_control import TemperatureManager
 from madspark.utils.novelty_filter import NoveltyFilter
@@ -282,7 +290,9 @@ def _run_workflow_internal(
     # Step 4.5: Logical Inference Processing (if enabled)
     if logical_inference:
         # Use getattr for robust access to logical_inference_engine attribute
-        logical_engine = getattr(engine, 'logical_inference_engine', None) if engine else None
+        logical_engine: Optional["LogicalInferenceEngine"] = (
+            getattr(engine, 'logical_inference_engine', None) if engine else None
+        )
 
         if not engine:
             logging.warning(
@@ -354,11 +364,15 @@ def _run_workflow_internal(
                     )
 
                     # End monitoring with token estimates
+                    # Note: Token estimation is approximate since LLMs use subword tokenization
+                    # Actual counts may vary ±20-50% from these estimates
+                    input_tokens = sum(len(idea.split()) * TOKENS_PER_WORD_ESTIMATE for idea in ideas_for_inference)
+                    output_tokens = len(inference_results) * OUTPUT_TOKENS_PER_INFERENCE
+
                     monitor.end_batch_call(
                         context=batch_context,
                         success=True,
-                        # Estimate tokens based on input/output
-                        tokens_used=sum(len(idea.split()) * 2 for idea in ideas_for_inference) + len(inference_results) * 100,
+                        tokens_used=input_tokens + output_tokens,
                         model_name="gemini-2.5-flash"  # LogicalInferenceEngine uses flash model
                     )
                 except Exception as e:
@@ -414,8 +428,7 @@ def _run_workflow_internal(
                     f"Logical inference failed with unexpected error of type {type(e).__name__}: {e}"
                 )
                 # Don't fail the entire workflow, just skip logical inference
-                for candidate in top_candidates:
-                    candidate["logical_inference"] = None
+                # (candidates already initialized with None at line 373)
 
     # Step 5: Improvement Processing using orchestrator
     top_candidates, _ = orchestrator.improve_ideas_with_monitoring(

@@ -25,6 +25,12 @@ DEFAULT_NOVELTY_THRESHOLD = 0.8
 # Enhanced reasoning constants
 LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD = 0.0  # Minimum confidence for logical inference conclusions (0.0 = show all, changed from 0.5 per web interface fixes)
 
+# Token estimation constants for monitoring (approximate values)
+# Note: These are rough estimates since LLMs use subword tokenization
+# Actual token counts may vary by ±20-50% depending on text complexity
+TOKENS_PER_WORD_ESTIMATE = 2  # Conservative estimate: ~1.3 actual avg for Gemini, using 2 for safety margin
+OUTPUT_TOKENS_PER_INFERENCE = 100  # Typical logical inference output length in tokens
+
 # Multi-dimensional evaluation constants
 DIMENSION_SCORES_KEY = "dimension_scores"  # Key for storing dimension scores in evaluation results
 FEASIBILITY_KEY = "feasibility"

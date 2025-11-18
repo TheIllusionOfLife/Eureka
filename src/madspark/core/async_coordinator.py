@@ -65,6 +65,7 @@ async def async_generate_ideas(
     temperature: float = 0.9,
     cache_manager: Optional[CacheManager] = None,
     use_structured_output: bool = True,
+    router: Optional["LLMRouter"] = None,
 ) -> str:
     """Async wrapper for idea generation with retry logic.
 
@@ -77,6 +78,7 @@ async def async_generate_ideas(
         temperature: Controls randomness (0.0-1.0)
         cache_manager: Optional cache manager for result caching
         use_structured_output: Whether to use structured JSON output (default: True)
+        router: Optional LLMRouter instance for request-scoped routing
 
     Returns:
         Generated ideas as JSON string (if structured) or newline-separated text
@@ -98,6 +100,9 @@ async def async_generate_ideas(
         context,
         temperature,
         use_structured_output,
+        None,  # multimodal_files
+        None,  # multimodal_urls
+        router,  # router parameter
     )
 
     # Cache the result
@@ -114,11 +119,23 @@ async def async_evaluate_ideas(
     context: str,
     temperature: float = 0.3,
     use_structured_output: bool = True,
+    router: Optional["LLMRouter"] = None,
 ) -> str:
     """Async wrapper for idea evaluation with retry logic.
 
     Runs the synchronous evaluate_ideas function in a thread pool to avoid blocking.
     Includes exponential backoff retry for resilience.
+
+    Args:
+        ideas: Ideas to evaluate
+        topic: Main topic/theme
+        context: Context/constraints
+        temperature: Controls randomness (0.0-1.0)
+        use_structured_output: Whether to use structured JSON output
+        router: Optional LLMRouter instance for request-scoped routing
+
+    Returns:
+        Evaluation results as string
     """
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(
@@ -129,6 +146,7 @@ async def async_evaluate_ideas(
         context,
         temperature,
         use_structured_output,
+        router,  # router parameter
     )
 
 
@@ -139,11 +157,24 @@ async def async_advocate_idea(
     context: str,
     temperature: float = 0.5,
     use_structured_output: bool = True,
+    router: Optional["LLMRouter"] = None,
 ) -> str:
     """Async wrapper for idea advocacy with retry logic.
 
     Runs the synchronous advocate_idea function in a thread pool to avoid blocking.
     Includes exponential backoff retry for resilience.
+
+    Args:
+        idea: Idea to advocate for
+        evaluation: Evaluation/critique of the idea
+        topic: Main topic/theme
+        context: Context/constraints
+        temperature: Controls randomness (0.0-1.0)
+        use_structured_output: Whether to use structured JSON output
+        router: Optional LLMRouter instance for request-scoped routing
+
+    Returns:
+        Advocacy arguments as string
     """
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(
@@ -155,6 +186,7 @@ async def async_advocate_idea(
         context,
         temperature,
         use_structured_output,
+        router,  # router parameter
     )
 
 
@@ -165,11 +197,24 @@ async def async_criticize_idea(
     context: str,
     temperature: float = 0.5,
     use_structured_output: bool = True,
+    router: Optional["LLMRouter"] = None,
 ) -> str:
     """Async wrapper for idea criticism/skepticism with retry logic.
 
     Runs the synchronous criticize_idea function in a thread pool to avoid blocking.
     Includes exponential backoff retry for resilience.
+
+    Args:
+        idea: Idea to criticize
+        advocacy: Advocacy arguments for the idea
+        topic: Main topic/theme
+        context: Context/constraints
+        temperature: Controls randomness (0.0-1.0)
+        use_structured_output: Whether to use structured JSON output
+        router: Optional LLMRouter instance for request-scoped routing
+
+    Returns:
+        Critical analysis as string
     """
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(
@@ -181,6 +226,7 @@ async def async_criticize_idea(
         context,
         temperature,
         use_structured_output,
+        router,  # router parameter
     )
 
 
@@ -192,11 +238,25 @@ async def async_improve_idea(
     topic: str,
     context: str,
     temperature: float = 0.9,
+    router: Optional["LLMRouter"] = None,
 ) -> str:
     """Async wrapper for idea improvement with retry logic.
 
     Runs the synchronous improve_idea function in a thread pool to avoid blocking.
     Includes exponential backoff retry for resilience.
+
+    Args:
+        original_idea: Original idea to improve
+        critique: Critic's evaluation
+        advocacy_points: Advocate's arguments
+        skeptic_points: Skeptic's concerns
+        topic: Main topic/theme
+        context: Context/constraints
+        temperature: Controls randomness (0.0-1.0)
+        router: Optional LLMRouter instance for request-scoped routing
+
+    Returns:
+        Improved idea as string
     """
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(
@@ -209,6 +269,7 @@ async def async_improve_idea(
         topic,
         context,
         temperature,
+        router,  # router parameter
     )
 
 

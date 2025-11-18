@@ -4,11 +4,25 @@ Integration tests for CLI flags --enhanced and --logical.
 Tests verify that flags produce expected output sections and properly invoke
 the correct agent methods.
 """
+import pytest
 from unittest.mock import Mock, patch, MagicMock
 
 from madspark.core.coordinator_batch import run_multistep_workflow_batch
 from madspark.core.enhanced_reasoning import ReasoningEngine
-from madspark.utils.logical_inference_engine import LogicalInferenceEngine, InferenceType
+
+# Guard import of LogicalInferenceEngine which requires optional google.genai dependency
+LogicalInferenceEngine = pytest.importorskip(
+    "madspark.utils.logical_inference_engine",
+    reason="LogicalInferenceEngine requires google.genai"
+).LogicalInferenceEngine
+
+InferenceType = pytest.importorskip(
+    "madspark.utils.logical_inference_engine",
+    reason="InferenceType requires google.genai"
+).InferenceType
+
+# Mark all tests in this module as integration tests
+pytestmark = pytest.mark.integration
 
 
 class TestEnhancedFlagCoordinator:

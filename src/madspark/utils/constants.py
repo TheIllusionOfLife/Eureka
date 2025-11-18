@@ -23,7 +23,7 @@ DEFAULT_NUM_TOP_CANDIDATES = 3  # Default to 3 top ideas for richer results
 DEFAULT_NOVELTY_THRESHOLD = 0.8
 
 # Enhanced reasoning constants
-LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD = 0.5  # Minimum confidence for logical inference conclusions (filters out weak/uncertain inferences)
+LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD = 0.0  # Minimum confidence for logical inference conclusions (0.0 = show all, changed from 0.5 per web interface fixes)
 
 # Multi-dimensional evaluation constants
 DIMENSION_SCORES_KEY = "dimension_scores"  # Key for storing dimension scores in evaluation results

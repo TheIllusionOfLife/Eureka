@@ -320,17 +320,17 @@ class TestLogicalFlagCoordinator:
             assert logical_data["inference_chain"] == ["premise1", "premise2", "conclusion"]
             assert logical_data["improvements"] == ["improvement1", "improvement2"]
 
-    def test_low_confidence_logical_inference_excluded(self):
-        """Test that low-confidence inference results are excluded."""
+    def test_low_confidence_logical_inference_included(self):
+        """Test that low-confidence inference results are INCLUDED with 0.0 threshold."""
         mock_engine = Mock(spec=ReasoningEngine)
         mock_logical_engine = Mock(spec=LogicalInferenceEngine)
         mock_engine.logical_inference_engine = mock_logical_engine
 
         # Mock low-confidence inference result
         mock_inference_result = Mock()
-        mock_inference_result.confidence = 0.3  # Below 0.5 threshold
-        mock_inference_result.conclusion = "Weak conclusion"
-        mock_inference_result.inference_chain = []
+        mock_inference_result.confidence = 0.3  # Low confidence, but >= 0.0 threshold
+        mock_inference_result.conclusion = "Low-confidence conclusion"
+        mock_inference_result.inference_chain = ["premise1", "conclusion"]
         mock_inference_result.improvements = None
 
         mock_logical_engine.analyze_batch.return_value = [mock_inference_result]
@@ -373,9 +373,11 @@ class TestLogicalFlagCoordinator:
                 reasoning_engine=mock_engine
             )
 
-            # Verify low-confidence result is excluded
-            assert result[0]["logical_inference"] is None, \
-                "Low-confidence inference (<0.5) should be excluded"
+            # Verify low-confidence result is INCLUDED with 0.0 threshold
+            assert result[0]["logical_inference"] is not None, \
+                "Low-confidence inference (0.3 >= 0.0) should be included with threshold=0.0"
+            assert result[0]["logical_inference"]["confidence"] == 0.3
+            assert result[0]["logical_inference"]["conclusion"] == "Low-confidence conclusion"
 
 
 class TestCombinedFlags:

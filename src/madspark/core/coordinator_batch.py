@@ -387,9 +387,9 @@ def _run_workflow_internal(
                     if inference_result and hasattr(inference_result, 'confidence'):
                         confidence = getattr(inference_result, 'confidence', 0.0)
 
-                        # Only include results with confidence above threshold
-                        # This filters out weak/uncertain inferences that may confuse users
-                        if confidence > LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD:
+                        # Only include results with confidence at or above threshold
+                        # With threshold=0.0, this includes all inferences (inclusive comparison)
+                        if confidence >= LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD:
                             candidate["logical_inference"] = {
                                 "confidence": confidence,
                                 "conclusion": getattr(inference_result, 'conclusion', ''),

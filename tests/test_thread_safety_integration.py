@@ -4,11 +4,11 @@ Tests that verify request-scoped router configuration is properly
 respected throughout the system.
 """
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 
 # Check if web backend is available
 try:
-    from web.backend.main import IdeaGenerationRequest, create_request_router
+    from web.backend.main import IdeaGenerationRequest
     from madspark.llm.config import ModelTier
     BACKEND_AVAILABLE = True
 except ImportError:
@@ -100,7 +100,6 @@ class TestStructuredGeneratorWithRouter:
         """Test that improve_idea_structured uses provided router parameter."""
         from madspark.agents.structured_idea_generator import improve_idea_structured
         from madspark.llm.router import LLMRouter
-        from madspark.llm.config import LLMConfig, ModelTier
 
         # Create a mock router
         mock_router = Mock(spec=LLMRouter)

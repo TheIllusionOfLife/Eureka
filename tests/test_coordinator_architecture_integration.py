@@ -59,7 +59,7 @@ class TestCoordinatorArchitectureIntegration:
         original_func = src.madspark.core.workflow_orchestrator.advocate_ideas_batch
 
         # Phase 3.2c: Mock module-level batch function (not orchestrator method)
-        def mock_advocacy_batch(ideas_with_evaluations, topic, context, temperature):
+        def mock_advocacy_batch(ideas_with_evaluations, topic, context, temperature, router=None):
             # Return results with "formatted" key (process_advocacy extracts this)
             results = []
             for item in ideas_with_evaluations:
@@ -107,7 +107,7 @@ class TestCoordinatorArchitectureIntegration:
         original_func = src.madspark.core.workflow_orchestrator.criticize_ideas_batch
 
         # Phase 3.2c: Mock module-level batch function (not orchestrator method)
-        def mock_skepticism_batch(ideas_with_advocacy, topic, context, temperature):
+        def mock_skepticism_batch(ideas_with_advocacy, topic, context, temperature, router=None):
             # Return results with "formatted" key (process_skepticism extracts this)
             results = []
             for item in ideas_with_advocacy:
@@ -153,7 +153,7 @@ class TestCoordinatorArchitectureIntegration:
         original_func = src.madspark.core.workflow_orchestrator.improve_ideas_batch
 
         # Phase 3.2c: Mock module-level batch function (not orchestrator method)
-        def mock_improvement_batch(improve_input, topic, context, temperature):
+        def mock_improvement_batch(improve_input, topic, context, temperature, router=None):
             results = []
             for item in improve_input:
                 results.append({

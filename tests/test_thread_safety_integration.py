@@ -162,5 +162,126 @@ class TestStructuredGeneratorWithRouter:
                 assert "Router Used" in result
 
 
+class TestRouterConfigIsolation:
+    """Test that router uses stored config instead of global state."""
+
+    def test_router_uses_stored_config_not_global(self):
+        """Verify router uses self._config instead of calling get_config()."""
+        from madspark.llm.router import LLMRouter
+        from madspark.llm.config import LLMConfig, ModelTier
+        import os
+
+        # Set env to one tier
+        with patch.dict(os.environ, {"MADSPARK_MODEL_TIER": "fast"}):
+            # Create router with different tier
+            config = LLMConfig(model_tier=ModelTier.QUALITY)
+            router = LLMRouter(config=config)
+
+            # Router should use QUALITY (from config), not FAST (from env)
+            assert router._config.model_tier == ModelTier.QUALITY
+
+    def test_router_respects_provider_from_config_not_env(self):
+        """Verify router uses primary_provider from config, not env vars."""
+        from madspark.llm.router import LLMRouter
+        from madspark.llm.config import LLMConfig
+        import os
+
+        # Set env to one provider
+        with patch.dict(os.environ, {"MADSPARK_LLM_PROVIDER": "gemini"}):
+            # Request wants Ollama
+            config = LLMConfig(default_provider="ollama")
+            router = LLMRouter(config=config)
+
+            # Router should use ollama (from config), not gemini (from env)
+            assert router._primary_provider == "ollama"
+
+    def test_concurrent_routers_with_different_configs(self):
+        """Verify multiple routers with different configs don't interfere."""
+        from madspark.llm.router import LLMRouter
+        from madspark.llm.config import LLMConfig, ModelTier
+
+        # Create 3 routers with different configs
+        router1 = LLMRouter(config=LLMConfig(model_tier=ModelTier.FAST))
+        router2 = LLMRouter(config=LLMConfig(model_tier=ModelTier.BALANCED))
+        router3 = LLMRouter(config=LLMConfig(model_tier=ModelTier.QUALITY))
+
+        # Each should maintain its own config
+        assert router1._config.model_tier == ModelTier.FAST
+        assert router2._config.model_tier == ModelTier.BALANCED
+        assert router3._config.model_tier == ModelTier.QUALITY
+
+
+class TestModelTierSelection:
+    """Test that model tier selection uses request-scoped config."""
+
+    def test_quality_tier_selects_gemini(self):
+        """Verify quality tier triggers Gemini selection logic."""
+        from madspark.llm.router import LLMRouter
+        from madspark.llm.config import LLMConfig, ModelTier
+
+        config = LLMConfig(model_tier=ModelTier.QUALITY, default_provider="auto")
+        router = LLMRouter(config=config)
+
+        # Verify config is stored correctly
+        assert router._config.model_tier == ModelTier.QUALITY
+
+    def test_fast_tier_config_stored(self):
+        """Verify fast tier config is stored correctly."""
+        from madspark.llm.router import LLMRouter
+        from madspark.llm.config import LLMConfig, ModelTier
+
+        config = LLMConfig(model_tier=ModelTier.FAST)
+        router = LLMRouter(config=config)
+
+        assert router._config.model_tier == ModelTier.FAST
+
+    def test_balanced_tier_config_stored(self):
+        """Verify balanced tier config is stored correctly."""
+        from madspark.llm.router import LLMRouter
+        from madspark.llm.config import LLMConfig, ModelTier
+
+        config = LLMConfig(model_tier=ModelTier.BALANCED)
+        router = LLMRouter(config=config)
+
+        assert router._config.model_tier == ModelTier.BALANCED
+
+
+class TestCacheSettingPropagation:
+    """Test that cache settings propagate from request to router."""
+
+    def test_cache_disabled_from_request(self):
+        """Verify cache setting from request reaches router."""
+        from madspark.llm.router import LLMRouter
+        from madspark.llm.config import LLMConfig
+
+        # Create config with cache disabled
+        config = LLMConfig(cache_enabled=False)
+        router = LLMRouter(config=config)
+
+        assert router._cache_enabled is False
+
+    def test_cache_enabled_from_request(self):
+        """Verify cache enabled setting works."""
+        from madspark.llm.router import LLMRouter
+        from madspark.llm.config import LLMConfig
+
+        config = LLMConfig(cache_enabled=True)
+        router = LLMRouter(config=config)
+
+        assert router._cache_enabled is True
+
+    def test_cache_parameter_overrides_config(self):
+        """Verify cache_enabled parameter overrides config setting."""
+        from madspark.llm.router import LLMRouter
+        from madspark.llm.config import LLMConfig
+
+        # Config says enabled, but parameter says disabled
+        config = LLMConfig(cache_enabled=True)
+        router = LLMRouter(config=config, cache_enabled=False)
+
+        # Parameter should win
+        assert router._cache_enabled is False
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

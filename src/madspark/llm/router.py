@@ -38,12 +38,37 @@ def _compute_file_hash(file_path: Path) -> str:
 
     Returns:
         Hex digest of file contents (first 16 chars for brevity)
+
+    Raises:
+        FileNotFoundError: If file doesn't exist
+        ValueError: If file exceeds size limit
+        PermissionError: If file is not readable
     """
+    # Check if file exists
+    if not file_path.exists():
+        raise FileNotFoundError(f"File not found: {file_path}")
+
+    # Validate file size before reading
+    try:
+        file_size = file_path.stat().st_size
+        max_bytes = MAX_FILE_SIZE_MB * 1024 * 1024
+        if file_size > max_bytes:
+            raise ValueError(
+                f"File {file_path.name} ({file_size / 1024 / 1024:.1f}MB) "
+                f"exceeds maximum size of {MAX_FILE_SIZE_MB}MB"
+            )
+    except (OSError, PermissionError) as e:
+        raise PermissionError(f"Cannot access file {file_path}: {e}")
+
     hasher = hashlib.sha256()
-    with open(file_path, 'rb') as f:
-        # Read in chunks to handle large files efficiently
-        for chunk in iter(lambda: f.read(8192), b''):
-            hasher.update(chunk)
+    try:
+        with open(file_path, 'rb') as f:
+            # Read in chunks to handle large files efficiently
+            for chunk in iter(lambda: f.read(8192), b''):
+                hasher.update(chunk)
+    except (IOError, OSError) as e:
+        raise PermissionError(f"Cannot read file {file_path}: {e}")
+
     # Use first 16 chars of hash for reasonable cache key length
     return hasher.hexdigest()[:16]
 
@@ -297,12 +322,12 @@ class LLMRouter:
             tuple: (list of validated_pydantic_objects, aggregated response_metadata)
 
         Raises:
+            TypeError: If prompts is None or not a list, or if individual prompts are not strings
+            ValueError: If individual prompts exceed MAX_PROMPT_LENGTH
             AllProvidersFailedError: If all providers fail for any prompt.
                 **Fail-fast behavior**: Processing stops immediately on first failure.
                 Previously processed results are lost. This ensures consistent error
-                reporting but does not support partial success.
-            ValueError: If prompts is not a list
-            TypeError: If prompts is None
+                reporting but does not support partial success
 
         Note:
             Sequential Processing: Prompts are processed one at a time (O(N) API calls).
@@ -316,6 +341,17 @@ class LLMRouter:
 
         if not isinstance(prompts, list):
             raise TypeError(f"Prompts must be a list, got {type(prompts).__name__}")
+
+        # Validate individual prompts
+        for i, prompt in enumerate(prompts):
+            if not isinstance(prompt, str):
+                raise TypeError(
+                    f"Prompt {i} must be str, got {type(prompt).__name__}"
+                )
+            if len(prompt) > MAX_PROMPT_LENGTH:
+                raise ValueError(
+                    f"Prompt {i} exceeds max length ({len(prompt)} > {MAX_PROMPT_LENGTH})"
+                )
 
         # Handle empty list case
         if not prompts:

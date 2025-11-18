@@ -245,7 +245,7 @@ class TestOllamaProvider:
     def test_health_check_success(self, mock_ollama):
         """Test health check when server is running and model available."""
         mock_client = Mock()
-        mock_client.list.return_value = {"models": [{"name": "gemma3:4b-it-qat"}]}
+        mock_client.list.return_value = {"models": [{"model": "gemma3:4b-it-qat"}]}
 
         provider = OllamaProvider(model="gemma3:4b-it-qat")
         provider._client = mock_client
@@ -256,7 +256,7 @@ class TestOllamaProvider:
     def test_health_check_model_not_found(self, mock_ollama):
         """Test health check when model not pulled."""
         mock_client = Mock()
-        mock_client.list.return_value = {"models": [{"name": "llama3:8b"}]}
+        mock_client.list.return_value = {"models": [{"model": "llama3:8b"}]}
 
         provider = OllamaProvider(model="gemma3:4b-it-qat")
         provider._client = mock_client

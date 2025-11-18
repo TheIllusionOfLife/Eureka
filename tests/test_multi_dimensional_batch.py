@@ -122,13 +122,13 @@ class TestMultiDimensionalBatchEvaluation:
         # Missing required fields
         mock_response.text = '[{"idea_index": 0, "feasibility": 8}]'
         mock_client.models.generate_content.return_value = mock_response
-        
+
         evaluator = MultiDimensionalEvaluator(genai_client=mock_client)
-        
+
         ideas = ["Test idea"]
         context = {"theme": "Test", "constraints": "None"}
-        
-        with pytest.raises(RuntimeError, match="Failed to evaluate ideas.*Missing required dimension"):
+
+        with pytest.raises(RuntimeError, match="Failed to evaluate ideas.*validation errors"):
             evaluator.evaluate_ideas_batch(ideas, context)
     
     def test_evaluate_ideas_batch_handles_api_errors(self):

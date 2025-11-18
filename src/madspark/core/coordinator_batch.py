@@ -148,9 +148,9 @@ def _run_workflow_internal(
         try:
             from madspark.agents.genai_client import get_genai_client
             genai_client = get_genai_client()
-            engine = ReasoningEngine(genai_client=genai_client, logical_inference=logical_inference)
+            engine = ReasoningEngine(genai_client=genai_client)
         except (ImportError, AttributeError, RuntimeError):
-            engine = ReasoningEngine(logical_inference=logical_inference)
+            engine = ReasoningEngine()
 
     # Create WorkflowOrchestrator instance
     orchestrator = WorkflowOrchestrator(
@@ -404,10 +404,14 @@ def _run_workflow_internal(
         # Add multi-dimensional evaluation if available
         if "multi_dimensional_evaluation" in candidate:
             candidate_data["multi_dimensional_evaluation"] = candidate["multi_dimensional_evaluation"]
-        
+
         if "improved_multi_dimensional_evaluation" in candidate:
             candidate_data["improved_multi_dimensional_evaluation"] = candidate["improved_multi_dimensional_evaluation"]
-        
+
+        # Add logical inference if available
+        if "logical_inference" in candidate:
+            candidate_data["logical_inference"] = candidate["logical_inference"]
+
         final_candidates_data.append(candidate_data)
     
     # Generate monitoring summary

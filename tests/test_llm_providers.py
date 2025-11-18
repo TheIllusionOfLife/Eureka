@@ -283,7 +283,7 @@ class TestOllamaProvider:
 
         mock_client = Mock()
         mock_client.chat.return_value = mock_response
-        mock_client.list.return_value = {"models": [{"name": "gemma3:4b"}]}
+        mock_client.list.return_value = {"models": [{"model": "gemma3:4b"}]}
 
         provider = OllamaProvider(model="gemma3:4b")
         provider._client = mock_client
@@ -307,7 +307,7 @@ class TestOllamaProvider:
 
         mock_client = Mock()
         mock_client.chat.return_value = mock_response
-        mock_client.list.return_value = {"models": [{"name": "gemma3:4b"}]}
+        mock_client.list.return_value = {"models": [{"model": "gemma3:4b"}]}
 
         provider = OllamaProvider(model="gemma3:4b")
         provider._client = mock_client
@@ -319,7 +319,7 @@ class TestOllamaProvider:
     def test_generate_structured_server_error(self, mock_ollama):
         """Test server error handling."""
         mock_client = Mock()
-        mock_client.list.return_value = {"models": [{"name": "gemma3:4b"}]}
+        mock_client.list.return_value = {"models": [{"model": "gemma3:4b"}]}
         mock_client.chat.side_effect = Exception("Server error")
 
         provider = OllamaProvider(model="gemma3:4b")

@@ -9,7 +9,10 @@ import atexit
 import concurrent.futures
 import logging
 from pathlib import Path
-from typing import List, Optional, Callable, Awaitable, Union
+from typing import List, Optional, Callable, Awaitable, Union, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..llm.router import LLMRouter
 
 from .coordinator import EvaluatedIdea, CandidateData, calculate_ideas_to_generate
 from .batch_operations_base import BatchOperationsBase
@@ -62,6 +65,7 @@ async def async_generate_ideas(
     temperature: float = 0.9,
     cache_manager: Optional[CacheManager] = None,
     use_structured_output: bool = True,
+    router: Optional["LLMRouter"] = None,
 ) -> str:
     """Async wrapper for idea generation with retry logic.
 
@@ -74,6 +78,7 @@ async def async_generate_ideas(
         temperature: Controls randomness (0.0-1.0)
         cache_manager: Optional cache manager for result caching
         use_structured_output: Whether to use structured JSON output (default: True)
+        router: Optional LLMRouter instance for request-scoped routing
 
     Returns:
         Generated ideas as JSON string (if structured) or newline-separated text
@@ -95,6 +100,9 @@ async def async_generate_ideas(
         context,
         temperature,
         use_structured_output,
+        None,  # multimodal_files
+        None,  # multimodal_urls
+        router,  # router parameter
     )
 
     # Cache the result
@@ -111,11 +119,23 @@ async def async_evaluate_ideas(
     context: str,
     temperature: float = 0.3,
     use_structured_output: bool = True,
+    router: Optional["LLMRouter"] = None,
 ) -> str:
     """Async wrapper for idea evaluation with retry logic.
 
     Runs the synchronous evaluate_ideas function in a thread pool to avoid blocking.
     Includes exponential backoff retry for resilience.
+
+    Args:
+        ideas: Ideas to evaluate
+        topic: Main topic/theme
+        context: Context/constraints
+        temperature: Controls randomness (0.0-1.0)
+        use_structured_output: Whether to use structured JSON output
+        router: Optional LLMRouter instance for request-scoped routing
+
+    Returns:
+        Evaluation results as string
     """
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(
@@ -126,6 +146,7 @@ async def async_evaluate_ideas(
         context,
         temperature,
         use_structured_output,
+        router,  # router parameter
     )
 
 
@@ -136,11 +157,24 @@ async def async_advocate_idea(
     context: str,
     temperature: float = 0.5,
     use_structured_output: bool = True,
+    router: Optional["LLMRouter"] = None,
 ) -> str:
     """Async wrapper for idea advocacy with retry logic.
 
     Runs the synchronous advocate_idea function in a thread pool to avoid blocking.
     Includes exponential backoff retry for resilience.
+
+    Args:
+        idea: Idea to advocate for
+        evaluation: Evaluation/critique of the idea
+        topic: Main topic/theme
+        context: Context/constraints
+        temperature: Controls randomness (0.0-1.0)
+        use_structured_output: Whether to use structured JSON output
+        router: Optional LLMRouter instance for request-scoped routing
+
+    Returns:
+        Advocacy arguments as string
     """
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(
@@ -152,6 +186,7 @@ async def async_advocate_idea(
         context,
         temperature,
         use_structured_output,
+        router,  # router parameter
     )
 
 
@@ -162,11 +197,24 @@ async def async_criticize_idea(
     context: str,
     temperature: float = 0.5,
     use_structured_output: bool = True,
+    router: Optional["LLMRouter"] = None,
 ) -> str:
     """Async wrapper for idea criticism/skepticism with retry logic.
 
     Runs the synchronous criticize_idea function in a thread pool to avoid blocking.
     Includes exponential backoff retry for resilience.
+
+    Args:
+        idea: Idea to criticize
+        advocacy: Advocacy arguments for the idea
+        topic: Main topic/theme
+        context: Context/constraints
+        temperature: Controls randomness (0.0-1.0)
+        use_structured_output: Whether to use structured JSON output
+        router: Optional LLMRouter instance for request-scoped routing
+
+    Returns:
+        Critical analysis as string
     """
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(
@@ -178,6 +226,7 @@ async def async_criticize_idea(
         context,
         temperature,
         use_structured_output,
+        router,  # router parameter
     )
 
 
@@ -189,11 +238,25 @@ async def async_improve_idea(
     topic: str,
     context: str,
     temperature: float = 0.9,
+    router: Optional["LLMRouter"] = None,
 ) -> str:
     """Async wrapper for idea improvement with retry logic.
 
     Runs the synchronous improve_idea function in a thread pool to avoid blocking.
     Includes exponential backoff retry for resilience.
+
+    Args:
+        original_idea: Original idea to improve
+        critique: Critic's evaluation
+        advocacy_points: Advocate's arguments
+        skeptic_points: Skeptic's concerns
+        topic: Main topic/theme
+        context: Context/constraints
+        temperature: Controls randomness (0.0-1.0)
+        router: Optional LLMRouter instance for request-scoped routing
+
+    Returns:
+        Improved idea as string
     """
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(
@@ -206,6 +269,7 @@ async def async_improve_idea(
         topic,
         context,
         temperature,
+        router,  # router parameter
     )
 
 
@@ -217,6 +281,7 @@ class AsyncCoordinator(BatchOperationsBase):
         max_concurrent_agents: int = 10,
         progress_callback: Optional[ProgressCallback] = None,
         cache_manager: Optional[CacheManager] = None,
+        router: Optional["LLMRouter"] = None,
     ):
         """Initialize the async coordinator.
 
@@ -224,12 +289,28 @@ class AsyncCoordinator(BatchOperationsBase):
             max_concurrent_agents: Maximum number of concurrent agent calls
             progress_callback: Optional async callback for progress updates
             cache_manager: Optional cache manager for result caching
+            router: Optional LLMRouter instance for request-scoped routing (Phase 2)
+                   If provided, this router will be passed to all agent functions.
+                   If None, agents will use their default behavior (backward compatible).
+
+        Example:
+            # Request-scoped router (thread-safe, recommended for backends)
+            from madspark.llm import LLMRouter
+            from madspark.llm.config import LLMConfig, ModelTier
+
+            config = LLMConfig(default_provider="ollama", model_tier=ModelTier.FAST)
+            router = LLMRouter(config=config)
+            coordinator = AsyncCoordinator(router=router)
+
+            # Legacy mode (backward compatible)
+            coordinator = AsyncCoordinator()  # Uses global config
         """
         super().__init__()  # Initialize batch operations
         self.max_concurrent_agents = max_concurrent_agents
         self.progress_callback = progress_callback
         self.semaphore = asyncio.Semaphore(max_concurrent_agents)
         self.cache_manager = cache_manager
+        self.router = router  # Store router for passing to agents
         self.orchestrator: Optional[WorkflowOrchestrator] = None  # Initialized in run_workflow_async
 
     async def _send_progress(self, message: str, progress: float):
@@ -303,6 +384,7 @@ class AsyncCoordinator(BatchOperationsBase):
                     temperature_manager=None,
                     reasoning_engine=None,
                     verbose=False,
+                    router=self.router,  # Pass request-scoped router for thread safety
                 )
 
             updated_candidates, _ = await orch.process_advocacy_async(
@@ -340,6 +422,7 @@ class AsyncCoordinator(BatchOperationsBase):
                     temperature_manager=None,
                     reasoning_engine=None,
                     verbose=False,
+                    router=self.router,  # Pass request-scoped router for thread safety
                 )
 
             updated_candidates, _ = await orch.process_skepticism_async(
@@ -377,6 +460,7 @@ class AsyncCoordinator(BatchOperationsBase):
                     temperature_manager=None,
                     reasoning_engine=None,
                     verbose=False,
+                    router=self.router,  # Pass request-scoped router for thread safety
                 )
 
             updated_candidates, _ = await orch.improve_ideas_async(
@@ -528,6 +612,7 @@ class AsyncCoordinator(BatchOperationsBase):
                 context=context,  # Use original context to avoid bias
                 temperature=eval_temp,
                 use_structured_output=True,
+                router=self.router,  # Pass request-scoped router
             )
 
             # Parse re-evaluations
@@ -808,6 +893,7 @@ class AsyncCoordinator(BatchOperationsBase):
                 temperature_manager=temperature_manager,
                 reasoning_engine=engine,
                 verbose=verbose,
+                router=self.router,  # Pass request-scoped router for thread safety
             )
             orchestrator = self.orchestrator  # Keep local variable for backward compatibility
 
@@ -1146,6 +1232,7 @@ class AsyncCoordinator(BatchOperationsBase):
                         context=context,
                         temperature=advocacy_temp,
                         use_structured_output=True,
+                        router=self.router,  # Pass request-scoped router
                     )
                 ),
                 timeout=TimeoutConfig.ADVOCACY_TIMEOUT,
@@ -1162,6 +1249,7 @@ class AsyncCoordinator(BatchOperationsBase):
                         context=context,
                         temperature=skepticism_temp,
                         use_structured_output=True,
+                        router=self.router,  # Pass request-scoped router
                     )
                 ),
                 timeout=TimeoutConfig.SKEPTICISM_TIMEOUT,
@@ -1249,6 +1337,7 @@ class AsyncCoordinator(BatchOperationsBase):
                         topic=topic,
                         context=context,
                         temperature=idea_temp,
+                        router=self.router,  # Pass request-scoped router
                     )
                 ),
                 timeout=TimeoutConfig.IMPROVEMENT_TIMEOUT,
@@ -1291,6 +1380,7 @@ class AsyncCoordinator(BatchOperationsBase):
                                 context=context,  # Use original context to avoid bias
                                 temperature=eval_temp,
                                 use_structured_output=True,
+                                router=self.router,  # Pass request-scoped router
                             )
                         ),
                         timeout=TimeoutConfig.REEVALUATION_TIMEOUT,

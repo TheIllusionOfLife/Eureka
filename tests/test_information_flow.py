@@ -214,7 +214,7 @@ class TestCoordinatorInformationFlow:
         # Save the original function
         original_func = src.madspark.core.workflow_orchestrator.improve_ideas_batch
 
-        def mock_improvement_batch(candidates, topic, context, temperature):
+        def mock_improvement_batch(candidates, topic, context, temperature, router=None):
             nonlocal context_received
             context_received = context
             # Return results in expected format

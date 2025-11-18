@@ -123,7 +123,7 @@ class TestCoordinatorParameterStandardization:
         def mock_generate(topic, context, temperature, use_structured_output=True, **kwargs):
             return json.dumps([{"idea_number": 1, "title": "Test idea", "description": "Test description"}])
 
-        def mock_evaluate(ideas, topic, context, temperature, use_structured_output=True):
+        def mock_evaluate(ideas, topic, context, temperature, use_structured_output=True, router=None):
             nonlocal context_received
             context_received = context
             return json.dumps([{"score": 8, "comment": "Good"}])

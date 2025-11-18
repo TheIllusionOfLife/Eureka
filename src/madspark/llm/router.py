@@ -9,7 +9,7 @@ import json
 import logging
 import threading
 import time
-from typing import Any, Optional, Type, Union
+from typing import Any, Optional, Type, Union, TYPE_CHECKING
 from typing_extensions import TypedDict
 from pathlib import Path
 from pydantic import BaseModel, ValidationError
@@ -23,6 +23,9 @@ from madspark.llm.exceptions import (
     ProviderUnavailableError,
     SchemaValidationError,
 )
+
+if TYPE_CHECKING:
+    from madspark.llm.config import LLMConfig
 
 # Security constants
 MAX_PROMPT_LENGTH = 100_000  # Characters - prevents resource exhaustion
@@ -157,17 +160,37 @@ class LLMRouter:
         primary_provider: Optional[str] = None,
         fallback_enabled: Optional[bool] = None,
         cache_enabled: Optional[bool] = None,
+        config: Optional["LLMConfig"] = None,
     ) -> None:
         """
-        Initialize router.
+        Initialize router with optional explicit configuration.
 
         Args:
-            primary_provider: Primary provider name (auto, ollama, gemini)
-            fallback_enabled: Enable fallback to secondary provider
-            cache_enabled: Enable response caching
-        """
-        config = get_config()
+            primary_provider: Primary provider name (auto, ollama, gemini) - overrides config
+            fallback_enabled: Enable fallback to secondary provider - overrides config
+            cache_enabled: Enable response caching - overrides config
+            config: Pre-initialized LLMConfig object (optional). If not provided,
+                   creates config from environment variables via get_config().
 
+        Example:
+            # Explicit configuration (thread-safe, recommended for concurrent use)
+            custom_config = LLMConfig(default_provider="ollama", model_tier=ModelTier.FAST)
+            router = LLMRouter(config=custom_config)
+
+            # Parameter overrides with config
+            router = LLMRouter(primary_provider="gemini", config=custom_config)
+
+            # Environment-based (backward compatible)
+            router = LLMRouter()  # Reads from env vars via get_config()
+        """
+        # Use provided config or get singleton config from environment
+        if config is None:
+            config = get_config()
+
+        # Store config for later use (thread-safe)
+        self._config = config
+
+        # Apply parameter overrides (parameters take precedence over config)
         self._primary_provider = primary_provider or config.default_provider
         self._fallback_enabled = (
             fallback_enabled if fallback_enabled is not None else config.fallback_enabled
@@ -193,7 +216,12 @@ class LLMRouter:
 
         logger.info(
             f"Router initialized: primary={self._primary_provider}, "
+            f"tier={self._config.model_tier.value}, "
             f"fallback={self._fallback_enabled}, cache={self._cache_enabled}"
+        )
+        logger.debug(
+            f"Router config: provider={self._config.default_provider}, "
+            f"tier={self._config.model_tier}, cache_ttl_seconds={self._config.cache_ttl_seconds}"
         )
 
     @property
@@ -258,13 +286,13 @@ class LLMRouter:
 
         # If files or URLs, use Gemini (native support)
         if files or urls:
+            logger.debug(f"Multimodal input detected, routing to Gemini (files={len(files or [])}, urls={len(urls or [])})")
             if self.gemini:
                 return self.gemini, "gemini"
             raise ProviderUnavailableError("Gemini required for file/URL processing but not available")
 
         # If quality tier requested, prefer Gemini for best results
-        config = get_config()
-        if config.model_tier == ModelTier.QUALITY and not force_provider:
+        if self._config.model_tier == ModelTier.QUALITY and not force_provider:
             if self.gemini and self.gemini.health_check():
                 logger.info("Quality tier requested, using Gemini for best results")
                 return self.gemini, "gemini"
@@ -278,13 +306,16 @@ class LLMRouter:
                 if images and not self.ollama.supports_multimodal:
                     logger.info("Ollama model doesn't support images, falling back to Gemini")
                 else:
+                    logger.debug(f"Selecting Ollama provider (tier={self._config.model_tier.value})")
                     return self.ollama, "ollama"
 
         # Fallback to Gemini
         if self._primary_provider == "gemini" or self._fallback_enabled:
             if self.gemini and self.gemini.health_check():
+                logger.debug(f"Fallback to Gemini (primary={self._primary_provider}, fallback_enabled={self._fallback_enabled})")
                 return self.gemini, "gemini"
 
+        logger.error(f"No LLM providers available (primary={self._primary_provider}, fallback={self._fallback_enabled})")
         raise ProviderUnavailableError("No LLM providers available")
 
     def generate_structured_batch(

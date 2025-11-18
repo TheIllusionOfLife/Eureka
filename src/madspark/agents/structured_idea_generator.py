@@ -6,7 +6,10 @@ capabilities to ensure clean, meta-commentary-free responses.
 import json
 import logging
 from pathlib import Path
-from typing import Any, Optional, List, Union
+from typing import Any, Optional, List, Union, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..llm.router import LLMRouter
 
 from ..utils.constants import DEFAULT_GOOGLE_GENAI_MODEL
 from ..utils.multimodal_input import build_prompt_with_multimodal
@@ -79,7 +82,8 @@ def improve_idea_structured(
     model_name: str = DEFAULT_GOOGLE_GENAI_MODEL,
     multimodal_files: Optional[List[Union[str, Path]]] = None,
     multimodal_urls: Optional[List[str]] = None,
-    use_router: bool = True
+    use_router: bool = True,
+    router: Optional["LLMRouter"] = None
 ) -> str:
     """Improves an idea using structured output for clean responses.
 
@@ -103,6 +107,9 @@ def improve_idea_structured(
         multimodal_files: Optional files for multimodal input
         multimodal_urls: Optional URLs for multimodal input
         use_router: Whether to use LLM Router for provider abstraction
+        router: Optional LLMRouter instance for request-scoped routing (Phase 2).
+            If provided, uses this router instead of calling get_router().
+            Enables thread-safe concurrent operation in backend environments.
 
     Returns:
         The improved idea text without any meta-commentary
@@ -158,12 +165,16 @@ Write ONLY the improved idea. No introductions, no meta-commentary."""
     # Try LLM Router first if available and router is explicitly configured
     # Priority: Respect explicit genai_client (bypasses router), else use router when configured
     # This honors the docstring contract that passing genai_client bypasses the router
-    should_route = use_router and LLM_ROUTER_AVAILABLE and get_router is not None
-    if should_route and genai_client is None and _should_use_router():
+    # If router parameter is provided, use it directly (request-scoped routing)
+    # Otherwise, check env vars to decide whether to use singleton router
+    should_route = use_router and LLM_ROUTER_AVAILABLE and (router is not None or get_router is not None)
+    use_provided_or_env_router = router is not None or _should_use_router()
+    if should_route and genai_client is None and use_provided_or_env_router:
         try:
-            router = get_router()
+            # Use provided router or fall back to singleton (backward compatible)
+            router_instance = router if router is not None else get_router()
             # Router generates structured output with automatic provider selection
-            validated, response = router.generate_structured(
+            validated, response = router_instance.generate_structured(
                 prompt=text_prompt,
                 schema=ImprovementResponse,
                 system_instruction=IDEA_GENERATOR_SYSTEM_INSTRUCTION,

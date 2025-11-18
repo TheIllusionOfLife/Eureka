@@ -16,6 +16,7 @@ from pathlib import Path
 
 if TYPE_CHECKING:
     from madspark.utils.batch_monitor import BatchMonitor
+    from madspark.llm.router import LLMRouter
 
 from madspark.config.workflow_constants import (
     FALLBACK_ADVOCACY,
@@ -83,7 +84,8 @@ class WorkflowOrchestrator:
         self,
         temperature_manager: Optional[TemperatureManager] = None,
         reasoning_engine: Optional[ReasoningEngine] = None,
-        verbose: bool = False
+        verbose: bool = False,
+        router: Optional["LLMRouter"] = None
     ):
         """Initialize the WorkflowOrchestrator.
 
@@ -93,8 +95,11 @@ class WorkflowOrchestrator:
             reasoning_engine: Optional reasoning engine for enhanced evaluation.
                             If None and needed, will create default engine.
             verbose: Enable verbose logging throughout workflow steps.
+            router: Optional LLMRouter instance for request-scoped routing.
+                   If None, uses global singleton (backward compatibility).
         """
         self.verbose = verbose
+        self.router = router  # Store router for agent calls
 
         # Initialize or use provided temperature manager
         if temperature_manager:
@@ -169,7 +174,8 @@ class WorkflowOrchestrator:
             temperature=idea_temp,
             use_structured_output=True,
             multimodal_files=multimodal_files,
-            multimodal_urls=multimodal_urls
+            multimodal_urls=multimodal_urls,
+            router=self.router  # Pass request-scoped router
         )
 
         duration = time.time() - start_time
@@ -224,7 +230,8 @@ class WorkflowOrchestrator:
                 topic=topic,
                 context=context,
                 temperature=eval_temp,
-                use_structured_output=True
+                use_structured_output=True,
+                router=self.router  # Pass request-scoped router
             )
 
             # Parse evaluations
@@ -309,7 +316,8 @@ class WorkflowOrchestrator:
                 advocate_input,
                 topic,
                 context,
-                advocacy_temp
+                advocacy_temp,
+                router=self.router  # Pass request-scoped router
             )
 
             # Map results back to candidates
@@ -364,7 +372,8 @@ class WorkflowOrchestrator:
                 skeptic_input,
                 topic,
                 context,
-                skepticism_temp
+                skepticism_temp,
+                router=self.router  # Pass request-scoped router
             )
 
             # Map results back to candidates
@@ -421,7 +430,8 @@ class WorkflowOrchestrator:
                 improve_input,
                 topic,
                 context,
-                idea_temp
+                idea_temp,
+                router=self.router  # Pass request-scoped router
             )
 
             # Map results back to candidates
@@ -479,7 +489,8 @@ class WorkflowOrchestrator:
                 topic=topic,
                 context=context,  # Original context, not from candidate
                 temperature=eval_temp,
-                use_structured_output=True
+                use_structured_output=True,
+                router=self.router  # Pass request-scoped router
             )
 
             # Parse evaluations

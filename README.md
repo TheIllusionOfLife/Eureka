@@ -116,69 +116,23 @@ ms "create a new game concept as a game director" "implementable within a month,
 
 ### Multi-Modal Input (NEW!)
 
-Enhance your idea generation with visual and document context! Multi-modal inputs allow you to provide images, PDFs, documents, and URLs alongside your text prompts for richer, more contextual idea generation.
+Enhance idea generation with visual and document context - provide images, PDFs, documents, and URLs alongside text prompts.
 
-#### CLI Usage (Recommended)
-
+**Quick Examples:**
 ```bash
-# Single URL for context
-ms "Improve our landing page" "Increase conversions" --url https://competitor.com
-
-# Multiple images for visual inspiration
+# Add images for context
 ms "Modern app redesign" "Clean, minimal" --image mockup.png --image wireframe.jpg
 
-# Analyze documents (PDFs, text files, etc.)
-ms "Summarize research findings" "Key insights" --file research.pdf --file data.csv
-
-# Combined multi-modal inputs
-ms "Product improvement ideas" "User-focused" \
-  --url https://reviews.com \
-  --file feedback.pdf \
-  --image current-ui.png
+# Analyze documents
+ms "Summarize findings" --file research.pdf --url https://competitor.com
 ```
 
-#### Python API Usage
+**Supported Formats:**
+- **Images**: PNG, JPG, JPEG, WebP, GIF, BMP (max 8MB)
+- **Documents**: PDF (max 40MB), TXT, MD, DOC, DOCX (max 20MB)
+- **URLs**: HTTP/HTTPS
 
-```python
-from madspark.agents.idea_generator import generate_ideas
-
-# Generate ideas with image context
-ideas = generate_ideas(
-    topic="UI/UX improvements",
-    context="Mobile app redesign",
-    multimodal_files=["mockup.png"]
-)
-
-# Analyze PDFs for insights
-ideas = generate_ideas(
-    topic="Market strategy",
-    context="Competitive analysis",
-    multimodal_files=["report.pdf"]
-)
-
-# Reference competitor websites
-ideas = generate_ideas(
-    topic="Feature roadmap",
-    context="E-commerce platform",
-    multimodal_urls=["https://competitor.com"]
-)
-
-# Mix files and URLs
-ideas = generate_ideas(
-    topic="Design system",
-    context="Best practices",
-    multimodal_files=["current_design.png"],
-    multimodal_urls=["https://dribbble.com/shots/..."]
-)
-```
-
-#### Supported Formats
-
-- **Images**: PNG, JPG, JPEG, WebP, GIF, BMP (max 8MB each)
-- **Documents**: PDF (max 40MB), TXT, MD, DOC, DOCX (max 20MB each)
-- **URLs**: HTTP/HTTPS (competitor sites, references, documentation)
-
-**📖 See [Multi-Modal Guide](docs/MULTIMODAL_GUIDE.md) for comprehensive documentation, examples, and best practices.**
+**📖 For Python API usage, detailed examples, and best practices, see [`docs/MULTIMODAL_GUIDE.md`](docs/MULTIMODAL_GUIDE.md)**
 
 ### LLM Provider Selection (Ollama-First by Default!)
 
@@ -307,73 +261,21 @@ Suggested Improvements: Consider hydroponic systems for higher yields in limited
 
 ### Structured Output Enhancement (NEW!)
 
-MadSpark now uses Google Gemini's structured output feature for cleaner, more consistent formatting. This eliminates parsing issues and ensures reliable display across all output formats.
+MadSpark uses Google Gemini's structured output feature for cleaner, more consistent formatting.
 
 **Key Improvements:**
-- **No Meta-Commentary**: Clean responses without "Here's my analysis..." or similar prefixes
-- **Consistent Formatting**: Structured JSON ensures reliable markdown conversion
-- **Eliminated Parsing Errors**: No more truncated output or format inconsistencies
-- **Enhanced Display Quality**: Professional formatting for scores, sections, and bullet points
+- ✅ No meta-commentary in responses (clean output)
+- ✅ Consistent JSON formatting with reliable markdown conversion
+- ✅ Eliminated parsing errors and truncation issues
+- ✅ Professional display quality with proper sections and bullet points
 
-**Format Fixes Implemented:**
-- ✅ Removed redundant "Text:" prefix from idea descriptions
-- ✅ Fixed score delta display (no more "+-0" formatting issues)
-- ✅ Consistent bullet points (• instead of mixed formats)
-- ✅ Proper section headers (STRENGTHS, OPPORTUNITIES, etc.)
-- ✅ Clean line breaks between sections
-- ✅ Reliable logical inference result display
+**Technical Features:**
+- Uses `response_mime_type="application/json"` with `response_schema`
+- Dedicated `json_parsing` package with 5 progressive fallback strategies
+- 15-20% faster parsing with pre-compiled regex patterns
+- All agents support structured output (IdeaGenerator, Critic, Advocate, Skeptic)
 
-**Technical Details:**
-- Uses `response_mime_type="application/json"` with `response_schema` for all LLM interactions
-- **Enhanced JSON Parsing**: Dedicated `json_parsing` package with 5 progressive fallback strategies
-- **Pre-compiled Patterns**: 15-20% faster parsing using pre-compiled regex patterns
-- **Telemetry Tracking**: Monitors parsing strategy usage for optimization
-- Backward compatible with text-based responses for fallback scenarios
-- All agents (IdeaGenerator, Critic, Advocate, Skeptic) support structured output
-- Applies to both individual and batch processing modes
-- **Logical Inference**: 5 specialized schemas for reasoning analysis (full, causal, constraints, contradiction, implications)
-
-**Example: Using JsonParser Directly**
-
-For developers integrating with MadSpark's parsing infrastructure:
-
-```python
-from madspark.utils.json_parsing import JsonParser
-
-# Create parser instance
-parser = JsonParser()
-
-# Parse AI response with automatic fallback
-response_text = '{"idea": "Smart energy grid", "score": 8.5}'
-result = parser.parse(response_text)
-# Returns: {"idea": "Smart energy grid", "score": 8.5}
-
-# Works with messy/mixed content
-messy_text = '''
-Here are some ideas:
-[{"id": 1, "text": "Solar panels"}, {"id": 2, "text": "Wind power"}]
-Hope this helps!
-'''
-result = parser.parse(messy_text, expected_count=2)
-# Returns: [{"id": 1, "text": "Solar panels"}, {"id": 2, "text": "Wind power"}]
-
-# View parsing statistics (which strategies succeeded)
-stats = parser.telemetry.get_stats()
-# Example: {'DirectJson': 1, 'JsonArrayExtraction': 1, 'total': 2}
-```
-
-**Migration from Legacy Parsing**:
-
-```python
-# Old way (deprecated)
-from madspark.utils.utils import parse_json_with_fallback
-result = parse_json_with_fallback(text)  # Triggers DeprecationWarning
-
-# New way (recommended)
-from madspark.utils.json_parsing import JsonParser
-parser = JsonParser()
-result = parser.parse(text)
-```
+**📖 For JsonParser API usage and migration guide, see project documentation**
 
 ### Bookmark Management
 
@@ -568,100 +470,34 @@ eureka/
 
 ## ⚙️ Configuration
 
-MadSpark provides centralized configuration through `src/madspark/config/execution_constants.py`.
+MadSpark provides centralized configuration through `src/madspark/config/execution_constants.py`. Available configuration classes: `MultiModalConfig`, `TimeoutConfig`, `ConcurrencyConfig`, `RetryConfig`, `LimitsConfig`, `ThresholdConfig`, `TemperatureConfig`, `ContentSafetyConfig`.
 
-### Configuration Classes
-
+**Quick Example:**
 ```python
-from madspark.config.execution_constants import (
-    MultiModalConfig,      # File size limits, supported formats
-    TimeoutConfig,         # Workflow step timeouts
-    ConcurrencyConfig,     # Thread pool sizes
-    RetryConfig,           # Agent retry parameters
-    LimitsConfig,          # Size limits, cache settings
-    ThresholdConfig,       # Similarity thresholds
-    TemperatureConfig,     # LLM temperature values
-    ContentSafetyConfig    # Gemini safety settings
-)
+from madspark.config.execution_constants import TimeoutConfig
+TimeoutConfig.IDEA_GENERATION_TIMEOUT = 60  # Adjust workflow timeouts
 ```
 
-### Key Configuration Examples
-
-**Adjust Timeouts:**
-```python
-# Default workflow step timeouts (in seconds)
-TimeoutConfig.IDEA_GENERATION_TIMEOUT = 60
-TimeoutConfig.EVALUATION_TIMEOUT = 60
-TimeoutConfig.IMPROVEMENT_TIMEOUT = 120
-```
-
-**Multi-Modal File Limits:**
-```python
-MultiModalConfig.MAX_FILE_SIZE = 20_000_000      # 20MB
-MultiModalConfig.MAX_IMAGE_SIZE = 8_000_000      # 8MB
-MultiModalConfig.MAX_PDF_SIZE = 40_000_000       # 40MB
-```
-
-**Concurrency Settings:**
-```python
-ConcurrencyConfig.MAX_ASYNC_WORKERS = 4          # Async coordinator
-ConcurrencyConfig.MAX_BATCH_WORKERS = 4          # Batch operations
-```
-
-**Agent Retry Behavior:**
-```python
-RetryConfig.IDEA_GENERATOR_MAX_RETRIES = 3
-RetryConfig.CRITIC_MAX_RETRIES = 3
-RetryConfig.ADVOCATE_MAX_RETRIES = 2
-```
-
-For complete configuration details, see `docs/CONFIGURATION_GUIDE.md`.
+**📖 For complete configuration details, examples, and best practices, see [`docs/CONFIGURATION_GUIDE.md`](docs/CONFIGURATION_GUIDE.md)**
 
 ## Development
 
-### Quick Setup
+**Quick Setup:**
 ```bash
-# Install pre-commit hooks
 pip install pre-commit && pre-commit install
-
-# Verify environment
 ./scripts/check_dependencies.sh
-
-# Create feature branch
 git checkout -b feature/your-feature-name
 ```
 
-### Testing
+**Quick Testing:**
 ```bash
-# Set Python path
 export PYTHONPATH="${PYTHONPATH}:$(pwd)/src"
-
-# Run all tests
 pytest tests/ -v --cov=src --cov-report=html
-
-# Run specific suites
-pytest tests/test_agents.py -v           # Agent tests
-pytest tests/test_integration.py -v     # Integration tests
-
-# Frontend tests
-cd web/frontend && npm test -- --coverage --watchAll=false
 ```
 
-### CI/CD Pipeline
-
-Optimized pipeline with **2-4 minute execution time**:
-- **Quick Checks**: Python syntax, deprecated patterns (30s)
-- **Parallel Testing**: Backend and frontend tests with coverage
-- **Quality Checks**: Ruff linting, Bandit security scans
-- **Docker Validation**: Syntax verification for web services
-
-Key optimizations:
-- Parallel test execution with pytest-xdist
-- Conditional Python matrix (3.10 for PRs, full matrix for main)
-- Performance test exclusion for PR CI
-- Aggressive dependency caching
-
-See [`docs/ci-policy.md`](docs/ci-policy.md) for complete CI management guidelines.
+**📖 For comprehensive development workflows, testing strategies, and CI/CD guidelines, see:**
+- Testing: README has basic commands above; detailed testing guide coming soon
+- CI/CD: [`docs/ci-policy.md`](docs/ci-policy.md) - Complete CI management guidelines
 
 ## Documentation
 

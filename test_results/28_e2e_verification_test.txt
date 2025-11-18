@@ -1,0 +1,82 @@
+2025-11-18 23:50:21 - INFO - Using default constraints
+2025-11-18 23:50:21 - INFO - Temperature Settings:
+  Base: 0.7
+  Idea Generation: 0.9
+  Evaluation: 0.3
+  Advocacy: 0.5
+  Skepticism: 0.5
+2025-11-18 23:50:21 - INFO - Running MadSpark workflow with theme: 'comprehensive e2e test'
+2025-11-18 23:50:21 - INFO - Constraints: Generate practical and innovative ideas
+2025-11-18 23:50:21 - INFO - Using synchronous execution
+2025-11-18 23:50:21 - INFO - Enhanced reasoning engine initialized
+2025-11-18 23:50:21 - INFO - Router initialized: primary=auto, tier=fast, fallback=True, cache=True
+2025-11-18 23:50:21 - WARNING - diskcache not installed. Caching disabled.
+2025-11-18 23:50:21 - WARNING - Failed to initialize Ollama: ollama package not installed. Run: uv pip install ollama
+2025-11-18 23:50:21 - INFO - HTTP Request: GET https://generativelanguage.googleapis.com/v1beta/models "HTTP/1.1 200 OK"
+2025-11-18 23:50:21 - INFO - AFC is enabled with max remote calls: 10.
+2025-11-18 23:50:28 - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+2025-11-18 23:50:28 - INFO - Gemini generated structured output in 7396ms (1328 tokens, $0.000266)
+2025-11-18 23:50:28 - INFO - Generated via gemini in 7399ms (1328 tokens)
+2025-11-18 23:50:28 - INFO - Router generated ideas via gemini (1328 tokens)
+2025-11-18 23:50:28 - INFO - Generated 5 ideas
+2025-11-18 23:50:28 - INFO - Batch idea_generation: 10 items in 7.53s, 872 tokens, ~$0.0024
+2025-11-18 23:50:28 - INFO - Generated 5 ideas
+2025-11-18 23:50:28 - INFO - Novelty filter processed 5 ideas: 5 novel, 0 duplicates/similar
+2025-11-18 23:50:28 - WARNING - Failed to initialize Ollama: ollama package not installed. Run: uv pip install ollama
+2025-11-18 23:50:28 - INFO - AFC is enabled with max remote calls: 10.
+2025-11-18 23:50:42 - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+2025-11-18 23:50:42 - INFO - Gemini generated structured output in 13880ms (3015 tokens, $0.000603)
+2025-11-18 23:50:42 - INFO - Generated via gemini in 13881ms (3015 tokens)
+2025-11-18 23:50:42 - INFO - Router generated evaluation via gemini (3015 tokens)
+2025-11-18 23:50:42 - INFO - Batch evaluation: 5 items in 13.88s, 1470 tokens, ~$0.0040
+2025-11-18 23:50:42 - INFO - Selected 1 top candidates for further processing.
+2025-11-18 23:50:42 - INFO - AFC is enabled with max remote calls: 10.
+2025-11-18 23:50:48 - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+2025-11-18 23:50:48 - INFO - AFC is enabled with max remote calls: 10.
+2025-11-18 23:50:53 - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+2025-11-18 23:50:53 - INFO - Added multi-dimensional evaluation to 1 candidates
+2025-11-18 23:50:53 - INFO - Batch multi_dimensional: 1 items in 10.86s
+2025-11-18 23:50:53 - INFO - AFC is enabled with max remote calls: 10.
+2025-11-18 23:50:58 - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+2025-11-18 23:50:58 - INFO - Batch advocate: 1 items in 4.71s, 1288 tokens, ~$0.0035
+2025-11-18 23:50:58 - INFO - AFC is enabled with max remote calls: 10.
+2025-11-18 23:51:12 - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+2025-11-18 23:51:12 - INFO - Batch skeptic: 1 items in 14.20s, 2893 tokens, ~$0.0080
+2025-11-18 23:51:12 - INFO - AFC is enabled with max remote calls: 10.
+2025-11-18 23:51:29 - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+2025-11-18 23:51:29 - INFO - Batch improve: 1 items in 16.78s, 4446 tokens, ~$0.0122
+2025-11-18 23:51:29 - WARNING - Failed to initialize Ollama: ollama package not installed. Run: uv pip install ollama
+2025-11-18 23:51:29 - INFO - HTTP Request: GET https://generativelanguage.googleapis.com/v1beta/models "HTTP/1.1 200 OK"
+2025-11-18 23:51:29 - INFO - AFC is enabled with max remote calls: 10.
+2025-11-18 23:51:41 - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+2025-11-18 23:51:41 - INFO - Gemini generated structured output in 11975ms (3131 tokens, $0.000626)
+2025-11-18 23:51:41 - INFO - Generated via gemini in 11976ms (3131 tokens)
+2025-11-18 23:51:41 - INFO - Router generated evaluation via gemini (3131 tokens)
+2025-11-18 23:51:41 - INFO - Batch reevaluation: 1 items in 12.11s, 1274 tokens, ~$0.0035
+2025-11-18 23:51:41 - INFO - AFC is enabled with max remote calls: 10.
+2025-11-18 23:51:47 - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+2025-11-18 23:51:47 - INFO - AFC is enabled with max remote calls: 10.
+2025-11-18 23:51:52 - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+2025-11-18 23:51:52 - INFO - Added multi-dimensional evaluation to 1 candidates
+2025-11-18 23:51:52 - INFO - Batch multi_dimensional: 1 items in 10.92s
+2025-11-18 23:51:52 - INFO - Batch Performance: 8/8 calls successful, 21 items in 90.99s
+2025-11-18 23:51:52 - INFO - Estimated cost: $0.0337
+2025-11-18 23:51:52 - INFO - Bookmarking requested. Processing 1 results...
+2025-11-18 23:51:52 - INFO - Loaded 234 bookmarks from examples/data/bookmarks.json
+2025-11-18 23:51:52 - INFO - Bookmarked idea: AI-Augmented Adaptive E2E Quality Platform: Develo... (ID: bookmark_20251118_235152_883a554b)
+2025-11-18 23:51:52 - INFO - Bookmarked result as bookmark_20251118_235152_883a554b
+2025-11-18 23:51:52 - INFO - Auto-saved long output to output/markdown/madspark_comprehensive_e2e_test_20251118_235152.md
+
+🚀 Generating ideas with AI model...
+⏳ This may take 30-60 seconds for quality results...
+
+✅ Bookmarked result (ID: bookmark_20251118_235152_883a554b)
+================================================================================
+MADSPARK MULTI-AGENT IDEA GENERATION RESULTS
+================================================================================
+
+
+... [Output truncated - 216 more lines]
+(Full output saved to file - use --output-file to specify location)
+
+📄 Full output saved to: output/markdown/madspark_comprehensive_e2e_test_20251118_235152.md

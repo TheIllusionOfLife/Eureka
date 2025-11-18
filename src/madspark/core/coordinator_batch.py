@@ -19,7 +19,8 @@ from madspark.core.types_and_logging import (
 from madspark.utils.text_similarity import is_meaningful_improvement
 from madspark.utils.constants import (
     MEANINGFUL_IMPROVEMENT_SIMILARITY_THRESHOLD,
-    MEANINGFUL_IMPROVEMENT_SCORE_DELTA
+    MEANINGFUL_IMPROVEMENT_SCORE_DELTA,
+    LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD
 )
 from madspark.utils.temperature_control import TemperatureManager
 from madspark.utils.novelty_filter import NoveltyFilter
@@ -279,46 +280,60 @@ def _run_workflow_internal(
         )
 
     # Step 4.5: Logical Inference Processing (if enabled)
-    if logical_inference and engine and engine.logical_inference_engine:
-        log_verbose_step("STEP 4.5: Logical Inference Analysis",
-                        f"🧠 Analyzing {len(top_candidates)} candidates with logical inference",
-                        verbose)
-        try:
-            from madspark.utils.logical_inference_engine import InferenceType
-
-            # Extract ideas for batch processing
-            ideas_for_inference = [candidate["text"] for candidate in top_candidates]
-
-            # Run batch logical inference - single API call for all ideas
-            inference_results = engine.logical_inference_engine.analyze_batch(
-                ideas_for_inference,
-                topic,
-                context,
-                InferenceType.FULL
+    if logical_inference:
+        if not engine or not engine.logical_inference_engine:
+            logging.warning(
+                "Logical inference requested (--logical flag) but engine not initialized. "
+                "Skipping logical analysis."
             )
+        else:
+            log_verbose_step("STEP 4.5: Logical Inference Analysis",
+                            f"🧠 Analyzing {len(top_candidates)} candidates with logical inference",
+                            verbose)
+            try:
+                from madspark.utils.logical_inference_engine import InferenceType
 
-            # Add logical inference data to candidates
-            for candidate, inference_result in zip(top_candidates, inference_results):
-                if inference_result and hasattr(inference_result, 'confidence'):
-                    confidence = getattr(inference_result, 'confidence', 0.0)
-                    # Only include results with confidence above threshold
-                    if confidence > 0.5:
-                        candidate["logical_inference"] = {
-                            "confidence": confidence,
-                            "inference": getattr(inference_result, 'conclusion', ''),
-                            "inference_chain": getattr(inference_result, 'inference_chain', []),
-                            "improvements": getattr(inference_result, 'improvements', None)
-                        }
-                    else:
-                        candidate["logical_inference"] = None
-                else:
+                # Extract ideas for batch processing
+                ideas_for_inference = [candidate["text"] for candidate in top_candidates]
+
+                # Run batch logical inference - single API call for all ideas
+                inference_results = engine.logical_inference_engine.analyze_batch(
+                    ideas_for_inference,
+                    topic,
+                    context,
+                    InferenceType.FULL
+                )
+
+                # Add logical inference data to candidates
+                for candidate, inference_result in zip(top_candidates, inference_results):
+                    # Initialize to None by default (DRY principle)
                     candidate["logical_inference"] = None
 
-        except Exception as e:
-            logging.error(f"Logical inference failed: {e}")
-            # Don't fail the entire workflow, just skip logical inference
-            for candidate in top_candidates:
-                candidate["logical_inference"] = None
+                    if inference_result and hasattr(inference_result, 'confidence'):
+                        confidence = getattr(inference_result, 'confidence', 0.0)
+
+                        # Only include results with confidence above threshold
+                        # This filters out weak/uncertain inferences that may confuse users
+                        if confidence > LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD:
+                            candidate["logical_inference"] = {
+                                "confidence": confidence,
+                                "conclusion": getattr(inference_result, 'conclusion', ''),
+                                "inference_chain": getattr(inference_result, 'inference_chain', []),
+                                "improvements": getattr(inference_result, 'improvements', None)
+                            }
+                        else:
+                            logging.debug(
+                                f"Low confidence inference ({confidence:.2f}) excluded for idea: "
+                                f"{candidate['text'][:50]}..."
+                            )
+
+            except Exception as e:
+                logging.error(
+                    f"Logical inference failed with unexpected error of type {type(e).__name__}: {e}"
+                )
+                # Don't fail the entire workflow, just skip logical inference
+                for candidate in top_candidates:
+                    candidate["logical_inference"] = None
 
     # Step 5: Improvement Processing using orchestrator
     top_candidates, _ = orchestrator.improve_ideas_with_monitoring(

@@ -4,8 +4,7 @@ Integration tests for CLI flags --enhanced and --logical.
 Tests verify that flags produce expected output sections and properly invoke
 the correct agent methods.
 """
-import pytest
-from unittest.mock import Mock, patch, MagicMock, call
+from unittest.mock import Mock, patch, MagicMock
 
 from madspark.core.coordinator_batch import run_multistep_workflow_batch
 from madspark.core.enhanced_reasoning import ReasoningEngine
@@ -31,27 +30,29 @@ class TestEnhancedFlagCoordinator:
             )
             mock_orch.evaluate_ideas_with_monitoring.return_value = (
                 [{"text": "test idea", "score": 8.0, "critique": "good"}],
-                None
-            )
+                 0)
             mock_orch.process_advocacy_with_monitoring.return_value = (
                 [{"text": "test idea", "score": 8.0, "critique": "good", "advocacy": {}}],
-                None
-            )
+                 0)
             mock_orch.process_skepticism_with_monitoring.return_value = (
                 [{"text": "test idea", "score": 8.0, "critique": "good", "skepticism": {}}],
-                None
-            )
-            mock_orch.improve_ideas_with_monitoring.return_value = (
-                [{"text": "test idea", "score": 8.0, "improved_idea": "improved", "improved_score": 8.5}],
-                None
-            )
-            mock_orch.reevaluate_ideas_with_monitoring.return_value = (
-                [{"text": "test idea", "score": 8.0, "improved_idea": "improved", "improved_score": 8.5}],
-                None
-            )
+                 0)
+
+            # Mock improve/reevaluate to preserve existing fields
+            def mock_improve(candidates, topic, context, monitor):
+                for c in candidates:
+                    c.setdefault("improved_idea", "improved")
+                    c.setdefault("improved_score", c.get("score", 0.0))
+                return candidates, 0
+
+            def mock_reevaluate(candidates, topic, context, monitor):
+                return candidates, 0
+
+            mock_orch.improve_ideas_with_monitoring.side_effect = mock_improve
+            mock_orch.reevaluate_ideas_with_monitoring.side_effect = mock_reevaluate
 
             # Call coordinator with enable_reasoning=True
-            result = run_multistep_workflow_batch(
+            run_multistep_workflow_batch(
                 topic="test",
                 context="test context",
                 enable_reasoning=True,
@@ -73,23 +74,26 @@ class TestEnhancedFlagCoordinator:
             # Mock minimal workflow
             mock_orch.generate_ideas_with_monitoring.return_value = (
                 [{"text": "test idea", "score": 8.0, "critique": "good"}],
-                None
-            )
+                 0)
             mock_orch.evaluate_ideas_with_monitoring.return_value = (
                 [{"text": "test idea", "score": 8.0, "critique": "good"}],
-                None
-            )
-            mock_orch.improve_ideas_with_monitoring.return_value = (
-                [{"text": "test idea", "score": 8.0, "improved_idea": "improved", "improved_score": 8.5}],
-                None
-            )
-            mock_orch.reevaluate_ideas_with_monitoring.return_value = (
-                [{"text": "test idea", "score": 8.0, "improved_idea": "improved", "improved_score": 8.5}],
-                None
-            )
+                 0)
+
+            # Mock improve/reevaluate to preserve existing fields
+            def mock_improve(candidates, topic, context, monitor):
+                for c in candidates:
+                    c.setdefault("improved_idea", "improved")
+                    c.setdefault("improved_score", c.get("score", 0.0))
+                return candidates, 0
+
+            def mock_reevaluate(candidates, topic, context, monitor):
+                return candidates, 0
+
+            mock_orch.improve_ideas_with_monitoring.side_effect = mock_improve
+            mock_orch.reevaluate_ideas_with_monitoring.side_effect = mock_reevaluate
 
             # Call coordinator with enable_reasoning=False
-            result = run_multistep_workflow_batch(
+            run_multistep_workflow_batch(
                 topic="test",
                 context="test context",
                 enable_reasoning=False
@@ -137,28 +141,33 @@ class TestLogicalFlagCoordinator:
             # Mock workflow methods
             mock_orch.generate_ideas_with_monitoring.return_value = (
                 [{"text": "test idea", "score": 8.0, "critique": "good"}],
-                None
+                0
             )
             mock_orch.evaluate_ideas_with_monitoring.return_value = (
                 [{"text": "test idea", "score": 8.0, "critique": "good"}],
-                None
+                0
             )
             mock_orch.process_advocacy_with_monitoring.return_value = (
-                [{"text": "test idea", "score": 8.0}],
-                None
+                [{"text": "test idea", "score": 8.0, "critique": "good", "advocacy": {}}],
+                0
             )
             mock_orch.process_skepticism_with_monitoring.return_value = (
-                [{"text": "test idea", "score": 8.0}],
-                None
+                [{"text": "test idea", "score": 8.0, "critique": "good", "skepticism": {}}],
+                0
             )
-            mock_orch.improve_ideas_with_monitoring.return_value = (
-                [{"text": "test idea", "score": 8.0, "improved_idea": "improved", "improved_score": 8.5}],
-                None
-            )
-            mock_orch.reevaluate_ideas_with_monitoring.return_value = (
-                [{"text": "test idea", "score": 8.0, "improved_idea": "improved", "improved_score": 8.5}],
-                None
-            )
+
+            # Mock improve/reevaluate to preserve existing fields
+            def mock_improve(candidates, topic, context, monitor):
+                for c in candidates:
+                    c.setdefault("improved_idea", "improved")
+                    c.setdefault("improved_score", c.get("score", 0.0))
+                return candidates, 0
+
+            def mock_reevaluate(candidates, topic, context, monitor):
+                return candidates, 0
+
+            mock_orch.improve_ideas_with_monitoring.side_effect = mock_improve
+            mock_orch.reevaluate_ideas_with_monitoring.side_effect = mock_reevaluate
 
             # Call with logical_inference=True
             result = run_multistep_workflow_batch(
@@ -196,23 +205,36 @@ class TestLogicalFlagCoordinator:
             # Mock workflow methods
             mock_orch.generate_ideas_with_monitoring.return_value = (
                 [{"text": "test idea", "score": 8.0, "critique": "good"}],
-                None
+                0
             )
             mock_orch.evaluate_ideas_with_monitoring.return_value = (
                 [{"text": "test idea", "score": 8.0, "critique": "good"}],
-                None
+                0
             )
-            mock_orch.improve_ideas_with_monitoring.return_value = (
-                [{"text": "test idea", "score": 8.0, "improved_idea": "improved", "improved_score": 8.5}],
-                None
+            mock_orch.process_advocacy_with_monitoring.return_value = (
+                [{"text": "test idea", "score": 8.0, "critique": "good", "advocacy": {}}],
+                0
             )
-            mock_orch.reevaluate_ideas_with_monitoring.return_value = (
-                [{"text": "test idea", "score": 8.0, "improved_idea": "improved", "improved_score": 8.5}],
-                None
+            mock_orch.process_skepticism_with_monitoring.return_value = (
+                [{"text": "test idea", "score": 8.0, "critique": "good", "skepticism": {}}],
+                0
             )
 
+            # Mock improve/reevaluate to preserve existing fields
+            def mock_improve(candidates, topic, context, monitor):
+                for c in candidates:
+                    c.setdefault("improved_idea", "improved")
+                    c.setdefault("improved_score", c.get("score", 0.0))
+                return candidates, 0
+
+            def mock_reevaluate(candidates, topic, context, monitor):
+                return candidates, 0
+
+            mock_orch.improve_ideas_with_monitoring.side_effect = mock_improve
+            mock_orch.reevaluate_ideas_with_monitoring.side_effect = mock_reevaluate
+
             # Call with logical_inference=False (default)
-            result = run_multistep_workflow_batch(
+            run_multistep_workflow_batch(
                 topic="test",
                 context="test context",
                 logical_inference=False,
@@ -245,28 +267,29 @@ class TestLogicalFlagCoordinator:
             # Mock workflow methods
             mock_orch.generate_ideas_with_monitoring.return_value = (
                 [{"text": "test idea", "score": 8.0, "critique": "good"}],
-                None
-            )
+                 0)
             mock_orch.evaluate_ideas_with_monitoring.return_value = (
                 [{"text": "test idea", "score": 8.0, "critique": "good"}],
-                None
-            )
+                 0)
             mock_orch.process_advocacy_with_monitoring.return_value = (
-                [{"text": "test idea", "score": 8.0}],
-                None
-            )
+                [{"text": "test idea", "score": 8.0, "critique": "good", "advocacy": {}}],
+                 0)
             mock_orch.process_skepticism_with_monitoring.return_value = (
-                [{"text": "test idea", "score": 8.0}],
-                None
-            )
-            mock_orch.improve_ideas_with_monitoring.return_value = (
-                [{"text": "test idea", "score": 8.0, "improved_idea": "improved", "improved_score": 8.5}],
-                None
-            )
-            mock_orch.reevaluate_ideas_with_monitoring.return_value = (
-                [{"text": "test idea", "score": 8.0, "improved_idea": "improved", "improved_score": 8.5}],
-                None
-            )
+                [{"text": "test idea", "score": 8.0, "critique": "good", "skepticism": {}}],
+                 0)
+
+            # Mock improve/reevaluate to preserve existing fields
+            def mock_improve(candidates, topic, context, monitor):
+                for c in candidates:
+                    c.setdefault("improved_idea", "improved")
+                    c.setdefault("improved_score", c.get("score", 0.0))
+                return candidates, 0
+
+            def mock_reevaluate(candidates, topic, context, monitor):
+                return candidates, 0
+
+            mock_orch.improve_ideas_with_monitoring.side_effect = mock_improve
+            mock_orch.reevaluate_ideas_with_monitoring.side_effect = mock_reevaluate
 
             result = run_multistep_workflow_batch(
                 topic="test",
@@ -279,7 +302,7 @@ class TestLogicalFlagCoordinator:
             logical_data = result[0]["logical_inference"]
             assert logical_data is not None, "High-confidence result should be included"
             assert logical_data["confidence"] == 0.9
-            assert logical_data["inference"] == "Strong conclusion"
+            assert logical_data["conclusion"] == "Strong conclusion"
             assert logical_data["inference_chain"] == ["premise1", "premise2", "conclusion"]
             assert logical_data["improvements"] == ["improvement1", "improvement2"]
 
@@ -305,28 +328,29 @@ class TestLogicalFlagCoordinator:
             # Mock workflow methods
             mock_orch.generate_ideas_with_monitoring.return_value = (
                 [{"text": "test idea", "score": 8.0, "critique": "good"}],
-                None
-            )
+                 0)
             mock_orch.evaluate_ideas_with_monitoring.return_value = (
                 [{"text": "test idea", "score": 8.0, "critique": "good"}],
-                None
-            )
+                 0)
             mock_orch.process_advocacy_with_monitoring.return_value = (
-                [{"text": "test idea", "score": 8.0}],
-                None
-            )
+                [{"text": "test idea", "score": 8.0, "critique": "good", "advocacy": {}}],
+                 0)
             mock_orch.process_skepticism_with_monitoring.return_value = (
-                [{"text": "test idea", "score": 8.0}],
-                None
-            )
-            mock_orch.improve_ideas_with_monitoring.return_value = (
-                [{"text": "test idea", "score": 8.0, "improved_idea": "improved", "improved_score": 8.5}],
-                None
-            )
-            mock_orch.reevaluate_ideas_with_monitoring.return_value = (
-                [{"text": "test idea", "score": 8.0, "improved_idea": "improved", "improved_score": 8.5}],
-                None
-            )
+                [{"text": "test idea", "score": 8.0, "critique": "good", "skepticism": {}}],
+                 0)
+
+            # Mock improve/reevaluate to preserve existing fields
+            def mock_improve(candidates, topic, context, monitor):
+                for c in candidates:
+                    c.setdefault("improved_idea", "improved")
+                    c.setdefault("improved_score", c.get("score", 0.0))
+                return candidates, 0
+
+            def mock_reevaluate(candidates, topic, context, monitor):
+                return candidates, 0
+
+            mock_orch.improve_ideas_with_monitoring.side_effect = mock_improve
+            mock_orch.reevaluate_ideas_with_monitoring.side_effect = mock_reevaluate
 
             result = run_multistep_workflow_batch(
                 topic="test",
@@ -364,28 +388,29 @@ class TestCombinedFlags:
             # Mock workflow methods
             mock_orch.generate_ideas_with_monitoring.return_value = (
                 [{"text": "test idea", "score": 8.0, "critique": "good"}],
-                None
-            )
+                 0)
             mock_orch.evaluate_ideas_with_monitoring.return_value = (
                 [{"text": "test idea", "score": 8.0, "critique": "good"}],
-                None
-            )
+                 0)
             mock_orch.process_advocacy_with_monitoring.return_value = (
-                [{"text": "test idea", "score": 8.0, "advocacy": {}}],
-                None
-            )
+                [{"text": "test idea", "score": 8.0, "critique": "good", "advocacy": {}}],
+                 0)
             mock_orch.process_skepticism_with_monitoring.return_value = (
-                [{"text": "test idea", "score": 8.0, "skepticism": {}}],
-                None
-            )
-            mock_orch.improve_ideas_with_monitoring.return_value = (
-                [{"text": "test idea", "score": 8.0, "improved_idea": "improved", "improved_score": 8.5}],
-                None
-            )
-            mock_orch.reevaluate_ideas_with_monitoring.return_value = (
-                [{"text": "test idea", "score": 8.0, "improved_idea": "improved", "improved_score": 8.5}],
-                None
-            )
+                [{"text": "test idea", "score": 8.0, "critique": "good", "skepticism": {}}],
+                 0)
+
+            # Mock improve/reevaluate to preserve existing fields
+            def mock_improve(candidates, topic, context, monitor):
+                for c in candidates:
+                    c.setdefault("improved_idea", "improved")
+                    c.setdefault("improved_score", c.get("score", 0.0))
+                return candidates, 0
+
+            def mock_reevaluate(candidates, topic, context, monitor):
+                return candidates, 0
+
+            mock_orch.improve_ideas_with_monitoring.side_effect = mock_improve
+            mock_orch.reevaluate_ideas_with_monitoring.side_effect = mock_reevaluate
 
             # Call with both flags enabled
             result = run_multistep_workflow_batch(

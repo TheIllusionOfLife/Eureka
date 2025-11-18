@@ -1,0 +1,72 @@
+✅ API key found. Running with Google Gemini API...
+
+
+🔍 Found 16 matching bookmark(s):
+
+ID: bookmark_20251118_212605_11aa4a9d
+Idea: Integrated Urban Eco-Network: A two-tiered system establishing Community Eco-Hubs across neighborhoo...
+Score: 9.0
+
+ID: bookmark_20251118_212149_e5573dc0
+Idea: AI-Enhanced Resilient Community Energy Grids (ARCEG): Develop localized, highly resilient community ...
+Score: 9.0
+
+ID: bookmark_20251118_211628_83d31628
+Idea: Community Energy Resilience Partnership (CERP): A Managed Microgrid Ecosystem.
+This initiative estab...
+Score: 9.0
+
+ID: bookmark_20251118_211000_035e92fc
+Idea: Adaptive Grid Intelligence (AGI) Platform: A multi-modal deep learning and reinforcement learning-po...
+Score: 9.0
+
+ID: bookmark_20251118_210628_ab185319
+Idea: Establish a Sustainable Business Energy Cooperative (SBEC) as a legally formalized entity where smal...
+Score: 9.0
+
+ID: bookmark_20251118_132154_cd622c1b
+Idea: Mock improved version of: 1. Mock Idea for renewable energy: A mock idea gen... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251117_003325_e8e5a762
+Idea: Adaptive Immersive Experience Pods (AIEP): Deploy highly versatile, modular physical pods designed a...
+Score: 9.0
+
+ID: bookmark_20251116_205733_edb510a1
+Idea: Cognitive & Resilient Mesh IoT Network (CoRe-IoT): A fully autonomous, self-organizing, and quantum-...
+Score: 8.0
+
+ID: bookmark_20251115_230329_192b227e
+Idea: An innovative solution for sustainable energy using solar panels and wind turbines
+Score: 8.5
+
+ID: bookmark_20251115_230218_75a50d9d
+Idea: An innovative solution for sustainable energy using solar panels and wind turbines
+Score: 8.5
+
+ID: bookmark_20251115_224638_873cee55
+Idea: An innovative solution for sustainable energy using solar panels and wind turbines
+Score: 8.5
+
+ID: bookmark_20251110_204436_432f2647
+Idea: Mock improved version of: 1. Mock Idea for renewable energy: A mock idea gen... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251110_204334_d3e310c1
+Idea: An innovative solution for sustainable energy using solar panels and wind turbines
+Score: 8.5
+
+ID: bookmark_20251110_202759_3d226cd3
+Idea: Mock improved version of: 1. Mock Idea for renewable energy: A mock idea gen... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251110_202656_1287fcfa
+Idea: An innovative solution for sustainable energy using solar panels and wind turbines
+Score: 8.5
+
+ID: bookmark_20251110_200252_43a0565a
+Idea: Syntellect Pathways: Adaptive, Narrative-Driven Learning Ecosystem
+
+Syntellect Pathways is an advanc...
+Score: 8.0
+

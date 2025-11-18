@@ -1,0 +1,769 @@
+✅ API key found. Running with Google Gemini API...
+
+
+📚 Found 190 bookmark(s):
+
+ID: bookmark_20251118_212658_ca538713
+Idea: 1. Predictive AI for Early Disease Detection: Develop an AI platform that analyzes a vast array of p...
+Score: 9.0
+
+ID: bookmark_20251118_212605_11aa4a9d
+Idea: Integrated Urban Eco-Network: A two-tiered system establishing Community Eco-Hubs across neighborhoo...
+Score: 9.0
+
+ID: bookmark_20251118_212328_0e8aebba
+Idea: Intelligent AC Circuit Design Co-Pilot with Multi-Objective Optimization and Real-World Constraints:...
+Score: 9.0
+
+ID: bookmark_20251118_212149_e5573dc0
+Idea: AI-Enhanced Resilient Community Energy Grids (ARCEG): Develop localized, highly resilient community ...
+Score: 9.0
+
+ID: bookmark_20251118_211946_6e2f1722
+Idea: The Adaptive Quantum-Safe Security Platform (A-QSSP) is a comprehensive, crypto-agile solution engin...
+Score: 9.0
+
+ID: bookmark_20251118_211801_6fd6e8a4
+Idea: Self-Orchestrating Asteroid Sentinel & Harvesting Swarm: Deploy a large, self-organizing constellati...
+Score: 8.0
+
+ID: bookmark_20251118_211801_31a4a1c5
+Idea: Self-Evolving Interstellar Pathfinder Swarm: Launch a network of highly advanced, miniaturized probe...
+Score: 7.0
+
+ID: bookmark_20251118_211801_86ed0028
+Idea: Fully Autonomous Lunar Manufacturing & Propellant Synthesis Complex: Establish an AI-orchestrated, s...
+Score: 8.5
+
+ID: bookmark_20251118_211628_83d31628
+Idea: Community Energy Resilience Partnership (CERP): A Managed Microgrid Ecosystem.
+This initiative estab...
+Score: 9.0
+
+ID: bookmark_20251118_211356_618bbf53
+Idea: AI-Augmented Adaptive Learning Ecosystem with Human-in-the-Loop Oversight: Develop a holistic platfo...
+Score: 9.0
+
+ID: bookmark_20251118_211211_b863e567
+Idea: AI-Powered Precision Diagnostic & Prognostic Intelligence Platform: Develop an advanced AI system th...
+Score: 9.0
+
+ID: bookmark_20251118_211000_035e92fc
+Idea: Adaptive Grid Intelligence (AGI) Platform: A multi-modal deep learning and reinforcement learning-po...
+Score: 9.0
+
+ID: bookmark_20251118_210826_e1f1d5a6
+Idea: The AI Architect's Guild: From Concept to Production.
+A dynamic, multi-tiered online learning platfo...
+Score: 9.0
+
+ID: bookmark_20251118_210628_ab185319
+Idea: Establish a Sustainable Business Energy Cooperative (SBEC) as a legally formalized entity where smal...
+Score: 9.0
+
+ID: bookmark_20251118_132154_cd622c1b
+Idea: Mock improved version of: 1. Mock Idea for renewable energy: A mock idea gen... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251118_132153_8786c98b
+Idea: Mock improved version of: 1. Mock Idea for AI automation: A mock idea genera... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251118_132152_0e16ac06
+Idea: Mock improved version of: 1. Mock Idea for test_topic: A mock idea generated... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251118_132151_60d4bc20
+Idea: Mock improved version of: 1. Mock Idea for environment_test: A mock idea gen... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251118_132140_766dc0c2
+Idea: Mock improved version of: 1. Mock Idea for consciousness: A mock idea genera... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251118_132140_afbc2a7d
+Idea: Mock improved version of: 1. Mock Idea for AI automation: A mock idea genera... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251117_003415_8b684104
+Idea: Cognitive AI Learning & Precision Skill Elevation Platform: An advanced AI-driven platform that dyna...
+Score: 10.0
+
+ID: bookmark_20251117_003415_323f845a
+Idea: Adaptive XR Readiness & Emergency Simulation Suite: A cutting-edge extended reality (XR) platform, o...
+Score: 9.0
+
+ID: bookmark_20251117_003415_92903056
+Idea: Intelligent IoT Health & Predictive Operations Platform: A comprehensive system leveraging advanced ...
+Score: 9.0
+
+ID: bookmark_20251117_003328_78864de3
+Idea: Mock improved version of: 1. Mock Idea for sustainable farming: A mock idea ... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251117_003326_1ec4d9dc
+Idea: Mock improved version of: 1. Mock Idea for test topic: A mock idea generated... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251117_003326_a2f4247c
+Idea: Mock improved version of: 1. Mock Idea for test topic: A mock idea generated... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251117_003325_466f624c
+Idea: Improved Test Idea
+Score: 9.0
+
+ID: bookmark_20251117_003325_e8e5a762
+Idea: Adaptive Immersive Experience Pods (AIEP): Deploy highly versatile, modular physical pods designed a...
+Score: 9.0
+
+ID: bookmark_20251117_003214_95ff8d03
+Idea: Enhanced AI-Powered Productivity Suite with unique differentiators
+Score: 8.5
+
+ID: bookmark_20251117_003214_1efbfa42
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251117_003214_c5059844
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251117_003214_d21b30f6
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251117_003214_51dca9da
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251117_003214_ea9d13f2
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251117_003214_19b388a2
+Idea: Improved Test Idea
+Score: 9.0
+
+ID: bookmark_20251116_205733_9188900a
+Idea: Intelligent AR Proactive Maintenance & Training Co-Pilot: A sophisticated augmented reality system d...
+Score: 9.0
+
+ID: bookmark_20251116_205733_edb510a1
+Idea: Cognitive & Resilient Mesh IoT Network (CoRe-IoT): A fully autonomous, self-organizing, and quantum-...
+Score: 8.0
+
+ID: bookmark_20251116_205733_ff683449
+Idea: Autonomous Cognitive Optimization Platform: A next-generation AI system that not only continuously m...
+Score: 9.0
+
+ID: bookmark_20251116_205639_3620a9cb
+Idea: Mock improved version of: 1. Mock Idea for sustainable farming: A mock idea ... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251116_205637_825f7f61
+Idea: Mock improved version of: 1. Mock Idea for test topic: A mock idea generated... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251116_205637_2cd8f213
+Idea: Mock improved version of: 1. Mock Idea for test topic: A mock idea generated... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251116_205636_acb36e38
+Idea: Improved Test Idea
+Score: 9.0
+
+ID: bookmark_20251116_205636_3749de05
+Idea: The 'CircularNexus' Intelligent Design & Ecosystem Platform: A modular, AI-powered digital platform ...
+Score: 9.0
+
+ID: bookmark_20251116_205525_0a84d7d6
+Idea: Enhanced AI-Powered Productivity Suite with unique differentiators
+Score: 8.5
+
+ID: bookmark_20251116_205525_3d9a907c
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251116_205525_d75fd494
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251116_205525_f0327a4e
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251116_205525_874b7d76
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251116_205525_07e08538
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251116_205525_ea682b5f
+Idea: Improved Test Idea
+Score: 9.0
+
+ID: bookmark_20251116_150307_d198d2bb
+Idea: Improved Test Idea
+Score: 9.0
+
+ID: bookmark_20251116_150307_cc9ada67
+Idea: The Co-Creative Event Visionary Platform: An AI-Human Collaboration Studio. This advanced platform r...
+Score: 9.0
+
+ID: bookmark_20251116_150152_6e7584e1
+Idea: Enhanced AI-Powered Productivity Suite with unique differentiators
+Score: 8.5
+
+ID: bookmark_20251116_150152_745809e3
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251116_150152_5bc1dd17
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251116_150152_86d3fb26
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251116_150152_32648d2d
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251116_150152_eaea4536
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251116_150152_54c9e0ae
+Idea: Improved Test Idea
+Score: 9.0
+
+ID: bookmark_20251116_144646_c9d4e57f
+Idea: Improved Test Idea
+Score: 9.0
+
+ID: bookmark_20251116_144646_83926a51
+Idea: ChromaSynth AI: Adaptive Co-Creation Studio - An advanced AI-powered platform that functions as a dy...
+Score: 10.0
+
+ID: bookmark_20251116_144532_e442362f
+Idea: Enhanced AI-Powered Productivity Suite with unique differentiators
+Score: 8.5
+
+ID: bookmark_20251116_144532_34cd57db
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251116_144532_466356db
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251116_144532_e870964c
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251116_144532_12a793e4
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251116_144532_cc8507cb
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251116_144532_03eb7cd7
+Idea: Improved Test Idea
+Score: 9.0
+
+ID: bookmark_20251116_143031_ba81e32c
+Idea: Improved Test Idea
+Score: 9.0
+
+ID: bookmark_20251116_143031_28c34af4
+Idea: Adaptive UI Intelligence Platform (AUIP): A sophisticated, user-centric platform that offers a spect...
+Score: 9.0
+
+ID: bookmark_20251116_142903_44a0bdc8
+Idea: Enhanced AI-Powered Productivity Suite with unique differentiators
+Score: 8.5
+
+ID: bookmark_20251116_142903_385ab14f
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251116_142903_d3e5b4d5
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251116_142903_92007e8f
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251116_142903_d3cbba1f
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251116_142903_ac28498c
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251116_142903_1bae9587
+Idea: Improved Test Idea
+Score: 9.0
+
+ID: bookmark_20251116_043518_41c8a572
+Idea: Improved Test Idea
+Score: 9.0
+
+ID: bookmark_20251116_043518_f76c8f7c
+Idea: Dynamic Curriculum Expedition Platform (DCEP): A comprehensive, AI-enhanced educational ecosystem th...
+Score: 9.0
+
+ID: bookmark_20251116_043340_752c7d29
+Idea: Enhanced AI-Powered Productivity Suite with unique differentiators
+Score: 8.5
+
+ID: bookmark_20251116_043340_334efe5c
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251116_043340_058f0002
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251116_043340_2785bb20
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251116_043340_575ee3ef
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251116_043340_95544321
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251116_043340_5c7273ed
+Idea: Improved Test Idea
+Score: 9.0
+
+ID: bookmark_20251115_230329_4f4c9249
+Idea: Test idea
+Score: 8.0
+
+ID: bookmark_20251115_230329_4da638e5
+Idea: Mock mode test idea
+Score: 7.0
+
+ID: bookmark_20251115_230329_192b227e
+Idea: An innovative solution for sustainable energy using solar panels and wind turbines
+Score: 8.5
+
+ID: bookmark_20251115_230218_c2732d48
+Idea: Test idea
+Score: 8.0
+
+ID: bookmark_20251115_230218_c2033a49
+Idea: Mock mode test idea
+Score: 7.0
+
+ID: bookmark_20251115_230218_75a50d9d
+Idea: An innovative solution for sustainable energy using solar panels and wind turbines
+Score: 8.5
+
+ID: bookmark_20251115_224638_9d2f6bc3
+Idea: Test idea
+Score: 8.0
+
+ID: bookmark_20251115_224638_b5647f0a
+Idea: Mock mode test idea
+Score: 7.0
+
+ID: bookmark_20251115_224638_873cee55
+Idea: An innovative solution for sustainable energy using solar panels and wind turbines
+Score: 8.5
+
+ID: bookmark_20251115_174447_112efe1a
+Idea: 'Test Topic' Impact Modeler & Simulator: Build a comprehensive simulation tool that allows users to ...
+Score: 9.0
+
+ID: bookmark_20251115_174447_3ded7d1b
+Idea: Adaptive Social Learning Pathway for 'Test Topic' Mastery: Design an educational platform that provi...
+Score: 8.0
+
+ID: bookmark_20251115_174447_f9a33ace
+Idea: AI-Powered Adaptive Test Scenario Generator: Develop an intelligent system that takes a 'test topic'...
+Score: 9.0
+
+ID: bookmark_20251115_174401_ece5c780
+Idea: Mock improved version of: 1. Mock Idea for sustainable farming: A mock idea ... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251115_174359_7adcbeb5
+Idea: Mock improved version of: 1. Mock Idea for test topic: A mock idea generated... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251115_174359_0010ae8a
+Idea: Mock improved version of: 1. Mock Idea for test topic: A mock idea generated... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251115_174358_74305089
+Idea: Improved Test Idea
+Score: 9.0
+
+ID: bookmark_20251115_174358_bfd42b05
+Idea: Contextual E-commerce Experience Orchestrator: An AI-powered platform that intelligently orchestrate...
+Score: 9.0
+
+ID: bookmark_20251115_174250_7f8f334d
+Idea: Enhanced AI-Powered Productivity Suite with unique differentiators
+Score: 8.5
+
+ID: bookmark_20251115_174250_0716ea68
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251115_174250_7ec8f2be
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251115_174250_1f813cb5
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251115_174250_abcbecc3
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251115_174250_92bc10fc
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251115_174250_cbb9c6a5
+Idea: Improved Test Idea
+Score: 9.0
+
+ID: bookmark_20251115_025546_a556c3a1
+Idea: Cognitive Test Orchestration (CTO) with Explainable AI (XAI) for Test Case Generation: A sophisticat...
+Score: 8.0
+
+ID: bookmark_20251115_025546_845c8066
+Idea: Cognitive Infrastructure Resilience System (CIRS) with Predictive Testing: An advanced AI system tha...
+Score: 9.0
+
+ID: bookmark_20251115_025546_88eaaf7d
+Idea: Real-time Circular Economy Impact Testing (CEIT) for Products: A modular, IoT-enabled ecosystem that...
+Score: 9.0
+
+ID: bookmark_20251115_025457_f7de6639
+Idea: Mock improved version of: 1. Mock Idea for sustainable farming: A mock idea ... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251115_025456_4a9a2abe
+Idea: Mock improved version of: 1. Mock Idea for test topic: A mock idea generated... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251115_025455_6f17d3a3
+Idea: Mock improved version of: 1. Mock Idea for test topic: A mock idea generated... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251115_025455_4d01c4a7
+Idea: Improved Test Idea
+Score: 9.0
+
+ID: bookmark_20251115_025455_4f0f4c01
+Idea: Thematic Mastery Hubs: Revolutionizing education with 'Thematic Mastery Hubs' that offer deeply inte...
+Score: 9.0
+
+ID: bookmark_20251115_025350_5d73f9d9
+Idea: Enhanced AI-Powered Productivity Suite with unique differentiators
+Score: 8.5
+
+ID: bookmark_20251115_025350_7b66943e
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251115_025350_9ac4ac62
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251115_025350_db80a876
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251115_025350_10754347
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251115_025350_11b202ce
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251115_025350_9ebde196
+Idea: Improved Test Idea
+Score: 9.0
+
+ID: bookmark_20251114_195637_62c47a2e
+Idea: Dynamic 'Test Topic' Knowledge Nexus: A robust, open-source, community-driven database where users c...
+Score: 7.0
+
+ID: bookmark_20251114_195637_781f6c2d
+Idea: 'Test Topic' Proactive Intelligence Dashboard: A sophisticated data visualization and predictive ana...
+Score: 8.0
+
+ID: bookmark_20251114_195637_05cd900e
+Idea: Adaptive Learning Simulation Hub 2.0: An AI-powered, modular simulation platform that provides perso...
+Score: 9.0
+
+ID: bookmark_20251114_195553_904c4cd1
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251114_195553_20937423
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251114_195553_72dbdeeb
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251114_195553_f91b49a6
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251114_195553_5fbfa2cf
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251114_195553_d338abe7
+Idea: Improved Test Idea
+Score: 9.0
+
+ID: bookmark_20251110_205949_7496a044
+Idea: test
+Score: 0
+
+ID: bookmark_20251110_204737_ba905750
+Idea: Mock improved version of: 1. Mock Idea for blockchain: A mock idea generated... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251110_204512_d92f7da5
+Idea: Mock improved version of: 1. Mock Idea for test_no_api_key_topic: A mock ide... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251110_204502_2cdd89a9
+Idea: An AI-powered system for predicting and preventing urban traffic congestion using real-time data fro...
+Score: 8.5
+
+ID: bookmark_20251110_204436_432f2647
+Idea: Mock improved version of: 1. Mock Idea for renewable energy: A mock idea gen... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251110_204435_828d6757
+Idea: Mock improved version of: 1. Mock Idea for AI automation: A mock idea genera... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251110_204434_3625f8c2
+Idea: Mock improved version of: 1. Mock Idea for test_topic: A mock idea generated... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251110_204434_9864225e
+Idea: Mock improved version of: 1. Mock Idea for environment_test: A mock idea gen... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251110_204423_3b2001fb
+Idea: Mock improved version of: 1. Mock Idea for consciousness: A mock idea genera... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251110_204423_fb366e56
+Idea: Mock improved version of: 1. Mock Idea for AI automation: A mock idea genera... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251110_204334_720dbfc4
+Idea: Mock mode test idea
+Score: 7.0
+
+ID: bookmark_20251110_204334_d3e310c1
+Idea: An innovative solution for sustainable energy using solar panels and wind turbines
+Score: 8.5
+
+ID: bookmark_20251110_204317_b2fd46ed
+Idea: test
+Score: 0
+
+ID: bookmark_20251110_203057_10582a83
+Idea: Test idea
+Score: 8.0
+
+ID: bookmark_20251110_203054_c766e15a
+Idea: Mock improved version of: 1. Mock Idea for blockchain: A mock idea generated... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251110_202828_6f89eb0c
+Idea: Mock improved version of: 1. Mock Idea for test_no_api_key_topic: A mock ide... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251110_202820_e82a5444
+Idea: An AI-powered system for predicting and preventing urban traffic congestion using real-time data fro...
+Score: 8.5
+
+ID: bookmark_20251110_202759_3d226cd3
+Idea: Mock improved version of: 1. Mock Idea for renewable energy: A mock idea gen... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251110_202758_e5aee7a1
+Idea: Mock improved version of: 1. Mock Idea for AI automation: A mock idea genera... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251110_202757_5e44edcc
+Idea: Mock improved version of: 1. Mock Idea for test_topic: A mock idea generated... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251110_202756_c077328d
+Idea: Mock improved version of: 1. Mock Idea for environment_test: A mock idea gen... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251110_202746_7dbdabc3
+Idea: Mock improved version of: 1. Mock Idea for consciousness: A mock idea genera... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251110_202746_b12779d8
+Idea: Mock improved version of: 1. Mock Idea for AI automation: A mock idea genera... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251110_202656_a2b38464
+Idea: Mock mode test idea
+Score: 7.0
+
+ID: bookmark_20251110_202656_1287fcfa
+Idea: An innovative solution for sustainable energy using solar panels and wind turbines
+Score: 8.5
+
+ID: bookmark_20251110_201342_40f8bb62
+Idea: Test idea
+Score: 8.0
+
+ID: bookmark_20251110_200351_fecdd2f6
+Idea: CircularDesign Nexus: A blockchain-secured, collaborative online platform and ecosystem for product ...
+Score: 9.0
+
+ID: bookmark_20251110_200351_0356e281
+Idea: AR Fix-It Pro: A mobile application leveraging cutting-edge augmented reality (AR) and advanced comp...
+Score: 9.0
+
+ID: bookmark_20251110_200351_346892e5
+Idea: SkillBridge AI Pro: An advanced AI-powered platform designed to hyper-personalize career development...
+Score: 8.0
+
+ID: bookmark_20251110_200255_1fc80602
+Idea: Mock improved version of: 1. Mock Idea for sustainable farming: A mock idea ... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251110_200253_a899ed98
+Idea: Mock improved version of: 1. Mock Idea for test topic: A mock idea generated... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251110_200253_ef4df2a1
+Idea: Mock improved version of: 1. Mock Idea for test topic: A mock idea generated... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251110_200252_cdd80f17
+Idea: Improved Test Idea
+Score: 9.0
+
+ID: bookmark_20251110_200252_43a0565a
+Idea: Syntellect Pathways: Adaptive, Narrative-Driven Learning Ecosystem
+
+Syntellect Pathways is an advanc...
+Score: 8.0
+
+ID: bookmark_20251110_200140_d26f201a
+Idea: Enhanced AI-Powered Productivity Suite with unique differentiators
+Score: 8.5
+
+ID: bookmark_20251110_200140_f36b9125
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251110_200140_356257d0
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251110_200140_61a33c10
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251110_200140_da8a00ac
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251110_200140_af972d37
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251110_200140_290d9739
+Idea: Improved Test Idea
+Score: 9.0
+
+ID: bookmark_20251110_194752_98df71aa
+Idea: ConceptCrafters Nexus: A gamified, intelligent platform where individuals and teams compete in time-...
+Score: 8.0
+
+ID: bookmark_20251110_194752_fe86d192
+Idea: InnovateAIdea Sentinel: An advanced AI-powered assistant designed for comprehensive idea development...
+Score: 9.0
+
+ID: bookmark_20251110_194752_0025795c
+Idea: IdeaSprint Nexus: A comprehensive web platform for accelerated idea validation, integrating robust m...
+Score: 9.0
+
+ID: bookmark_20251110_194702_ffafba3e
+Idea: Mock improved version of: 1. Mock Idea for sustainable farming: A mock idea ... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251110_194701_8634a353
+Idea: Mock improved version of: 1. Mock Idea for test topic: A mock idea generated... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251110_194700_9da8ef95
+Idea: Mock improved version of: 1. Mock Idea for test topic: A mock idea generated... This addresses the c...
+Score: 8.0
+
+ID: bookmark_20251110_194700_ef3b3f70
+Idea: Improved Test Idea
+Score: 9.0
+
+ID: bookmark_20251110_194700_a1926121
+Idea: CognitoVerse: Adaptive Immersive Learning Ecosystem. This advanced platform transcends traditional l...
+Score: 9.0
+
+ID: bookmark_20251110_194549_bac5b262
+Idea: Enhanced AI-Powered Productivity Suite with unique differentiators
+Score: 8.5
+
+ID: bookmark_20251110_194549_d5db3872
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251110_194549_fee563b2
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251110_194549_49b4d050
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251110_194549_f373e3c2
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251110_194549_eac1f798
+Idea: Improved Test Idea
+Score: 8.5
+
+ID: bookmark_20251110_194549_8d9bbea9
+Idea: Improved Test Idea
+Score: 9.0
+

@@ -1,0 +1,12 @@
+[0;35m🔧 MadSpark Configuration[0m
+
+[0;32m✅ API key configured[0m
+
+[0;35mCurrent Configuration:[0m
+  API Key: ✅ Configured
+  Mode: API
+  Model: gemini-2.5-flash
+
+[0;33m💡 To configure interactively, run this command in a terminal[0m
+✅ API key found. Running with Google Gemini API...
+

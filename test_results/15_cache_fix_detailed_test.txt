@@ -1,0 +1,130 @@
+2025-11-18 22:39:13 - INFO - Using default constraints
+2025-11-18 22:39:13 - INFO - Temperature Settings:
+  Base: 0.7
+  Idea Generation: 0.9
+  Evaluation: 0.3
+  Advocacy: 0.5
+  Skepticism: 0.5
+2025-11-18 22:39:13 - INFO - Running MadSpark workflow with theme: 'renewable energy'
+2025-11-18 22:39:13 - INFO - Constraints: Generate practical and innovative ideas
+2025-11-18 22:39:13 - INFO - Using synchronous execution
+2025-11-18 22:39:13 - INFO - Enhanced reasoning engine initialized
+2025-11-18 22:39:13 - INFO - Router initialized: primary=auto, tier=fast, fallback=True, cache=True
+2025-11-18 22:39:13 - INFO - Initialized cache at /Users/yuyamukai/.cache/madspark/llm (max size: 1000MB)
+2025-11-18 22:39:13 - INFO - HTTP Request: GET http://localhost:11434/api/tags "HTTP/1.1 200 OK"
+2025-11-18 22:39:13 - INFO - HTTP Request: GET https://generativelanguage.googleapis.com/v1beta/models "HTTP/1.1 200 OK"
+2025-11-18 22:39:13 - INFO - AFC is enabled with max remote calls: 10.
+2025-11-18 22:39:23 - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+2025-11-18 22:39:23 - INFO - AFC remote call 1 is done.
+2025-11-18 22:39:23 - INFO - Gemini generated structured output in 10105ms (1681 tokens, $0.000336)
+2025-11-18 22:39:23 - INFO - Generated via gemini in 10106ms (1681 tokens)
+2025-11-18 22:39:23 - INFO - Router generated ideas via gemini (1681 tokens)
+2025-11-18 22:39:23 - INFO - Generated 5 ideas
+2025-11-18 22:39:23 - INFO - Batch idea_generation: 10 items in 10.28s, 921 tokens, ~$0.0025
+2025-11-18 22:39:23 - INFO - Generated 5 ideas
+2025-11-18 22:39:23 - INFO - Novelty filter processed 5 ideas: 5 novel, 0 duplicates/similar
+2025-11-18 22:39:23 - INFO - AFC is enabled with max remote calls: 10.
+2025-11-18 22:39:37 - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+2025-11-18 22:39:37 - INFO - AFC remote call 1 is done.
+2025-11-18 22:39:37 - INFO - Gemini generated structured output in 13438ms (2998 tokens, $0.000600)
+2025-11-18 22:39:37 - INFO - Generated via gemini in 13439ms (2998 tokens)
+2025-11-18 22:39:37 - INFO - Router generated evaluation via gemini (2998 tokens)
+2025-11-18 22:39:37 - INFO - Batch evaluation: 5 items in 13.44s, 1845 tokens, ~$0.0051
+2025-11-18 22:39:37 - INFO - Selected 1 top candidates for further processing.
+2025-11-18 22:39:37 - INFO - AFC is enabled with max remote calls: 10.
+2025-11-18 22:39:38 - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 503 Service Unavailable"
+2025-11-18 22:39:38 - WARNING - Multi-dimensional evaluation failed: Failed to evaluate ideas: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'The model is overloaded. Please try again later.', 'status': 'UNAVAILABLE'}}
+2025-11-18 22:39:38 - INFO - Batch multi_dimensional: 1 items in 0.74s
+2025-11-18 22:39:38 - INFO - AFC is enabled with max remote calls: 10.
+2025-11-18 22:39:44 - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+2025-11-18 22:39:44 - INFO - AFC remote call 1 is done.
+2025-11-18 22:39:44 - INFO - Batch advocate: 1 items in 6.23s, 1390 tokens, ~$0.0038
+2025-11-18 22:39:44 - INFO - AFC is enabled with max remote calls: 10.
+2025-11-18 22:40:05 - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+2025-11-18 22:40:05 - INFO - AFC remote call 1 is done.
+2025-11-18 22:40:05 - INFO - Batch skeptic: 1 items in 21.51s, 3706 tokens, ~$0.0102
+2025-11-18 22:40:05 - INFO - AFC is enabled with max remote calls: 10.
+2025-11-18 22:40:06 - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 503 Service Unavailable"
+2025-11-18 22:40:06 - ERROR - Unexpected batch improvement failure: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'The model is overloaded. Please try again later.', 'status': 'UNAVAILABLE'}}
+Traceback (most recent call last):
+  File "/Users/yuyamukai/Eureka/src/madspark/agents/idea_generator.py", line 678, in improve_ideas_batch
+    response = idea_generator_client.models.generate_content(
+        model=model_name,
+        contents=prompt,
+        config=config
+    )
+  File "/Users/yuyamukai/Eureka/venv/lib/python3.13/site-packages/google/genai/models.py", line 5778, in generate_content
+    response = self._generate_content(
+        model=model, contents=contents, config=parsed_config
+    )
+  File "/Users/yuyamukai/Eureka/venv/lib/python3.13/site-packages/google/genai/models.py", line 4716, in _generate_content
+    response = self._api_client.request(
+        'post', path, request_dict, http_options
+    )
+  File "/Users/yuyamukai/Eureka/venv/lib/python3.13/site-packages/google/genai/_api_client.py", line 1077, in request
+    response = self._request(http_request, stream=False)
+  File "/Users/yuyamukai/Eureka/venv/lib/python3.13/site-packages/google/genai/_api_client.py", line 968, in _request
+    return self._retry(self._request_once, http_request, stream)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yuyamukai/Eureka/venv/lib/python3.13/site-packages/tenacity/__init__.py", line 475, in __call__
+    do = self.iter(retry_state=retry_state)
+  File "/Users/yuyamukai/Eureka/venv/lib/python3.13/site-packages/tenacity/__init__.py", line 376, in iter
+    result = action(retry_state)
+  File "/Users/yuyamukai/Eureka/venv/lib/python3.13/site-packages/tenacity/__init__.py", line 418, in exc_check
+    raise retry_exc.reraise()
+          ~~~~~~~~~~~~~~~~~^^
+  File "/Users/yuyamukai/Eureka/venv/lib/python3.13/site-packages/tenacity/__init__.py", line 185, in reraise
+    raise self.last_attempt.result()
+          ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.9_1/Frameworks/Python.framework/Versions/3.13/lib/python3.13/concurrent/futures/_base.py", line 449, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.9_1/Frameworks/Python.framework/Versions/3.13/lib/python3.13/concurrent/futures/_base.py", line 401, in __get_result
+    raise self._exception
+  File "/Users/yuyamukai/Eureka/venv/lib/python3.13/site-packages/tenacity/__init__.py", line 478, in __call__
+    result = fn(*args, **kwargs)
+  File "/Users/yuyamukai/Eureka/venv/lib/python3.13/site-packages/google/genai/_api_client.py", line 958, in _request_once
+    errors.APIError.raise_for_response(response)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/yuyamukai/Eureka/venv/lib/python3.13/site-packages/google/genai/errors.py", line 107, in raise_for_response
+    raise ServerError(status_code, response_json, response)
+google.genai.errors.ServerError: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'The model is overloaded. Please try again later.', 'status': 'UNAVAILABLE'}}
+2025-11-18 22:40:06 - ERROR - Batch improve failed: Batch improvement failed: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'The model is overloaded. Please try again later.', 'status': 'UNAVAILABLE'}}
+2025-11-18 22:40:06 - INFO - Batch improve: 1 items in 0.73s
+2025-11-18 22:40:06 - INFO - HTTP Request: GET http://localhost:11434/api/tags "HTTP/1.1 200 OK"
+2025-11-18 22:40:06 - INFO - AFC is enabled with max remote calls: 10.
+2025-11-18 22:40:28 - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+2025-11-18 22:40:28 - INFO - AFC remote call 1 is done.
+2025-11-18 22:40:28 - INFO - Gemini generated structured output in 21868ms (3701 tokens, $0.000740)
+2025-11-18 22:40:28 - INFO - Generated via gemini in 21868ms (3701 tokens)
+2025-11-18 22:40:28 - INFO - Router generated evaluation via gemini (3701 tokens)
+2025-11-18 22:40:28 - INFO - Batch reevaluation: 1 items in 21.87s, 922 tokens, ~$0.0025
+2025-11-18 22:40:28 - INFO - AFC is enabled with max remote calls: 10.
+2025-11-18 22:40:34 - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+2025-11-18 22:40:34 - INFO - AFC remote call 1 is done.
+2025-11-18 22:40:34 - INFO - AFC is enabled with max remote calls: 10.
+2025-11-18 22:40:35 - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 503 Service Unavailable"
+2025-11-18 22:40:35 - WARNING - Failed to generate AI summary, using fallback: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'The model is overloaded. Please try again later.', 'status': 'UNAVAILABLE'}}
+2025-11-18 22:40:35 - INFO - Added multi-dimensional evaluation to 1 candidates
+2025-11-18 22:40:35 - INFO - Batch multi_dimensional: 1 items in 7.11s
+2025-11-18 22:40:35 - INFO - Batch Performance: 8/8 calls successful, 21 items in 81.92s
+2025-11-18 22:40:35 - INFO - Estimated cost: $0.0241
+2025-11-18 22:40:35 - INFO - Bookmarking requested. Processing 1 results...
+2025-11-18 22:40:35 - INFO - Loaded 222 bookmarks from examples/data/bookmarks.json
+2025-11-18 22:40:35 - INFO - Bookmarked idea: 3. Sustainable Aviation Fuel from Agricultural Was... (ID: bookmark_20251118_224035_7c7417c2)
+2025-11-18 22:40:35 - INFO - Bookmarked result as bookmark_20251118_224035_7c7417c2
+2025-11-18 22:40:35 - INFO - Auto-saved long output to output/markdown/madspark_renewable_energy_20251118_224035.md
+
+🚀 Generating ideas with AI model...
+⏳ This may take 30-60 seconds for quality results...
+
+✅ Bookmarked result (ID: bookmark_20251118_224035_7c7417c2)
+================================================================================
+MADSPARK MULTI-AGENT IDEA GENERATION RESULTS
+================================================================================
+
+
+... [Output truncated - 145 more lines]
+(Full output saved to file - use --output-file to specify location)
+
+📄 Full output saved to: output/markdown/madspark_renewable_energy_20251118_224035.md

@@ -1,0 +1,83 @@
+2025-11-18 23:30:02 - INFO - Using default constraints
+2025-11-18 23:30:02 - INFO - Temperature Settings:
+  Base: 0.7
+  Idea Generation: 0.9
+  Evaluation: 0.3
+  Advocacy: 0.5
+  Skepticism: 0.5
+2025-11-18 23:30:02 - INFO - Running MadSpark workflow with theme: 'test complete workflow'
+2025-11-18 23:30:02 - INFO - Constraints: Generate practical and innovative ideas
+2025-11-18 23:30:02 - INFO - Using synchronous execution
+2025-11-18 23:30:02 - INFO - Enhanced reasoning engine initialized
+2025-11-18 23:30:02 - INFO - Router initialized: primary=auto, tier=fast, fallback=True, cache=True
+2025-11-18 23:30:02 - INFO - Initialized cache at /Users/yuyamukai/.cache/madspark/llm (max size: 1000MB)
+2025-11-18 23:30:02 - INFO - HTTP Request: GET http://localhost:11434/api/tags "HTTP/1.1 200 OK"
+2025-11-18 23:30:15 - INFO - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+2025-11-18 23:30:15 - INFO - Ollama generated structured output in 13095ms (293 tokens)
+2025-11-18 23:30:15 - INFO - Generated via ollama in 13097ms (293 tokens)
+2025-11-18 23:30:15 - INFO - Router generated ideas via ollama (293 tokens)
+2025-11-18 23:30:15 - INFO - Generated 5 ideas
+2025-11-18 23:30:15 - INFO - Batch idea_generation: 10 items in 13.14s, 337 tokens, ~$0.0009
+2025-11-18 23:30:15 - INFO - Generated 5 ideas
+2025-11-18 23:30:15 - INFO - Novelty filter processed 5 ideas: 5 novel, 0 duplicates/similar
+2025-11-18 23:30:18 - INFO - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+2025-11-18 23:30:18 - INFO - Ollama generated structured output in 2920ms (47 tokens)
+2025-11-18 23:30:18 - INFO - Generated via ollama in 2920ms (47 tokens)
+2025-11-18 23:30:18 - INFO - Router generated evaluation via ollama (47 tokens)
+2025-11-18 23:30:18 - INFO - Batch evaluation: 5 items in 2.93s, 71 tokens, ~$0.0002
+2025-11-18 23:30:18 - INFO - Selected 1 top candidates for further processing.
+2025-11-18 23:30:18 - INFO - AFC is enabled with max remote calls: 10.
+2025-11-18 23:30:22 - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+2025-11-18 23:30:22 - INFO - AFC remote call 1 is done.
+2025-11-18 23:30:22 - INFO - AFC is enabled with max remote calls: 10.
+2025-11-18 23:30:25 - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+2025-11-18 23:30:25 - INFO - AFC remote call 1 is done.
+2025-11-18 23:30:25 - INFO - Added multi-dimensional evaluation to 1 candidates
+2025-11-18 23:30:25 - INFO - Batch multi_dimensional: 1 items in 6.36s
+2025-11-18 23:30:25 - INFO - AFC is enabled with max remote calls: 10.
+2025-11-18 23:30:30 - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+2025-11-18 23:30:30 - INFO - AFC remote call 1 is done.
+2025-11-18 23:30:30 - INFO - Batch advocate: 1 items in 5.31s, 1217 tokens, ~$0.0033
+2025-11-18 23:30:30 - INFO - AFC is enabled with max remote calls: 10.
+2025-11-18 23:30:44 - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+2025-11-18 23:30:44 - INFO - AFC remote call 1 is done.
+2025-11-18 23:30:44 - INFO - Batch skeptic: 1 items in 14.20s, 2648 tokens, ~$0.0073
+2025-11-18 23:30:44 - INFO - AFC is enabled with max remote calls: 10.
+2025-11-18 23:30:58 - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+2025-11-18 23:30:58 - INFO - AFC remote call 1 is done.
+2025-11-18 23:30:58 - INFO - Batch improve: 1 items in 14.23s, 3893 tokens, ~$0.0107
+2025-11-18 23:30:58 - INFO - HTTP Request: GET http://localhost:11434/api/tags "HTTP/1.1 200 OK"
+2025-11-18 23:31:02 - INFO - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+2025-11-18 23:31:02 - INFO - Ollama generated structured output in 3988ms (88 tokens)
+2025-11-18 23:31:02 - INFO - Generated via ollama in 3989ms (88 tokens)
+2025-11-18 23:31:02 - INFO - Router generated evaluation via ollama (88 tokens)
+2025-11-18 23:31:02 - INFO - Batch reevaluation: 1 items in 4.00s, 117 tokens, ~$0.0003
+2025-11-18 23:31:02 - INFO - AFC is enabled with max remote calls: 10.
+2025-11-18 23:31:09 - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+2025-11-18 23:31:09 - INFO - AFC remote call 1 is done.
+2025-11-18 23:31:09 - INFO - AFC is enabled with max remote calls: 10.
+2025-11-18 23:31:13 - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+2025-11-18 23:31:13 - INFO - AFC remote call 1 is done.
+2025-11-18 23:31:13 - INFO - Added multi-dimensional evaluation to 1 candidates
+2025-11-18 23:31:13 - INFO - Batch multi_dimensional: 1 items in 10.61s
+2025-11-18 23:31:13 - INFO - Batch Performance: 8/8 calls successful, 21 items in 70.77s
+2025-11-18 23:31:13 - INFO - Estimated cost: $0.0228
+2025-11-18 23:31:13 - INFO - Bookmarking requested. Processing 1 results...
+2025-11-18 23:31:13 - INFO - Loaded 230 bookmarks from examples/data/bookmarks.json
+2025-11-18 23:31:13 - INFO - Bookmarked idea: Adaptive AI-Driven Test Optimization Platform with... (ID: bookmark_20251118_233113_6e6be816)
+2025-11-18 23:31:13 - INFO - Bookmarked result as bookmark_20251118_233113_6e6be816
+2025-11-18 23:31:13 - INFO - Auto-saved long output to output/markdown/madspark_test_complete_workflow_20251118_233113.md
+
+🚀 Generating ideas with AI model...
+⏳ This may take 30-60 seconds for quality results...
+
+✅ Bookmarked result (ID: bookmark_20251118_233113_6e6be816)
+================================================================================
+MADSPARK MULTI-AGENT IDEA GENERATION RESULTS
+================================================================================
+
+
+... [Output truncated - 170 more lines]
+(Full output saved to file - use --output-file to specify location)
+
+📄 Full output saved to: output/markdown/madspark_test_complete_workflow_20251118_233113.md

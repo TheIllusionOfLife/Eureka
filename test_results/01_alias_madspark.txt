@@ -1,0 +1,191 @@
+usage: ms [options] topic [context]
+
+Common operations:
+  ms "your topic"                    # Generate idea with default context
+  ms "your topic" "your context"     # Generate idea with specific context
+  ms --list-bookmarks                # List saved ideas
+  ms --help                          # Show this help
+  python -m madspark.cli.batch_metrics  # View API usage metrics
+MadSpark Multi-Agent Idea Generation System - Now with Google Gemini structured output for cleaner formatting and 50% fewer API calls through intelligent batch processing
+
+positional arguments:
+  theme                 Topic for idea generation (can be a phrase, question,
+                        or request)
+  constraints           Context and criteria for idea generation (optional
+                        additional information)
+
+options:
+  -h, --help            show this help message and exit
+  --version             Show version information and exit
+  --interactive, -i     Run in interactive mode with step-by-step guidance
+
+batch processing:
+  --batch FILE          Process multiple themes from CSV or JSON file
+  --batch-concurrent N  Maximum concurrent batch items (default: 3)
+  --batch-export-dir BATCH_EXPORT_DIR
+                        Directory for batch export results (default:
+                        batch_exports)
+  --create-sample-batch {csv,json}
+                        Create a sample batch file and exit
+
+workflow options:
+  --num-candidates, -n NUM_CANDIDATES
+                        (Deprecated: use --top-ideas instead) Number of top
+                        candidates to fully process
+  --top-ideas {1,2,3,4,5}
+                        Number of top ideas to generate (1-5, default: 1 for
+                        faster execution). Multiple ideas may take up to 5
+                        minutes to process.
+  --similarity {0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0}
+                        Similarity threshold for novelty filter (0.0-1.0)
+  --disable-novelty-filter
+                        Disable the novelty filter for duplicate detection
+  --novelty-threshold NOVELTY_THRESHOLD
+                        Threshold for novelty filter similarity detection
+                        (0.0-1.0, default: 0.8)
+  --async               Use async execution for better performance (Phase 2.3)
+  --enable-cache        Enable Redis caching for faster repeated queries
+                        (requires Redis)
+  --timeout TIMEOUT     Request timeout in seconds (default: 1200, i.e., 20
+                        minutes)
+
+temperature control:
+  --temperature, -t TEMP
+                        Base temperature for creativity (0.0-2.0, default:
+                        0.7)
+  --temperature-preset, -tp {conservative,balanced,creative,wild}
+                        Use a predefined temperature preset
+  --list-presets        List available temperature presets and exit
+
+bookmark management:
+  All generated ideas are automatically bookmarked for future reference
+
+  --no-bookmark         Disable automatic bookmarking of generated ideas
+  --bookmark-tags [BOOKMARK_TAGS ...]
+                        Tags to apply when bookmarking results
+  --bookmark-file BOOKMARK_FILE
+                        File to store bookmarks (default:
+                        examples/data/bookmarks.json)
+  --list-bookmarks      List all saved bookmarks and exit
+  --search-bookmarks QUERY
+                        Search bookmarks by text content
+  --remove-bookmark IDS
+                        Remove bookmarks by ID (comma-separated for multiple)
+  --remix-bookmarks IDS
+                        Remix ideas using specific bookmark IDs (comma-
+                        separated)
+
+remix functionality:
+  --remix               Generate ideas based on bookmarked ideas (remix mode)
+  --remix-ids [REMIX_IDS ...]
+                        Specific bookmark IDs to use for remix (default: use
+                        all)
+
+enhanced reasoning (Phase 2.1):
+  --enhanced-reasoning, --enhanced
+                        Add advocate & skeptic agents for balanced analysis
+                        (strengths/opportunities vs risks/flaws)
+  --multi-dimensional-eval
+                        (DEPRECATED: Always enabled) Multi-dimensional
+                        evaluation across 7 dimensions is now a core feature
+  --logical-inference, --logical
+                        Add logical inference analysis (causal chains,
+                        constraints, contradictions, implications)
+
+LLM provider options:
+  Control LLM provider selection, caching, and model tier
+
+  --provider {auto,ollama,gemini}
+                        LLM provider: auto (Ollama primary, Gemini fallback),
+                        ollama (local), gemini (cloud)
+  --model-tier {fast,balanced,quality}
+                        Model quality tier: fast (4B, quick), balanced (12B,
+                        better), quality (Gemini, best)
+  --no-fallback         Disable fallback to secondary provider on failure
+  --no-cache            Disable response caching (re-generate every time)
+  --clear-cache         Clear LLM response cache before running
+  --show-llm-stats      Show LLM provider statistics (tokens, cost, cache
+                        hits)
+  --no-router           Disable LLM router entirely (use direct Gemini API
+                        calls instead)
+
+output options:
+  --simple              Simple, clean output format
+  --brief, -b           Brief output showing only final results (default)
+  --detailed, -d        Detailed output with all agent interactions
+  --output-format {json,text,summary,simple,brief,detailed}
+                        Output format (overrides --simple/--brief/--detailed)
+  --output-file OUTPUT_FILE
+                        Save results to file instead of stdout
+  --verbose, -v         Enable verbose logging and show timestamps
+  --no-logs             Suppress all log output for clean results
+
+export options (Phase 2.2):
+  --export {json,csv,markdown,pdf,all}
+                        Export results to specified format
+  --export-dir EXPORT_DIR
+                        Directory for exported files (default: exports)
+  --export-filename EXPORT_FILENAME
+                        Base filename for exports (timestamp will be added if
+                        not specified)
+
+multi-modal inputs:
+  Provide additional context via files and URLs for richer idea generation
+
+  --url, -u URL         Add URL for context (e.g., competitor website,
+                        reference material). Can specify multiple times.
+  --file, -f PATH       Add file for context: PDF, text, markdown, or
+                        document. Can specify multiple times.
+  --image, -img PATH    Add image for visual context (PNG, JPG, JPEG, WebP,
+                        GIF, BMP). Can specify multiple times.
+
+Examples:
+  # Basic usage with topic and context
+  ms "Future transportation" "Budget-friendly, eco-friendly"
+  
+  # Questions (how to solve problems)
+  ms "How to reduce carbon footprint?" "small business"
+  
+  # Requests (come up with ideas)
+  ms "Come up with innovative ways to teach math" "elementary school"
+  
+  # General phrases (I want to...)
+  ms "I want to start a sustainable business. Support me." "zero initial capital"
+  
+  # Save results with custom tags (bookmarking is automatic)
+  ms "Smart cities" "Scalable solutions" --bookmark-tags smart urban tech
+  
+  # Enhanced reasoning with multi-dimensional evaluation
+  ms "AI healthcare" "Rural deployment" --enhanced-reasoning --multi-dimensional-eval
+  
+  # Generate ideas based on bookmarks (remix)
+  ms "Green energy" --remix --bookmark-tags renewable
+  
+  # Verbose mode with enhanced reasoning for detailed analysis
+  ms "Sustainable agriculture" "Low-cost" --verbose --enhanced-reasoning
+
+  # Multi-modal inputs: Analyze competitor website
+  ms "Improve our landing page" "Increase conversions" --url https://competitor.com
+
+  # Multi-modal inputs: Visual design inspiration
+  ms "Modern app redesign" "Clean, minimal" --image mockup.png --image wireframe.jpg
+
+  # Multi-modal inputs: Document analysis
+  ms "Summarize research findings" "Key insights" --file research.pdf --file data.csv
+
+  # Multi-modal inputs: Combined context
+  ms "Product improvement ideas" "User-focused" --url https://reviews.com --file feedback.pdf --image current-ui.png
+
+  # List saved bookmarks
+  ms --list-bookmarks
+
+  # Show temperature presets
+  ms --list-presets
+
+  # Batch processing
+  ms --create-sample-batch csv
+  ms --batch sample_batch.csv --batch-concurrent 5
+
+  # Interactive mode
+  ms --interactive
+        

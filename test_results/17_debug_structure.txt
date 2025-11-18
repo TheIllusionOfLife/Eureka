@@ -1,0 +1,56 @@
+WARNING:madspark.agents.idea_generator:Router error, falling back to direct API: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'The model is overloaded. Please try again later.', 'status': 'UNAVAILABLE'}}
+ERROR:root:Batch skeptic failed: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'The model is overloaded. Please try again later.', 'status': 'UNAVAILABLE'}}
+Traceback (most recent call last):
+  File "/Users/yuyamukai/Eureka/src/madspark/agents/skeptic.py", line 323, in criticize_ideas_batch
+    response = skeptic_client.models.generate_content(
+        model=model_name,
+        contents=prompt,
+        config=config
+    )
+  File "/Users/yuyamukai/Eureka/venv/lib/python3.13/site-packages/google/genai/models.py", line 5778, in generate_content
+    response = self._generate_content(
+        model=model, contents=contents, config=parsed_config
+    )
+  File "/Users/yuyamukai/Eureka/venv/lib/python3.13/site-packages/google/genai/models.py", line 4716, in _generate_content
+    response = self._api_client.request(
+        'post', path, request_dict, http_options
+    )
+  File "/Users/yuyamukai/Eureka/venv/lib/python3.13/site-packages/google/genai/_api_client.py", line 1077, in request
+    response = self._request(http_request, stream=False)
+  File "/Users/yuyamukai/Eureka/venv/lib/python3.13/site-packages/google/genai/_api_client.py", line 968, in _request
+    return self._retry(self._request_once, http_request, stream)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yuyamukai/Eureka/venv/lib/python3.13/site-packages/tenacity/__init__.py", line 475, in __call__
+    do = self.iter(retry_state=retry_state)
+  File "/Users/yuyamukai/Eureka/venv/lib/python3.13/site-packages/tenacity/__init__.py", line 376, in iter
+    result = action(retry_state)
+  File "/Users/yuyamukai/Eureka/venv/lib/python3.13/site-packages/tenacity/__init__.py", line 418, in exc_check
+    raise retry_exc.reraise()
+          ~~~~~~~~~~~~~~~~~^^
+  File "/Users/yuyamukai/Eureka/venv/lib/python3.13/site-packages/tenacity/__init__.py", line 185, in reraise
+    raise self.last_attempt.result()
+          ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.9_1/Frameworks/Python.framework/Versions/3.13/lib/python3.13/concurrent/futures/_base.py", line 449, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.9_1/Frameworks/Python.framework/Versions/3.13/lib/python3.13/concurrent/futures/_base.py", line 401, in __get_result
+    raise self._exception
+  File "/Users/yuyamukai/Eureka/venv/lib/python3.13/site-packages/tenacity/__init__.py", line 478, in __call__
+    result = fn(*args, **kwargs)
+  File "/Users/yuyamukai/Eureka/venv/lib/python3.13/site-packages/google/genai/_api_client.py", line 958, in _request_once
+    errors.APIError.raise_for_response(response)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/yuyamukai/Eureka/venv/lib/python3.13/site-packages/google/genai/errors.py", line 107, in raise_for_response
+    raise ServerError(status_code, response_json, response)
+google.genai.errors.ServerError: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'The model is overloaded. Please try again later.', 'status': 'UNAVAILABLE'}}
+ERROR:root:Batch skeptic failed: Batch skeptic failed: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'The model is overloaded. Please try again later.', 'status': 'UNAVAILABLE'}}
+WARNING:root:Multi-dimensional evaluation failed: Failed to evaluate ideas: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'The model is overloaded. Please try again later.', 'status': 'UNAVAILABLE'}}
+
+=== DEBUG: Results structure ===
+Number of results: 1
+Result keys: ['idea', 'initial_score', 'initial_critique', 'advocacy', 'skepticism', 'improved_idea', 'improved_score', 'improved_critique', 'score_delta', 'is_meaningful_improvement', 'similarity_score', 'improved_multi_dimensional_evaluation']
+
+❌ 'multi_dimensional_evaluation' key NOT found in results!
+
+=== End Debug ===
+

@@ -35,7 +35,7 @@ git clone https://github.com/TheIllusionOfLife/Eureka.git
 cd Eureka
 
 # Initial setup with interactive configuration
-./setup.sh  
+./scripts/setup.sh  
 
 # Configure your API key (for real AI responses)
 mad_spark config  # Interactive configuration
@@ -275,7 +275,7 @@ MadSpark uses Google Gemini's structured output feature for cleaner, more consis
 - 15-20% faster parsing with pre-compiled regex patterns
 - All agents support structured output (IdeaGenerator, Critic, Advocate, Skeptic)
 
-**📖 For JsonParser API usage and migration guide, see project documentation**
+> 📖 For JsonParser API usage and migration guide, see project documentation
 
 ### Bookmark Management
 

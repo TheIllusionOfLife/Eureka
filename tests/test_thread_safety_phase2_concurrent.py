@@ -9,7 +9,7 @@ not object identity (router instances may be cached/pooled internally).
 import pytest
 import asyncio
 from typing import Dict, Any
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 from madspark.llm.router import LLMRouter
 from madspark.core.async_coordinator import AsyncCoordinator

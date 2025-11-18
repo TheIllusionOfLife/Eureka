@@ -7,9 +7,6 @@ instead of manipulating global state.
 
 import os
 import pytest
-import asyncio
-from unittest.mock import Mock, patch, AsyncMock
-from madspark.llm.config import LLMConfig, ModelTier
 from madspark.llm.router import LLMRouter
 
 
@@ -87,7 +84,7 @@ class TestAgentFunctionsAcceptRouter:
         from madspark.agents.critic import evaluate_ideas
         import inspect
 
-        router = LLMRouter(primary_provider="ollama")
+        _router = LLMRouter(primary_provider="ollama")
 
         # Test 1: Check function signature accepts router parameter
         sig = inspect.signature(evaluate_ideas)
@@ -102,7 +99,7 @@ class TestAgentFunctionsAcceptRouter:
         from madspark.agents.advocate import advocate_idea
         import inspect
 
-        router = LLMRouter(primary_provider="gemini")
+        _router = LLMRouter(primary_provider="gemini")
 
         # Check function signature accepts router parameter
         sig = inspect.signature(advocate_idea)
@@ -116,7 +113,7 @@ class TestAgentFunctionsAcceptRouter:
         from madspark.agents.skeptic import criticize_idea
         import inspect
 
-        router = LLMRouter(primary_provider="ollama")
+        _router = LLMRouter(primary_provider="ollama")
 
         # Check function signature accepts router parameter
         sig = inspect.signature(criticize_idea)
@@ -130,7 +127,7 @@ class TestAgentFunctionsAcceptRouter:
         from madspark.agents.idea_generator import generate_ideas
         import inspect
 
-        router = LLMRouter(primary_provider="ollama")
+        _router = LLMRouter(primary_provider="ollama")
 
         # Check function signature accepts router parameter
         sig = inspect.signature(generate_ideas)
@@ -144,7 +141,7 @@ class TestAgentFunctionsAcceptRouter:
         from madspark.agents.structured_idea_generator import improve_idea_structured
         import inspect
 
-        router = LLMRouter(primary_provider="gemini")
+        _router = LLMRouter(primary_provider="gemini")
 
         # Check function signature accepts router parameter
         sig = inspect.signature(improve_idea_structured)
@@ -163,8 +160,8 @@ class TestNoEnvironmentManipulationInBackend:
         original_tier = os.environ.get("MADSPARK_MODEL_TIER")
 
         # Create multiple routers with different configs
-        router1 = LLMRouter(primary_provider="ollama")
-        router2 = LLMRouter(primary_provider="gemini")
+        _router1 = LLMRouter(primary_provider="ollama")
+        _router2 = LLMRouter(primary_provider="gemini")
 
         # Environment should be unchanged
         assert os.environ.get("MADSPARK_LLM_PROVIDER") == original_provider
@@ -178,7 +175,7 @@ class TestNoEnvironmentManipulationInBackend:
         original_env = dict(os.environ)
 
         router = LLMRouter(primary_provider="ollama")
-        coordinator = AsyncCoordinator(router=router)
+        _coordinator = AsyncCoordinator(router=router)
 
         # Environment should remain unchanged after coordinator creation
         assert dict(os.environ) == original_env

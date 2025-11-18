@@ -45,7 +45,7 @@ class TestReEvaluationContext:
         def mock_improve(*args, **kwargs):
             return ([{"improved_idea": "Enhanced idea with clear implementation plan", "key_improvements": ["improvement 1"]}], 100)
 
-        async def mock_evaluate(ideas, topic, context, temperature, use_structured_output=True):
+        async def mock_evaluate(ideas, topic, context, temperature, use_structured_output=True, router=None):
             nonlocal captured_prompt, captured_context
             captured_prompt = ideas
             captured_context = context
@@ -289,7 +289,7 @@ class TestReEvaluationPromptStructure:
         def mock_improve(*args, **kwargs):
             return ([{"improved_idea": "Much better version", "key_improvements": ["improvement 1"]}], 100)
 
-        async def mock_evaluate(ideas, topic, context, temperature, use_structured_output=True):
+        async def mock_evaluate(ideas, topic, context, temperature, use_structured_output=True, router=None):
             nonlocal captured_ideas_text
             captured_ideas_text = ideas
             return json.dumps([{"score": 8, "comment": "Good"}])

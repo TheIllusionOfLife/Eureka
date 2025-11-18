@@ -9,7 +9,7 @@ import json
 import logging
 import threading
 import time
-from typing import Any, Optional, Type, Union
+from typing import Any, Optional, Type, Union, TYPE_CHECKING
 from typing_extensions import TypedDict
 from pathlib import Path
 from pydantic import BaseModel, ValidationError
@@ -23,6 +23,9 @@ from madspark.llm.exceptions import (
     ProviderUnavailableError,
     SchemaValidationError,
 )
+
+if TYPE_CHECKING:
+    from madspark.llm.config import LLMConfig
 
 # Security constants
 MAX_PROMPT_LENGTH = 100_000  # Characters - prevents resource exhaustion

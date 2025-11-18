@@ -6,7 +6,6 @@ without requiring environment variable manipulation.
 """
 
 import os
-import pytest
 from unittest.mock import patch
 
 # Import after setting up test environment

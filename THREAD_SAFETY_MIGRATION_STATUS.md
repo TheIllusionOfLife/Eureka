@@ -3,7 +3,7 @@
 **PR**: #208
 **Branch**: `fix/backend-thread-safety`
 **Started**: 2025-11-18
-**Status**: 65% Complete (Phase 1-2 Mostly Done)
+**Status**: 100% Complete (Phase 1-2 DONE, Ready for Testing)
 
 ---
 
@@ -16,7 +16,7 @@ Eliminate thread-safety issues in backend by implementing request-scoped router 
 
 ---
 
-## ✅ Completed (65%)
+## ✅ Completed (100% - Phase 1-2)
 
 ### Phase 1: Immutable Configuration ✅
 - `LLMConfig` accepts constructor parameters
@@ -25,7 +25,7 @@ Eliminate thread-safety issues in backend by implementing request-scoped router 
 - 11 tests passing
 - **Commit**: c0226b9d
 
-### Phase 2: Request-Scoped Support ⚠️ (Mostly Complete)
+### Phase 2: Request-Scoped Support ✅ (Complete)
 
 **Core Infrastructure** ✅:
 - `AsyncCoordinator` accepts `router` parameter
@@ -33,7 +33,11 @@ Eliminate thread-safety issues in backend by implementing request-scoped router 
 - All 5 agents accept `router` parameter
 - Environment variable manipulation removed
 - Thread-safety locks removed (no longer needed)
-- 16 tests passing
+- All retry wrappers pass router through (**Commit**: a60fa51d)
+- All async wrapper functions pass router (**Commit**: d8da9718)
+- All coordinator call sites updated (**Commit**: 9f9cf890)
+- Concurrent request tests added (**Commit**: 2f935f21)
+- 29 tests passing (11 Phase 1 + 16 Phase 2 + 3 concurrent)
 
 **Agents Updated** ✅:
 - `Critic` (evaluate_ideas) - **Commit**: 5ccc1d13

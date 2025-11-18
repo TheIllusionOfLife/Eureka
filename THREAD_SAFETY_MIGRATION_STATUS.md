@@ -264,7 +264,8 @@ PYTHONPATH=src pytest tests/test_thread_safety_load.py -v --timeout=600
 
 **Tests**:
 - `tests/test_thread_safety_phase1.py` ✅ (11 tests)
-- `tests/test_thread_safety_phase2.py` ⚠️ (6/13 tests)
+- `tests/test_thread_safety_phase2.py` ✅ (16 tests)
+- `tests/test_thread_safety_phase2_concurrent.py` ✅ (3 tests)
 - `tests/test_thread_safety_load.py` ⏳ (not created)
 
 ---

@@ -14,8 +14,11 @@ import uuid
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, TYPE_CHECKING
 from contextlib import asynccontextmanager
+
+if TYPE_CHECKING:
+    from madspark.llm.router import LLMRouter
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Request, Query, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -218,6 +221,29 @@ class ErrorTracker:
         }
 
 error_tracker = ErrorTracker()
+
+
+def create_request_router(idea_request: "IdeaGenerationRequest") -> Optional["LLMRouter"]:
+    """Create a request-scoped LLMRouter from the request model.
+
+    Args:
+        idea_request: The IdeaGenerationRequest containing LLM configuration.
+
+    Returns:
+        LLMRouter instance if LLM_ROUTER_AVAILABLE, None otherwise.
+    """
+    if not LLM_ROUTER_AVAILABLE:
+        return None
+
+    from madspark.llm import LLMRouter
+
+    router = LLMRouter(
+        primary_provider=idea_request.llm_provider or "auto",
+        fallback_enabled=not getattr(idea_request, 'no_fallback', False),
+        cache_enabled=idea_request.use_llm_cache if idea_request.use_llm_cache is not None else True,
+    )
+    logger.info(f"Request-scoped LLM Router created: provider={router._primary_provider}, cache={router._cache_enabled}")
+    return router
 
 
 def generate_mock_results(topic: str, num_ideas: int, logical_inference: bool = False) -> List[Dict[str, Any]]:
@@ -1393,15 +1419,7 @@ async def generate_ideas(
             raise
 
         # Create request-scoped router for thread-safe configuration
-        request_router = None
-        if LLM_ROUTER_AVAILABLE:
-            from madspark.llm import LLMRouter
-            request_router = LLMRouter(
-                primary_provider=idea_request.llm_provider or "auto",
-                fallback_enabled=not getattr(idea_request, 'no_fallback', False),
-                cache_enabled=idea_request.use_llm_cache if idea_request.use_llm_cache is not None else True,
-            )
-            logger.info(f"LLM Router created: provider={idea_request.llm_provider}, cache={idea_request.use_llm_cache}")
+        request_router = create_request_router(idea_request)
 
         # Create async coordinator with cache, progress callback, and request-scoped router
         async_coordinator = AsyncCoordinator(
@@ -1542,15 +1560,7 @@ async def generate_ideas_async(request: Request, idea_request: IdeaGenerationReq
         logger.warning(f"MAX_CONCURRENT_AGENTS must be a positive integer, got '{env_val}'. Using default: 10")
 
     # Create request-scoped router for thread-safe configuration
-    request_router = None
-    if LLM_ROUTER_AVAILABLE:
-        from madspark.llm import LLMRouter
-        request_router = LLMRouter(
-            primary_provider=idea_request.llm_provider or "auto",
-            fallback_enabled=not getattr(idea_request, 'no_fallback', False),
-            cache_enabled=idea_request.use_llm_cache if idea_request.use_llm_cache is not None else True,
-        )
-        logger.info(f"Async LLM Router created: provider={idea_request.llm_provider}, cache={idea_request.use_llm_cache}")
+    request_router = create_request_router(idea_request)
 
     # Create async coordinator with cache and request-scoped router
     async_coordinator = AsyncCoordinator(

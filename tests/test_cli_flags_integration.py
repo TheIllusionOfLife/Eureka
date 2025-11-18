@@ -448,3 +448,138 @@ class TestCombinedFlags:
                 "Result should include advocacy/skepticism data"
             assert "logical_inference" in result[0], \
                 "Result should include logical inference data"
+
+
+class TestWorkflowExecutorFlagIntegration:
+    """High-level CLI integration tests via WorkflowExecutor (Issue #8)."""
+
+    def test_workflow_executor_with_enhanced_reasoning_flag(self):
+        """Test WorkflowExecutor.execute() properly forwards --enhanced-reasoning flag."""
+        import argparse
+        import logging
+        from madspark.cli.commands.workflow_executor import WorkflowExecutor
+
+        # Create args with enhanced_reasoning=True
+        args = argparse.Namespace()
+        args.theme = "Test Theme"
+        args.constraints = "Test Context"
+        args.verbose = False
+        args.timeout = 60
+        args.top_ideas = None
+        args.enhanced_reasoning = True  # --enhanced-reasoning flag
+        args.logical_inference = False
+        args.similarity_threshold = None
+        args.novelty_threshold = 0.7
+        args.disable_novelty_filter = False
+        args.multimodal_files = None
+        args.multimodal_images = None
+        args.multimodal_urls = None
+
+        mock_logger = Mock(spec=logging.Logger)
+        mock_temp_manager = Mock()
+        mock_results = [{"text": "test idea", "score": 8.0, "advocacy": {"strengths": []}}]
+
+        with patch('madspark.cli.commands.workflow_executor.run_multistep_workflow', return_value=mock_results) as mock_workflow:
+            with patch('madspark.cli.commands.workflow_executor.determine_num_candidates', return_value=1):
+                executor = WorkflowExecutor(args, mock_logger, mock_temp_manager)
+                result = executor.execute()
+
+                # Verify success
+                assert result.success is True
+                assert result.data == mock_results
+
+                # Verify enhanced_reasoning was passed to workflow
+                call_kwargs = mock_workflow.call_args.kwargs
+                assert 'enhanced_reasoning' in call_kwargs, \
+                    "WorkflowExecutor should pass enhanced_reasoning to workflow"
+                assert call_kwargs['enhanced_reasoning'] is True, \
+                    "enhanced_reasoning flag should be True"
+
+    def test_workflow_executor_with_logical_inference_flag(self):
+        """Test WorkflowExecutor.execute() properly forwards --logical flag."""
+        import argparse
+        import logging
+        from madspark.cli.commands.workflow_executor import WorkflowExecutor
+
+        # Create args with logical_inference=True
+        args = argparse.Namespace()
+        args.theme = "Test Theme"
+        args.constraints = "Test Context"
+        args.verbose = False
+        args.timeout = 60
+        args.top_ideas = None
+        args.enhanced_reasoning = False
+        args.logical_inference = True  # --logical flag
+        args.similarity_threshold = None
+        args.novelty_threshold = 0.7
+        args.disable_novelty_filter = False
+        args.multimodal_files = None
+        args.multimodal_images = None
+        args.multimodal_urls = None
+
+        mock_logger = Mock(spec=logging.Logger)
+        mock_temp_manager = Mock()
+        mock_results = [{"text": "test idea", "score": 8.0, "logical_inference": {"confidence": 0.8}}]
+
+        with patch('madspark.cli.commands.workflow_executor.run_multistep_workflow', return_value=mock_results) as mock_workflow:
+            with patch('madspark.cli.commands.workflow_executor.determine_num_candidates', return_value=1):
+                executor = WorkflowExecutor(args, mock_logger, mock_temp_manager)
+                result = executor.execute()
+
+                # Verify success
+                assert result.success is True
+                assert result.data == mock_results
+
+                # Verify logical_inference was passed to workflow
+                call_kwargs = mock_workflow.call_args.kwargs
+                assert 'logical_inference' in call_kwargs, \
+                    "WorkflowExecutor should pass logical_inference to workflow"
+                assert call_kwargs['logical_inference'] is True, \
+                    "logical_inference flag should be True"
+
+    def test_workflow_executor_with_both_flags(self):
+        """Test WorkflowExecutor.execute() with both --enhanced and --logical flags."""
+        import argparse
+        import logging
+        from madspark.cli.commands.workflow_executor import WorkflowExecutor
+
+        # Create args with both flags enabled
+        args = argparse.Namespace()
+        args.theme = "Test Theme"
+        args.constraints = "Test Context"
+        args.verbose = False
+        args.timeout = 60
+        args.top_ideas = None
+        args.enhanced_reasoning = True  # --enhanced-reasoning flag
+        args.logical_inference = True   # --logical flag
+        args.similarity_threshold = None
+        args.novelty_threshold = 0.7
+        args.disable_novelty_filter = False
+        args.multimodal_files = None
+        args.multimodal_images = None
+        args.multimodal_urls = None
+
+        mock_logger = Mock(spec=logging.Logger)
+        mock_temp_manager = Mock()
+        mock_results = [{
+            "text": "test idea",
+            "score": 8.0,
+            "advocacy": {"strengths": []},
+            "logical_inference": {"confidence": 0.8}
+        }]
+
+        with patch('madspark.cli.commands.workflow_executor.run_multistep_workflow', return_value=mock_results) as mock_workflow:
+            with patch('madspark.cli.commands.workflow_executor.determine_num_candidates', return_value=1):
+                executor = WorkflowExecutor(args, mock_logger, mock_temp_manager)
+                result = executor.execute()
+
+                # Verify success
+                assert result.success is True
+                assert result.data == mock_results
+
+                # Verify both flags were passed to workflow
+                call_kwargs = mock_workflow.call_args.kwargs
+                assert call_kwargs['enhanced_reasoning'] is True, \
+                    "enhanced_reasoning should be True"
+                assert call_kwargs['logical_inference'] is True, \
+                    "logical_inference should be True"

@@ -183,7 +183,7 @@ class TestSetupUserFlow:
     
     def test_new_user_with_api_key_flow(self):
         """Test complete flow for new user who has an API key."""
-        # 1. User runs ./setup.sh
+        # 1. User runs ./scripts/setup.sh
         # 2. Prompted for API key
         # 3. Enters valid key
         # 4. Setup completes with success message

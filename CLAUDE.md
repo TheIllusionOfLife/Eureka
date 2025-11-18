@@ -24,8 +24,8 @@ Eureka features the MadSpark Multi-Agent System, a sophisticated AI-powered expe
 ## Development & Testing
 
 For comprehensive development workflows, testing commands, and CI/CD guidelines, see:
-- **Development Setup**: README.md "Development" section (lines 620-664)
-- **Testing Commands**: README.md "Testing" section
+- **Development Setup**: See the "Development" section in `README.md`
+- **Testing Commands**: See the "Testing" subsection under "Development" in `README.md`
 - **CI/CD Guidelines**: `docs/ci-policy.md` for complete CI management
 
 **Key Reminders:**

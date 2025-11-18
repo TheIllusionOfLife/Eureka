@@ -237,6 +237,7 @@ web/frontend/coverage/
 web/backend/coverage/
 
 # Test artifacts and validation data
+test_results/
 test_results_*.txt
 test_data/
 

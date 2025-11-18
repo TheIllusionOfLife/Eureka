@@ -1015,7 +1015,8 @@ class AsyncCoordinator(BatchOperationsBase):
                     ):
                         if inference_result and hasattr(inference_result, "confidence"):
                             confidence = getattr(inference_result, "confidence", 0.0)
-                            if confidence > LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD:
+                            # Use >= for inclusive threshold (consistent with coordinator_batch.py)
+                            if confidence >= LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD:
                                 # Normalize Pydantic InferenceResult to dictionary for storage
                                 normalized_result = self.normalize_agent_response(
                                     inference_result, expected_type="dict"

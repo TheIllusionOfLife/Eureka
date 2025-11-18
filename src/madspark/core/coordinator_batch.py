@@ -6,8 +6,14 @@ advocate, skeptic, and improvement processing.
 """
 import logging
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import TYPE_CHECKING, Any, List, Optional, Union
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
+
+if TYPE_CHECKING:
+    try:
+        from madspark.utils.logical_inference_engine import LogicalInferenceEngine
+    except ImportError:
+        LogicalInferenceEngine = Any  # type: ignore
 
 from madspark.config.execution_constants import ConcurrencyConfig
 from madspark.utils.batch_monitor import get_batch_monitor
@@ -19,7 +25,10 @@ from madspark.core.types_and_logging import (
 from madspark.utils.text_similarity import is_meaningful_improvement
 from madspark.utils.constants import (
     MEANINGFUL_IMPROVEMENT_SIMILARITY_THRESHOLD,
-    MEANINGFUL_IMPROVEMENT_SCORE_DELTA
+    MEANINGFUL_IMPROVEMENT_SCORE_DELTA,
+    LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD,
+    TOKENS_PER_WORD_ESTIMATE,
+    OUTPUT_TOKENS_PER_INFERENCE
 )
 from madspark.utils.temperature_control import TemperatureManager
 from madspark.utils.novelty_filter import NoveltyFilter
@@ -49,6 +58,7 @@ def run_multistep_workflow_batch(
     num_top_candidates: int = 2,
     enable_reasoning: bool = True,
     multi_dimensional_eval: bool = False,
+    logical_inference: bool = False,
     temperature_manager: Optional[TemperatureManager] = None,
     novelty_filter: Optional[NoveltyFilter] = None,
     verbose: bool = False,
@@ -67,13 +77,16 @@ def run_multistep_workflow_batch(
         topic: Main topic/theme for idea generation
         context: Context/constraints for the ideas
         num_top_candidates: Number of top ideas to fully process
-        enable_reasoning: Whether to use enhanced reasoning
+        enable_reasoning: Whether to use enhanced reasoning (advocate/skeptic)
         multi_dimensional_eval: Whether to use multi-dimensional evaluation
+        logical_inference: Whether to perform logical inference analysis
         temperature_manager: Optional temperature control
         novelty_filter: Optional novelty filtering
         verbose: Enable verbose logging
         reasoning_engine: Optional pre-initialized reasoning engine
         timeout: Maximum time allowed for the entire workflow in seconds
+        multimodal_files: Optional list of file paths for multimodal input
+        multimodal_urls: Optional list of URLs for multimodal input
         
     Returns:
         List of fully processed candidate data
@@ -93,7 +106,7 @@ def run_multistep_workflow_batch(
             future = executor.submit(
                 _run_workflow_internal,
                 topic, context, num_top_candidates, enable_reasoning,
-                multi_dimensional_eval, temperature_manager, novelty_filter,
+                multi_dimensional_eval, logical_inference, temperature_manager, novelty_filter,
                 verbose, reasoning_engine, multimodal_files, multimodal_urls
             )
             try:
@@ -108,7 +121,7 @@ def run_multistep_workflow_batch(
         # Run without timeout
         return _run_workflow_internal(
             topic, context, num_top_candidates, enable_reasoning,
-            multi_dimensional_eval, temperature_manager, novelty_filter,
+            multi_dimensional_eval, logical_inference, temperature_manager, novelty_filter,
             verbose, reasoning_engine, multimodal_files, multimodal_urls
         )
 
@@ -119,6 +132,7 @@ def _run_workflow_internal(
     num_top_candidates: int = 2,
     enable_reasoning: bool = True,
     multi_dimensional_eval: bool = False,
+    logical_inference: bool = False,
     temperature_manager: Optional[TemperatureManager] = None,
     novelty_filter: Optional[NoveltyFilter] = None,
     verbose: bool = False,
@@ -139,7 +153,7 @@ def _run_workflow_internal(
 
     # Initialize enhanced reasoning if needed
     engine = reasoning_engine
-    if (enable_reasoning or multi_dimensional_eval) and engine is None:
+    if (enable_reasoning or multi_dimensional_eval or logical_inference) and engine is None:
         try:
             from madspark.agents.genai_client import get_genai_client
             genai_client = get_genai_client()
@@ -254,23 +268,168 @@ def _run_workflow_internal(
             context=context,
             monitor=monitor
         )
-    
-    # Step 3: Advocacy Processing using orchestrator
-    top_candidates, _ = orchestrator.process_advocacy_with_monitoring(
-        candidates=top_candidates,
-        topic=topic,
-        context=context,
-        monitor=monitor
-    )
 
-    # Step 4: Skepticism Processing using orchestrator
-    top_candidates, _ = orchestrator.process_skepticism_with_monitoring(
-        candidates=top_candidates,
-        topic=topic,
-        context=context,
-        monitor=monitor
-    )
-    
+    # Step 3: Advocacy Processing using orchestrator (if enhanced reasoning enabled)
+    if enable_reasoning:
+        top_candidates, _ = orchestrator.process_advocacy_with_monitoring(
+            candidates=top_candidates,
+            topic=topic,
+            context=context,
+            monitor=monitor
+        )
+
+    # Step 4: Skepticism Processing using orchestrator (if enhanced reasoning enabled)
+    if enable_reasoning:
+        top_candidates, _ = orchestrator.process_skepticism_with_monitoring(
+            candidates=top_candidates,
+            topic=topic,
+            context=context,
+            monitor=monitor
+        )
+
+    # Step 4.5: Logical Inference Processing (if enabled)
+    if logical_inference:
+        # Use getattr for robust access to logical_inference_engine attribute
+        logical_engine: Optional["LogicalInferenceEngine"] = (
+            getattr(engine, 'logical_inference_engine', None) if engine else None
+        )
+
+        if not engine:
+            logging.warning(
+                "Logical inference requested (--logical flag) but no reasoning engine provided. "
+                "Skipping logical analysis."
+            )
+        elif not logical_engine:
+            # Fallback to rule-based inference when google.genai not available
+            logging.info(
+                "Logical inference engine not available (google.genai missing). "
+                "Using rule-based inference fallback."
+            )
+            log_verbose_step("STEP 4.5: Logical Inference Analysis (Rule-Based)",
+                            f"🧠 Analyzing {len(top_candidates)} candidates with rule-based inference",
+                            verbose)
+            try:
+                # Initialize all candidates with None first
+                for candidate in top_candidates:
+                    candidate["logical_inference"] = None
+
+                # Use rule-based inference from reasoning engine
+                if hasattr(engine, 'logical_inference'):
+                    for candidate in top_candidates:
+                        try:
+                            # Build inference chain using rule-based approach
+                            inference_chain = engine.logical_inference.build_inference_chain(
+                                candidate["text"],
+                                topic,
+                                context
+                            )
+                            if inference_chain:
+                                candidate["logical_inference"] = {
+                                    "confidence": 0.7,  # Rule-based has moderate confidence
+                                    "conclusion": f"Rule-based analysis for: {candidate['text'][:50]}...",
+                                    "inference_chain": inference_chain,
+                                    "improvements": None
+                                }
+                        except Exception as e:
+                            logging.debug(f"Rule-based inference failed for candidate: {e}")
+                            # Keep as None
+            except Exception as e:
+                logging.error(
+                    f"Rule-based logical inference failed with error of type {type(e).__name__}: {e}"
+                )
+        else:
+            # LLM-based inference with monitoring
+            log_verbose_step("STEP 4.5: Logical Inference Analysis",
+                            f"🧠 Analyzing {len(top_candidates)} candidates with logical inference",
+                            verbose)
+            try:
+                from madspark.utils.logical_inference_engine import InferenceType
+
+                # Extract ideas for batch processing
+                ideas_for_inference = [candidate["text"] for candidate in top_candidates]
+
+                # Monitor the batch API call (Issue #4)
+                batch_context = monitor.start_batch_call(
+                    batch_type="logical_inference",
+                    items_count=len(ideas_for_inference)
+                )
+
+                try:
+                    # Run batch logical inference - single API call for all ideas
+                    inference_results = logical_engine.analyze_batch(
+                        ideas_for_inference,
+                        topic,
+                        context,
+                        InferenceType.FULL
+                    )
+
+                    # End monitoring with token estimates
+                    # Note: Token estimation is approximate since LLMs use subword tokenization
+                    # Actual counts may vary ±20-50% from these estimates
+                    input_tokens = sum(len(idea.split()) * TOKENS_PER_WORD_ESTIMATE for idea in ideas_for_inference)
+                    output_tokens = len(inference_results) * OUTPUT_TOKENS_PER_INFERENCE
+
+                    monitor.end_batch_call(
+                        context=batch_context,
+                        success=True,
+                        tokens_used=input_tokens + output_tokens,
+                        model_name="gemini-2.5-flash"  # LogicalInferenceEngine uses flash model
+                    )
+                except Exception as e:
+                    monitor.end_batch_call(
+                        context=batch_context,
+                        success=False,
+                        error_message=str(e)
+                    )
+                    raise
+
+                # Initialize all candidates with None first
+                for candidate in top_candidates:
+                    candidate["logical_inference"] = None
+
+                # Pair candidates with results using index to handle mismatches
+                if len(inference_results) != len(top_candidates):
+                    logging.warning(
+                        f"Logical inference result count mismatch: {len(inference_results)} results "
+                        f"for {len(top_candidates)} candidates. Some results may be missing."
+                    )
+
+                for idx, candidate in enumerate(top_candidates):
+                    # Safely get result by index, default to None if missing
+                    inference_result = inference_results[idx] if idx < len(inference_results) else None
+
+                    if inference_result and hasattr(inference_result, 'confidence'):
+                        confidence = getattr(inference_result, 'confidence', 0.0)
+
+                        # Only include results with confidence at or above threshold
+                        # With threshold=0.0, this includes all inferences (inclusive comparison)
+                        if confidence >= LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD:
+                            candidate["logical_inference"] = {
+                                "confidence": confidence,
+                                "conclusion": getattr(inference_result, 'conclusion', ''),
+                                "inference_chain": getattr(inference_result, 'inference_chain', []),
+                                "improvements": getattr(inference_result, 'improvements', None)
+                            }
+                        else:
+                            logging.debug(
+                                f"Low confidence inference ({confidence:.2f}) excluded for idea: "
+                                f"{candidate['text'][:50]}..."
+                            )
+                    else:
+                        if idx < len(inference_results):
+                            logging.warning(
+                                f"Invalid inference result for candidate {idx}: "
+                                f"missing confidence attribute"
+                            )
+                        # Keep as None (already set above)
+
+            except Exception as e:
+                logging.error(
+                    f"Logical inference failed with unexpected error of type {type(e).__name__}: {e}"
+                )
+                # Don't fail the entire workflow, just skip logical inference
+                # (candidates already initialized with None at line 373)
+
     # Step 5: Improvement Processing using orchestrator
     top_candidates, _ = orchestrator.improve_ideas_with_monitoring(
         candidates=top_candidates,
@@ -318,16 +477,16 @@ def _run_workflow_internal(
             del candidate["_original_text"]
     
     # Step 9: Build final results
-    log_verbose_step("STEP 7: Building Final Results", 
-                    f"📦 Packaging {len(top_candidates)} complete candidates", 
+    log_verbose_step("STEP 7: Building Final Results",
+                    f"📦 Packaging {len(top_candidates)} complete candidates",
                     verbose)
-    
+
     for i, candidate in enumerate(top_candidates):
         # Calculate score delta
         initial_score = candidate["score"]
         improved_score = candidate.get("improved_score", initial_score)
         score_delta = improved_score - initial_score
-        
+
         # Check if improvement is meaningful
         is_meaningful, similarity_score = is_meaningful_improvement(
             candidate["text"],
@@ -336,7 +495,7 @@ def _run_workflow_internal(
             similarity_threshold=MEANINGFUL_IMPROVEMENT_SIMILARITY_THRESHOLD,
             score_delta_threshold=MEANINGFUL_IMPROVEMENT_SCORE_DELTA
         )
-        
+
         # Build candidate data
         candidate_data = {
             "idea": candidate["text"],
@@ -351,18 +510,21 @@ def _run_workflow_internal(
             "is_meaningful_improvement": is_meaningful,
             "similarity_score": similarity_score
         }
-        
+
         # Add multi-dimensional evaluation if available
         if "multi_dimensional_evaluation" in candidate:
             candidate_data["multi_dimensional_evaluation"] = candidate["multi_dimensional_evaluation"]
-        
+
         if "improved_multi_dimensional_evaluation" in candidate:
             candidate_data["improved_multi_dimensional_evaluation"] = candidate["improved_multi_dimensional_evaluation"]
-        
+
+        # Add logical inference if available
+        if "logical_inference" in candidate:
+            candidate_data["logical_inference"] = candidate["logical_inference"]
+
         final_candidates_data.append(candidate_data)
-    
-    # Generate monitoring summary
-    monitor = get_batch_monitor()
+
+    # Generate monitoring summary (reuse existing monitor instance to get accurate stats)
     session_summary = monitor.get_session_summary()
     cost_analysis = monitor.analyze_cost_effectiveness()
     

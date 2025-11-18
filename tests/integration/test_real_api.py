@@ -7,16 +7,13 @@ works correctly in production-like conditions.
 import os
 import sys
 import asyncio
-import json
 import time
-from typing import List, Dict, Any
 
 # Add src to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
 
 from madspark.core.async_coordinator import AsyncCoordinator
 from madspark.core.coordinator_batch import run_multistep_workflow_batch
-from madspark.cli.cli import main as cli_main
 
 
 class Colors:
@@ -142,8 +139,8 @@ async def test_parallel_processing():
         
         print_success(f"Completed in {elapsed_time:.2f} seconds")
         print(f"  - Generated {len(results)} ideas")
-        print(f"  - With enhanced reasoning: Yes")
-        print(f"  - With logical inference: Yes")
+        print("  - With enhanced reasoning: Yes")
+        print("  - With logical inference: Yes")
         
         # Check that all expected fields are present
         result = results[0]
@@ -311,7 +308,7 @@ async def test_error_handling():
 async def main():
     """Run all tests."""
     print(f"{Colors.BOLD}MadSpark Real API Test Suite{Colors.RESET}")
-    print(f"Testing all workflow improvements with real API calls\n")
+    print("Testing all workflow improvements with real API calls\n")
     
     # Check API key first
     if not check_api_key():

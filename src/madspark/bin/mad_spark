@@ -6,10 +6,10 @@ import os
 import sys
 from pathlib import Path
 
-# Find project root by looking for setup.sh
+# Find project root by looking for README.md or run.py
 current = Path(__file__).resolve()
 while current != current.parent:
-    if (current / "setup.sh").exists():
+    if (current / "README.md").exists() or (current / "run.py").exists():
         project_root = current
         break
     current = current.parent

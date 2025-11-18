@@ -16,10 +16,10 @@ PURPLE = '\033[0;35m'
 NC = '\033[0m'  # No Color
 
 def get_project_root():
-    """Find project root by looking for setup.sh"""
+    """Find project root by looking for README.md or run.py"""
     current = Path(__file__).resolve()
     while current != current.parent:
-        if (current / "setup.sh").exists():
+        if (current / "README.md").exists() or (current / "run.py").exists():
             return current
         current = current.parent
     return None

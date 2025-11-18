@@ -212,7 +212,7 @@
   - **CRITICAL Bug Fix**: Fixed missing topic parameter in improve_ideas_batch call (caught by chatgpt-codex-connector review)
   - **Code Quality**: Imported constants from utils.constants, added TODO comments for token counting enhancement
   - **PR Review Success**: Systematically addressed feedback from 5 reviewers using GraphQL extraction protocol
-  - **Files Created**: workflow_orchestrator.py (559 lines), workflow_constants.py (34 lines), test_workflow_orchestrator.py (607 lines), manual_test_orchestrator.py (175 lines), test_orchestrator_coordinator.py (130 lines), IMPLEMENTATION_SUMMARY.md (328 lines)
+  - **Files Created**: workflow_orchestrator.py (559 lines), workflow_constants.py (34 lines), test_workflow_orchestrator.py (607 lines), manual_test_orchestrator.py (175 lines), test_orchestrator_coordinator.py (130 lines), [IMPLEMENTATION_SUMMARY.md](docs/archive/IMPLEMENTATION_SUMMARY.md) (328 lines)
   - **Total Impact**: +1,837 lines across 7 files
   - **Design Patterns**: Strategy Pattern (workflow steps), Dependency Injection (temperature manager, reasoning engine), Fallback Pattern (error recovery), Builder Pattern (final results assembly)
   - **Key Features**: Batch API optimization (O(1) calls), context preservation for re-evaluation, comprehensive error handling, lazy initialization
@@ -292,7 +292,7 @@
    - **Expected Impact**: Additional ~200 line reduction, but diminishing returns on maintainability
 
 5. **[Phase 3] Core Module Type Hints**
-   - **Source**: refactoring_plan_20251106.md Phase 3.3
+   - **Source**: docs/archive/refactoring_plan_20251106.md Phase 3.3
    - **Context**: Add type hints to core modules (coordinator.py, async_coordinator.py, enhanced_reasoning.py)
    - **Approach**: Similar to PR #176 - TDD with test_[module]_type_hints.py
    - **Estimate**: 6 hours
@@ -513,16 +513,16 @@
 
 #### Detailed Refactoring Tasks
 
-**Next Refactoring Phases** (from refactoring_plan_20251106.md)
+**Next Refactoring Phases** (from docs/archive/refactoring_plan_20251106.md)
 
 1. **[HIGH] Task 4.3: Improve Error Handling Consistency**
-   - **Source**: refactoring_plan_20251106.md - Phase 4, Task 4.3
+   - **Source**: docs/archive/refactoring_plan_20251106.md - Phase 4, Task 4.3
    - **Context**: Inconsistent error handling patterns across codebase (ConfigurationError vs ValueError, logging inconsistencies)
    - **Approach**: Create unified error hierarchy (src/madspark/utils/error_handling.py), standardize logging patterns, ensure consistent user-facing messages
    - **Estimate**: 4 hours
 
 2. **[HIGH] Task 3.4: Centralize Configuration Constants**
-   - **Source**: refactoring_plan_20251106.md - Phase 3, Task 3.4
+   - **Source**: docs/archive/refactoring_plan_20251106.md - Phase 3, Task 3.4
    - **Context**: Configuration scattered across multiple files - thread pool sizes (4 in multiple places), timeouts (60.0, 30.0, 45.0), output limits (5000 lines), regex limits (500 characters)
    - **Approach**: Create src/madspark/config/execution_constants.py, migrate all hard-coded values via search/replace
    - **Estimate**: 3 hours

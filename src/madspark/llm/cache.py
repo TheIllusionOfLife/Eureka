@@ -12,7 +12,7 @@ import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional, Type
-from pydantic import BaseModel
+from pydantic import BaseModel, RootModel
 
 from madspark.llm.response import LLMResponse
 from madspark.llm.config import get_config
@@ -289,14 +289,22 @@ class ResponseCache:
             validated_obj, response = value
 
             # Serialize to cacheable format with explicit type checking
-            if isinstance(validated_obj, BaseModel):
+            # Check RootModel first since it's a BaseModel subclass
+            if isinstance(validated_obj, RootModel):
+                # RootModel wraps a list/primitive, serialize to dict wrapper
+                dumped = validated_obj.model_dump()
+                validated_dict = {"root": dumped}
+            elif isinstance(validated_obj, BaseModel):
                 validated_dict = validated_obj.model_dump()
             elif isinstance(validated_obj, dict):
                 validated_dict = validated_obj
+            elif isinstance(validated_obj, list):
+                # Handle raw lists (e.g., from RootModel that was already dumped)
+                validated_dict = {"root": validated_obj}
             else:
                 raise TypeError(
                     f"Cannot cache object of type {type(validated_obj).__name__}. "
-                    f"Expected BaseModel or dict."
+                    f"Expected BaseModel, RootModel, dict, or list."
                 )
 
             response_dict = response.to_dict()

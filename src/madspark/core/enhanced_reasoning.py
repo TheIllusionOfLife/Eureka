@@ -21,11 +21,12 @@ from ..utils.logical_inference_engine import (
     LogicalInferenceEngine,
     InferenceType
 )
-from madspark.schemas.evaluation import DimensionScore
+from madspark.schemas.evaluation import DimensionScore, MultiDimensionalEvaluations
 from madspark.schemas.adapters import pydantic_to_genai_schema, genai_response_to_pydantic
 
-# Convert Pydantic model to GenAI schema format at module level (cached)
+# Convert Pydantic models to GenAI schema format at module level (cached)
 _DIMENSION_SCORE_GENAI_SCHEMA = pydantic_to_genai_schema(DimensionScore)
+_MULTI_DIM_BATCH_SCHEMA = pydantic_to_genai_schema(MultiDimensionalEvaluations)
 
 # Configure logging for enhanced reasoning
 reasoning_logger = logging.getLogger(__name__)
@@ -981,17 +982,40 @@ Provide a brief 1-2 sentence summary that captures the overall assessment, highl
                 from madspark.agents.genai_client import get_model_name
             except ImportError:
                 from ..agents.genai_client import get_model_name
-            
-            # Direct API call without config - testing showed this works better
+
+            # Use structured output with Pydantic schema for reliable JSON
+            api_config = self.types.GenerateContentConfig(
+                temperature=0.0,  # Deterministic for evaluation
+                response_mime_type="application/json",
+                response_schema=_MULTI_DIM_BATCH_SCHEMA
+            )
+
             response = self.genai_client.models.generate_content(
                 model=get_model_name(),
-                contents=prompt
+                contents=prompt,
+                config=api_config
             )
-            
-            # Parse response
+
+            # Parse and validate response with Pydantic
             if response.text is None:
                 raise ValueError("API returned None response text")
-            evaluations = json.loads(response.text)
+
+            evaluations_obj = genai_response_to_pydantic(response.text, MultiDimensionalEvaluations)
+
+            # Convert Pydantic objects to dicts for backward compatibility
+            evaluations = [
+                {
+                    'idea_index': eval_obj.idea_index,
+                    'feasibility': eval_obj.feasibility,
+                    'innovation': eval_obj.innovation,
+                    'impact': eval_obj.impact,
+                    'cost_effectiveness': eval_obj.cost_effectiveness,
+                    'scalability': eval_obj.scalability,
+                    'risk_assessment': eval_obj.risk_assessment,
+                    'timeline': eval_obj.timeline
+                }
+                for eval_obj in evaluations_obj
+            ]
             
             # Validate response structure
             if not isinstance(evaluations, list):

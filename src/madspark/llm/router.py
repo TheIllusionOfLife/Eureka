@@ -157,17 +157,34 @@ class LLMRouter:
         primary_provider: Optional[str] = None,
         fallback_enabled: Optional[bool] = None,
         cache_enabled: Optional[bool] = None,
+        config: Optional["LLMConfig"] = None,
     ) -> None:
         """
-        Initialize router.
+        Initialize router with optional explicit configuration.
 
         Args:
-            primary_provider: Primary provider name (auto, ollama, gemini)
-            fallback_enabled: Enable fallback to secondary provider
-            cache_enabled: Enable response caching
-        """
-        config = get_config()
+            primary_provider: Primary provider name (auto, ollama, gemini) - overrides config
+            fallback_enabled: Enable fallback to secondary provider - overrides config
+            cache_enabled: Enable response caching - overrides config
+            config: Pre-initialized LLMConfig object (optional). If not provided,
+                   creates config from environment variables via get_config().
 
+        Example:
+            # Explicit configuration (thread-safe, recommended for concurrent use)
+            custom_config = LLMConfig(default_provider="ollama", model_tier=ModelTier.FAST)
+            router = LLMRouter(config=custom_config)
+
+            # Parameter overrides with config
+            router = LLMRouter(primary_provider="gemini", config=custom_config)
+
+            # Environment-based (backward compatible)
+            router = LLMRouter()  # Reads from env vars via get_config()
+        """
+        # Use provided config or get singleton config from environment
+        if config is None:
+            config = get_config()
+
+        # Apply parameter overrides (parameters take precedence over config)
         self._primary_provider = primary_provider or config.default_provider
         self._fallback_enabled = (
             fallback_enabled if fallback_enabled is not None else config.fallback_enabled

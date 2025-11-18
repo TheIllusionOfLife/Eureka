@@ -50,6 +50,18 @@ class BriefFormatter(ResultFormatter):
             if final_score != 'N/A':
                 lines.append(f"**Score:** {final_score}/10")
 
+            # Add multi-dimensional evaluation if available (compact format)
+            # Prefer improved evaluation (post-improvement), fall back to initial
+            eval_data = result.get('improved_multi_dimensional_evaluation') or result.get('multi_dimensional_evaluation')
+
+            if eval_data and 'dimension_scores' in eval_data and eval_data['dimension_scores']:
+                scores = eval_data['dimension_scores']
+                overall = eval_data.get('overall_score', 'N/A')
+
+                # Brief format: show overall + all dimensions on one line
+                dim_list = ', '.join([f"{dim.replace('_', ' ').title()}: {score}" for dim, score in scores.items()])
+                lines.append(f"**Dimensions (Overall: {overall}):** {dim_list}")
+
             if i < len(cleaned_results):
                 lines.append("")  # Empty line between ideas
 

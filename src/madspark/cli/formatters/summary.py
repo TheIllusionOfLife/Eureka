@@ -45,8 +45,9 @@ class SummaryFormatter(ResultFormatter):
             lines.append(f"\nImproved Score: {self._format_score(result.get('improved_score', 'N/A'))}")
 
             # Add multi-dimensional evaluation if available
-            if 'multi_dimensional_evaluation' in result:
-                eval_data = result['multi_dimensional_evaluation']
+            # Prefer improved evaluation (post-improvement), fall back to initial
+            eval_data = result.get('improved_multi_dimensional_evaluation') or result.get('multi_dimensional_evaluation')
+            if eval_data:
                 lines.append("\nMulti-Dimensional Evaluation:")
                 lines.append(f"  Overall Score: {eval_data.get('overall_score', 'N/A')}")
 

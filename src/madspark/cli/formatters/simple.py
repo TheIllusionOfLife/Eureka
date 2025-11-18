@@ -54,10 +54,28 @@ class SimpleFormatter(ResultFormatter):
                     lines.append(f"📈 Final Score: {self._format_score(improved_score)}")
                     lines.append("✅ Already well-developed - no significant improvements needed")
 
-            # Add evaluation summary if available (clean format)
-            if 'multi_dimensional_evaluation' in result:
-                eval_data = result['multi_dimensional_evaluation']
-                if eval_data and 'evaluation_summary' in eval_data:
+            # Add multi-dimensional evaluation if available
+            # Prefer improved evaluation (post-improvement), fall back to initial
+            eval_data = result.get('improved_multi_dimensional_evaluation') or result.get('multi_dimensional_evaluation')
+
+            if eval_data:
+                # Show dimension scores in compact format
+                if 'dimension_scores' in eval_data and eval_data['dimension_scores']:
+                    scores = eval_data['dimension_scores']
+                    overall = eval_data.get('overall_score', 'N/A')
+                    lines.append(f"📊 Overall: {overall}/10")
+
+                    # Show top dimensions (highest scores) for simple view
+                    sorted_dims = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+                    top_3 = sorted_dims[:3]
+                    strongest_str = ", ".join(
+                        f"{dim.replace('_', ' ').title()} ({score})"
+                        for dim, score in top_3
+                    )
+                    lines.append(f"   ✅ Strongest: {strongest_str}")
+
+                # Show evaluation summary if available
+                if 'evaluation_summary' in eval_data:
                     summary = eval_data['evaluation_summary']
                     # Remove the "🧠 Enhanced Analysis:" prefix if present
                     summary = summary.replace('🧠 Enhanced Analysis:\n', '').replace('🧠 Enhanced Analysis:', '')

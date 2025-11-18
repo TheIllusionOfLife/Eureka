@@ -120,7 +120,12 @@ class OllamaProvider(LLMProvider):
 
             try:
                 models = self.client.list()
-                model_names = [m.get("name", "") for m in models.get("models", [])]
+                # Handle both dict and Model object responses
+                # Support both "model" and "name" keys (HTTP API uses "name", some responses use "model")
+                model_names = [
+                    (m.get("model") or m.get("name", "")) if isinstance(m, dict) else getattr(m, "model", "")
+                    for m in models.get("models", [])
+                ]
                 # Check if model is available
                 # Strict matching: exact match or model matches without tag
                 # e.g., "gemma3:4b-it-qat" matches "gemma3:4b-it-qat" or "gemma3"

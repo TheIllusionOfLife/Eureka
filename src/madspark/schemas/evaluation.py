@@ -100,6 +100,157 @@ class DimensionScore(BaseModel):
     }
 
 
+class MultiDimensionalEvaluation(BaseModel):
+    """
+    Multi-dimensional evaluation for a single idea.
+
+    Used in batch evaluation where multiple ideas are evaluated across
+    all dimensions in a single API call for efficiency.
+
+    Fields:
+        idea_index: Index of the idea in the batch (0-based)
+        feasibility: How realistic implementation is (0-10)
+        innovation: How novel and creative the idea is (0-10)
+        impact: Potential positive impact (0-10)
+        cost_effectiveness: Cost vs benefit ratio (0-10)
+        scalability: Ability to scale up (0-10)
+        risk_assessment: Risk level - higher score = lower risk (0-10)
+        timeline: Implementation timeline feasibility (0-10)
+
+    Example:
+        >>> eval_obj = MultiDimensionalEvaluation(
+        ...     idea_index=0,
+        ...     feasibility=8.5,
+        ...     innovation=7.0,
+        ...     impact=9.0,
+        ...     cost_effectiveness=6.5,
+        ...     scalability=7.5,
+        ...     risk_assessment=6.0,
+        ...     timeline=7.0
+        ... )
+    """
+    idea_index: int = Field(
+        ...,
+        ge=0,
+        description="Index of the idea being evaluated (0-based)"
+    )
+    feasibility: float = Field(
+        ...,
+        ge=0.0,
+        le=10.0,
+        description="Feasibility score: how realistic implementation is"
+    )
+    innovation: float = Field(
+        ...,
+        ge=0.0,
+        le=10.0,
+        description="Innovation score: how novel and creative the idea is"
+    )
+    impact: float = Field(
+        ...,
+        ge=0.0,
+        le=10.0,
+        description="Impact score: potential positive impact"
+    )
+    cost_effectiveness: float = Field(
+        ...,
+        ge=0.0,
+        le=10.0,
+        description="Cost-effectiveness score: cost vs benefit ratio"
+    )
+    scalability: float = Field(
+        ...,
+        ge=0.0,
+        le=10.0,
+        description="Scalability score: ability to scale up"
+    )
+    risk_assessment: float = Field(
+        ...,
+        ge=0.0,
+        le=10.0,
+        description="Risk assessment score: higher score means lower risk"
+    )
+    timeline: float = Field(
+        ...,
+        ge=0.0,
+        le=10.0,
+        description="Timeline score: implementation timeline feasibility"
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [{
+                "idea_index": 0,
+                "feasibility": 8.5,
+                "innovation": 7.0,
+                "impact": 9.0,
+                "cost_effectiveness": 6.5,
+                "scalability": 7.5,
+                "risk_assessment": 6.0,
+                "timeline": 7.0
+            }]
+        }
+    }
+
+
+class MultiDimensionalEvaluations(RootModel[List[MultiDimensionalEvaluation]]):
+    """
+    Array of multi-dimensional evaluations for batch processing.
+
+    Used when evaluating multiple ideas in a single API call for efficiency.
+    Each evaluation contains scores across all 7 dimensions.
+
+    Usage:
+        >>> evals = MultiDimensionalEvaluations([
+        ...     MultiDimensionalEvaluation(idea_index=0, feasibility=8.5, ...),
+        ...     MultiDimensionalEvaluation(idea_index=1, feasibility=7.0, ...)
+        ... ])
+        >>> len(evals)
+        2
+        >>> evals[0].feasibility
+        8.5
+    """
+
+    def __iter__(self):
+        """Allow iteration over evaluations."""
+        return iter(self.root)
+
+    def __getitem__(self, item):
+        """Allow indexing into evaluations."""
+        return self.root[item]
+
+    def __len__(self):
+        """Return number of evaluations."""
+        return len(self.root)
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [[
+                {
+                    "idea_index": 0,
+                    "feasibility": 8.5,
+                    "innovation": 7.0,
+                    "impact": 9.0,
+                    "cost_effectiveness": 6.5,
+                    "scalability": 7.5,
+                    "risk_assessment": 6.0,
+                    "timeline": 7.0
+                },
+                {
+                    "idea_index": 1,
+                    "feasibility": 7.0,
+                    "innovation": 8.5,
+                    "impact": 8.0,
+                    "cost_effectiveness": 7.5,
+                    "scalability": 6.5,
+                    "risk_assessment": 7.0,
+                    "timeline": 6.0
+                }
+            ]]
+        }
+    }
+
+
 class CriticEvaluation(Scored):
     """
     Single evaluation item from the Critic agent.

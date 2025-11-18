@@ -100,33 +100,34 @@ class DetailedFormatter(ResultFormatter):
                         lines.append("➡️  No significant change")
 
             # Multi-dimensional evaluation with enhanced formatting
-            if 'multi_dimensional_evaluation' in result:
-                eval_data = result['multi_dimensional_evaluation']
-                if eval_data:
-                    try:
-                        from madspark.utils.output_processor import format_multi_dimensional_scores
+            # Prefer improved evaluation (post-improvement), fall back to initial
+            eval_data = result.get('improved_multi_dimensional_evaluation') or result.get('multi_dimensional_evaluation')
 
-                        overall_score = eval_data.get('overall_score', 0)
-                        dimension_scores = eval_data.get('dimension_scores', {})
+            if eval_data:
+                try:
+                    from madspark.utils.output_processor import format_multi_dimensional_scores
 
-                        if dimension_scores:
-                            formatted_scores = format_multi_dimensional_scores(dimension_scores, overall_score)
-                            lines.append(f"\n{formatted_scores}")
-                        else:
-                            lines.append(f"\n📊 Overall Score: {overall_score}")
+                    overall_score = eval_data.get('overall_score', 0)
+                    dimension_scores = eval_data.get('dimension_scores', {})
 
-                        if 'evaluation_summary' in eval_data:
-                            lines.append(f"\n💡 Summary: {eval_data['evaluation_summary']}")
+                    if dimension_scores:
+                        formatted_scores = format_multi_dimensional_scores(dimension_scores, overall_score)
+                        lines.append(f"\n{formatted_scores}")
+                    else:
+                        lines.append(f"\n📊 Overall Score: {overall_score}")
 
-                    except ImportError:
-                        # Fallback to simple formatting
-                        lines.append("\n📊 Multi-Dimensional Evaluation:")
-                        lines.append(f"  Overall Score: {eval_data.get('overall_score', 'N/A')}")
+                    if 'evaluation_summary' in eval_data:
+                        lines.append(f"\n💡 Summary: {eval_data['evaluation_summary']}")
 
-                        if 'dimension_scores' in eval_data:
-                            scores = eval_data['dimension_scores']
-                            for dim, score in scores.items():
-                                lines.append(f"  • {dim.replace('_', ' ').title()}: {score}")
+                except ImportError:
+                    # Fallback to simple formatting
+                    lines.append("\n📊 Multi-Dimensional Evaluation:")
+                    lines.append(f"  Overall Score: {eval_data.get('overall_score', 'N/A')}")
+
+                    if 'dimension_scores' in eval_data:
+                        scores = eval_data['dimension_scores']
+                        for dim, score in scores.items():
+                            lines.append(f"  • {dim.replace('_', ' ').title()}: {score}")
 
             # Logical inference analysis (when --logical flag is used)
             if 'logical_inference' in result and result['logical_inference']:

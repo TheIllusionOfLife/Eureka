@@ -66,120 +66,58 @@ Eliminate thread-safety issues in backend by implementing request-scoped router 
 
 ---
 
-## 🔄 Remaining Work (60%)
+## 📋 Summary of Phase 1-2 Implementation
 
-### Priority 1: Complete Phase 2 (4-6 hours) 🔴
+**What Was Built:**
+- Request-scoped `LLMRouter` pattern throughout backend
+- Router parameter threading through 4 layers:
+  1. Backend endpoints → AsyncCoordinator
+  2. AsyncCoordinator → Async wrapper functions
+  3. Async wrappers → Retry wrappers
+  4. Retry wrappers → Agent functions
+- Each HTTP request creates independent router instance
+- Zero shared mutable state = zero race conditions
+- 29 comprehensive tests verify isolation
 
-#### 1.1 Update Remaining Agents
-Each agent needs:
-1. Add parameter: `router: Optional["LLMRouter"] = None`
-2. Add TYPE_CHECKING import
-3. Use provided router: `router_instance = router if router else get_router()`
-
-**Files to update**:
-- `src/madspark/agents/advocate.py` - Line 86: `advocate_idea()`
-- `src/madspark/agents/skeptic.py` - Line 99: `criticize_idea()`
-- `src/madspark/agents/idea_generator.py` - Line ~180: `generate_ideas()`
-- `src/madspark/agents/structured_idea_generator.py` - Line ~120: `improve_idea()`
-
-**Pattern to follow** (see critic.py lines 71-132):
-```python
-# 1. Add imports
-from typing import Optional, TYPE_CHECKING
-if TYPE_CHECKING:
-    from ..llm.router import LLMRouter
-
-# 2. Update signature
-def function_name(..., router: Optional["LLMRouter"] = None) -> str:
-    """
-    Args:
-        router: Optional LLMRouter instance for request-scoped routing
-    """
-
-# 3. Use provided router
-if should_route:
-    router_instance = router if router else get_router()
-    validated, response = router_instance.generate_structured(...)
+**Architecture Pattern:**
+```
+HTTP Request → LLMRouter(config) → AsyncCoordinator(router)
+                                       ↓
+                               async_wrapper(router)
+                                       ↓
+                               retry_wrapper(router)
+                                       ↓
+                               agent_function(router)
 ```
 
-#### 1.2 Update Backend Endpoints
-**File**: `web/backend/main.py`
+**Thread-Safety Guarantees:**
+✅ Each request has independent configuration
+✅ No environment variable manipulation in request path
+✅ No locks needed (instance isolation)
+✅ Metrics isolated per request
+✅ Concurrent requests don't interfere (verified by tests)
 
-**Remove** env manipulation blocks:
-- Lines 1414-1433 (multimodal endpoint)
-- Lines 1540-1557 (async endpoint)
+---
 
-**Add** request-scoped router creation:
-```python
-# BEFORE async_coordinator creation
-request_router = None
-if LLM_ROUTER_AVAILABLE:
-    request_router = LLMRouter(
-        primary_provider=idea_request.llm_provider or "auto",
-        fallback_enabled=not getattr(idea_request, 'no_fallback', False),
-        cache_enabled=idea_request.use_llm_cache
-    )
+## 🔄 Optional Future Enhancements
 
-# Pass to coordinator
-async_coordinator = AsyncCoordinator(
-    max_concurrent_agents=max_concurrent_agents,
-    progress_callback=progress_callback,
-    cache_manager=cache_manager,
-    router=request_router,  # NEW
-)
-```
+**Phase 3: Load Testing** (2-3 hours, optional)
+- 100+ concurrent requests with real Ollama/Gemini APIs
+- Memory leak detection
+- Sustained load testing (5-10 minutes)
+- Manual browser testing with Docker Compose
 
-**Also remove**:
-- `_router_config_lock` usage
-- `reset_router()` calls
-- `original_env` restoration blocks
+**Phase 4: CLI Migration** (3-4 hours, optional, not urgent)
+- CLI is single-user, no concurrency issues
+- Could migrate for consistency: remove env var writes in cli.py (lines 829-846)
+- Would require updating Coordinator base class
+- Low priority since CLI doesn't have thread-safety issues
 
-#### 1.3 Update AsyncCoordinator Agent Calls
-**File**: `src/madspark/core/async_coordinator.py`
-
-Find agent calls and add `router=self.router`:
-- `async_generate_ideas()` - pass to `generate_ideas_with_retry()`
-- `async_evaluate_ideas()` - pass to `evaluate_ideas_with_retry()`
-- `_process_candidates_with_batch_advocacy()` - pass to advocates
-- `_process_candidates_with_batch_skepticism()` - pass to skeptics
-
-**Pattern**:
-```python
-result = await agent_function_with_retry(
-    topic=topic,
-    context=context,
-    router=self.router,  # ADD THIS
-    # ... other params
-)
-```
-
-#### 1.4 Write Concurrent Request Tests
-**File**: `tests/test_thread_safety_phase2_concurrent.py` (new)
-
-Test 20+ concurrent requests with:
-- Different providers (ollama, gemini, auto)
-- Different tiers (fast, balanced, quality)
-- Different cache settings
-- Verify no config contamination
-- Verify metrics isolated
-
-```python
-@pytest.mark.asyncio
-async def test_20_concurrent_requests_mixed_config():
-    """Test concurrent requests don't interfere."""
-    # Create 20 tasks with different configs
-    # Verify each gets correct provider/tier
-    # Verify metrics are per-request
-```
-
-#### 1.5 Verify All Tests Pass
-```bash
-# Full test suite
-PYTHONPATH=src pytest
-
-# Thread-safety specific
-PYTHONPATH=src pytest tests/test_thread_safety_*.py -v
-```
+**Phase 5: Singleton Deprecation** (2 hours, optional)
+- Add deprecation warning to `get_router()`
+- Update documentation to recommend direct instantiation
+- Grep verification for remaining env manipulation
+- Test fixture updates
 
 ---
 
@@ -277,14 +215,14 @@ results = coordinator.run_workflow(...)
 
 ## 📊 Progress Tracking
 
-| Phase | Tasks | Completed | Progress |
-|-------|-------|-----------|----------|
-| Phase 1 | 3 | 3 | 100% ✅ |
-| Phase 2 | 5 | 2 | 40% ⚠️ |
-| Phase 3 | 3 | 0 | 0% |
-| Phase 4 | 3 | 0 | 0% |
-| Phase 5 | 4 | 0 | 0% |
-| **Total** | **18** | **5** | **28%** |
+| Phase | Tasks | Completed | Progress | Status |
+|-------|-------|-----------|----------|--------|
+| Phase 1 | Immutable Config | ✅ | 100% | 11 tests passing |
+| Phase 2 | Request-Scoped Routers | ✅ | 100% | 18 tests passing |
+| **Core Work** | **Backend Thread-Safety** | **✅** | **100%** | **29 tests, ready to merge** |
+| Phase 3 | Load Testing | ⏳ | 0% | Optional |
+| Phase 4 | CLI Migration | ⏳ | 0% | Optional (low priority) |
+| Phase 5 | Cleanup & Docs | 🔄 | 50% | Status doc updated |
 
 ---
 
@@ -363,6 +301,27 @@ PYTHONPATH=src pytest tests/test_thread_safety_load.py -v --timeout=600
 
 ---
 
+---
+
+## ✅ Ready to Merge
+
+**Status**: Phase 1-2 complete, backend is fully thread-safe
+
+**What's Done**:
+- ✅ 29 comprehensive tests passing
+- ✅ Request-scoped router pattern implemented
+- ✅ All agents, coordinators, and backend updated
+- ✅ Concurrent request isolation verified
+- ✅ Zero shared mutable state
+
+**Commits**:
+1. a60fa51d - Router parameter to retry wrappers
+2. d8da9718 - Router parameter to async wrappers
+3. 9f9cf890 - Router to all coordinator call sites
+4. 2f935f21 - Concurrent request tests
+5. 41c2a525 - Status documentation update
+
+**Recommendation**: Merge now, optional enhancements (load testing, CLI migration) can be separate PRs
+
 **Last Updated**: 2025-11-18
-**Estimated Remaining**: 10-13 hours
-**Next Session Priority**: Complete Phase 2 (agents + backend)
+**Status**: ✅ Core work complete, ready for review and merge

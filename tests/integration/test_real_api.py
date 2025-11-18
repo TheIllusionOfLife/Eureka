@@ -308,7 +308,7 @@ async def test_error_handling():
 async def main():
     """Run all tests."""
     print(f"{Colors.BOLD}MadSpark Real API Test Suite{Colors.RESET}")
-    print(f"Testing all workflow improvements with real API calls\n")
+    print("Testing all workflow improvements with real API calls\n")
     
     # Check API key first
     if not check_api_key():

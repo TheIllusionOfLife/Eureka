@@ -24,6 +24,7 @@ def clean_llm_env_vars():
         'MADSPARK_MODEL_TIER',
         'MADSPARK_FALLBACK_ENABLED',
         'MADSPARK_CACHE_ENABLED',
+        'MADSPARK_NO_ROUTER',
     ]
 
     # Store original values before test

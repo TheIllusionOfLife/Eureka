@@ -16,7 +16,7 @@ from pydantic import BaseModel, ValidationError
 
 from madspark.llm.base import LLMProvider
 from madspark.llm.response import LLMResponse
-from madspark.llm.config import get_config
+from madspark.llm.config import get_config, ModelTier
 from madspark.llm.cache import get_cache, reset_cache
 from madspark.llm.exceptions import (
     AllProvidersFailedError,
@@ -236,6 +236,15 @@ class LLMRouter:
             if self.gemini:
                 return self.gemini, "gemini"
             raise ProviderUnavailableError("Gemini required for file/URL processing but not available")
+
+        # If quality tier requested, prefer Gemini for best results
+        config = get_config()
+        if config.model_tier == ModelTier.QUALITY and not force_provider:
+            if self.gemini and self.gemini.health_check():
+                logger.info("Quality tier requested, using Gemini for best results")
+                return self.gemini, "gemini"
+            # If Gemini unavailable, fallback to Ollama with warning
+            logger.warning("Quality tier requested but Gemini unavailable, falling back to Ollama balanced model")
 
         # For text/images, prefer Ollama (free) but check multimodal support for images
         if self._primary_provider == "auto" or self._primary_provider == "ollama":

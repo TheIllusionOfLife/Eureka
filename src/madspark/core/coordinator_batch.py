@@ -49,6 +49,7 @@ def run_multistep_workflow_batch(
     num_top_candidates: int = 2,
     enable_reasoning: bool = True,
     multi_dimensional_eval: bool = False,
+    logical_inference: bool = False,
     temperature_manager: Optional[TemperatureManager] = None,
     novelty_filter: Optional[NoveltyFilter] = None,
     verbose: bool = False,
@@ -67,13 +68,16 @@ def run_multistep_workflow_batch(
         topic: Main topic/theme for idea generation
         context: Context/constraints for the ideas
         num_top_candidates: Number of top ideas to fully process
-        enable_reasoning: Whether to use enhanced reasoning
+        enable_reasoning: Whether to use enhanced reasoning (advocate/skeptic)
         multi_dimensional_eval: Whether to use multi-dimensional evaluation
+        logical_inference: Whether to perform logical inference analysis
         temperature_manager: Optional temperature control
         novelty_filter: Optional novelty filtering
         verbose: Enable verbose logging
         reasoning_engine: Optional pre-initialized reasoning engine
         timeout: Maximum time allowed for the entire workflow in seconds
+        multimodal_files: Optional list of file paths for multimodal input
+        multimodal_urls: Optional list of URLs for multimodal input
         
     Returns:
         List of fully processed candidate data
@@ -93,7 +97,7 @@ def run_multistep_workflow_batch(
             future = executor.submit(
                 _run_workflow_internal,
                 topic, context, num_top_candidates, enable_reasoning,
-                multi_dimensional_eval, temperature_manager, novelty_filter,
+                multi_dimensional_eval, logical_inference, temperature_manager, novelty_filter,
                 verbose, reasoning_engine, multimodal_files, multimodal_urls
             )
             try:
@@ -108,7 +112,7 @@ def run_multistep_workflow_batch(
         # Run without timeout
         return _run_workflow_internal(
             topic, context, num_top_candidates, enable_reasoning,
-            multi_dimensional_eval, temperature_manager, novelty_filter,
+            multi_dimensional_eval, logical_inference, temperature_manager, novelty_filter,
             verbose, reasoning_engine, multimodal_files, multimodal_urls
         )
 
@@ -119,6 +123,7 @@ def _run_workflow_internal(
     num_top_candidates: int = 2,
     enable_reasoning: bool = True,
     multi_dimensional_eval: bool = False,
+    logical_inference: bool = False,
     temperature_manager: Optional[TemperatureManager] = None,
     novelty_filter: Optional[NoveltyFilter] = None,
     verbose: bool = False,
@@ -139,13 +144,13 @@ def _run_workflow_internal(
 
     # Initialize enhanced reasoning if needed
     engine = reasoning_engine
-    if (enable_reasoning or multi_dimensional_eval) and engine is None:
+    if (enable_reasoning or multi_dimensional_eval or logical_inference) and engine is None:
         try:
             from madspark.agents.genai_client import get_genai_client
             genai_client = get_genai_client()
-            engine = ReasoningEngine(genai_client=genai_client)
+            engine = ReasoningEngine(genai_client=genai_client, logical_inference=logical_inference)
         except (ImportError, AttributeError, RuntimeError):
-            engine = ReasoningEngine()
+            engine = ReasoningEngine(logical_inference=logical_inference)
 
     # Create WorkflowOrchestrator instance
     orchestrator = WorkflowOrchestrator(
@@ -270,7 +275,49 @@ def _run_workflow_internal(
         context=context,
         monitor=monitor
     )
-    
+
+    # Step 4.5: Logical Inference Processing (if enabled)
+    if logical_inference and engine and engine.logical_inference_engine:
+        log_verbose_step("STEP 4.5: Logical Inference Analysis",
+                        f"🧠 Analyzing {len(top_candidates)} candidates with logical inference",
+                        verbose)
+        try:
+            from madspark.utils.logical_inference_engine import InferenceType
+
+            # Extract ideas for batch processing
+            ideas_for_inference = [candidate["text"] for candidate in top_candidates]
+
+            # Run batch logical inference - single API call for all ideas
+            inference_results = engine.logical_inference_engine.analyze_batch(
+                ideas_for_inference,
+                topic,
+                context,
+                InferenceType.FULL
+            )
+
+            # Add logical inference data to candidates
+            for candidate, inference_result in zip(top_candidates, inference_results):
+                if inference_result and hasattr(inference_result, 'confidence'):
+                    confidence = getattr(inference_result, 'confidence', 0.0)
+                    # Only include results with confidence above threshold
+                    if confidence > 0.5:
+                        candidate["logical_inference"] = {
+                            "confidence": confidence,
+                            "inference": getattr(inference_result, 'conclusion', ''),
+                            "inference_chain": getattr(inference_result, 'inference_chain', []),
+                            "improvements": getattr(inference_result, 'improvements', None)
+                        }
+                    else:
+                        candidate["logical_inference"] = None
+                else:
+                    candidate["logical_inference"] = None
+
+        except Exception as e:
+            logging.error(f"Logical inference failed: {e}")
+            # Don't fail the entire workflow, just skip logical inference
+            for candidate in top_candidates:
+                candidate["logical_inference"] = None
+
     # Step 5: Improvement Processing using orchestrator
     top_candidates, _ = orchestrator.improve_ideas_with_monitoring(
         candidates=top_candidates,

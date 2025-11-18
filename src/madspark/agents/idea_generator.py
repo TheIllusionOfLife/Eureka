@@ -430,7 +430,8 @@ def improve_idea(
     logical_inference: Optional[str] = None,
     temperature: float = 0.9,
     multimodal_files: Optional[List[Union[str, Path]]] = None,
-    multimodal_urls: Optional[List[str]] = None
+    multimodal_urls: Optional[List[str]] = None,
+    router: Optional["LLMRouter"] = None
 ) -> str:
   """Improves an idea based on feedback from multiple agents.
 
@@ -449,11 +450,12 @@ def improve_idea(
                  Default 0.9 to maintain creativity.
     multimodal_files: Optional list of file paths (images, PDFs, documents) for context.
     multimodal_urls: Optional list of URLs for context.
+    router: Optional LLMRouter instance for request-scoped routing.
 
   Returns:
     An improved version of the idea that addresses feedback.
     Returns a fallback improvement if the model provides no content or is filtered.
-    
+
   Raises:
     ValidationError: If any required input is empty or invalid.
     ConfigurationError: If API key is not configured.
@@ -477,7 +479,8 @@ def improve_idea(
         genai_client=client_to_use,
         model_name=model_name,
         multimodal_files=multimodal_files,
-        multimodal_urls=multimodal_urls
+        multimodal_urls=multimodal_urls,
+        router=router
     )
   except (ImportError, Exception) as e:
     # Fall back to original implementation on any error

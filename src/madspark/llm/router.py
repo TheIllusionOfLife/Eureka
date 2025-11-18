@@ -216,7 +216,12 @@ class LLMRouter:
 
         logger.info(
             f"Router initialized: primary={self._primary_provider}, "
+            f"tier={self._config.model_tier.value}, "
             f"fallback={self._fallback_enabled}, cache={self._cache_enabled}"
+        )
+        logger.debug(
+            f"Router config: provider={self._config.default_provider}, "
+            f"tier={self._config.model_tier}, cache_ttl_seconds={self._config.cache_ttl_seconds}"
         )
 
     @property
@@ -281,6 +286,7 @@ class LLMRouter:
 
         # If files or URLs, use Gemini (native support)
         if files or urls:
+            logger.debug(f"Multimodal input detected, routing to Gemini (files={len(files or [])}, urls={len(urls or [])})")
             if self.gemini:
                 return self.gemini, "gemini"
             raise ProviderUnavailableError("Gemini required for file/URL processing but not available")
@@ -300,13 +306,16 @@ class LLMRouter:
                 if images and not self.ollama.supports_multimodal:
                     logger.info("Ollama model doesn't support images, falling back to Gemini")
                 else:
+                    logger.debug(f"Selecting Ollama provider (tier={self._config.model_tier.value})")
                     return self.ollama, "ollama"
 
         # Fallback to Gemini
         if self._primary_provider == "gemini" or self._fallback_enabled:
             if self.gemini and self.gemini.health_check():
+                logger.debug(f"Fallback to Gemini (primary={self._primary_provider}, fallback_enabled={self._fallback_enabled})")
                 return self.gemini, "gemini"
 
+        logger.error(f"No LLM providers available (primary={self._primary_provider}, fallback={self._fallback_enabled})")
         raise ProviderUnavailableError("No LLM providers available")
 
     def generate_structured_batch(

@@ -12,7 +12,7 @@ const LLMMetricsDisplay: React.FC<LLMMetricsDisplayProps> = ({ metrics }) => {
 
   const formatCost = (cost: number): string => {
     if (cost === 0) return 'Free';
-    if (cost < 0.01) return `${(cost * 100).toFixed(4)}¢`;
+    if (cost < 0.01) return `${(cost * 100).toFixed(2)}¢`;
     return `$${cost.toFixed(4)}`;
   };
 
@@ -59,6 +59,11 @@ const LLMMetricsDisplay: React.FC<LLMMetricsDisplayProps> = ({ metrics }) => {
             <span className="text-gray-400 mx-1">|</span>
             <span className="text-blue-600 font-medium">Gemini: {metrics.gemini_calls}</span>
           </div>
+          {metrics.fallback_triggers > 0 && (
+            <div className="text-xs text-orange-600 mt-1">
+              ⚠️ {metrics.fallback_triggers} fallback{metrics.fallback_triggers !== 1 ? 's' : ''}
+            </div>
+          )}
         </div>
 
         {/* Cache Performance */}

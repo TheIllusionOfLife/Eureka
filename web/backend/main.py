@@ -12,6 +12,7 @@ import os
 import random
 import uuid
 import sys
+import threading
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Any
@@ -24,6 +25,7 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from fastapi.openapi.utils import get_openapi
 from pydantic import BaseModel, Field, validator
+from typing import Literal
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -122,6 +124,18 @@ try:
     from madspark.utils.cache_manager import CacheManager, CacheConfig
     from madspark.utils.improved_idea_cleaner import clean_improved_ideas_in_results
     from madspark.utils.structured_output_check import is_structured_output_available
+    # LLM Router imports (optional - may not be available in all environments)
+    try:
+        from madspark.llm import get_router, reset_router
+        from madspark.llm.cache import reset_cache as reset_llm_cache
+        LLM_ROUTER_AVAILABLE = True
+        logging.info("LLM Router available")
+    except ImportError:
+        LLM_ROUTER_AVAILABLE = False
+        get_router = None  # type: ignore
+        reset_router = None  # type: ignore
+        reset_llm_cache = None  # type: ignore
+        logging.info("LLM Router not available")
 except ImportError as e:
     logging.error(f"Failed to import MadSpark modules: {e}")
     # Try alternative paths for different deployment scenarios
@@ -143,6 +157,17 @@ except ImportError as e:
         from src.madspark.utils.bookmark_system import BookmarkManager
         from src.madspark.utils.cache_manager import CacheManager, CacheConfig
         from src.madspark.utils.improved_idea_cleaner import clean_improved_ideas_in_results
+        # Try to import router in fallback path
+        try:
+            from src.madspark.llm.router import get_router, reset_router
+            from src.madspark.llm.cache import reset_cache as reset_llm_cache
+            LLM_ROUTER_AVAILABLE = True
+        except ImportError:
+            LLM_ROUTER_AVAILABLE = False
+            get_router = None  # type: ignore
+            reset_router = None  # type: ignore
+            reset_llm_cache = None  # type: ignore
+            logging.info("LLM Router not available in fallback path")
     except ImportError as e2:
         logging.error(f"Failed to import MadSpark modules with fallback paths: {e2}")
         raise e
@@ -157,6 +182,10 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
+
+# Lock for protecting router configuration from concurrent request races
+# Prevents two requests from modifying os.environ/router singleton simultaneously
+_router_config_lock = threading.Lock()
 
 # Enhanced error tracking
 class ErrorTracker:
@@ -634,9 +663,35 @@ class IdeaGenerationRequest(BaseModel):
         max_items=5,
         description="URLs for multi-modal context (max 5 URLs)"
     )
+    # LLM Router configuration
+    llm_provider: Literal['auto', 'ollama', 'gemini'] = Field(
+        default="auto",
+        description="LLM provider selection (auto, ollama, gemini)"
+    )
+    model_tier: Literal['fast', 'balanced', 'quality'] = Field(
+        default="fast",
+        description="Model tier for inference (fast, balanced, quality)"
+    )
+    use_llm_cache: Optional[bool] = Field(
+        default=True,
+        description="Enable LLM response caching for cost optimization"
+    )
 
     class Config:
         populate_by_name = True  # Accept both alias and original names (Pydantic V2)
+
+
+class LLMMetrics(BaseModel):
+    """LLM Router usage metrics."""
+    total_requests: int = Field(default=0, description="Total LLM API requests")
+    cache_hits: int = Field(default=0, description="Number of cache hits")
+    ollama_calls: int = Field(default=0, description="Number of Ollama API calls")
+    gemini_calls: int = Field(default=0, description="Number of Gemini API calls")
+    fallback_triggers: int = Field(default=0, description="Number of fallback triggers")
+    total_tokens: int = Field(default=0, description="Total tokens consumed")
+    total_cost: float = Field(default=0.0, description="Total cost in USD")
+    cache_hit_rate: float = Field(default=0.0, description="Cache hit rate (0.0-1.0)")
+    avg_latency_ms: float = Field(default=0.0, description="Average latency in milliseconds")
 
 
 class IdeaGenerationResponse(BaseModel):
@@ -646,6 +701,10 @@ class IdeaGenerationResponse(BaseModel):
     processing_time: float
     timestamp: str
     structured_output: bool = False  # Indicates if ideas are using structured output (no cleaning needed)
+    llm_metrics: Optional[LLMMetrics] = Field(
+        default=None,
+        description="LLM Router usage metrics (tokens, cost, cache hits)"
+    )
 
 
 class BookmarkRequest(BaseModel):
@@ -755,17 +814,23 @@ class EnhancedBookmarkResponse(BaseModel):
     similar_bookmarks: List[SimilarBookmark] = []
 
 
-def _create_success_response(results: List[Dict[str, Any]], start_time: datetime, message: str) -> IdeaGenerationResponse:
+def _create_success_response(
+    results: List[Dict[str, Any]],
+    start_time: datetime,
+    message: str,
+    llm_metrics: Optional[LLMMetrics] = None
+) -> IdeaGenerationResponse:
     """Create a successful IdeaGenerationResponse with structured output detection.
-    
+
     Args:
         results: Generated results from the coordinator containing idea data.
-                Expected format: List of dicts with keys like 'idea', 'improved_idea', 
+                Expected format: List of dicts with keys like 'idea', 'improved_idea',
                 'initial_score', 'improved_score', etc.
         start_time: Request start time (datetime object) used to calculate the total
                    processing duration in seconds
         message: Success message to include in response (e.g., "Generated 5 ideas successfully")
-        
+        llm_metrics: Optional LLM router metrics (tokens, cost, cache hits, etc.)
+
     Returns:
         Formatted IdeaGenerationResponse with:
         - status: "success"
@@ -774,10 +839,11 @@ def _create_success_response(results: List[Dict[str, Any]], start_time: datetime
         - processing_time: Duration in seconds
         - timestamp: ISO format timestamp
         - structured_output: Boolean flag indicating if structured output was used
+        - llm_metrics: Optional LLM usage statistics
     """
     processing_time = (datetime.now() - start_time).total_seconds()
     structured_output_used = detect_structured_output_usage(results)
-    
+
     # Log logical inference results
     logger.info(f"Creating success response with {len(results)} results")
     for i, result in enumerate(results):
@@ -785,14 +851,15 @@ def _create_success_response(results: List[Dict[str, Any]], start_time: datetime
         logger.info(f"Result {i}: has_logical_inference={has_logical_inference}")
         if has_logical_inference:
             logger.info(f"  Logical inference confidence: {result['logical_inference'].get('confidence', 'N/A')}")
-    
+
     return IdeaGenerationResponse(
         status="success",
         message=message,
         results=format_results_for_frontend(results, structured_output_used),
         processing_time=processing_time,
         timestamp=start_time.isoformat(),
-        structured_output=structured_output_used
+        structured_output=structured_output_used,
+        llm_metrics=llm_metrics
     )
 
 
@@ -1035,6 +1102,138 @@ async def get_temperature_presets():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# LLM Router endpoints
+@app.get(
+    "/api/llm/health",
+    tags=["llm"],
+    summary="Get LLM provider health status",
+    description="Check availability and health of LLM providers (Ollama, Gemini)"
+)
+async def get_llm_health():
+    """Get LLM provider health status."""
+    if not LLM_ROUTER_AVAILABLE or get_router is None:
+        return {
+            "status": "unavailable",
+            "message": "LLM Router not available",
+            "providers": {}
+        }
+
+    try:
+        router = get_router()
+        health = router.health_status()
+        return {
+            "status": "available",
+            "providers": health
+        }
+    except Exception as e:
+        logger.error(f"Failed to get LLM health: {e}")
+        return {
+            "status": "error",
+            "message": str(e),
+            "providers": {}
+        }
+
+
+@app.get(
+    "/api/llm/metrics",
+    tags=["llm"],
+    summary="Get LLM usage metrics",
+    description="Get router usage statistics including tokens, cost, and cache hits"
+)
+async def get_llm_metrics():
+    """Get LLM router usage metrics."""
+    if not LLM_ROUTER_AVAILABLE or get_router is None:
+        return {
+            "status": "unavailable",
+            "message": "LLM Router not available",
+            "metrics": {}
+        }
+
+    try:
+        router = get_router()
+        metrics = router.get_metrics()
+        return {
+            "status": "success",
+            "metrics": metrics
+        }
+    except Exception as e:
+        logger.error(f"Failed to get LLM metrics: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post(
+    "/api/llm/cache/clear",
+    tags=["llm"],
+    summary="Clear LLM response cache",
+    description="Clear the LLM response cache to force fresh API calls"
+)
+async def clear_llm_cache():
+    """Clear LLM response cache."""
+    if not LLM_ROUTER_AVAILABLE or reset_llm_cache is None:
+        return {
+            "status": "unavailable",
+            "message": "LLM Router cache not available"
+        }
+
+    try:
+        reset_llm_cache()
+        return {
+            "status": "success",
+            "message": "LLM cache cleared successfully"
+        }
+    except Exception as e:
+        logger.error(f"Failed to clear LLM cache: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get(
+    "/api/llm/providers",
+    tags=["llm"],
+    summary="Get available LLM providers",
+    description="List available LLM providers and their configurations"
+)
+async def get_llm_providers():
+    """Get available LLM providers and configurations."""
+    return {
+        "status": "success",
+        "providers": [
+            {
+                "id": "auto",
+                "name": "Auto (Ollama-first)",
+                "description": "Automatically selects Ollama (free) with Gemini fallback"
+            },
+            {
+                "id": "ollama",
+                "name": "Ollama (Local)",
+                "description": "Local inference using Ollama (free, requires Ollama server)"
+            },
+            {
+                "id": "gemini",
+                "name": "Gemini (Cloud)",
+                "description": "Cloud inference using Google Gemini API (paid)"
+            }
+        ],
+        "model_tiers": [
+            {
+                "id": "fast",
+                "name": "Fast",
+                "description": "Quick responses with gemma3:4b (Ollama) or gemini-2.5-flash"
+            },
+            {
+                "id": "balanced",
+                "name": "Balanced",
+                "description": "Better quality with gemma3:12b (Ollama)"
+            },
+            {
+                "id": "quality",
+                "name": "Quality",
+                "description": "Best quality with larger models"
+            }
+        ],
+        "router_available": LLM_ROUTER_AVAILABLE
+    }
+
+
 @app.post(
     "/api/generate-ideas", 
     response_model=IdeaGenerationResponse,
@@ -1203,15 +1402,36 @@ async def generate_ideas(
             progress_callback=progress_callback,
             cache_manager=cache_manager
         )
-        
+
         # Add timeout handling
         timeout_seconds = idea_request.timeout if idea_request.timeout else DEFAULT_REQUEST_TIMEOUT
-        
+
         # Log logical inference request
         logger.info(f"Running workflow with logical_inference={idea_request.logical_inference}, reasoning_engine={reasoning_eng is not None}")
         if reasoning_eng and hasattr(reasoning_eng, 'logical_inference_engine'):
             logger.info(f"Logical inference engine available: {reasoning_eng.logical_inference_engine is not None}")
-        
+
+        # Configure LLM Router for this request
+        # Use lock to prevent concurrent requests from racing on router configuration
+        original_env = {}
+        if LLM_ROUTER_AVAILABLE:
+            with _router_config_lock:
+                env_vars_to_set = {
+                    "MADSPARK_LLM_PROVIDER": idea_request.llm_provider or "auto",
+                    "MADSPARK_MODEL_TIER": idea_request.model_tier or "fast",
+                    "MADSPARK_CACHE_ENABLED": str(idea_request.use_llm_cache).lower() if idea_request.use_llm_cache is not None else "true"
+                }
+
+                # Save and set environment variables
+                for key, value in env_vars_to_set.items():
+                    original_env[key] = os.environ.get(key)
+                    os.environ[key] = value
+
+                # Reset router singleton to pick up new configuration
+                # This creates the router with request-specific settings
+                reset_router()
+                logger.info(f"LLM Router configured: provider={idea_request.llm_provider}, tier={idea_request.model_tier}, cache={idea_request.use_llm_cache}")
+
         try:
             try:
                 results = await asyncio.wait_for(
@@ -1239,12 +1459,45 @@ async def generate_ideas(
                     detail=f"Request timed out after {timeout_seconds} seconds. Please try with fewer candidates or simpler constraints."
                 )
 
+            # Capture LLM metrics if router is available
+            llm_metrics = None
+            if LLM_ROUTER_AVAILABLE:
+                try:
+                    router = get_router()
+                    metrics = router.get_metrics()
+                    llm_metrics = LLMMetrics(
+                        total_requests=metrics.get("total_requests", 0),
+                        cache_hits=metrics.get("cache_hits", 0),
+                        ollama_calls=metrics.get("ollama_calls", 0),
+                        gemini_calls=metrics.get("gemini_calls", 0),
+                        fallback_triggers=metrics.get("fallback_triggers", 0),
+                        total_tokens=metrics.get("total_tokens", 0),
+                        total_cost=metrics.get("total_cost", 0.0),
+                        cache_hit_rate=metrics.get("cache_hit_rate", 0.0),
+                        avg_latency_ms=metrics.get("avg_latency_ms", 0.0)
+                    )
+                    logger.info(f"LLM metrics captured: {llm_metrics}")
+                except Exception as metrics_error:
+                    logger.warning(f"Failed to capture LLM metrics: {metrics_error}")
+
             return _create_success_response(
                 results=results,
                 start_time=start_time,
-                message=f"Generated {len(results)} ideas successfully"
+                message=f"Generated {len(results)} ideas successfully",
+                llm_metrics=llm_metrics
             )
         finally:
+            # Restore original environment variables (with lock for thread safety)
+            if LLM_ROUTER_AVAILABLE and original_env:
+                with _router_config_lock:
+                    for key, value in original_env.items():
+                        if value is None:
+                            os.environ.pop(key, None)
+                        else:
+                            os.environ[key] = value
+                    # Reset router to restore original configuration
+                    reset_router()
+
             # Clean up temp files after processing (success or failure)
             for temp_file in temp_files:
                 try:
@@ -1283,12 +1536,31 @@ async def generate_ideas(
 async def generate_ideas_async(request: Request, idea_request: IdeaGenerationRequest):
     """Generate ideas using the async MadSpark workflow for better performance."""
     start_time = datetime.now()
-    
+
+    # Configure LLM Router for this request (with lock for thread safety)
+    original_env = {}
+    if LLM_ROUTER_AVAILABLE:
+        with _router_config_lock:
+            env_vars_to_set = {
+                "MADSPARK_LLM_PROVIDER": idea_request.llm_provider or "auto",
+                "MADSPARK_MODEL_TIER": idea_request.model_tier or "fast",
+                "MADSPARK_CACHE_ENABLED": str(idea_request.use_llm_cache).lower() if idea_request.use_llm_cache is not None else "true"
+            }
+
+            # Save and set environment variables
+            for key, value in env_vars_to_set.items():
+                original_env[key] = os.environ.get(key)
+                os.environ[key] = value
+
+            # Reset router singleton to pick up new configuration
+            reset_router()
+            logger.info(f"Async LLM Router configured: provider={idea_request.llm_provider}, tier={idea_request.model_tier}, cache={idea_request.use_llm_cache}")
+
     try:
         # Define progress callback
         async def progress_callback(message: str, progress: float):
             await ws_manager.send_progress_update(message, progress)
-        
+
         # Setup temperature manager
         if idea_request.temperature_preset:
             temp_mgr = TemperatureManager.from_preset(idea_request.temperature_preset)
@@ -1296,10 +1568,10 @@ async def generate_ideas_async(request: Request, idea_request: IdeaGenerationReq
             temp_mgr = TemperatureManager.from_base_temperature(idea_request.temperature)
         else:
             temp_mgr = temp_manager or TemperatureManager()
-        
+
         # Always setup reasoning engine for multi-dimensional evaluation (now a core feature)
         reasoning_eng = reasoning_engine
-        
+
         # Parse and validate MAX_CONCURRENT_AGENTS environment variable
         max_concurrent_agents = 10  # default
         env_val = os.getenv("MAX_CONCURRENT_AGENTS", "10")
@@ -1311,15 +1583,31 @@ async def generate_ideas_async(request: Request, idea_request: IdeaGenerationReq
                 logger.warning(f"MAX_CONCURRENT_AGENTS must be > 0, got {parsed_val}. Using default: 10")
         else:
             logger.warning(f"MAX_CONCURRENT_AGENTS must be a positive integer, got '{env_val}'. Using default: 10")
-        
+
         # Create async coordinator with cache
         async_coordinator = AsyncCoordinator(
             max_concurrent_agents=max_concurrent_agents,
             progress_callback=progress_callback,
             cache_manager=cache_manager
         )
-        
-        # Run the async workflow
+
+        # Process and validate multimodal URLs if provided (async endpoint supports URLs only, not file uploads)
+        multimodal_url_list = None
+        if idea_request.multimodal_urls:
+            from madspark.utils.multimodal_input import MultiModalInput
+            multimodal_url_list = []
+            mm_input = MultiModalInput()
+            for url in idea_request.multimodal_urls:
+                try:
+                    mm_input.validate_url(url)
+                    multimodal_url_list.append(url)
+                except ValueError as e:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Invalid multimodal URL: {str(e)}"
+                    )
+
+        # Run the async workflow with router config and multimodal support
         results = await async_coordinator.run_workflow(
             topic=idea_request.topic,
             context=idea_request.context,
@@ -1331,19 +1619,54 @@ async def generate_ideas_async(request: Request, idea_request: IdeaGenerationReq
             enhanced_reasoning=idea_request.enhanced_reasoning,
             multi_dimensional_eval=True,  # Always enabled as a core feature
             logical_inference=idea_request.logical_inference,
-            reasoning_engine=reasoning_eng
+            reasoning_engine=reasoning_eng,
+            multimodal_files=None,  # Async endpoint does not support file uploads
+            multimodal_urls=multimodal_url_list
         )
-        
+
+        # Capture LLM metrics if router is available (same as sync endpoint)
+        llm_metrics = None
+        if LLM_ROUTER_AVAILABLE:
+            try:
+                router = get_router()
+                metrics = router.get_metrics()
+                llm_metrics = LLMMetrics(
+                    total_requests=metrics.get("total_requests", 0),
+                    cache_hits=metrics.get("cache_hits", 0),
+                    ollama_calls=metrics.get("ollama_calls", 0),
+                    gemini_calls=metrics.get("gemini_calls", 0),
+                    fallback_triggers=metrics.get("fallback_triggers", 0),
+                    total_tokens=metrics.get("total_tokens", 0),
+                    total_cost=metrics.get("total_cost", 0.0),
+                    cache_hit_rate=metrics.get("cache_hit_rate", 0.0),
+                    avg_latency_ms=metrics.get("avg_latency_ms", 0.0)
+                )
+                logger.info(f"Async LLM metrics captured: {llm_metrics}")
+            except Exception as metrics_error:
+                logger.warning(f"Failed to capture async LLM metrics: {metrics_error}")
+
         return _create_success_response(
             results=results,
             start_time=start_time,
-            message=f"Generated {len(results)} ideas successfully (async)"
+            message=f"Generated {len(results)} ideas successfully (async)",
+            llm_metrics=llm_metrics
         )
-        
+
     except Exception as e:
         logger.error(f"Async idea generation failed: {e}")
         await ws_manager.send_progress_update(f"Error: {str(e)}", 0.0)
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        # Restore original environment variables (with lock for thread safety)
+        if LLM_ROUTER_AVAILABLE and original_env:
+            with _router_config_lock:
+                for key, value in original_env.items():
+                    if value is None:
+                        os.environ.pop(key, None)
+                    else:
+                        os.environ[key] = value
+                # Reset router to restore original configuration
+                reset_router()
 
 
 @app.post(

@@ -20,6 +20,9 @@ export interface ProgressUpdate {
 // Application state types
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'reconnecting';
 
+// LLM Provider types are now defined in api.types.ts and re-exported via '*'
+// This avoids circular dependency issues
+
 // Form types
 export interface FormData {
   theme: string;
@@ -37,6 +40,10 @@ export interface FormData {
   bookmark_ids?: string[];
   multimodal_urls?: string[];
   multimodal_files?: File[];
+  // LLM Router configuration (types defined in api.types.ts)
+  llm_provider?: 'auto' | 'ollama' | 'gemini';
+  model_tier?: 'fast' | 'balanced' | 'quality';
+  use_llm_cache?: boolean;
 }
 
 // Component prop types

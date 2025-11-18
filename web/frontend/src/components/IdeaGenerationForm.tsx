@@ -5,7 +5,7 @@ import UrlInput from './UrlInput';
 import FileUpload from './FileUpload';
 import { buildMultiModalFormData, shouldUseFormData } from '../utils/formDataConversion';
 
-import { FormData, TemperaturePreset, SavedBookmark } from '../types';
+import { FormData, TemperaturePreset, SavedBookmark, LLMProvider, ModelTier } from '../types';
 
 interface IdeaGenerationFormProps {
   onSubmit: (data: FormData) => void;
@@ -37,6 +37,10 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({
     logical_inference: false,
     verbose: false,
     show_detailed_results: false,
+    // LLM Router defaults (Ollama-first)
+    llm_provider: 'auto',
+    model_tier: 'fast',
+    use_llm_cache: true,
   });
 
   const [temperaturePresets, setTemperaturePresets] = useState<Record<string, TemperaturePreset>>({});
@@ -44,6 +48,7 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({
   const [presetsError, setPresetsError] = useState<string | null>(null);
   const [useCustomTemperature, setUseCustomTemperature] = useState(false);
   const [useBookmarks, setUseBookmarks] = useState(false);
+  const [showAdvancedLLM, setShowAdvancedLLM] = useState(false);
 
   // Multi-modal state
   const [multimodalUrls, setMultimodalUrls] = useState<string[]>([]);
@@ -412,6 +417,94 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({
           <p className="ml-6 mt-1 text-xs text-gray-500">
             Display original ideas, critiques, advocacy, and skepticism alongside improved ideas (by default, only improved ideas and evaluation are shown)
           </p>
+        </div>
+
+        {/* LLM Provider Configuration */}
+        <div className="border-t pt-4">
+          <button
+            type="button"
+            onClick={() => setShowAdvancedLLM(!showAdvancedLLM)}
+            className="flex items-center text-sm font-medium text-gray-700 hover:text-gray-900"
+          >
+            <svg
+              className={`h-4 w-4 mr-2 transform transition-transform ${showAdvancedLLM ? 'rotate-90' : ''}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+            Advanced LLM Settings
+          </button>
+          <p className="text-xs text-gray-500 mt-1">
+            Configure which AI provider to use (defaults to local Ollama for cost-free inference)
+          </p>
+
+          {showAdvancedLLM && (
+            <div className="mt-4 space-y-4 pl-6">
+              {/* LLM Provider Selection */}
+              <div>
+                <label htmlFor="llm_provider" className="block text-sm font-medium text-gray-700">
+                  AI Provider
+                </label>
+                <select
+                  id="llm_provider"
+                  name="llm_provider"
+                  value={formData.llm_provider || 'auto'}
+                  onChange={handleInputChange}
+                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                >
+                  <option value="auto">Auto (Ollama first, Gemini fallback)</option>
+                  <option value="ollama">Ollama Only (Local, Free)</option>
+                  <option value="gemini">Gemini Only (Cloud, Paid)</option>
+                </select>
+                <p className="mt-1 text-xs text-gray-500">
+                  Auto mode uses free local Ollama when available, falls back to Gemini for PDFs/URLs
+                </p>
+              </div>
+
+              {/* Model Tier Selection */}
+              <div>
+                <label htmlFor="model_tier" className="block text-sm font-medium text-gray-700">
+                  Model Quality Tier
+                </label>
+                <select
+                  id="model_tier"
+                  name="model_tier"
+                  value={formData.model_tier || 'fast'}
+                  onChange={handleInputChange}
+                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                >
+                  <option value="fast">Fast (gemma3:4b - Quick responses)</option>
+                  <option value="balanced">Balanced (gemma3:12b - Better quality)</option>
+                  <option value="quality">Quality (gemini-2.5-flash - Best results)</option>
+                </select>
+                <p className="mt-1 text-xs text-gray-500">
+                  Higher tiers provide better results but may be slower or cost more
+                </p>
+              </div>
+
+              {/* Cache Toggle */}
+              <div>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="use_llm_cache"
+                    name="use_llm_cache"
+                    checked={formData.use_llm_cache !== false}
+                    onChange={handleInputChange}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="use_llm_cache" className="ml-2 text-sm text-gray-700 font-medium">
+                    Enable Response Caching
+                  </label>
+                </div>
+                <p className="ml-6 mt-1 text-xs text-gray-500">
+                  Cache LLM responses to speed up repeated queries and reduce API costs
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Bookmark Remix */}

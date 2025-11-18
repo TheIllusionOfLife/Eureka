@@ -3,7 +3,7 @@
 
 services:
   backend:
-    build: 
+    build:
       context: ./backend
       dockerfile: Dockerfile
     ports:
@@ -17,14 +17,50 @@ services:
       MADSPARK_MODE: ${MADSPARK_MODE:-mock}
       MADSPARK_PATH: /madspark
       REDIS_URL: redis://redis:6379/0
+      # LLM Router configuration (Ollama-first by default)
+      OLLAMA_HOST: http://ollama:11434
+      MADSPARK_LLM_PROVIDER: ${MADSPARK_LLM_PROVIDER:-auto}
+      MADSPARK_MODEL_TIER: ${MADSPARK_MODEL_TIER:-fast}
+      MADSPARK_CACHE_ENABLED: ${MADSPARK_CACHE_ENABLED:-true}
+      MADSPARK_CACHE_DIR: /cache/llm
     volumes:
       - ./backend:/app
       - ../:/madspark  # Mount parent directory for MadSpark imports
+      - llm-cache:/cache/llm  # LLM response cache
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     depends_on:
-      - redis
+      redis:
+        condition: service_started
+      ollama:
+        condition: service_healthy
     networks:
       - madspark-network
+
+  ollama:
+    image: ollama/ollama:0.5.0
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    networks:
+      - madspark-network
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    # Pull models on startup (optional, can be done manually)
+    # entrypoint: ["/bin/sh", "-c", "ollama serve & sleep 5 && ollama pull gemma3:4b-it-qat && wait"]
+    # GPU support: Uncomment the deploy section below for NVIDIA GPU acceleration
+    # For CPU-only systems, leave this commented out
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
 
   frontend:
     build:
@@ -54,6 +90,8 @@ services:
 
 volumes:
   redis-data:
+  ollama-models:  # Persistent storage for Ollama models
+  llm-cache:      # LLM response cache for faster repeated queries
 
 networks:
   madspark-network:

@@ -453,6 +453,12 @@ Examples:
         help='Show LLM provider statistics (tokens, cost, cache hits)'
     )
 
+    llm_group.add_argument(
+        '--no-router',
+        action='store_true',
+        help='Disable LLM router entirely (use direct Gemini API calls instead)'
+    )
+
     # Output options
     output_group = parser.add_argument_group('output options')
     
@@ -836,12 +842,16 @@ def _configure_llm_provider(args: argparse.Namespace) -> bool:
         os.environ['MADSPARK_CACHE_ENABLED'] = 'false'
         provider_flags_used.append('--no-cache')
 
-    # Info message about partial integration
+    if getattr(args, 'no_router', False):
+        os.environ['MADSPARK_NO_ROUTER'] = 'true'
+        provider_flags_used.append('--no-router')
+
+    # Info message about router configuration
     if provider_flags_used:
+        router_status = "disabled (--no-router)" if getattr(args, 'no_router', False) else "enabled (Ollama-first default)"
         logger.info(
             f"LLM provider flags ({', '.join(provider_flags_used)}) configured. "
-            f"Router is active for idea improvement step. Other workflow steps "
-            f"still use direct Gemini API."
+            f"Router is {router_status}."
         )
 
     # Reset config singleton after environment changes to pick up new values

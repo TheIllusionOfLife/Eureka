@@ -4,6 +4,7 @@ LLM Router with Automatic Fallback.
 Smart routing between providers with caching integration.
 """
 
+import hashlib
 import json
 import logging
 import threading
@@ -15,7 +16,7 @@ from pydantic import BaseModel, ValidationError
 
 from madspark.llm.base import LLMProvider
 from madspark.llm.response import LLMResponse
-from madspark.llm.config import get_config
+from madspark.llm.config import get_config, ModelTier
 from madspark.llm.cache import get_cache, reset_cache
 from madspark.llm.exceptions import (
     AllProvidersFailedError,
@@ -26,6 +27,50 @@ from madspark.llm.exceptions import (
 # Security constants
 MAX_PROMPT_LENGTH = 100_000  # Characters - prevents resource exhaustion
 MAX_FILE_SIZE_MB = 50  # Maximum file size in MB for multimodal inputs
+
+
+def _compute_file_hash(file_path: Path) -> str:
+    """
+    Compute SHA256 hash of file contents for cache invalidation.
+
+    Args:
+        file_path: Path to file
+
+    Returns:
+        Hex digest of file contents (first 16 chars for brevity)
+
+    Raises:
+        FileNotFoundError: If file doesn't exist
+        ValueError: If file exceeds size limit
+        PermissionError: If file is not readable
+    """
+    # Check if file exists
+    if not file_path.exists():
+        raise FileNotFoundError(f"File not found: {file_path}")
+
+    # Validate file size before reading
+    try:
+        file_size = file_path.stat().st_size
+        max_bytes = MAX_FILE_SIZE_MB * 1024 * 1024
+        if file_size > max_bytes:
+            raise ValueError(
+                f"File {file_path.name} ({file_size / 1024 / 1024:.1f}MB) "
+                f"exceeds maximum size of {MAX_FILE_SIZE_MB}MB"
+            )
+    except (OSError, PermissionError) as e:
+        raise PermissionError(f"Cannot access file {file_path}: {e}")
+
+    hasher = hashlib.sha256()
+    try:
+        with open(file_path, 'rb') as f:
+            # Read in chunks to handle large files efficiently
+            for chunk in iter(lambda: f.read(8192), b''):
+                hasher.update(chunk)
+    except (IOError, OSError) as e:
+        raise PermissionError(f"Cannot read file {file_path}: {e}")
+
+    # Use first 16 chars of hash for reasonable cache key length
+    return hasher.hexdigest()[:16]
 
 # Shared metrics key constants - prevents key mismatch bugs between router and CLI
 METRIC_TOTAL_REQUESTS = "total_requests"
@@ -217,6 +262,15 @@ class LLMRouter:
                 return self.gemini, "gemini"
             raise ProviderUnavailableError("Gemini required for file/URL processing but not available")
 
+        # If quality tier requested, prefer Gemini for best results
+        config = get_config()
+        if config.model_tier == ModelTier.QUALITY and not force_provider:
+            if self.gemini and self.gemini.health_check():
+                logger.info("Quality tier requested, using Gemini for best results")
+                return self.gemini, "gemini"
+            # If Gemini unavailable, fallback to Ollama with warning
+            logger.warning("Quality tier requested but Gemini unavailable, falling back to Ollama balanced model")
+
         # For text/images, prefer Ollama (free) but check multimodal support for images
         if self._primary_provider == "auto" or self._primary_provider == "ollama":
             if self.ollama and self.ollama.health_check():
@@ -232,6 +286,126 @@ class LLMRouter:
                 return self.gemini, "gemini"
 
         raise ProviderUnavailableError("No LLM providers available")
+
+    def generate_structured_batch(
+        self,
+        prompts: list[str],
+        schema: Type[BaseModel],
+        system_instruction: str = "",
+        temperature: float = 0.0,
+        files: Optional[list[Path]] = None,
+        urls: Optional[list[str]] = None,
+        images: Optional[list[Union[str, Path]]] = None,
+        force_provider: Optional[str] = None,
+        use_cache: Optional[bool] = None,
+        **kwargs,
+    ) -> tuple[list[Any], LLMResponse]:
+        """
+        Generate structured output for multiple prompts (batch operation).
+
+        Processes each prompt through the router with caching and fallback support.
+        Aggregates metrics and returns combined response metadata.
+
+        Args:
+            prompts: List of user prompts to process
+            schema: Pydantic model for validation
+            system_instruction: System instruction (shared across all prompts)
+            temperature: Sampling temperature
+            files: PDF/document files (routes to Gemini)
+            urls: URLs to process (routes to Gemini)
+            images: Image files (shared across all prompts)
+            force_provider: Force specific provider
+            use_cache: Override cache setting
+            **kwargs: Additional provider-specific args
+
+        Returns:
+            tuple: (list of validated_pydantic_objects, aggregated response_metadata)
+
+        Raises:
+            TypeError: If prompts is None or not a list, or if individual prompts are not strings
+            ValueError: If individual prompts exceed MAX_PROMPT_LENGTH
+            AllProvidersFailedError: If all providers fail for any prompt.
+                **Fail-fast behavior**: Processing stops immediately on first failure.
+                Previously processed results are lost. This ensures consistent error
+                reporting but does not support partial success
+
+        Note:
+            Sequential Processing: Prompts are processed one at a time (O(N) API calls).
+            This is intentional to maintain consistent error handling and avoid
+            complexity of managing concurrent provider state. For async batch processing,
+            consider using AsyncCoordinator with gather() instead.
+        """
+        # Input validation
+        if prompts is None:
+            raise TypeError("Prompts cannot be None")
+
+        if not isinstance(prompts, list):
+            raise TypeError(f"Prompts must be a list, got {type(prompts).__name__}")
+
+        # Validate individual prompts
+        for i, prompt in enumerate(prompts):
+            if not isinstance(prompt, str):
+                raise TypeError(
+                    f"Prompt {i} must be str, got {type(prompt).__name__}"
+                )
+            if len(prompt) > MAX_PROMPT_LENGTH:
+                raise ValueError(
+                    f"Prompt {i} exceeds max length ({len(prompt)} > {MAX_PROMPT_LENGTH})"
+                )
+
+        # Handle empty list case
+        if not prompts:
+            return [], LLMResponse(
+                text="",
+                provider="none",
+                model="none",
+                tokens_used=0,
+                latency_ms=0.0,
+                cost=0.0,
+            )
+
+        # Process each prompt
+        results = []
+        total_tokens = 0
+        total_cost = 0.0
+        total_latency = 0.0
+        provider_counts: dict[str, int] = {}  # Track count of each provider used
+
+        for prompt in prompts:
+            validated, response = self.generate_structured(
+                prompt=prompt,
+                schema=schema,
+                system_instruction=system_instruction,
+                temperature=temperature,
+                files=files,
+                urls=urls,
+                images=images,
+                force_provider=force_provider,
+                use_cache=use_cache,
+                **kwargs,
+            )
+            results.append(validated)
+            total_tokens += response.tokens_used
+            total_cost += response.cost
+            total_latency += response.latency_ms
+            # Track provider usage counts (not just unique providers)
+            provider_counts[response.provider] = provider_counts.get(response.provider, 0) + 1
+
+        # Determine primary provider used
+        # If multiple providers used (due to fallback), report the one used most frequently
+        primary_provider = max(provider_counts.keys(), key=lambda p: provider_counts[p])
+
+        # Create aggregated response
+        aggregated_response = LLMResponse(
+            text=f"Batch of {len(prompts)} items processed",
+            provider=primary_provider,
+            model="batch",
+            tokens_used=total_tokens,
+            latency_ms=total_latency,
+            cost=total_cost,
+        )
+
+        return results, aggregated_response
 
     def generate_structured(
         self,
@@ -328,14 +502,14 @@ class LLMRouter:
             "system_instruction": system_instruction,
         }
         # Include multimodal inputs to avoid incorrect cache hits
-        # Normalize paths with resolve() for consistent caching
+        # For files, include content hash to detect changes (not just path)
         if images:
             base_cache_kwargs["images"] = sorted(
-                [str(Path(p).resolve()) for p in images]
+                [f"{Path(p).resolve()}:{_compute_file_hash(Path(p))}" for p in images]
             )
         if files:
             base_cache_kwargs["files"] = sorted(
-                [str(Path(p).resolve()) for p in files]
+                [f"{Path(p).resolve()}:{_compute_file_hash(Path(p))}" for p in files]
             )
         if urls:
             base_cache_kwargs["urls"] = sorted(urls)

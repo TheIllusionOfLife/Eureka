@@ -24,6 +24,7 @@ def clean_llm_env_vars():
         'MADSPARK_MODEL_TIER',
         'MADSPARK_FALLBACK_ENABLED',
         'MADSPARK_CACHE_ENABLED',
+        'MADSPARK_NO_ROUTER',
     ]
 
     # Store original values before test
@@ -70,9 +71,9 @@ class TestCLIProviderConfiguration:
             _configure_llm_provider(args)
 
         assert os.environ.get('MADSPARK_LLM_PROVIDER') == 'ollama'
-        # Should log info about partial integration
+        # Should log info about router configuration
         mock_logger.info.assert_called_once()
-        assert 'Router is active' in str(mock_logger.info.call_args)
+        assert 'Router is enabled' in str(mock_logger.info.call_args)
 
     def test_model_tier_flag_sets_env_var(self, monkeypatch):
         """Test that --model-tier flag sets environment variable."""

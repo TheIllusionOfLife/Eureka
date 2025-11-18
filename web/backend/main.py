@@ -1594,6 +1594,7 @@ async def generate_ideas_async(request: Request, idea_request: IdeaGenerationReq
         # Process and validate multimodal URLs if provided (async endpoint supports URLs only, not file uploads)
         multimodal_url_list = None
         if idea_request.multimodal_urls:
+            from madspark.utils.multimodal_input import MultiModalInput
             multimodal_url_list = []
             mm_input = MultiModalInput()
             for url in idea_request.multimodal_urls:

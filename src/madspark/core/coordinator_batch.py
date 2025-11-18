@@ -279,6 +279,7 @@ def _run_workflow_internal(
         )
 
     # Step 4.5: Logical Inference Processing (if enabled)
+    logging.debug(f"Logical inference check: logical_inference={logical_inference}, engine={engine is not None}, has_inference_engine={engine.logical_inference_engine is not None if engine else False}")
     if logical_inference and engine and engine.logical_inference_engine:
         log_verbose_step("STEP 4.5: Logical Inference Analysis",
                         f"🧠 Analyzing {len(top_candidates)} candidates with logical inference",

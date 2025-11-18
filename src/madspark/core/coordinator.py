@@ -157,15 +157,13 @@ def run_multistep_workflow(
     
     # Initialize reasoning engine if needed
     engine = reasoning_engine
-    if enhanced_reasoning and engine is None:
+    if (enhanced_reasoning or multi_dimensional_eval or logical_inference) and engine is None:
         try:
             from madspark.agents.genai_client import get_genai_client
             genai_client = get_genai_client()
-            config = {"use_logical_inference": logical_inference} if logical_inference else None
-            engine = ReasoningEngine(config=config, genai_client=genai_client)
+            engine = ReasoningEngine(genai_client=genai_client)
         except (ImportError, AttributeError, RuntimeError):
-            config = {"use_logical_inference": logical_inference} if logical_inference else None
-            engine = ReasoningEngine(config=config)
+            engine = ReasoningEngine()
     
     # Call the batch-optimized version
     # Note: The batch version handles novelty filtering internally for now
@@ -176,6 +174,7 @@ def run_multistep_workflow(
         num_top_candidates=num_top_candidates,
         enable_reasoning=enhanced_reasoning,
         multi_dimensional_eval=multi_dimensional_eval,
+        logical_inference=logical_inference,
         temperature_manager=temperature_manager,
         novelty_filter=novelty_filter,
         verbose=verbose,

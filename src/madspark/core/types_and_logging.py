@@ -13,7 +13,8 @@ class EvaluatedIdea(TypedDict):
     text: str       # The original idea text
     score: int      # Score assigned by the critic
     critique: str   # Textual critique from the critic
-    multi_dimensional_evaluation: Optional[Dict[str, Any]]  # Multi-dimensional evaluation data
+    multi_dimensional_evaluation: Optional[Dict[str, Any]]  # Initial multi-dimensional evaluation data
+    improved_multi_dimensional_evaluation: Optional[Dict[str, Any]]  # Re-evaluated after improvement
 
 
 class CandidateData(TypedDict):
@@ -30,6 +31,7 @@ class CandidateData(TypedDict):
     score_delta: float
     is_meaningful_improvement: bool
     similarity_score: float
+    improved_multi_dimensional_evaluation: Optional[Dict[str, Any]]  # Re-evaluated after improvement
 # --- End TypedDict Definitions ---
 
 

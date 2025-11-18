@@ -121,8 +121,9 @@ class OllamaProvider(LLMProvider):
             try:
                 models = self.client.list()
                 # Handle both dict and Model object responses
+                # Support both "model" and "name" keys (HTTP API uses "name", some responses use "model")
                 model_names = [
-                    m.get("model", "") if isinstance(m, dict) else getattr(m, "model", "")
+                    (m.get("model") or m.get("name", "")) if isinstance(m, dict) else getattr(m, "model", "")
                     for m in models.get("models", [])
                 ]
                 # Check if model is available

@@ -258,6 +258,13 @@ class ResponseCache:
             response.cached = True
 
             logger.debug(f"Cache hit: {key[:16]}...")
+
+            # Unwrap RootModel entries (stored as {"root": data})
+            # The caller will use schema.model_validate() which expects unwrapped data for RootModel
+            if isinstance(validated_dict, dict) and "root" in validated_dict and len(validated_dict) == 1:
+                # This was a RootModel - return the unwrapped data
+                return validated_dict["root"], response
+
             return validated_dict, response
 
         except Exception as e:

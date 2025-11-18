@@ -55,8 +55,8 @@ class SimpleFormatter(ResultFormatter):
                     lines.append("✅ Already well-developed - no significant improvements needed")
 
             # Add multi-dimensional evaluation if available
-            # Check both initial and improved evaluations (use initial if available, otherwise improved)
-            eval_data = result.get('multi_dimensional_evaluation') or result.get('improved_multi_dimensional_evaluation')
+            # Prefer improved evaluation (post-improvement), fall back to initial
+            eval_data = result.get('improved_multi_dimensional_evaluation') or result.get('multi_dimensional_evaluation')
 
             if eval_data:
                 # Show dimension scores in compact format

@@ -666,7 +666,7 @@ stages:
 # 1. Clone and setup
 git clone https://github.com/TheIllusionOfLife/Eureka.git
 cd Eureka
-./setup.sh  # Interactive setup
+./scripts/setup.sh  # Interactive setup
 
 # 2. Configure environment
 cp .env.example .env

@@ -11,8 +11,8 @@ This document summarizes all the user-friendliness and performance improvements 
 
 ### 2. User-Friendly Setup (✅ Fixed)
 **Problem**: Setup required manual `.env` file editing
-**Solution**: 
-- Interactive `./setup.sh` with API key prompt
+**Solution**:
+- Interactive `./scripts/setup.sh` with API key prompt
 - `mad_spark config` command for post-setup configuration
 **Impact**: No manual file editing required
 
@@ -74,7 +74,7 @@ This document summarizes all the user-friendliness and performance improvements 
 - `src/madspark/agents/genai_client.py` - Auto mode detection
 - `src/madspark/bin/mad_spark` - New command interface
 - `src/madspark/bin/mad_spark_config` - Configuration tool
-- `setup.sh` - Interactive setup with API key prompt
+- `scripts/setup.sh` - Interactive setup with API key prompt
 - `run.py` - Enhanced with mode detection
 - `src/madspark/core/coordinator.py` - Fixed .env loading order
 - `src/madspark/agents/idea_generator.py` - Limited idea count

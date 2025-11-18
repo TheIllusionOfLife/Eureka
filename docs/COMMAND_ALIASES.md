@@ -20,7 +20,7 @@ The command aliases are automatically created during setup:
 
 ```bash
 # Run the setup script
-./setup.sh
+./scripts/setup.sh
 
 # The script will:
 # 1. Create the mad_spark executable in src/madspark/bin/

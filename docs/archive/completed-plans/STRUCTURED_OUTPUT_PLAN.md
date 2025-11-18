@@ -153,7 +153,7 @@ Some terminal environments impose a 2-minute timeout on commands.
 Use the provided background script for long operations:
 
 ```bash
-./madspark-background.sh "your topic" "your context" --top-ideas 5 --enhanced --logical
+./scripts/madspark-background.sh "your topic" "your context" --top-ideas 5 --enhanced --logical
 ```
 
 This will:
@@ -190,7 +190,7 @@ outputs/
 
 Update files:
 - `.gitignore`: Add `outputs/` with exceptions for `.gitkeep`
-- `madspark-background.sh`: Use `outputs/background/` directory
+- `scripts/madspark-background.sh`: Use `outputs/background/` directory
 - Export functions: Use `outputs/exports/`
 - Batch processor: Use `outputs/batch/`
 

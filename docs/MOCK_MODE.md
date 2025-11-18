@@ -44,7 +44,7 @@ Mock mode includes basic language detection:
 
 ## Setup Experience
 
-When running `./setup.sh`, you'll be prompted:
+When running `./scripts/setup.sh`, you'll be prompted:
 ```
 Would you like to:
   1) Enter your API key now

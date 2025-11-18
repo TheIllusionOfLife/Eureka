@@ -34,7 +34,7 @@ This document summarizes the user-friendliness enhancements made to the MadSpark
 # Setup
 git clone ...
 cd Eureka
-./setup.sh
+./scripts/setup.sh
 # Edit src/madspark/.env manually
 # Add GOOGLE_API_KEY="..."
 
@@ -49,7 +49,7 @@ python -m madspark.cli.cli "consciousness" "what is it?"
 # Setup (2 steps!)
 git clone ...
 cd Eureka
-./setup.sh  # Interactive setup handles everything
+./scripts/setup.sh  # Interactive setup handles everything
 
 # Usage
 mad_spark "consciousness" "what is it?"

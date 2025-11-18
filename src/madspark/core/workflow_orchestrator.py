@@ -316,7 +316,8 @@ class WorkflowOrchestrator:
                 advocate_input,
                 topic,
                 context,
-                advocacy_temp
+                advocacy_temp,
+                router=self.router  # Pass request-scoped router
             )
 
             # Map results back to candidates
@@ -371,7 +372,8 @@ class WorkflowOrchestrator:
                 skeptic_input,
                 topic,
                 context,
-                skepticism_temp
+                skepticism_temp,
+                router=self.router  # Pass request-scoped router
             )
 
             # Map results back to candidates
@@ -428,7 +430,8 @@ class WorkflowOrchestrator:
                 improve_input,
                 topic,
                 context,
-                idea_temp
+                idea_temp,
+                router=self.router  # Pass request-scoped router
             )
 
             # Map results back to candidates

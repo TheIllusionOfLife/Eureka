@@ -226,21 +226,24 @@ def criticize_idea(idea: str, advocacy: str, topic: str, context: str, temperatu
 
 
 def criticize_ideas_batch(
-    ideas_with_advocacies: List[Dict[str, str]], 
+    ideas_with_advocacies: List[Dict[str, str]],
     topic: str,
-    context: str, 
-    temperature: float = 0.5
+    context: str,
+    temperature: float = 0.5,
+    router: Optional[Any] = None
 ) -> Tuple[List[Dict[str, Any]], int]:
   """Batch critical analysis for multiple ideas in a single API call.
-  
+
   This function significantly reduces API calls by processing all ideas
   in one request instead of making N separate calls.
-  
+
   Args:
     ideas_with_advocacies: List of dicts with 'idea' and 'advocacy' keys
     topic: The main topic or theme being explored
     context: Additional constraints or criteria for evaluation
     temperature: Generation temperature (0.0-1.0)
+    router: Optional LLMRouter for request-scoped configuration (currently unused,
+            batch operations use direct Gemini API for efficiency)
     
   Returns:
     List of skeptic responses with structured format including:

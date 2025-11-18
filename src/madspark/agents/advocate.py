@@ -234,21 +234,24 @@ def advocate_idea(idea: str, evaluation: str, topic: str, context: str, temperat
 
 
 def advocate_ideas_batch(
-    ideas_with_evaluations: List[Dict[str, str]], 
+    ideas_with_evaluations: List[Dict[str, str]],
     topic: str,
-    context: str, 
-    temperature: float = 0.5
+    context: str,
+    temperature: float = 0.5,
+    router: Optional[Any] = None
 ) -> Tuple[List[Dict[str, Any]], int]:
   """Batch advocate for multiple ideas in a single API call.
-  
+
   This function significantly reduces API calls by processing all ideas
   in one request instead of making N separate calls.
-  
+
   Args:
     ideas_with_evaluations: List of dicts with 'idea' and 'evaluation' keys
     topic: The main topic or theme being explored
     context: Additional constraints or criteria for evaluation
     temperature: Generation temperature (0.0-1.0)
+    router: Optional LLMRouter for request-scoped configuration (currently unused,
+            batch operations use direct Gemini API for efficiency)
     
   Returns:
     List of advocacy responses with structured format including:

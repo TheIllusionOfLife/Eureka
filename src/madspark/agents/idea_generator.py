@@ -576,22 +576,25 @@ def improve_idea(
 
 
 def improve_ideas_batch(
-    ideas_with_feedback: List[Dict[str, str]], 
+    ideas_with_feedback: List[Dict[str, str]],
     topic: str,
-    context: str, 
-    temperature: float = 0.9
+    context: str,
+    temperature: float = 0.9,
+    router: Optional[Any] = None
 ) -> Tuple[List[Dict[str, Any]], int]:
   """Batch improvement for multiple ideas in a single API call.
-  
+
   This function significantly reduces API calls by processing all ideas
   in one request instead of making N separate calls.
-  
+
   Args:
     ideas_with_feedback: List of dicts with 'idea', 'critique', 'advocacy', 'skepticism' keys
                         and optional 'logical_inference' key
     topic: The main topic/theme for the ideas
     context: The constraints or additional context for improvement
     temperature: Generation temperature (0.0-1.0)
+    router: Optional LLMRouter for request-scoped configuration (currently unused,
+            batch operations use direct Gemini API for efficiency)
     
   Returns:
     List of improvement responses with structured format including:

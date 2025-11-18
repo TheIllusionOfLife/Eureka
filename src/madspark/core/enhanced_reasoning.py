@@ -1003,19 +1003,7 @@ Provide a brief 1-2 sentence summary that captures the overall assessment, highl
             evaluations_obj = genai_response_to_pydantic(response.text, MultiDimensionalEvaluations)
 
             # Convert Pydantic objects to dicts for backward compatibility
-            evaluations = [
-                {
-                    'idea_index': eval_obj.idea_index,
-                    'feasibility': eval_obj.feasibility,
-                    'innovation': eval_obj.innovation,
-                    'impact': eval_obj.impact,
-                    'cost_effectiveness': eval_obj.cost_effectiveness,
-                    'scalability': eval_obj.scalability,
-                    'risk_assessment': eval_obj.risk_assessment,
-                    'timeline': eval_obj.timeline
-                }
-                for eval_obj in evaluations_obj
-            ]
+            evaluations = [eval_obj.model_dump() for eval_obj in evaluations_obj]
             
             # Validate response structure
             if not isinstance(evaluations, list):

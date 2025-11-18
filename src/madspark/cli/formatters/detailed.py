@@ -101,9 +101,7 @@ class DetailedFormatter(ResultFormatter):
 
             # Multi-dimensional evaluation with enhanced formatting
             # Check both initial and improved evaluations (use initial if available, otherwise improved)
-            eval_data = result.get('multi_dimensional_evaluation')
-            if not eval_data:
-                eval_data = result.get('improved_multi_dimensional_evaluation')
+            eval_data = result.get('multi_dimensional_evaluation') or result.get('improved_multi_dimensional_evaluation')
 
             if eval_data:
                 try:

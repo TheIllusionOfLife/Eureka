@@ -56,9 +56,7 @@ class SimpleFormatter(ResultFormatter):
 
             # Add multi-dimensional evaluation if available
             # Check both initial and improved evaluations (use initial if available, otherwise improved)
-            eval_data = result.get('multi_dimensional_evaluation')
-            if not eval_data:
-                eval_data = result.get('improved_multi_dimensional_evaluation')
+            eval_data = result.get('multi_dimensional_evaluation') or result.get('improved_multi_dimensional_evaluation')
 
             if eval_data:
                 # Show dimension scores in compact format
@@ -70,7 +68,11 @@ class SimpleFormatter(ResultFormatter):
                     # Show top dimensions (highest scores) for simple view
                     sorted_dims = sorted(scores.items(), key=lambda x: x[1], reverse=True)
                     top_3 = sorted_dims[:3]
-                    lines.append(f"   ✅ Strongest: {', '.join([f'{dim.replace('_', ' ').title()} ({score})' for dim, score in top_3])}")
+                    strongest_str = ", ".join(
+                        f"{dim.replace('_', ' ').title()} ({score})"
+                        for dim, score in top_3
+                    )
+                    lines.append(f"   ✅ Strongest: {strongest_str}")
 
                 # Show evaluation summary if available
                 if 'evaluation_summary' in eval_data:

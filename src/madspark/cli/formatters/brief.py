@@ -52,9 +52,7 @@ class BriefFormatter(ResultFormatter):
 
             # Add multi-dimensional evaluation if available (compact format)
             # Check both initial and improved evaluations (use initial if available, otherwise improved)
-            eval_data = result.get('multi_dimensional_evaluation')
-            if not eval_data:
-                eval_data = result.get('improved_multi_dimensional_evaluation')
+            eval_data = result.get('multi_dimensional_evaluation') or result.get('improved_multi_dimensional_evaluation')
 
             if eval_data and 'dimension_scores' in eval_data and eval_data['dimension_scores']:
                 scores = eval_data['dimension_scores']

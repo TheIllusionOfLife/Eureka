@@ -10,7 +10,7 @@ import asyncio
 import time
 
 # Add src to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
 
 from madspark.core.async_coordinator import AsyncCoordinator
 from madspark.core.coordinator_batch import run_multistep_workflow_batch

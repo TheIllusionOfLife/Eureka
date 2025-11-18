@@ -125,6 +125,34 @@ class TestAgentFunctionsAcceptRouter:
         router_param = sig.parameters['router']
         assert router_param.default is None, "router parameter should default to None"
 
+    def test_idea_generator_accepts_router(self):
+        """Test that generate_ideas accepts router parameter."""
+        from madspark.agents.idea_generator import generate_ideas
+        import inspect
+
+        router = LLMRouter(primary_provider="ollama")
+
+        # Check function signature accepts router parameter
+        sig = inspect.signature(generate_ideas)
+        assert 'router' in sig.parameters, "generate_ideas should have 'router' parameter"
+
+        router_param = sig.parameters['router']
+        assert router_param.default is None, "router parameter should default to None"
+
+    def test_structured_idea_generator_accepts_router(self):
+        """Test that improve_idea_structured accepts router parameter."""
+        from madspark.agents.structured_idea_generator import improve_idea_structured
+        import inspect
+
+        router = LLMRouter(primary_provider="gemini")
+
+        # Check function signature accepts router parameter
+        sig = inspect.signature(improve_idea_structured)
+        assert 'router' in sig.parameters, "improve_idea_structured should have 'router' parameter"
+
+        router_param = sig.parameters['router']
+        assert router_param.default is None, "router parameter should default to None"
+
 
 class TestNoEnvironmentManipulationInBackend:
     """Test that backend endpoints don't manipulate environment variables."""

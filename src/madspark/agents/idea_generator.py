@@ -7,7 +7,10 @@ and contextual information.
 import json
 import logging
 from pathlib import Path
-from typing import Any, List, Dict, Tuple, Optional, Union
+from typing import Any, List, Dict, Tuple, Optional, Union, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..llm.router import LLMRouter
 
 from madspark.utils.utils import parse_batch_json_with_fallback
 from madspark.utils.batch_exceptions import BatchParsingError
@@ -176,7 +179,8 @@ def generate_ideas(
     use_structured_output: bool = True,
     multimodal_files: Optional[List[Union[str, Path]]] = None,
     multimodal_urls: Optional[List[str]] = None,
-    use_router: bool = True
+    use_router: bool = True,
+    router: Optional["LLMRouter"] = None
 ) -> str:
   """Generates ideas based on a topic and context using the idea generator model.
 
@@ -194,6 +198,9 @@ def generate_ideas(
     multimodal_files: Optional list of file paths (images, PDFs, documents) for context.
     multimodal_urls: Optional list of URLs for context.
     use_router: Whether to use LLM Router for provider abstraction (default: True)
+    router: Optional LLMRouter instance for request-scoped routing (Phase 2).
+        If provided, uses this router instead of calling get_router().
+        Enables thread-safe concurrent operation in backend environments.
 
   Returns:
     A string containing the generated ideas. If use_structured_output is True,
@@ -220,11 +227,12 @@ def generate_ideas(
   # Note: Router doesn't support multimodal yet, so skip if multimodal inputs are present
   has_multimodal = bool(multimodal_files or multimodal_urls)
   # Router only used when use_structured_output=True since router inherently returns structured JSON
-  should_route = use_router and use_structured_output and LLM_ROUTER_AVAILABLE and get_router is not None and not has_multimodal
+  should_route = use_router and use_structured_output and LLM_ROUTER_AVAILABLE and (router is not None or get_router is not None) and not has_multimodal
   if should_route and _should_use_router():
       try:
-          router = get_router()
-          validated, response = router.generate_structured(
+          # Use provided router or fall back to singleton (backward compatible)
+          router_instance = router if router is not None else get_router()
+          validated, response = router_instance.generate_structured(
               prompt=text_prompt,
               schema=GeneratedIdeas,
               system_instruction=SYSTEM_INSTRUCTION,

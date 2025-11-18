@@ -887,6 +887,7 @@ class AsyncCoordinator(BatchOperationsBase):
                 temperature_manager=temperature_manager,
                 reasoning_engine=engine,
                 verbose=verbose,
+                router=self.router,  # Pass request-scoped router for thread safety
             )
             orchestrator = self.orchestrator  # Keep local variable for backward compatibility
 

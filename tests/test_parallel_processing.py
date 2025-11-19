@@ -128,7 +128,7 @@ class TestParallelEvaluationImprovement:
         # Patch the orchestrator instance method directly
         orchestrator.improve_ideas_async = AsyncMock(side_effect=mock_improvement)
 
-        with patch('src.madspark.core.async_coordinator.async_evaluate_ideas', mock_evaluation):
+        with patch('src.madspark.core.workflow_orchestrator.WorkflowOrchestrator.evaluate_ideas_async', mock_evaluation):
             # Process improvement and re-evaluation
             await coordinator.process_candidates_parallel_improvement_evaluation(
                 test_candidates,

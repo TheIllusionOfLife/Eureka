@@ -55,8 +55,8 @@ class TestReEvaluationContext:
             # Patch WorkflowOrchestrator improve function
             src.madspark.core.workflow_orchestrator.improve_ideas_batch = mock_improve
 
-            # Patch async_evaluate_ideas which is called by process_candidates_parallel_improvement_evaluation
-            with patch('src.madspark.core.async_coordinator.async_evaluate_ideas', mock_evaluate):
+            # Patch evaluate_ideas_async which is called by WorkflowOrchestrator
+            with patch('src.madspark.core.workflow_orchestrator.WorkflowOrchestrator.evaluate_ideas_async', mock_evaluate):
                 # Process re-evaluation
                 await coordinator.process_candidates_parallel_improvement_evaluation(
                     test_candidates,
@@ -106,7 +106,7 @@ class TestReEvaluationContext:
                 [{"improved_idea": "Significantly enhanced idea"}], 100
             )
         }):
-            with patch('src.madspark.core.async_coordinator.async_evaluate_ideas', mock_evaluate):
+            with patch('src.madspark.core.workflow_orchestrator.WorkflowOrchestrator.evaluate_ideas_async', mock_evaluate):
                 await coordinator.process_candidates_parallel_improvement_evaluation(
                     test_candidates,
                     "test topic",
@@ -151,7 +151,7 @@ class TestConsistentEvaluationCriteria:
                 [{"improved_idea": "Better idea"}], 100
             )
         }):
-            with patch('src.madspark.core.async_coordinator.async_evaluate_ideas', mock_evaluate):
+            with patch('src.madspark.core.workflow_orchestrator.WorkflowOrchestrator.evaluate_ideas_async', mock_evaluate):
                 await coordinator.process_candidates_parallel_improvement_evaluation(
                     test_candidates,
                     "test topic",
@@ -241,8 +241,8 @@ class TestBiasReduction:
             # Patch WorkflowOrchestrator improve function
             src.madspark.core.workflow_orchestrator.improve_ideas_batch = mock_improve
 
-            # Patch async_evaluate_ideas which is called by process_candidates_parallel_improvement_evaluation
-            with patch('src.madspark.core.async_coordinator.async_evaluate_ideas', mock_evaluate):
+            # Patch evaluate_ideas_async which is called by WorkflowOrchestrator
+            with patch('src.madspark.core.workflow_orchestrator.WorkflowOrchestrator.evaluate_ideas_async', mock_evaluate):
                 await coordinator.process_candidates_parallel_improvement_evaluation(
                     test_candidates,
                     "test topic",
@@ -298,8 +298,8 @@ class TestReEvaluationPromptStructure:
             # Patch WorkflowOrchestrator improve function
             src.madspark.core.workflow_orchestrator.improve_ideas_batch = mock_improve
 
-            # Patch async_evaluate_ideas which is called by process_candidates_parallel_improvement_evaluation
-            with patch('src.madspark.core.async_coordinator.async_evaluate_ideas', mock_evaluate):
+            # Patch evaluate_ideas_async which is called by WorkflowOrchestrator
+            with patch('src.madspark.core.workflow_orchestrator.WorkflowOrchestrator.evaluate_ideas_async', mock_evaluate):
                 await coordinator.process_candidates_parallel_improvement_evaluation(
                     test_candidates,
                     "topic",

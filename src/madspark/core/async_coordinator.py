@@ -726,6 +726,9 @@ class AsyncCoordinator(BatchOperationsBase):
 
                 # Add multi-dimensional evaluation if enabled
                 if multi_dimensional_eval:
+                    await self._send_progress(
+                        "📊 Multi-dimensional Analysis: Evaluating across multiple dimensions...", 0.5
+                    )
                     evaluated_ideas_data = await asyncio.wait_for(
                         orchestrator.add_multi_dimensional_evaluation_async(
                             candidates=evaluated_ideas_data,

@@ -46,8 +46,8 @@ class TestAIMultiDimensionalEvaluator:
             assert dim in result['dimension_scores']
             assert 1 <= result['dimension_scores'][dim] <= 10
 
-        # Verify AI was called for each dimension (summary is now generated programmatically)
-        assert mock_client.models.generate_content.call_count == len(dimensions)
+        # Verify AI was called for each dimension + 1 for summary generation
+        assert mock_client.models.generate_content.call_count == len(dimensions) + 1
     
     def test_ai_failure_raises_error(self):
         """Test that AI failures raise clear errors."""
@@ -155,10 +155,10 @@ class TestAIMultiDimensionalEvaluator:
         )
         
         # Verify prompts contain dimension-specific content
-        # Summary is now generated programmatically, so only 7 prompts (one per dimension)
+        # 7 dimension prompts + 1 summary prompt
         dimensions = ['feasibility', 'innovation', 'impact', 'cost_effectiveness',
                      'scalability', 'risk_assessment', 'timeline']
-        assert len(captured_prompts) == len(dimensions)
+        assert len(captured_prompts) == len(dimensions) + 1
 
         # Check that all dimension evaluation prompts contain the idea and guidance
         for prompt in captured_prompts:

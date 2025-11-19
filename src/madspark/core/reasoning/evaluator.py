@@ -283,15 +283,38 @@ Respond with only the numeric score (e.g., "6")."""
             if not isinstance(evaluations_data, list):
                 raise ValueError("Response must be an array of evaluations")
 
-            # Build full evaluation results with all dimensions
+            # Validate and build full evaluation results with all dimensions
             evaluations = []
+            validation_errors = []
+
             for idx, eval_data in enumerate(evaluations_data):
-                # Build dimension scores dict
+                # Build dimension scores dict and validate all required dimensions are present
+                dimension_scores = {}
+                missing_dims = []
+
+                for dim in self.evaluation_dimensions.keys():
+                    if dim not in eval_data:
+                        missing_dims.append(dim)
+                    else:
+                        try:
+                            score = float(eval_data[dim])
+                            # Clamp to valid range
+                            dimension_scores[dim] = max(1.0, min(10.0, score))
+                        except (ValueError, TypeError) as e:
+                            validation_errors.append(f"Invalid score for {dim} in idea {idx}: {e}")
+
+                if missing_dims:
+                    validation_errors.append(f"Idea {idx} missing required dimensions: {', '.join(missing_dims)}")
+
+            # Raise error if there were validation issues
+            if validation_errors:
+                raise RuntimeError(f"Failed to evaluate ideas due to validation errors: {'; '.join(validation_errors)}")
+
+            # Build results (only reached if validation passed)
+            for idx, eval_data in enumerate(evaluations_data):
                 dimension_scores = {}
                 for dim in self.evaluation_dimensions.keys():
-                    score = eval_data.get(dim, 5.0)  # Default to 5.0 if missing
-                    # Clamp to valid range
-                    dimension_scores[dim] = max(1.0, min(10.0, float(score)))
+                    dimension_scores[dim] = max(1.0, min(10.0, float(eval_data[dim])))
 
                 # Calculate overall and weighted scores
                 overall_score = sum(dimension_scores.values()) / len(dimension_scores)
@@ -323,20 +346,12 @@ Respond with only the numeric score (e.g., "6")."""
 
             return evaluations
 
+        except RuntimeError:
+            # Re-raise RuntimeError (validation errors, etc.)
+            raise
         except Exception as e:
-            # Fallback to individual evaluation if batch fails
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.warning(f"Batch evaluation failed: {e}. Falling back to individual evaluation.")
-
-            evaluations = []
-            for idx, idea in enumerate(ideas):
-                evaluation = self.evaluate_idea(idea, context_dict)
-                evaluation['idea_index'] = idx
-                evaluation['idea'] = idea
-                evaluations.append(evaluation)
-
-            return evaluations
+            # Wrap other exceptions as RuntimeError for batch evaluation failures
+            raise RuntimeError(f"Failed to evaluate ideas: {str(e)}")
 
     def _build_batch_evaluation_prompt(self, ideas: List[str], context: Dict[str, Any]) -> str:
         """Build prompt for batch evaluation of multiple ideas.
@@ -534,15 +549,11 @@ Provide a concise 1-2 sentence summary highlighting key strengths and areas for 
             from ..agents.genai_client import get_model_name
 
         try:
-            api_config = self.types.GenerateContentConfig(
-                temperature=0.7,
-                system_instruction="You are a helpful evaluator providing concise summaries."
-            )
-
+            # Note: Summary generation doesn't use structured output config
+            # to keep it separate from dimension evaluations
             response = self.genai_client.models.generate_content(
                 model=get_model_name(),
-                contents=prompt,
-                config=api_config
+                contents=prompt
             )
 
             return response.text.strip()

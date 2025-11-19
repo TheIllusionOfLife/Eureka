@@ -505,24 +505,66 @@ Respond with only the numeric score."""
             return str(value).replace('{', '').replace('}', '').replace('[', '').replace(']', '')
 
     def _generate_evaluation_summary(self, scores: Dict[str, float], idea: str) -> str:
-        """Generate a text summary of the evaluation.
+        """Generate a text summary of the evaluation using LLM for language consistency.
 
-        Note: Uses programmatic generation for efficiency during batch operations.
+        Args:
+            scores: Dictionary of dimension scores
+            idea: The idea being evaluated
+
+        Returns:
+            Summary text in the same language as the input
         """
-        # Identify strengths (>= 8) and weaknesses (<= 5)
-        strengths = [dim for dim, score in scores.items() if score >= 8]
-        weaknesses = [dim for dim, score in scores.items() if score <= 5]
+        # Build scores text
+        scores_text = "\n".join([f"- {dim}: {score:.1f}/10" for dim, score in scores.items()])
 
-        summary = []
-        if strengths:
-            summary.append(f"Strong in {', '.join(strengths)}.")
-        if weaknesses:
-            summary.append(f"Needs improvement in {', '.join(weaknesses)}.")
+        # Build prompt with language consistency instruction
+        prompt = LANGUAGE_CONSISTENCY_INSTRUCTION + f"""Generate a brief evaluation summary for this idea based on the following dimension scores:
 
-        if not summary:
-            summary.append("Balanced profile across all dimensions.")
+Idea: "{idea}"
 
-        return " ".join(summary)
+Scores:
+{scores_text}
+
+Provide a concise 1-2 sentence summary highlighting key strengths and areas for improvement."""
+
+        # Use LLM to generate summary
+        try:
+            from madspark.agents.genai_client import get_model_name
+        except ImportError:
+            from ..agents.genai_client import get_model_name
+
+        try:
+            api_config = self.types.GenerateContentConfig(
+                temperature=0.7,
+                system_instruction="You are a helpful evaluator providing concise summaries."
+            )
+
+            response = self.genai_client.models.generate_content(
+                model=get_model_name(),
+                contents=prompt,
+                config=api_config
+            )
+
+            return response.text.strip()
+        except Exception as e:
+            # Fallback to programmatic summary if LLM fails
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"LLM summary generation failed: {e}. Using programmatic fallback.")
+
+            strengths = [dim for dim, score in scores.items() if score >= 8]
+            weaknesses = [dim for dim, score in scores.items() if score <= 5]
+
+            summary = []
+            if strengths:
+                summary.append(f"Strong in {', '.join(strengths)}.")
+            if weaknesses:
+                summary.append(f"Needs improvement in {', '.join(weaknesses)}.")
+
+            if not summary:
+                summary.append("Balanced profile across all dimensions.")
+
+            return " ".join(summary)
 
     def _analyze_dimension_patterns(self, evaluations: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Analyze patterns across multiple evaluations."""

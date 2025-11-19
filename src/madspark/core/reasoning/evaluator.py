@@ -276,13 +276,12 @@ Respond with only the numeric score (e.g., "6")."""
             if not response.text:
                 raise ValueError("Empty response from API")
 
-            result = json.loads(response.text)
+            # Parse response - MultiDimensionalEvaluations is a RootModel (direct array)
+            evaluations_data = json.loads(response.text)
 
-            # Extract evaluations array
-            if "evaluations" not in result:
-                raise ValueError("Response missing 'evaluations' field")
-
-            evaluations_data = result["evaluations"]
+            # Validate it's an array
+            if not isinstance(evaluations_data, list):
+                raise ValueError("Response must be an array of evaluations")
 
             # Build full evaluation results with all dimensions
             evaluations = []
@@ -306,7 +305,8 @@ Respond with only the numeric score (e.g., "6")."""
                 variance = sum((score - overall_score) ** 2 for score in scores) / len(scores)
                 confidence_interval = max(0.0, 1.0 - (variance / 25.0))
 
-                evaluations.append({
+                # Build result with both nested and top-level dimension scores for compatibility
+                result = {
                     'idea_index': idx,
                     'idea': ideas[idx],
                     'overall_score': round(overall_score, 2),
@@ -314,7 +314,12 @@ Respond with only the numeric score (e.g., "6")."""
                     'dimension_scores': dimension_scores,
                     'confidence_interval': round(confidence_interval, 3),
                     'evaluation_summary': eval_data.get('summary', self._generate_evaluation_summary(dimension_scores, ideas[idx]))
-                })
+                }
+
+                # Add dimension scores as top-level fields for test compatibility
+                result.update(dimension_scores)
+
+                evaluations.append(result)
 
             return evaluations
 
@@ -500,54 +505,24 @@ Respond with only the numeric score."""
             return str(value).replace('{', '').replace('}', '').replace('[', '').replace(']', '')
 
     def _generate_evaluation_summary(self, scores: Dict[str, float], idea: str) -> str:
-        """Generate a text summary of the evaluation using LLM for language consistency."""
-        # Build scores text
-        scores_text = "\n".join([f"- {dim}: {score:.1f}/10" for dim, score in scores.items()])
+        """Generate a text summary of the evaluation.
 
-        # Build prompt for LLM summary generation
-        prompt = LANGUAGE_CONSISTENCY_INSTRUCTION + f"""Generate a brief evaluation summary for this idea based on the following dimension scores:
+        Note: Uses programmatic generation for efficiency during batch operations.
+        """
+        # Identify strengths (>= 8) and weaknesses (<= 5)
+        strengths = [dim for dim, score in scores.items() if score >= 8]
+        weaknesses = [dim for dim, score in scores.items() if score <= 5]
 
-Idea: "{idea}"
+        summary = []
+        if strengths:
+            summary.append(f"Strong in {', '.join(strengths)}.")
+        if weaknesses:
+            summary.append(f"Needs improvement in {', '.join(weaknesses)}.")
 
-Scores:
-{scores_text}
+        if not summary:
+            summary.append("Balanced profile across all dimensions.")
 
-Provide a concise 1-2 sentence summary highlighting key strengths and areas for improvement."""
-
-        # Use LLM to generate summary
-        try:
-            from madspark.agents.genai_client import get_model_name
-        except ImportError:
-            from ..agents.genai_client import get_model_name
-
-        try:
-            api_config = self.types.GenerateContentConfig(
-                temperature=0.7,
-                system_instruction="You are a helpful evaluator providing concise summaries."
-            )
-
-            response = self.genai_client.models.generate_content(
-                model=get_model_name(),
-                contents=prompt,
-                config=api_config
-            )
-
-            return response.text.strip()
-        except Exception:
-            # Fallback to programmatic summary if LLM fails
-            strengths = [dim for dim, score in scores.items() if score >= 8]
-            weaknesses = [dim for dim, score in scores.items() if score <= 5]
-
-            summary = []
-            if strengths:
-                summary.append(f"Strong in {', '.join(strengths)}.")
-            if weaknesses:
-                summary.append(f"Needs improvement in {', '.join(weaknesses)}.")
-
-            if not summary:
-                summary.append("Balanced profile across all dimensions.")
-
-            return " ".join(summary)
+        return " ".join(summary)
 
     def _analyze_dimension_patterns(self, evaluations: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Analyze patterns across multiple evaluations."""

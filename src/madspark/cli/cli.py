@@ -1114,9 +1114,13 @@ def _show_llm_stats() -> None:
         # Check if router was actually used
         if metrics[METRIC_TOTAL_REQUESTS] == 0:
             print("⚠️  NOTE: LLM Router was not used in this workflow.")
-            print("   The multi-provider routing infrastructure is ready but")
-            print("   not yet integrated into the main workflow (Phase 2).")
-            print("   Current workflow uses direct Gemini API calls.")
+            print("   Possible reasons:")
+            print("   • --no-router flag was used (bypasses router)")
+            print("   • Batch operations use direct Gemini API for efficiency")
+            print("   • Some agent functions haven't added router support yet")
+            print("")
+            print("💡 TIP: Router is enabled by default for individual agent calls.")
+            print("   It provides Ollama-first inference with automatic Gemini fallback.")
             print("")
 
         print(f"Total Requests: {metrics[METRIC_TOTAL_REQUESTS]}")

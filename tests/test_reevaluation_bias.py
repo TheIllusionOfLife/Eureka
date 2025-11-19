@@ -45,7 +45,7 @@ class TestReEvaluationContext:
         def mock_improve(*args, **kwargs):
             return ([{"improved_idea": "Enhanced idea with clear implementation plan", "key_improvements": ["improvement 1"]}], 100)
 
-        async def mock_evaluate(ideas, topic, context, temperature, use_structured_output=True, router=None):
+        async def mock_evaluate(self, ideas, topic, context):
             nonlocal captured_prompt, captured_context
             captured_prompt = ideas
             captured_context = context
@@ -68,7 +68,10 @@ class TestReEvaluationContext:
                 )
 
                 # Verify the prompt includes improvement context
-                assert "Enhanced idea with clear implementation plan" in captured_prompt
+                # captured_prompt is a list of ideas
+                assert captured_prompt is not None
+                assert len(captured_prompt) > 0
+                assert "Enhanced idea with clear implementation plan" in captured_prompt[0]
 
                 # Verify context remains original (bias prevention)
                 assert captured_context is not None
@@ -96,9 +99,9 @@ class TestReEvaluationContext:
         
         captured_context = None
         
-        async def mock_evaluate(*args, **kwargs):
+        async def mock_evaluate(self, ideas, topic, context):
             nonlocal captured_context
-            captured_context = kwargs.get('context', '')
+            captured_context = context
             # Always return consistent score for improved idea (bias prevention working)
             # Return tuple (parsed_results, token_count)
             return ([{"score": 6, "comment": "Improvement evaluated fairly"}], 100)
@@ -143,9 +146,9 @@ class TestConsistentEvaluationCriteria:
         
         captured_criteria = None
         
-        async def mock_evaluate(*args, **kwargs):
+        async def mock_evaluate(self, ideas, topic, context):
             nonlocal captured_criteria
-            captured_criteria = kwargs.get('context', '')  # Use context parameter
+            captured_criteria = context  # Use context parameter
             # Return tuple (parsed_results, token_count)
             return ([{"score": 7, "comment": "Better"}], 100)
         
@@ -234,9 +237,10 @@ class TestBiasReduction:
         def mock_improve(*args, **kwargs):
             return ([{"improved_idea": "Good original idea with minor tweak", "key_improvements": ["minor change"]}], 100)
 
-        async def mock_evaluate(ideas, topic, context, temperature, use_structured_output=True, router=None):
+        async def mock_evaluate(self, ideas, topic, context):
             # If improvement is minimal, score shouldn't increase much
-            if "minor tweak" in ideas:
+            # ideas is a list, so check if any idea contains "minor tweak"
+            if any("minor tweak" in idea for idea in ideas):
                 # Return tuple (parsed_results, token_count)
                 return ([{"score": 8, "comment": "No significant improvement"}], 100)
             # Return tuple (parsed_results, token_count)
@@ -294,7 +298,7 @@ class TestReEvaluationPromptStructure:
         def mock_improve(*args, **kwargs):
             return ([{"improved_idea": "Much better version", "key_improvements": ["improvement 1"]}], 100)
 
-        async def mock_evaluate(ideas, topic, context, temperature, use_structured_output=True, router=None):
+        async def mock_evaluate(self, ideas, topic, context):
             nonlocal captured_ideas_text
             captured_ideas_text = ideas
             # Return tuple (parsed_results, token_count)
@@ -315,11 +319,14 @@ class TestReEvaluationPromptStructure:
                 )
 
                 # Verify prompt structure includes key elements
+                # captured_ideas_text is a list of ideas
                 assert captured_ideas_text is not None
-                assert "Much better version" in captured_ideas_text
+                assert len(captured_ideas_text) > 0
+                assert "Much better version" in captured_ideas_text[0]
                 # With bias prevention, we DON'T include improvement markers
                 # This ensures fair evaluation without bias toward "improved" versions
-                assert not any(marker in captured_ideas_text.upper() for marker in ["IMPROVED", "ENHANCED", "REFINED"])
+                ideas_text = " ".join(captured_ideas_text)
+                assert not any(marker in ideas_text.upper() for marker in ["IMPROVED", "ENHANCED", "REFINED"])
         finally:
             # Restore originals
             src.madspark.core.workflow_orchestrator.improve_ideas_batch = original_improve

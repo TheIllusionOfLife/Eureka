@@ -121,7 +121,7 @@ class TestParallelEvaluationImprovement:
                 candidate["improved_idea"] = "Better Idea 1"
             return candidates, 100
 
-        async def mock_evaluation(*args, **kwargs):
+        async def mock_evaluation(self, ideas, topic, context):
             operation_order.append("evaluation")
             # Return tuple (parsed_results, token_count)
             return ([{"score": 9, "comment": "Much better"}], 100)

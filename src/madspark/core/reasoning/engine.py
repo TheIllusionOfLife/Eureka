@@ -49,13 +49,10 @@ class ReasoningEngine:
             self.multi_evaluator = None
             
         self.conversation_tracker = AgentConversationTracker()
-        
+
         # Expose logical inference engine directly for batch operations
-        # This allows coordinators to access the engine without going through the wrapper
-        if hasattr(self.logical_inference, 'inference_engine'):
-            self.logical_inference_engine = self.logical_inference.inference_engine
-        else:
-            self.logical_inference_engine = None
+        # LogicalInference always sets .inference_engine (to an instance or None)
+        self.logical_inference_engine = self.logical_inference.inference_engine
             
     def _get_default_config(self) -> Dict[str, Any]:
         """Get default configuration for reasoning engine."""

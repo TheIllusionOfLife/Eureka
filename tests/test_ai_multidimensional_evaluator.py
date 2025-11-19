@@ -40,14 +40,14 @@ class TestAIMultiDimensionalEvaluator:
         assert 'evaluation_summary' in result
         
         # Verify all dimensions evaluated
-        dimensions = ['feasibility', 'innovation', 'impact', 'cost_effectiveness', 
+        dimensions = ['feasibility', 'innovation', 'impact', 'cost_effectiveness',
                      'scalability', 'risk_assessment', 'timeline']
         for dim in dimensions:
             assert dim in result['dimension_scores']
             assert 1 <= result['dimension_scores'][dim] <= 10
-        
-        # Verify AI was called for each dimension plus summary
-        assert mock_client.models.generate_content.call_count == len(dimensions) + 1
+
+        # Verify AI was called for each dimension (summary is now generated programmatically)
+        assert mock_client.models.generate_content.call_count == len(dimensions)
     
     def test_ai_failure_raises_error(self):
         """Test that AI failures raise clear errors."""

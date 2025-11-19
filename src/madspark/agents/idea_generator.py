@@ -52,10 +52,16 @@ except ImportError:
 
 # Import prompt constants from constants module
 try:
-    from madspark.utils.constants import IDEA_GENERATION_INSTRUCTION, IDEA_GENERATOR_SYSTEM_INSTRUCTION as SYSTEM_INSTRUCTION, LANGUAGE_CONSISTENCY_INSTRUCTION
+    from madspark.utils.constants import (
+        IDEA_GENERATOR_SYSTEM_INSTRUCTION as SYSTEM_INSTRUCTION,
+        LANGUAGE_CONSISTENCY_INSTRUCTION,
+    )
 except ImportError:
     # Fallback for local development/testing
-    from constants import IDEA_GENERATION_INSTRUCTION, IDEA_GENERATOR_SYSTEM_INSTRUCTION as SYSTEM_INSTRUCTION, LANGUAGE_CONSISTENCY_INSTRUCTION
+    from constants import (
+        IDEA_GENERATOR_SYSTEM_INSTRUCTION as SYSTEM_INSTRUCTION,
+        LANGUAGE_CONSISTENCY_INSTRUCTION,
+    )
 
 # Safety settings for constructive feedback generation
 # Use centralized safety handler to avoid duplication

@@ -8,7 +8,6 @@ This module implements advanced reasoning capabilities including:
 
 COMPATIBILITY LAYER: This module now redirects to madspark.core.reasoning package.
 """
-import logging
 
 # Re-export from new package
 from .reasoning import (
@@ -22,9 +21,6 @@ from .reasoning import (
     AgentConversationTracker,
     ReasoningEngine
 )
-
-# Configure logging for enhanced reasoning (maintain backward compatibility)
-reasoning_logger = logging.getLogger(__name__)
 
 __all__ = [
     'ReasoningConfig',

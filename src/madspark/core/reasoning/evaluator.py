@@ -187,37 +187,60 @@ Respond with only the numeric score (e.g., "6")."""
         
     def compare_ideas(self, ideas: List[str], context: Dict[str, Any]) -> Dict[str, Any]:
         """Compare multiple ideas across all dimensions.
-        
+
         Args:
             ideas: List of ideas to compare
             context: Context information for evaluation
-            
+
         Returns:
             Dictionary containing comparison results
         """
         evaluations = []
-        
+
         for idea in ideas:
             evaluation = self.evaluate_idea(idea, context)
             evaluation['idea'] = idea
             evaluations.append(evaluation)
-            
+
         # Sort by weighted score (highest first)
         rankings = sorted(evaluations, key=lambda x: x['weighted_score'], reverse=True)
-        
+
         # Add score field for compatibility and calculate relative scores
         if rankings:
             top_score = rankings[0]['weighted_score']
             for evaluation in rankings:
                 evaluation['score'] = evaluation['weighted_score']  # Add score field for test compatibility
                 evaluation['relative_score'] = evaluation['weighted_score'] / top_score if top_score > 0 else 0
-                
+
         return {
             'rankings': rankings,
             'relative_scores': [eval['relative_score'] for eval in rankings],
             'dimension_analysis': self._analyze_dimension_patterns(evaluations),
             'recommendation': self._generate_comparison_recommendation(rankings)
         }
+
+    def evaluate_ideas_batch(self, ideas: List[str], topic: str, context: str) -> List[Dict[str, Any]]:
+        """Batch evaluate multiple ideas across all dimensions.
+
+        This method provides backward compatibility with WorkflowOrchestrator.
+
+        Args:
+            ideas: List of ideas to evaluate
+            topic: The main topic/theme
+            context: Context or constraints for evaluation
+
+        Returns:
+            List of evaluation dictionaries, one per idea
+        """
+        context_dict = {'topic': topic, 'context': context}
+        evaluations = []
+
+        for idea in ideas:
+            evaluation = self.evaluate_idea(idea, context_dict)
+            evaluation['idea'] = idea
+            evaluations.append(evaluation)
+
+        return evaluations
         
     def _evaluate_dimension(self, idea: str, context: Dict[str, Any], 
                            dimension: str, config: Dict[str, Any]) -> float:

@@ -943,9 +943,9 @@ class AsyncCoordinator(BatchOperationsBase):
 
         except Exception as e:
             logger.error(f"Batch re-evaluation failed: {e}")
-            # Fallback: use original scores
+            # Fallback: use original scores or initial scores
             for candidate in candidates:
-                candidate["improved_score"] = candidate["score"]
+                candidate["improved_score"] = candidate.get("score", candidate.get("initial_score", 0.0))
                 candidate["improved_critique"] = "Re-evaluation failed"
 
         # Step 5: Build final candidate data - Phase 3.2c: Using WorkflowOrchestrator

@@ -526,13 +526,39 @@ class TestAsyncBatchOperations:
             }
         )
 
+        # Phase 3.2c: Patch orchestrator methods instead of old async wrappers
+        # Note: Orchestrator methods return (result, token_count) tuples
+        # and perform parsing internally, so we return parsed objects, not JSON strings
+        
+        parsed_ideas = [
+            "Idea 1: Desc 1", 
+            "Idea 2: Desc 2"
+        ]
+        
+        parsed_evals = [
+            {
+                "text": "Idea 1: Desc 1",
+                "score": 0.8,
+                "critique": "Good",
+                "multi_dimensional_evaluation": None
+            },
+            {
+                "text": "Idea 2: Desc 2",
+                "score": 0.7,
+                "critique": "Okay",
+                "multi_dimensional_evaluation": None
+            }
+        ]
+
+        from unittest.mock import AsyncMock
+        
         with patch(
-            "madspark.core.async_coordinator.async_generate_ideas",
-            return_value=mock_ideas,
+            "madspark.core.workflow_orchestrator.WorkflowOrchestrator.generate_ideas_async",
+            new=AsyncMock(return_value=(parsed_ideas, 100))
         ):
             with patch(
-                "madspark.core.async_coordinator.async_evaluate_ideas",
-                return_value=mock_evals,
+                "madspark.core.workflow_orchestrator.WorkflowOrchestrator.evaluate_ideas_async",
+                new=AsyncMock(return_value=(parsed_evals, 100))
             ):
                 await async_coordinator.run_workflow(**params)
                 assert cache_hits["workflow"] == 1
@@ -579,13 +605,37 @@ class TestAsyncCoordinatorIntegration:
             }
         )
 
+        # Phase 3.2c: Patch orchestrator methods
+        # Note: Orchestrator returns parsed objects, not JSON
+        
+        mock_parsed_ideas = ["Great idea: Testing idea"]
+        mock_parsed_evals = [
+            {
+                "text": "Great idea: Testing idea",
+                "score": 0.8,
+                "critique": "Good",
+                "multi_dimensional_evaluation": None
+            }
+        ]
+        
+        from unittest.mock import AsyncMock
+
+        # Create async mocks that simulate delay
+        async def delayed_generate(*args, **kwargs):
+            await asyncio.sleep(0.5)
+            return (mock_parsed_ideas, 100)
+            
+        async def delayed_evaluate(*args, **kwargs):
+            await asyncio.sleep(0.3)
+            return (mock_parsed_evals, 100)
+
         with patch(
-            "madspark.core.async_coordinator.async_generate_ideas",
-            side_effect=self._mock_api_delay(0.5, mock_idea),
+            "madspark.core.workflow_orchestrator.WorkflowOrchestrator.generate_ideas_async",
+            new=AsyncMock(side_effect=delayed_generate)
         ):
             with patch(
-                "madspark.core.async_coordinator.async_evaluate_ideas",
-                side_effect=self._mock_api_delay(0.3, mock_eval),
+                "madspark.core.workflow_orchestrator.WorkflowOrchestrator.evaluate_ideas_async",
+                new=AsyncMock(side_effect=delayed_evaluate)
             ):
                 with patch.dict(
                     "madspark.core.batch_operations_base.BATCH_FUNCTIONS",

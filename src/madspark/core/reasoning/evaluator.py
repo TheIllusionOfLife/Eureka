@@ -5,6 +5,12 @@ from typing import Dict, List, Any, Optional
 from madspark.schemas.evaluation import DimensionScore, MultiDimensionalEvaluations
 from madspark.schemas.adapters import pydantic_to_genai_schema
 
+# Import language consistency instruction
+try:
+    from madspark.utils.constants import LANGUAGE_CONSISTENCY_INSTRUCTION
+except ImportError:
+    from ...utils.constants import LANGUAGE_CONSISTENCY_INSTRUCTION
+
 # Convert Pydantic models to GenAI schema format at module level (cached)
 _DIMENSION_SCORE_GENAI_SCHEMA = pydantic_to_genai_schema(DimensionScore)
 _MULTI_DIM_BATCH_SCHEMA = pydantic_to_genai_schema(MultiDimensionalEvaluations)
@@ -14,6 +20,7 @@ class MultiDimensionalEvaluator:
     """System for multi-dimensional evaluation of ideas using AI."""
     
     # Dimension-specific prompts defined at class level for efficiency
+    # Note: LANGUAGE_CONSISTENCY_INSTRUCTION is prepended in _build_dimension_prompt()
     DIMENSION_PROMPTS = {
         'feasibility': """Evaluate the feasibility of this idea on a scale of 1-10:
 "{idea}"
@@ -27,7 +34,7 @@ Scoring guide:
 - 10: Can be implemented immediately
 
 Respond with only the numeric score (e.g., "7").""",
-        
+
         'innovation': """Evaluate the innovation level of this idea on a scale of 1-10:
 "{idea}"
 
@@ -40,7 +47,7 @@ Scoring guide:
 - 10: Groundbreaking, never seen before
 
 Respond with only the numeric score (e.g., "8").""",
-        
+
         'impact': """Evaluate the potential impact of this idea on a scale of 1-10:
 "{idea}"
 
@@ -53,7 +60,7 @@ Scoring guide:
 - 10: Transformative impact on society
 
 Respond with only the numeric score (e.g., "7").""",
-        
+
         'cost_effectiveness': """Evaluate the cost-effectiveness of this idea on a scale of 1-10:
 "{idea}"
 
@@ -66,7 +73,7 @@ Scoring guide:
 - 10: Minimal cost with exceptional returns
 
 Respond with only the numeric score (e.g., "6").""",
-        
+
         'scalability': """Evaluate the scalability of this idea on a scale of 1-10:
 "{idea}"
 
@@ -79,7 +86,7 @@ Scoring guide:
 - 10: Infinitely scalable by design
 
 Respond with only the numeric score (e.g., "8").""",
-        
+
         'risk_assessment': """Evaluate the risk level of this idea on a scale of 1-10 (higher score = lower risk):
 "{idea}"
 
@@ -92,7 +99,7 @@ Scoring guide:
 - 10: Minimal risk, proven methods
 
 Respond with only the numeric score (e.g., "7").""",
-        
+
         'timeline': """Evaluate the timeline feasibility of this idea on a scale of 1-10:
 "{idea}"
 
@@ -219,20 +226,25 @@ Respond with only the numeric score (e.g., "6")."""
             'recommendation': self._generate_comparison_recommendation(rankings)
         }
 
-    def evaluate_ideas_batch(self, ideas: List[str], topic: str, context: str) -> List[Dict[str, Any]]:
+    def evaluate_ideas_batch(self, ideas: List[str], context: Any, topic: str = "") -> List[Dict[str, Any]]:
         """Batch evaluate multiple ideas across all dimensions.
 
         This method provides backward compatibility with WorkflowOrchestrator.
 
         Args:
             ideas: List of ideas to evaluate
-            topic: The main topic/theme
-            context: Context or constraints for evaluation
+            context: Context or constraints for evaluation (can be string or dict)
+            topic: The main topic/theme (optional)
 
         Returns:
             List of evaluation dictionaries, one per idea
         """
-        context_dict = {'topic': topic, 'context': context}
+        # Handle flexible context parameter
+        if isinstance(context, dict):
+            context_dict = context
+        else:
+            context_dict = {'topic': topic, 'context': str(context)}
+
         evaluations = []
 
         for idea in ideas:
@@ -241,8 +253,31 @@ Respond with only the numeric score (e.g., "6")."""
             evaluations.append(evaluation)
 
         return evaluations
-        
-    def _evaluate_dimension(self, idea: str, context: Dict[str, Any], 
+
+    def _build_batch_evaluation_prompt(self, ideas: List[str], context: Dict[str, Any]) -> str:
+        """Build prompt for batch evaluation of multiple ideas.
+
+        Args:
+            ideas: List of ideas to evaluate
+            context: Context information for evaluation
+
+        Returns:
+            Formatted prompt string with language instruction
+        """
+        context_str = self._normalize_context_for_prompt(context)
+        ideas_text = "\n".join([f"{i+1}. {idea}" for i, idea in enumerate(ideas)])
+
+        base_prompt = f"""Evaluate the following ideas across multiple dimensions:
+
+{ideas_text}
+
+Context: {context_str}
+
+Provide evaluations for each idea across all dimensions."""
+
+        return LANGUAGE_CONSISTENCY_INSTRUCTION + base_prompt
+
+    def _evaluate_dimension(self, idea: str, context: Dict[str, Any],
                            dimension: str, config: Dict[str, Any]) -> float:
         """Evaluate a single dimension using AI."""
         try:
@@ -316,7 +351,7 @@ Context: {{context}}
 
 Respond with only the numeric score."""
 
-        return base_prompt.format(idea=idea, context=context_str)
+        return LANGUAGE_CONSISTENCY_INSTRUCTION + base_prompt.format(idea=idea, context=context_str)
 
     def _normalize_context_for_prompt(self, context: Any) -> str:
         """Normalize context to human-readable string without dict braces.
@@ -379,21 +414,54 @@ Respond with only the numeric score."""
             return str(value).replace('{', '').replace('}', '').replace('[', '').replace(']', '')
 
     def _generate_evaluation_summary(self, scores: Dict[str, float], idea: str) -> str:
-        """Generate a text summary of the evaluation."""
-        # Identify strengths (>= 8) and weaknesses (<= 5)
-        strengths = [dim for dim, score in scores.items() if score >= 8]
-        weaknesses = [dim for dim, score in scores.items() if score <= 5]
-        
-        summary = []
-        if strengths:
-            summary.append(f"Strong in {', '.join(strengths)}.")
-        if weaknesses:
-            summary.append(f"Needs improvement in {', '.join(weaknesses)}.")
-            
-        if not summary:
-            summary.append("Balanced profile across all dimensions.")
-            
-        return " ".join(summary)
+        """Generate a text summary of the evaluation using LLM for language consistency."""
+        # Build scores text
+        scores_text = "\n".join([f"- {dim}: {score:.1f}/10" for dim, score in scores.items()])
+
+        # Build prompt for LLM summary generation
+        prompt = LANGUAGE_CONSISTENCY_INSTRUCTION + f"""Generate a brief evaluation summary for this idea based on the following dimension scores:
+
+Idea: "{idea}"
+
+Scores:
+{scores_text}
+
+Provide a concise 1-2 sentence summary highlighting key strengths and areas for improvement."""
+
+        # Use LLM to generate summary
+        try:
+            from madspark.agents.genai_client import get_model_name
+        except ImportError:
+            from ..agents.genai_client import get_model_name
+
+        try:
+            api_config = self.types.GenerateContentConfig(
+                temperature=0.7,
+                system_instruction="You are a helpful evaluator providing concise summaries."
+            )
+
+            response = self.genai_client.models.generate_content(
+                model=get_model_name(),
+                contents=prompt,
+                config=api_config
+            )
+
+            return response.text.strip()
+        except Exception:
+            # Fallback to programmatic summary if LLM fails
+            strengths = [dim for dim, score in scores.items() if score >= 8]
+            weaknesses = [dim for dim, score in scores.items() if score <= 5]
+
+            summary = []
+            if strengths:
+                summary.append(f"Strong in {', '.join(strengths)}.")
+            if weaknesses:
+                summary.append(f"Needs improvement in {', '.join(weaknesses)}.")
+
+            if not summary:
+                summary.append("Balanced profile across all dimensions.")
+
+            return " ".join(summary)
 
     def _analyze_dimension_patterns(self, evaluations: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Analyze patterns across multiple evaluations."""

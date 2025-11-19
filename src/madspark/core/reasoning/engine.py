@@ -19,18 +19,30 @@ class ReasoningEngine:
     
     def __init__(self, config: Optional[Dict[str, Any]] = None, genai_client=None):
         """Initialize reasoning engine with optional configuration.
-        
+
         Args:
             config: Optional configuration dictionary
             genai_client: Optional GenAI client for multi-dimensional evaluation
         """
         self.config = config or self._get_default_config()
-        
+
+        # Auto-fetch genai_client if not provided
+        if genai_client is None:
+            try:
+                from madspark.agents.genai_client import get_genai_client
+            except ImportError:
+                from ..agents.genai_client import get_genai_client
+            try:
+                genai_client = get_genai_client()
+            except Exception as e:
+                logger.warning(f"Failed to auto-fetch genai_client: {e}")
+                genai_client = None
+
         # Initialize components
         self.context_memory = ContextMemory(
             capacity=self.config.get('memory_capacity', 1000)
         )
-        
+
         # Initialize logical inference with GenAI client if available
         self.logical_inference = LogicalInference(genai_client=genai_client)
         

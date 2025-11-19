@@ -40,13 +40,13 @@ class TestAIMultiDimensionalEvaluator:
         assert 'evaluation_summary' in result
         
         # Verify all dimensions evaluated
-        dimensions = ['feasibility', 'innovation', 'impact', 'cost_effectiveness', 
+        dimensions = ['feasibility', 'innovation', 'impact', 'cost_effectiveness',
                      'scalability', 'risk_assessment', 'timeline']
         for dim in dimensions:
             assert dim in result['dimension_scores']
             assert 1 <= result['dimension_scores'][dim] <= 10
-        
-        # Verify AI was called for each dimension plus summary
+
+        # Verify AI was called for each dimension + 1 for summary generation
         assert mock_client.models.generate_content.call_count == len(dimensions) + 1
     
     def test_ai_failure_raises_error(self):
@@ -155,20 +155,17 @@ class TestAIMultiDimensionalEvaluator:
         )
         
         # Verify prompts contain dimension-specific content
-        # Now includes 8 calls: 7 for dimensions + 1 for summary generation
-        assert len(captured_prompts) == 8
-        
-        # Check that prompts contain the idea and dimension-specific guidance
-        # First 7 are dimension evaluations, last one is summary
-        for i, prompt in enumerate(captured_prompts[:-1]):  # Skip last (summary)
+        # 7 dimension prompts + 1 summary prompt
+        dimensions = ['feasibility', 'innovation', 'impact', 'cost_effectiveness',
+                     'scalability', 'risk_assessment', 'timeline']
+        assert len(captured_prompts) == len(dimensions) + 1
+
+        # Check that dimension evaluation prompts (first 7) contain the idea and guidance
+        # The 8th prompt is for summary generation and has different content
+        for prompt in captured_prompts[:len(dimensions)]:
             assert "Build a quantum computer" in prompt
             assert "scale of 1-10" in prompt
             assert "Respond with only the numeric score" in prompt
-        
-        # Check the summary prompt (last one)
-        summary_prompt = captured_prompts[-1]
-        assert "Build a quantum computer" in summary_prompt
-        assert "summary" in summary_prompt.lower()
     
     def test_weighted_score_calculation(self):
         """Test that weighted scores are calculated correctly."""

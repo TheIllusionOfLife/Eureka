@@ -189,27 +189,35 @@ class TestAsyncCoordinator:
         assert hasattr(coordinator, 'run_workflow')
     
     @pytest.mark.asyncio
-    @patch('madspark.core.async_coordinator.async_generate_ideas')
-    @patch('madspark.core.async_coordinator.async_evaluate_ideas')
-    @patch('madspark.core.async_coordinator.async_advocate_idea')
-    @patch('madspark.core.async_coordinator.async_criticize_idea')
-    @patch('madspark.core.async_coordinator.async_improve_idea')
+    @patch('madspark.core.workflow_orchestrator.WorkflowOrchestrator.generate_ideas_async')
+    @patch('madspark.core.workflow_orchestrator.WorkflowOrchestrator.evaluate_ideas_async')
+    @patch('madspark.core.workflow_orchestrator.WorkflowOrchestrator.process_advocacy_async')
+    @patch('madspark.core.workflow_orchestrator.WorkflowOrchestrator.process_skepticism_async')
+    @patch('madspark.core.workflow_orchestrator.WorkflowOrchestrator.improve_ideas_async')
+    @patch('madspark.core.workflow_orchestrator.WorkflowOrchestrator.reevaluate_ideas_async')
     @pytest.mark.integration
-    async def test_run_workflow_success(self, mock_improve, mock_criticize, mock_advocate, 
-                                       mock_evaluate, mock_generate, coordinator, 
+    async def test_run_workflow_success(self, mock_reevaluate, mock_improve, mock_skepticism, mock_advocacy,
+                                       mock_evaluate, mock_generate, coordinator,
                                        mock_async_workflow_results):
         """Test successful async workflow execution."""
-        # Mock each async agent function to return appropriate strings
-        mock_generate.return_value = "Async Test Idea 1: An async test idea\nAsync Test Idea 2: Another async idea"
-        mock_evaluate.return_value = '[{"score": 7.5, "comment": "Good async idea"}]'
-        mock_advocate.return_value = "Strong market demand and scalable solution"
-        mock_criticize.return_value = "Complex implementation but manageable"
-        mock_improve.return_value = "Enhanced Async Test Idea 1 with improvements"
-        
-        # Create a temperature manager for the async workflow  
+        # Mock each async agent function from WorkflowOrchestrator
+        # These methods now return (result, token_count) tuples
+        mock_generate.return_value = (["Async Test Idea 1: An async test idea", "Async Test Idea 2: Another async idea"], 100)
+        mock_evaluate.return_value = ([
+            {"text": "Async Test Idea 1: An async test idea", "idea": "Async Test Idea 1: An async test idea",
+             "score": 7.5, "critique": "Good async idea", "initial_score": 7.5}
+        ], 100)
+        mock_advocacy.return_value = ([{"strengths": ["Strong market demand"], "opportunities": ["scalable solution"]}], 50)
+        mock_skepticism.return_value = ([{"flaws": ["Complex implementation"], "risks": ["manageable"]}], 50)
+        mock_improve.return_value = ([{"improved_idea": "Enhanced Async Test Idea 1 with improvements"}], 100)
+        mock_reevaluate.return_value = ([
+            {"improved_score": 8.0, "improved_critique": "Great improved idea"}
+        ], 100)
+
+        # Create a temperature manager for the async workflow
         from madspark.utils.temperature_control import TemperatureManager
         temp_manager = TemperatureManager.from_preset("creative")
-        
+
         result = await coordinator.run_workflow(
             topic="AI automation",
             context="Cost-effective",
@@ -217,13 +225,13 @@ class TestAsyncCoordinator:
             enhanced_reasoning=False,  # Disable to simplify test
             verbose=False
         )
-        
+
         assert result is not None
         assert isinstance(result, list)
         assert len(result) > 0
         # Check result structure matches CandidateData
-        assert all("idea" in item for item in result)
-        assert all("initial_score" in item for item in result)
+        assert all("idea" in item or "text" in item for item in result)
+        assert all("initial_score" in item or "score" in item for item in result)
     
     @pytest.mark.skipif(os.getenv("MADSPARK_MODE") == "mock", reason="Mock mode operations are instantaneous")
     @pytest.mark.asyncio

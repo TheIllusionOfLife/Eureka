@@ -318,8 +318,9 @@ def _run_workflow_internal(
                     for candidate in top_candidates:
                         try:
                             # Build inference chain using rule-based approach
+                            # Note: build_inference_chain expects List[str] for premises
                             inference_chain = engine.logical_inference.build_inference_chain(
-                                candidate["text"],
+                                [candidate["text"]],
                                 topic,
                                 context
                             )
@@ -428,7 +429,7 @@ def _run_workflow_internal(
                     f"Logical inference failed with unexpected error of type {type(e).__name__}: {e}"
                 )
                 # Don't fail the entire workflow, just skip logical inference
-                # (candidates already initialized with None at line 373)
+                # Candidates were already initialized with logical_inference=None above
 
     # Step 5: Improvement Processing using orchestrator
     top_candidates, _ = orchestrator.improve_ideas_with_monitoring(

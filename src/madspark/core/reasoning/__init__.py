@@ -1,26 +1,23 @@
-"""Enhanced Reasoning System for Phase 2 MadSpark Multi-Agent System.
+"""Enhanced Reasoning System for MadSpark Multi-Agent System.
 
-This module implements advanced reasoning capabilities including:
+This package implements advanced reasoning capabilities including:
 - Context awareness across agent interactions
 - Logical inference chains
 - Multi-dimensional evaluation metrics
 - Agent memory and conversation tracking
-
-COMPATIBILITY LAYER: This module now redirects to madspark.core.reasoning package.
 """
 
-# Re-export from new package
-from .reasoning import (
+from .types import (
     ReasoningConfig,
     ContextData,
     InferenceStep,
-    LogicalChain,
-    ContextMemory,
-    LogicalInference,
-    MultiDimensionalEvaluator,
-    AgentConversationTracker,
-    ReasoningEngine
+    LogicalChain
 )
+from .context_memory import ContextMemory
+from .inference import LogicalInference
+from .evaluator import MultiDimensionalEvaluator
+from .tracker import AgentConversationTracker
+from .engine import ReasoningEngine
 
 __all__ = [
     'ReasoningConfig',

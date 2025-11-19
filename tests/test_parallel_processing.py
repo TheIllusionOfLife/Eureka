@@ -121,14 +121,15 @@ class TestParallelEvaluationImprovement:
                 candidate["improved_idea"] = "Better Idea 1"
             return candidates, 100
 
-        async def mock_evaluation(*args, **kwargs):
+        async def mock_evaluation(self, ideas, topic, context):
             operation_order.append("evaluation")
-            return '[{"score": 9, "comment": "Much better"}]'
+            # Return tuple (parsed_results, token_count)
+            return ([{"score": 9, "comment": "Much better"}], 100)
 
         # Patch the orchestrator instance method directly
         orchestrator.improve_ideas_async = AsyncMock(side_effect=mock_improvement)
 
-        with patch('src.madspark.core.async_coordinator.async_evaluate_ideas', mock_evaluation):
+        with patch('src.madspark.core.workflow_orchestrator.WorkflowOrchestrator.evaluate_ideas_async', mock_evaluation):
             # Process improvement and re-evaluation
             await coordinator.process_candidates_parallel_improvement_evaluation(
                 test_candidates,

@@ -57,8 +57,9 @@ IMPROVEMENTS: Consider hydroponic systems for higher yields."""
         )
         
         # Should have real inference steps, not hardcoded ones
-        assert 'logical_steps' in result
-        assert len(result['logical_steps']) > 0
+        assert 'chain' in result
+        assert 'steps' in result['chain']
+        assert len(result['chain']['steps']) > 0
         
         # Should include LLM-based analysis
         assert mock_genai_client.models.generate_content.called
@@ -103,8 +104,9 @@ IMPROVEMENTS: Consider hybrid solar-wind systems."""
         
         # Verify inference contains real analysis
         logical_inference = result['logical_inference']
-        assert 'inference_conclusion' in logical_inference
-        assert 'Building-integrated wind turbines' in logical_inference['inference_conclusion']
+        assert 'chain' in logical_inference
+        assert 'conclusion' in logical_inference['chain']
+        assert 'Building-integrated wind turbines' in logical_inference['chain']['conclusion']
         
     def test_logical_inference_error_handling(self, reasoning_engine, mock_genai_client):
         """Test error handling when logical inference fails."""
@@ -117,11 +119,12 @@ IMPROVEMENTS: Consider hybrid solar-wind systems."""
         result = reasoning_engine.generate_inference_chain(premises, "Test conclusion")
         
         # Should still return a result with error indication
-        assert 'logical_steps' in result
-        assert 'confidence_score' in result
-        assert result['confidence_score'] == 0.0  # Low confidence on error
+        assert 'chain' in result
+        assert 'steps' in result['chain']
+        assert 'validity_score' in result
+        assert result['validity_score'] == 0.0  # Low validity on error
         
-    @patch('madspark.core.enhanced_reasoning.LogicalInferenceEngine')
+    @patch('madspark.core.reasoning.inference.LogicalInferenceEngine')
     def test_reasoning_engine_creates_inference_engine(self, MockInferenceEngine, mock_genai_client):
         """Test that ReasoningEngine properly creates LogicalInferenceEngine instance."""
         mock_engine_instance = Mock()
@@ -163,9 +166,15 @@ ROOT_CAUSE: Urban space constraints drive vertical farming innovation"""
         )
         
         # Should have causal-specific fields
-        assert 'causal_analysis' in result
-        assert 'feedback_loops' in result['causal_analysis']
-        assert 'root_cause' in result['causal_analysis']
+        # Note: causal_analysis is part of the inference result object inside the chain
+        assert 'chain' in result
+        assert 'inference_result' in result['chain']
+        inference_result = result['chain']['inference_result']
+        
+        # The inference_result IS the CausalAnalysis object (or compatible)
+        # It should have feedback_loops and root_cause fields directly
+        assert hasattr(inference_result, 'feedback_loops')
+        assert hasattr(inference_result, 'root_cause')
 
 
 class TestCLIIntegration:

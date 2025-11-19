@@ -791,7 +791,7 @@ class AsyncCoordinator(BatchOperationsBase):
                                 # Store only relevant fields
                                 candidate["logical_inference"] = {
                                     "confidence": normalized_result.get("confidence", 0.0),
-                                    "inference": normalized_result.get("conclusion", ""),
+                                    "conclusion": normalized_result.get("conclusion", ""),
                                     "inference_chain": normalized_result.get("inference_chain", []),
                                     "improvements": normalized_result.get("improvements"),
                                 }

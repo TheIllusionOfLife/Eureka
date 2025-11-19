@@ -227,9 +227,9 @@ Respond with only the numeric score (e.g., "6")."""
         }
 
     def evaluate_ideas_batch(self, ideas: List[str], context: Any, topic: str = "") -> List[Dict[str, Any]]:
-        """Batch evaluate multiple ideas across all dimensions.
+        """Batch evaluate multiple ideas across all dimensions with a single API call.
 
-        This method provides backward compatibility with WorkflowOrchestrator.
+        This method uses batch processing to evaluate all ideas efficiently.
 
         Args:
             ideas: List of ideas to evaluate
@@ -237,22 +237,101 @@ Respond with only the numeric score (e.g., "6")."""
             topic: The main topic/theme (optional)
 
         Returns:
-            List of evaluation dictionaries, one per idea
+            List of evaluation dictionaries with idea_index, one per idea
         """
+        if not ideas:
+            return []
+
         # Handle flexible context parameter
         if isinstance(context, dict):
             context_dict = context
         else:
             context_dict = {'topic': topic, 'context': str(context)}
 
-        evaluations = []
+        # Build batch prompt for all ideas
+        prompt = self._build_batch_evaluation_prompt(ideas, context_dict)
 
-        for idea in ideas:
-            evaluation = self.evaluate_idea(idea, context_dict)
-            evaluation['idea'] = idea
-            evaluations.append(evaluation)
+        # Import model name getter
+        try:
+            from madspark.agents.genai_client import get_model_name
+        except ImportError:
+            from ..agents.genai_client import get_model_name
 
-        return evaluations
+        # Use structured output with Pydantic schema for batch evaluation
+        api_config = self.types.GenerateContentConfig(
+            temperature=0.0,  # Deterministic for evaluation
+            response_mime_type="application/json",
+            response_schema=_MULTI_DIM_BATCH_SCHEMA,
+        )
+
+        try:
+            response = self.genai_client.models.generate_content(
+                model=get_model_name(),
+                contents=prompt,
+                config=api_config
+            )
+
+            # Parse JSON response
+            import json
+            if not response.text:
+                raise ValueError("Empty response from API")
+
+            result = json.loads(response.text)
+
+            # Extract evaluations array
+            if "evaluations" not in result:
+                raise ValueError("Response missing 'evaluations' field")
+
+            evaluations_data = result["evaluations"]
+
+            # Build full evaluation results with all dimensions
+            evaluations = []
+            for idx, eval_data in enumerate(evaluations_data):
+                # Build dimension scores dict
+                dimension_scores = {}
+                for dim in self.evaluation_dimensions.keys():
+                    score = eval_data.get(dim, 5.0)  # Default to 5.0 if missing
+                    # Clamp to valid range
+                    dimension_scores[dim] = max(1.0, min(10.0, float(score)))
+
+                # Calculate overall and weighted scores
+                overall_score = sum(dimension_scores.values()) / len(dimension_scores)
+                weighted_score = sum(
+                    dimension_scores[dim] * config['weight']
+                    for dim, config in self.evaluation_dimensions.items()
+                )
+
+                # Calculate confidence interval
+                scores = list(dimension_scores.values())
+                variance = sum((score - overall_score) ** 2 for score in scores) / len(scores)
+                confidence_interval = max(0.0, 1.0 - (variance / 25.0))
+
+                evaluations.append({
+                    'idea_index': idx,
+                    'idea': ideas[idx],
+                    'overall_score': round(overall_score, 2),
+                    'weighted_score': round(weighted_score, 2),
+                    'dimension_scores': dimension_scores,
+                    'confidence_interval': round(confidence_interval, 3),
+                    'evaluation_summary': eval_data.get('summary', self._generate_evaluation_summary(dimension_scores, ideas[idx]))
+                })
+
+            return evaluations
+
+        except Exception as e:
+            # Fallback to individual evaluation if batch fails
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Batch evaluation failed: {e}. Falling back to individual evaluation.")
+
+            evaluations = []
+            for idx, idea in enumerate(ideas):
+                evaluation = self.evaluate_idea(idea, context_dict)
+                evaluation['idea_index'] = idx
+                evaluation['idea'] = idea
+                evaluations.append(evaluation)
+
+            return evaluations
 
     def _build_batch_evaluation_prompt(self, ideas: List[str], context: Dict[str, Any]) -> str:
         """Build prompt for batch evaluation of multiple ideas.
@@ -267,13 +346,20 @@ Respond with only the numeric score (e.g., "6")."""
         context_str = self._normalize_context_for_prompt(context)
         ideas_text = "\n".join([f"{i+1}. {idea}" for i, idea in enumerate(ideas)])
 
-        base_prompt = f"""Evaluate the following ideas across multiple dimensions:
+        # Get dimension names for the prompt
+        dimensions = list(self.evaluation_dimensions.keys())
+        dimensions_text = ", ".join(dimensions)
 
+        base_prompt = f"""Evaluate the following ideas across these dimensions on a scale of 1-10:
+Dimensions: {dimensions_text}
+
+Ideas to evaluate:
 {ideas_text}
 
 Context: {context_str}
 
-Provide evaluations for each idea across all dimensions."""
+For each idea, provide scores for all dimensions (feasibility, innovation, impact, cost_effectiveness, scalability, risk_assessment, timeline).
+Return your evaluation in the specified JSON format."""
 
         return LANGUAGE_CONSISTENCY_INSTRUCTION + base_prompt
 
@@ -381,8 +467,8 @@ Respond with only the numeric score."""
         # Handle 'constraints' or 'context' next if present
         if 'constraints' in context:
             parts.append(f"Constraints: {self._stringify_value(context['constraints'])}")
-        elif 'context' in context and 'topic' not in context:
-            # Only use 'context' key if we didn't already use 'topic'
+        elif 'context' in context:
+            # Always include context information
             parts.append(f"Context: {self._stringify_value(context['context'])}")
 
         # Add any other keys (skip the ones we already processed)

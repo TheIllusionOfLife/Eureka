@@ -160,8 +160,9 @@ class TestAIMultiDimensionalEvaluator:
                      'scalability', 'risk_assessment', 'timeline']
         assert len(captured_prompts) == len(dimensions) + 1
 
-        # Check that all dimension evaluation prompts contain the idea and guidance
-        for prompt in captured_prompts:
+        # Check that dimension evaluation prompts (first 7) contain the idea and guidance
+        # The 8th prompt is for summary generation and has different content
+        for prompt in captured_prompts[:len(dimensions)]:
             assert "Build a quantum computer" in prompt
             assert "scale of 1-10" in prompt
             assert "Respond with only the numeric score" in prompt

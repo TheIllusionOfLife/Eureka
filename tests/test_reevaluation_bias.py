@@ -49,7 +49,8 @@ class TestReEvaluationContext:
             nonlocal captured_prompt, captured_context
             captured_prompt = ideas
             captured_context = context
-            return json.dumps([{"score": 8, "comment": "Much better with improvements"}])
+            # Return tuple (parsed_results, token_count)
+            return ([{"score": 8, "comment": "Much better with improvements"}], 100)
 
         try:
             # Patch WorkflowOrchestrator improve function
@@ -99,7 +100,8 @@ class TestReEvaluationContext:
             nonlocal captured_context
             captured_context = kwargs.get('context', '')
             # Always return consistent score for improved idea (bias prevention working)
-            return json.dumps([{"score": 6, "comment": "Improvement evaluated fairly"}])
+            # Return tuple (parsed_results, token_count)
+            return ([{"score": 6, "comment": "Improvement evaluated fairly"}], 100)
         
         with patch('src.madspark.core.batch_operations_base.BATCH_FUNCTIONS', {
             'improve_ideas_batch': lambda *args, **kwargs: (
@@ -144,7 +146,8 @@ class TestConsistentEvaluationCriteria:
         async def mock_evaluate(*args, **kwargs):
             nonlocal captured_criteria
             captured_criteria = kwargs.get('context', '')  # Use context parameter
-            return json.dumps([{"score": 7, "comment": "Better"}])
+            # Return tuple (parsed_results, token_count)
+            return ([{"score": 7, "comment": "Better"}], 100)
         
         with patch('src.madspark.core.batch_operations_base.BATCH_FUNCTIONS', {
             'improve_ideas_batch': lambda *args, **kwargs: (
@@ -234,8 +237,10 @@ class TestBiasReduction:
         async def mock_evaluate(ideas, topic, context, temperature, use_structured_output=True, router=None):
             # If improvement is minimal, score shouldn't increase much
             if "minor tweak" in ideas:
-                return json.dumps([{"score": 8, "comment": "No significant improvement"}])
-            return json.dumps([{"score": 9, "comment": "Better"}])
+                # Return tuple (parsed_results, token_count)
+                return ([{"score": 8, "comment": "No significant improvement"}], 100)
+            # Return tuple (parsed_results, token_count)
+            return ([{"score": 9, "comment": "Better"}], 100)
 
         try:
             # Patch WorkflowOrchestrator improve function
@@ -292,7 +297,8 @@ class TestReEvaluationPromptStructure:
         async def mock_evaluate(ideas, topic, context, temperature, use_structured_output=True, router=None):
             nonlocal captured_ideas_text
             captured_ideas_text = ideas
-            return json.dumps([{"score": 8, "comment": "Good"}])
+            # Return tuple (parsed_results, token_count)
+            return ([{"score": 8, "comment": "Good"}], 100)
 
         try:
             # Patch WorkflowOrchestrator improve function

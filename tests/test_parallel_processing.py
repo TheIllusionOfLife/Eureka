@@ -123,7 +123,8 @@ class TestParallelEvaluationImprovement:
 
         async def mock_evaluation(*args, **kwargs):
             operation_order.append("evaluation")
-            return '[{"score": 9, "comment": "Much better"}]'
+            # Return tuple (parsed_results, token_count)
+            return ([{"score": 9, "comment": "Much better"}], 100)
 
         # Patch the orchestrator instance method directly
         orchestrator.improve_ideas_async = AsyncMock(side_effect=mock_improvement)

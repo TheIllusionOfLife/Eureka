@@ -6,7 +6,6 @@ This test suite ensures that:
 3. Evaluation criteria remain consistent between initial and re-evaluation
 4. Re-evaluation acknowledges the improvements made
 """
-import json
 import pytest
 from unittest.mock import patch
 

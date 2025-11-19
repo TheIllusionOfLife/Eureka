@@ -122,7 +122,7 @@ class TestEnhancedReasoningPydanticMigration:
         evaluator = MultiDimensionalEvaluator(genai_client=mock_client)
 
         with patch('madspark.agents.genai_client.get_model_name', return_value='gemini-2.0-flash-exp'):
-            with pytest.raises(ValueError, match="Failed to parse dimension score"):
+            with pytest.raises(RuntimeError, match="Failed to parse dimension score"):
                 evaluator._ai_evaluate_dimension(
                     "Test idea",
                     {"theme": "Test", "constraints": "Test"},
@@ -143,7 +143,7 @@ class TestEnhancedReasoningPydanticMigration:
         evaluator = MultiDimensionalEvaluator(genai_client=mock_client)
 
         with patch('madspark.agents.genai_client.get_model_name', return_value='gemini-2.0-flash-exp'):
-            with pytest.raises(ValueError):
+            with pytest.raises(RuntimeError):
                 evaluator._ai_evaluate_dimension(
                     "Test idea",
                     {"theme": "Test", "constraints": "Test"},

@@ -202,8 +202,6 @@ class TestAsyncCoordinator:
         """Test successful async workflow execution."""
         # Mock each async agent function from WorkflowOrchestrator
         # These methods now return (result, token_count) tuples
-        from unittest.mock import AsyncMock
-
         mock_generate.return_value = (["Async Test Idea 1: An async test idea", "Async Test Idea 2: Another async idea"], 100)
         mock_evaluate.return_value = ([
             {"text": "Async Test Idea 1: An async test idea", "idea": "Async Test Idea 1: An async test idea",

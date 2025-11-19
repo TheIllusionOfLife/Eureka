@@ -62,6 +62,39 @@ class BriefFormatter(ResultFormatter):
                 dim_list = ', '.join([f"{dim.replace('_', ' ').title()}: {score}" for dim, score in scores.items()])
                 lines.append(f"**Dimensions (Overall: {overall}):** {dim_list}")
 
+            # Add enhanced reasoning highlights if present
+            if 'advocacy' in result and result['advocacy']:
+                lines.append("")
+                advocacy_data = self._parse_json_field(result['advocacy'])
+                if advocacy_data.get('strengths'):
+                    strengths_preview = advocacy_data['strengths'][:2]  # Top 2
+                    lines.append(f"**✅ Key Strengths:** {', '.join(strengths_preview)}")
+
+            if 'skepticism' in result and result['skepticism']:
+                skepticism_data = self._parse_json_field(result['skepticism'])
+                if skepticism_data.get('flaws'):
+                    flaws_preview = skepticism_data['flaws'][:2]  # Top 2
+                    lines.append(f"**⚠️  Key Concerns:** {', '.join(flaws_preview)}")
+
+            if 'logical_inference' in result and result['logical_inference']:
+                try:
+                    from madspark.utils.output_processor import format_logical_inference_results
+                    inference_text = format_logical_inference_results(result['logical_inference'])
+                    if inference_text:
+                        # Extract first line/insight for brief display
+                        first_line = inference_text.split('\n')[1] if '\n' in inference_text else inference_text
+                        first_line = first_line.replace('├─ Logical Steps:', '').replace('│  1.', '').strip()
+                        if first_line:
+                            lines.append("")
+                            lines.append(f"**🔍 Logical Insight:** {first_line[:200]}")  # First 200 chars
+                except (ImportError, Exception):
+                    # Fallback: try to extract from dict
+                    inference = result['logical_inference']
+                    if isinstance(inference, dict) and 'causal_chains' in inference and inference['causal_chains']:
+                        first_chain = inference['causal_chains'][0] if isinstance(inference['causal_chains'], list) else str(inference['causal_chains'])
+                        lines.append("")
+                        lines.append(f"**🔍 Logical Insight:** {first_chain}")
+
             if i < len(cleaned_results):
                 lines.append("")  # Empty line between ideas
 

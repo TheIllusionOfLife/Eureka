@@ -167,3 +167,22 @@ class ResultFormatter(ABC):
             else:
                 lines.append("➡️  No significant change")
         return "\n".join(lines)
+
+    def _parse_json_field(self, field_data: Any) -> Dict[str, Any]:
+        """Parse JSON field data (handles string or dict).
+
+        Args:
+            field_data: JSON string or dict
+
+        Returns:
+            Parsed dictionary or empty dict on error
+        """
+        if isinstance(field_data, dict):
+            return field_data
+        if isinstance(field_data, str):
+            try:
+                import json
+                return json.loads(field_data)
+            except json.JSONDecodeError:
+                return {}
+        return {}

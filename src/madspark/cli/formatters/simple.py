@@ -81,6 +81,46 @@ class SimpleFormatter(ResultFormatter):
                     summary = summary.replace('🧠 Enhanced Analysis:\n', '').replace('🧠 Enhanced Analysis:', '')
                     lines.append(f"📋 Analysis: {summary.strip()}")
 
+            # Add enhanced reasoning sections if present
+            if 'advocacy' in result and result['advocacy']:
+                lines.append("")
+                advocacy_data = self._parse_json_field(result['advocacy'])
+                if advocacy_data.get('strengths'):
+                    lines.append("💪 Top Strengths:")
+                    for strength in advocacy_data['strengths'][:3]:  # Top 3
+                        lines.append(f"   • {strength}")
+
+            if 'skepticism' in result and result['skepticism']:
+                skepticism_data = self._parse_json_field(result['skepticism'])
+                if skepticism_data.get('flaws'):
+                    lines.append("⚠️  Key Concerns:")
+                    for flaw in skepticism_data['flaws'][:3]:  # Top 3
+                        lines.append(f"   • {flaw}")
+
+            if 'logical_inference' in result and result['logical_inference']:
+                try:
+                    from madspark.utils.output_processor import format_logical_inference_results
+                    inference_text = format_logical_inference_results(result['logical_inference'])
+                    if inference_text:
+                        lines.append("🧠 Logical Reasoning:")
+                        # Extract first 2-3 key points
+                        inference_lines = inference_text.split('\n')
+                        point_count = 0
+                        for line in inference_lines:
+                            if '│  ' in line and point_count < 3:  # Logical step
+                                clean_line = line.replace('│  ', '').replace('├─', '').strip()
+                                if clean_line and not clean_line.startswith('Logical Steps'):
+                                    lines.append(f"   • {clean_line}")
+                                    point_count += 1
+                except (ImportError, Exception):
+                    # Fallback: try dict extraction
+                    inference = result['logical_inference']
+                    if isinstance(inference, dict):
+                        lines.append("🧠 Logical Reasoning:")
+                        if 'causal_chains' in inference and inference['causal_chains']:
+                            first_chain = inference['causal_chains'][0] if isinstance(inference['causal_chains'], list) else str(inference['causal_chains'])
+                            lines.append(f"   • {first_chain}")
+
             if i < len(cleaned_results):
                 lines.append("")  # Empty line between ideas
 

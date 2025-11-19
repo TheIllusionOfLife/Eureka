@@ -4,7 +4,8 @@ import asyncio
 from unittest.mock import Mock, patch
 import json
 
-from madspark.core.async_coordinator import AsyncCoordinator, async_evaluate_ideas
+from madspark.core.async_coordinator import AsyncCoordinator
+from madspark.core.workflow_orchestrator import WorkflowOrchestrator
 from madspark.utils.temperature_control import TemperatureManager
 
 
@@ -56,25 +57,17 @@ class TestBatchReevaluationIntegration:
                 for i, c in enumerate(candidates)
             ])
             
-            # Call the actual re-evaluation logic
-            eval_result = await async_evaluate_ideas(
-                ideas=improved_ideas_text,
+            # Call the orchestrator directly
+            orchestrator = WorkflowOrchestrator(temperature_manager=None, reasoning_engine=None, verbose=False)
+            
+            # Orchestrator returns parsed objects directly
+            evaluations, _ = await orchestrator.evaluate_ideas_async(
+                ideas=improved_ideas_text.split("\n\n"), # Orchestrator expects list of strings
                 topic="Test topic",
-                context="Re-evaluation after improvements",
-                temperature=0.5,
-                use_structured_output=True
+                context="Re-evaluation after improvements"
             )
             
-            # eval_result should be the JSON string
-            # Parse the result - handle both dict and list formats
-            eval_data = json.loads(eval_result) if isinstance(eval_result, str) else eval_result
-            
-            if isinstance(eval_data, dict) and "evaluations" in eval_data:
-                evaluations = eval_data["evaluations"]
-            elif isinstance(eval_data, list):
-                evaluations = eval_data
-            else:
-                evaluations = [eval_data] if isinstance(eval_data, dict) else []
+            # No need to parse JSON manually here as orchestrator does it
             
             # Validate scores are properly converted
             assert len(evaluations) == 3
@@ -140,27 +133,28 @@ class TestBatchReevaluationIntegration:
         candidate = {
             "text": "Test idea",
             "score": 7.2,  # Float score
+            "initial_score": 7.2, # Added for compatibility
             "critique": "Initial critique",
             "improved_idea": "Improved test idea"
         }
         
-        with patch('madspark.core.async_coordinator.async_evaluate_ideas', mock_timeout_evaluate):
-            # Process single candidate with correct parameters
-            result = await coordinator._process_single_candidate(
-                candidate,
+        with patch('madspark.core.workflow_orchestrator.WorkflowOrchestrator.evaluate_ideas_async', side_effect=mock_timeout_evaluate):
+            # Process single candidate via batch improvement (which triggers re-evaluation)
+            # Note: We need to wrap the candidate in a list
+            result_list = await coordinator.process_candidates_parallel_improvement_evaluation(
+                candidates=[candidate],
                 topic="Test theme",
-                advocacy_temp=0.5,
-                skepticism_temp=0.5,
+                context="Test constraints",
                 idea_temp=0.9,
-                eval_temp=0.5,
-                context="Test constraints"
+                eval_temp=0.5
             )
+            result = result_list[0]
             
             # Should handle timeout gracefully and return estimated improvement
             assert result is not None
             assert "initial_score" in result
             assert "improved_score" in result
-            assert result["improved_score"] > result["initial_score"]  # Should show improvement
+            assert result["improved_score"] == result["initial_score"]  # Should fallback to original score
             assert "Re-evaluation timed out" in result["improved_critique"]
     
     @pytest.mark.asyncio

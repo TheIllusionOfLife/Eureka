@@ -367,30 +367,32 @@ class AsyncCoordinator(BatchOperationsBase):
             improved_idea = candidate.get("improved_idea", candidate["text"])
             improved_ideas.append(improved_idea)
 
-        improved_ideas_text = "\n\n".join(improved_ideas)
-
         try:
+            # Phase 3.2c: Use provided orchestrator or self.orchestrator, or create one
+            orch = orchestrator if orchestrator is not None else self.orchestrator
+            if orch is None:
+                from .workflow_orchestrator import WorkflowOrchestrator
+                orch = WorkflowOrchestrator(
+                    temperature_manager=None,
+                    reasoning_engine=None,
+                    verbose=False,
+                    router=self.router,
+                )
+
             # Single API call for all re-evaluations with original context
-            re_eval_output = await async_evaluate_ideas(
-                ideas=improved_ideas_text,
+            # Orchestrator returns (parsed_results, token_usage)
+            re_eval_results, _ = await orch.evaluate_ideas_async(
+                ideas=improved_ideas,
                 topic=topic,
                 context=context,  # Use original context to avoid bias
-                temperature=eval_temp,
-                use_structured_output=True,
-                router=self.router,  # Pass request-scoped router
             )
-
-            # Parse re-evaluations
-            import json
-
-            re_eval_results = json.loads(re_eval_output)
 
             # Update candidates with re-evaluation scores
             for i, candidate in enumerate(candidates):
                 if i < len(re_eval_results):
                     candidate["improved_score"] = re_eval_results[i].get("score", 0)
                     candidate["improved_critique"] = re_eval_results[i].get(
-                        "comment", "No critique available"
+                        "critique", re_eval_results[i].get("comment", "No critique available")
                     )
                 else:
                     candidate["improved_score"] = candidate["score"]
@@ -401,7 +403,7 @@ class AsyncCoordinator(BatchOperationsBase):
             # Fallback: use original scores
             for candidate in candidates:
                 candidate["improved_score"] = candidate["score"]
-                candidate["improved_critique"] = "Re-evaluation failed"
+                candidate["improved_critique"] = f"Re-evaluation failed: {e}"
 
         return candidates
 

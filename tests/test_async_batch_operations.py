@@ -482,50 +482,6 @@ class TestAsyncBatchOperations:
         }
 
         # First run should check cache but miss
-        mock_ideas = json.dumps(
-            [
-                {
-                    "idea_number": 1,
-                    "title": "Idea 1",
-                    "description": "Desc 1",
-                    "key_features": ["f1"],
-                    "category": "Test",
-                },
-                {
-                    "idea_number": 2,
-                    "title": "Idea 2",
-                    "description": "Desc 2",
-                    "key_features": ["f2"],
-                    "category": "Test",
-                },
-            ]
-        )
-
-        mock_evals = json.dumps(
-            {
-                "evaluations": [
-                    {
-                        "idea_index": 0,
-                        "overall_score": 0.8,
-                        "dimension_scores": {"feasibility": 0.8},
-                        "strengths": ["good"],
-                        "weaknesses": ["none"],
-                        "verdict": "STRONG_IDEA",
-                        "suggestions": ["none"],
-                    },
-                    {
-                        "idea_index": 1,
-                        "overall_score": 0.7,
-                        "dimension_scores": {"feasibility": 0.7},
-                        "strengths": ["ok"],
-                        "weaknesses": ["minor"],
-                        "verdict": "MODERATE_IDEA",
-                        "suggestions": ["improve"],
-                    },
-                ]
-            }
-        )
-
         # Phase 3.2c: Patch orchestrator methods instead of old async wrappers
         # Note: Orchestrator methods return (result, token_count) tuples
         # and perform parsing internally, so we return parsed objects, not JSON strings
@@ -578,33 +534,6 @@ class TestAsyncCoordinatorIntegration:
         start_time = time.time()
 
         # Mock to simulate realistic API delays
-        mock_idea = json.dumps(
-            [
-                {
-                    "idea_number": 1,
-                    "title": "Great idea",
-                    "description": "Testing idea",
-                    "key_features": ["test"],
-                    "category": "Test",
-                }
-            ]
-        )
-        mock_eval = json.dumps(
-            {
-                "evaluations": [
-                    {
-                        "idea_index": 0,
-                        "overall_score": 0.8,
-                        "dimension_scores": {"feasibility": 0.8},
-                        "strengths": ["good"],
-                        "weaknesses": ["none"],
-                        "verdict": "STRONG_IDEA",
-                        "suggestions": ["none"],
-                    }
-                ]
-            }
-        )
-
         # Phase 3.2c: Patch orchestrator methods
         # Note: Orchestrator returns parsed objects, not JSON
         

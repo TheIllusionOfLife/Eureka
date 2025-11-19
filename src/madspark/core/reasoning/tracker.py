@@ -128,8 +128,7 @@ class AgentConversationTracker:
     def _check_sequential_workflow(self, agent_sequence: List[str]) -> float:
         """Check if agents follow expected sequential workflow."""
         expected_order = ['idea_generator', 'critic', 'advocate', 'skeptic', 'improver']
-        score = 0.0
-        
+
         # Check relative ordering
         last_idx = -1
         correct_transitions = 0

@@ -91,12 +91,13 @@ if len(sys.argv) < 2:
     print("  mad_spark                              # Show this help")
     print("  mad_spark coordinator                  # Run the coordinator")
     print("  mad_spark 'topic' ['context']         # Generate ideas (simplified!)")
-    print("  mad_spark test                         # Run tests")
     print("  mad_spark config                       # Configure API key")
     print("\nExamples:")
     print("  mad_spark 'consciousness' 'what is it?'")
     print("  mad_spark 'sustainable cities'")
+    print("  mad_spark 'test' 'machine learning'    # Generate ideas about testing")
     print("  mad_spark coordinator")
+    print("\n💡 To run tests: pytest tests/ -v")
     print("\nAliases: mad_spark, madspark, ms")
     sys.exit(0)
 
@@ -106,7 +107,9 @@ command = sys.argv[1]
 # Help commands are already handled in lines 26-41, so skip here
 
 # List of reserved commands (not topics)
-reserved_commands = ['coordinator', 'cli', 'test', 'config', '--help', '-h', '--version']
+# Note: 'test' removed to allow generating ideas about testing
+# Users can run tests with: pytest tests/ or make test
+reserved_commands = ['coordinator', 'cli', 'config', '--help', '-h', '--version']
 if command not in reserved_commands:
     # This is a topic, not a command - convert to CLI format
     topic = command
@@ -166,8 +169,6 @@ elif command == "cli":
     except Exception as e:
         print(f"❌ CLI execution failed: {e}")
         sys.exit(1)
-elif command == "test":
-    subprocess.run([sys.executable, "-m", "pytest", "tests/", "-v"])
 elif command == "config":
     # Run the configuration tool
     config_script = project_root / "src" / "madspark" / "bin" / "mad_spark_config"

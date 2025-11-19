@@ -8,6 +8,9 @@ from .base import CommandHandler, CommandResult
 MAX_MULTIMODAL_FILES = 20  # Maximum number of files per request
 MAX_MULTIMODAL_URLS = 10   # Maximum number of URLs per request
 
+# Reserved keywords that might collide with special CLI commands
+RESERVED_KEYWORDS = ['test', 'coordinator', 'config', 'pytest', 'help', 'version']
+
 # Import MadSpark components with fallback for local development
 try:
     from madspark.utils.temperature_control import create_temperature_manager_from_args
@@ -81,6 +84,12 @@ class WorkflowValidator(CommandHandler):
         Raises:
             ValueError: If theme is missing and not in remix mode
         """
+        # Check for reserved keywords that might collide with special commands
+        if self.args.theme and self.args.theme.lower() in RESERVED_KEYWORDS:
+            print(f"\n💡 Note: Topic '{self.args.theme}' matches a reserved keyword.")
+            print(f"   If you're trying to generate ideas about '{self.args.theme}', this will work correctly.")
+            print(f"   If you intended a special command, use: ms {self.args.theme}\n")
+
         # Validate theme requirement
         if not self.args.theme:
             if self.args.remix:

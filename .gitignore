@@ -243,3 +243,6 @@ test_data/
 
 # LLM Response Cache
 .cache/llm/
+
+# IDE settings
+.vscode/

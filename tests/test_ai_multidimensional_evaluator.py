@@ -155,20 +155,16 @@ class TestAIMultiDimensionalEvaluator:
         )
         
         # Verify prompts contain dimension-specific content
-        # Now includes 8 calls: 7 for dimensions + 1 for summary generation
-        assert len(captured_prompts) == 8
-        
-        # Check that prompts contain the idea and dimension-specific guidance
-        # First 7 are dimension evaluations, last one is summary
-        for i, prompt in enumerate(captured_prompts[:-1]):  # Skip last (summary)
+        # Summary is now generated programmatically, so only 7 prompts (one per dimension)
+        dimensions = ['feasibility', 'innovation', 'impact', 'cost_effectiveness',
+                     'scalability', 'risk_assessment', 'timeline']
+        assert len(captured_prompts) == len(dimensions)
+
+        # Check that all dimension evaluation prompts contain the idea and guidance
+        for prompt in captured_prompts:
             assert "Build a quantum computer" in prompt
             assert "scale of 1-10" in prompt
             assert "Respond with only the numeric score" in prompt
-        
-        # Check the summary prompt (last one)
-        summary_prompt = captured_prompts[-1]
-        assert "Build a quantum computer" in summary_prompt
-        assert "summary" in summary_prompt.lower()
     
     def test_weighted_score_calculation(self):
         """Test that weighted scores are calculated correctly."""

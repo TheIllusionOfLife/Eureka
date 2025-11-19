@@ -304,9 +304,9 @@ Respond with only the numeric score (e.g., "6")."""
             
     def _build_dimension_prompt(self, idea: str, context: Dict[str, Any], dimension: str) -> str:
         """Build prompt for dimension evaluation."""
-        context_str = str(context.get('constraints', context))
+        context_str = self._normalize_context_for_prompt(context)
         base_prompt = self.DIMENSION_PROMPTS.get(dimension, "")
-        
+
         if not base_prompt:
             # Generic fallback
             base_prompt = f"""Evaluate the {dimension} of this idea on a scale of 1-10:
@@ -317,6 +317,66 @@ Context: {{context}}
 Respond with only the numeric score."""
 
         return base_prompt.format(idea=idea, context=context_str)
+
+    def _normalize_context_for_prompt(self, context: Any) -> str:
+        """Normalize context to human-readable string without dict braces.
+
+        Converts dict context to labeled format like:
+        "Theme: innovation. Constraints: cost-effective solutions"
+
+        Args:
+            context: Context information (dict or other)
+
+        Returns:
+            Human-readable context string without '{' or '}'
+        """
+        if not isinstance(context, dict):
+            # Non-dict context: just stringify and strip braces
+            return str(context).replace('{', '').replace('}', '')
+
+        # Build human-readable context from dict
+        parts = []
+
+        # Handle 'theme' or 'topic' first if present
+        if 'theme' in context:
+            parts.append(f"Theme: {self._stringify_value(context['theme'])}")
+        elif 'topic' in context:
+            parts.append(f"Topic: {self._stringify_value(context['topic'])}")
+
+        # Handle 'constraints' or 'context' next if present
+        if 'constraints' in context:
+            parts.append(f"Constraints: {self._stringify_value(context['constraints'])}")
+        elif 'context' in context and 'topic' not in context:
+            # Only use 'context' key if we didn't already use 'topic'
+            parts.append(f"Context: {self._stringify_value(context['context'])}")
+
+        # Add any other keys (skip the ones we already processed)
+        processed_keys = {'theme', 'topic', 'constraints', 'context'}
+        for key, value in context.items():
+            if key not in processed_keys:
+                parts.append(f"{key.replace('_', ' ').title()}: {self._stringify_value(value)}")
+
+        return '. '.join(parts) if parts else 'No specific context'
+
+    def _stringify_value(self, value: Any) -> str:
+        """Convert value to string without dict/list braces.
+
+        Args:
+            value: Any value to stringify
+
+        Returns:
+            String representation without '{', '}', '[', ']'
+        """
+        if isinstance(value, dict):
+            # Convert dict to comma-separated key: value pairs
+            items = [f"{k}: {v}" for k, v in value.items()]
+            return ', '.join(items)
+        elif isinstance(value, (list, tuple)):
+            # Convert list/tuple to comma-separated values
+            return ', '.join(str(item) for item in value)
+        else:
+            # Simple value: stringify and strip braces
+            return str(value).replace('{', '').replace('}', '').replace('[', '').replace(']', '')
 
     def _generate_evaluation_summary(self, scores: Dict[str, float], idea: str) -> str:
         """Generate a text summary of the evaluation."""

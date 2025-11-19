@@ -1,12 +1,12 @@
 # Session Handover
 
-### Last Updated: November 19, 2025 11:20 PM JST
+## Last Updated: November 19, 2025 11:20 PM JST
 
-### Work In Progress
+## Work In Progress
 
 **None currently**: All planned work completed.
 
-### Recently Completed
+## Recently Completed
 
 - ✅ **[PR #212](https://github.com/TheIllusionOfLife/Eureka/pull/212)**: Refactor Enhanced Reasoning, Idea Generator, and Async Coordinator Cleanup - **MERGED** (November 19, 2025)
   - **Core Achievement**: Major refactoring extracting monolithic `enhanced_reasoning.py` (1778 lines) into modular `reasoning/` package
@@ -35,15 +35,15 @@
   - Web API integration with provider/tier/cache configuration
   - Security improvements: file size validation, SSRF protection
 
-### Next Priority Tasks
+## Next Priority Tasks
 
 **None currently identified** - All major features complete, codebase in excellent state.
 
-### Known Issues / Blockers
+## Known Issues / Blockers
 
 **None currently** - All CI checks passing, no blocking issues.
 
-### Recent Session Learnings Summary
+## Recent Session Learnings Summary
 
 #### Architecture & Refactoring
 - **Mock Signature Verification**: After refactoring, always grep actual method signatures and update ALL test mocks
@@ -64,7 +64,7 @@
 - **Request-Scoped Resources**: Eliminate global state by passing instance-scoped configuration
 - **No Shared Mutable State**: Each request gets independent configuration to prevent race conditions
 
-### Historical Sessions (Summarized)
+## Historical Sessions (Summarized)
 
 <details>
 <summary>November 17-18, 2025: LLM Router Integration & Thread-Safety (PRs #206, #208)</summary>

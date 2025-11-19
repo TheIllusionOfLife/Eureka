@@ -46,15 +46,56 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
-def setup_logging(verbose: bool = False):
-    """Setup logging configuration."""
+def setup_logging(verbose: bool = False, detailed_mode: bool = False):
+    """Setup logging configuration.
+
+    Args:
+        verbose: Enable verbose logging with file output
+        detailed_mode: Enable detailed output format (logs to file only unless verbose)
+    """
+    # If detailed mode without explicit verbose, redirect logs to file only
+    if detailed_mode and not verbose:
+        # Clear any existing handlers
+        root_logger = logging.getLogger()
+        for handler in root_logger.handlers[:]:
+            root_logger.removeHandler(handler)
+
+        # Create logs directory
+        try:
+            os.makedirs("logs", exist_ok=True)
+        except (PermissionError, OSError):
+            # Fall back to warning-only console logging
+            logging.basicConfig(
+                level=logging.WARNING,
+                format='%(levelname)s: %(message)s',
+                force=True
+            )
+            return
+
+        # Log to file only in detailed mode
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        log_file = f"logs/madspark_detailed_{timestamp}.log"
+
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S',
+            handlers=[
+                logging.FileHandler(log_file)
+                # No StreamHandler - file only!
+            ],
+            force=True
+        )
+        print(f"📝 Logs saved to: {log_file}")
+        return
+
     level = logging.DEBUG if verbose else logging.INFO
-    
+
     # Clear any existing handlers to ensure our configuration takes effect
     root_logger = logging.getLogger()
     for handler in root_logger.handlers[:]:
         root_logger.removeHandler(handler)
-    
+
     # Create logs directory if verbose mode is enabled
     if verbose:
         try:
@@ -941,7 +982,13 @@ def main() -> None:
     parser = create_parser()
     args = parser.parse_args()
 
-    setup_logging(args.verbose)
+    # Detect detailed mode for log configuration
+    detailed_mode = (
+        args.output_mode == 'detailed' or
+        args.output_format == 'detailed' or
+        getattr(args, 'detailed', False)
+    )
+    setup_logging(args.verbose, detailed_mode)
 
     # Validate numeric arguments
     _validate_numeric_arguments(args, parser)

@@ -2,6 +2,7 @@
 Brief formatter for solution-focused output.
 """
 
+import json
 from argparse import Namespace
 from typing import Any, Dict, List
 

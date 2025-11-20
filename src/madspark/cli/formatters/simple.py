@@ -2,6 +2,7 @@
 Simple formatter for user-friendly output with emojis.
 """
 
+import json
 from argparse import Namespace
 from typing import Any, Dict, List
 

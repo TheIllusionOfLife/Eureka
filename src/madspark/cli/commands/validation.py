@@ -92,7 +92,7 @@ class WorkflowValidator(CommandHandler):
 
             # Special case for 'test' - it runs pytest, not idea generation
             if keyword == "test":
-                print(f"   If you intended to run tests, use: ms test (runs pytest tests/ -v)\n")
+                print("   If you intended to run tests, use: ms test (runs pytest tests/ -v)\n")
             else:
                 print(f"   If you intended a special command, use: ms {keyword}\n")
 

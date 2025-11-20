@@ -179,10 +179,14 @@ class ResultFormatter(ABC):
         """
         if isinstance(field_data, dict):
             return field_data
+
         if isinstance(field_data, str):
             try:
                 import json
-                return json.loads(field_data)
+                parsed = json.loads(field_data)
+                # Ensure we only return dict - if parsed is list/str/etc, return empty dict
+                return parsed if isinstance(parsed, dict) else {}
             except json.JSONDecodeError:
                 return {}
+
         return {}

@@ -210,8 +210,9 @@ class TestShowLLMStats:
 
         output = capsys.readouterr().out
         assert 'LLM Router was not used' in output
-        assert 'Phase 2' in output
-        assert 'direct Gemini API calls' in output
+        # Updated assertions to match new message format (Issue #4 fix)
+        assert '--no-router flag was used' in output or 'Batch operations use direct Gemini API' in output
+        assert 'Ollama-first inference with automatic Gemini fallback' in output
 
     def test_stats_show_metrics_when_used(self, capsys):
         """Test that metrics are shown without warning when router is used."""

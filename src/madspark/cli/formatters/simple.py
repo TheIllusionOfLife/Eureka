@@ -85,17 +85,31 @@ class SimpleFormatter(ResultFormatter):
             if 'advocacy' in result and result['advocacy']:
                 lines.append("")
                 advocacy_data = self._parse_json_field(result['advocacy'])
-                if advocacy_data.get('strengths'):
+                strengths = advocacy_data.get('strengths')
+                if strengths and isinstance(strengths, list):
                     lines.append("💪 Top Strengths:")
-                    for strength in advocacy_data['strengths'][:3]:  # Top 3
-                        lines.append(f"   • {strength}")
+                    for strength in strengths[:3]:  # Top 3
+                        # Handle dict items with title/description fields
+                        if isinstance(strength, dict):
+                            text = strength.get('title') or strength.get('description') or str(strength)
+                        else:
+                            text = str(strength) if strength else ""
+                        if text:
+                            lines.append(f"   • {text}")
 
             if 'skepticism' in result and result['skepticism']:
                 skepticism_data = self._parse_json_field(result['skepticism'])
-                if skepticism_data.get('flaws'):
+                flaws = skepticism_data.get('flaws')
+                if flaws and isinstance(flaws, list):
                     lines.append("⚠️  Key Concerns:")
-                    for flaw in skepticism_data['flaws'][:3]:  # Top 3
-                        lines.append(f"   • {flaw}")
+                    for flaw in flaws[:3]:  # Top 3
+                        # Handle dict items with title/description fields
+                        if isinstance(flaw, dict):
+                            text = flaw.get('title') or flaw.get('description') or str(flaw)
+                        else:
+                            text = str(flaw) if flaw else ""
+                        if text:
+                            lines.append(f"   • {text}")
 
             if 'logical_inference' in result and result['logical_inference']:
                 try:

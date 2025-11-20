@@ -66,15 +66,51 @@ class BriefFormatter(ResultFormatter):
             if 'advocacy' in result and result['advocacy']:
                 lines.append("")
                 advocacy_data = self._parse_json_field(result['advocacy'])
-                if advocacy_data.get('strengths'):
-                    strengths_preview = advocacy_data['strengths'][:2]  # Top 2
-                    lines.append(f"**✅ Key Strengths:** {', '.join(strengths_preview)}")
+                raw_strengths = advocacy_data.get('strengths')
+                if raw_strengths:
+                    # Normalize to a list and ensure each item is a string
+                    if isinstance(raw_strengths, list):
+                        strengths_items = raw_strengths[:2]
+                    else:
+                        strengths_items = [raw_strengths]
+
+                    # Convert each item to string (handle dicts with title/description)
+                    strengths_preview = []
+                    for item in strengths_items:
+                        if isinstance(item, dict):
+                            # Prefer title, fall back to description, then stringify
+                            text = item.get('title') or item.get('description') or str(item)
+                        else:
+                            text = str(item) if item else ""
+                        if text:
+                            strengths_preview.append(text)
+
+                    if strengths_preview:
+                        lines.append(f"**✅ Key Strengths:** {', '.join(strengths_preview)}")
 
             if 'skepticism' in result and result['skepticism']:
                 skepticism_data = self._parse_json_field(result['skepticism'])
-                if skepticism_data.get('flaws'):
-                    flaws_preview = skepticism_data['flaws'][:2]  # Top 2
-                    lines.append(f"**⚠️  Key Concerns:** {', '.join(flaws_preview)}")
+                raw_flaws = skepticism_data.get('flaws')
+                if raw_flaws:
+                    # Normalize to a list and ensure each item is a string
+                    if isinstance(raw_flaws, list):
+                        flaws_items = raw_flaws[:2]
+                    else:
+                        flaws_items = [raw_flaws]
+
+                    # Convert each item to string (handle dicts with title/description)
+                    flaws_preview = []
+                    for item in flaws_items:
+                        if isinstance(item, dict):
+                            # Prefer title, fall back to description, then stringify
+                            text = item.get('title') or item.get('description') or str(item)
+                        else:
+                            text = str(item) if item else ""
+                        if text:
+                            flaws_preview.append(text)
+
+                    if flaws_preview:
+                        lines.append(f"**⚠️  Key Concerns:** {', '.join(flaws_preview)}")
 
             if 'logical_inference' in result and result['logical_inference']:
                 try:

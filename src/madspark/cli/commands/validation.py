@@ -86,9 +86,15 @@ class WorkflowValidator(CommandHandler):
         """
         # Check for reserved keywords that might collide with special commands
         if self.args.theme and self.args.theme.lower() in RESERVED_KEYWORDS:
+            keyword = self.args.theme.lower()
             print(f"\n💡 Note: Topic '{self.args.theme}' matches a reserved keyword.")
             print(f"   If you're trying to generate ideas about '{self.args.theme}', this will work correctly.")
-            print(f"   If you intended a special command, use: ms {self.args.theme}\n")
+
+            # Special case for 'test' - it runs pytest, not idea generation
+            if keyword == "test":
+                print(f"   If you intended to run tests, use: ms test (runs pytest tests/ -v)\n")
+            else:
+                print(f"   If you intended a special command, use: ms {keyword}\n")
 
         # Validate theme requirement
         if not self.args.theme:

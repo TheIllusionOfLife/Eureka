@@ -53,13 +53,13 @@ def setup_logging(verbose: bool = False, detailed_mode: bool = False):
         verbose: Enable verbose logging with file output
         detailed_mode: Enable detailed output format (logs to file only unless verbose)
     """
-    # If detailed mode without explicit verbose, redirect logs to file only
-    if detailed_mode and not verbose:
-        # Clear any existing handlers
-        root_logger = logging.getLogger()
-        for handler in root_logger.handlers[:]:
-            root_logger.removeHandler(handler)
+    # Clear any existing handlers ONCE at the top (DRY principle)
+    root_logger = logging.getLogger()
+    for handler in root_logger.handlers[:]:
+        root_logger.removeHandler(handler)
 
+    # Detailed mode without verbose: file-only logging
+    if detailed_mode and not verbose:
         # Create logs directory
         try:
             os.makedirs("logs", exist_ok=True)
@@ -89,12 +89,8 @@ def setup_logging(verbose: bool = False, detailed_mode: bool = False):
         print(f"📝 Logs saved to: {log_file}")
         return
 
+    # Standard mode: console logging, file if verbose
     level = logging.DEBUG if verbose else logging.INFO
-
-    # Clear any existing handlers to ensure our configuration takes effect
-    root_logger = logging.getLogger()
-    for handler in root_logger.handlers[:]:
-        root_logger.removeHandler(handler)
 
     # Create logs directory if verbose mode is enabled
     if verbose:

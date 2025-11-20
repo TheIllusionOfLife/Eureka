@@ -4,6 +4,7 @@ Base formatter abstract class for result formatting.
 Provides shared utilities and defines the formatter interface.
 """
 
+import json
 from abc import ABC, abstractmethod
 from argparse import Namespace
 from typing import Any, Dict, List, Optional
@@ -175,14 +176,14 @@ class ResultFormatter(ABC):
             field_data: JSON string or dict
 
         Returns:
-            Parsed dictionary or empty dict on error
+            Parsed dictionary or empty dict on error. Always returns a dict,
+            never list/str/other types, to match the type contract.
         """
         if isinstance(field_data, dict):
             return field_data
 
         if isinstance(field_data, str):
             try:
-                import json
                 parsed = json.loads(field_data)
                 # Ensure we only return dict - if parsed is list/str/etc, return empty dict
                 return parsed if isinstance(parsed, dict) else {}

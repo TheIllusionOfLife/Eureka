@@ -92,12 +92,13 @@ if len(sys.argv) < 2:
     print("  mad_spark coordinator                  # Run the coordinator")
     print("  mad_spark 'topic' ['context']         # Generate ideas (simplified!)")
     print("  mad_spark config                       # Configure API key")
+    print("  mad_spark test                         # Run test suite (shortcut)")
     print("\nExamples:")
     print("  mad_spark 'consciousness' 'what is it?'")
     print("  mad_spark 'sustainable cities'")
-    print("  mad_spark 'test' 'machine learning'    # Generate ideas about testing")
     print("  mad_spark coordinator")
-    print("\n💡 To run tests: pytest tests/ -v")
+    print("  mad_spark test                         # Runs pytest tests/ -v")
+    print("\n💡 To generate ideas about testing: mad_spark 'testing' 'machine learning'")
     print("\nAliases: mad_spark, madspark, ms")
     sys.exit(0)
 
@@ -106,9 +107,19 @@ command = sys.argv[1]
 
 # Help commands are already handled in lines 26-41, so skip here
 
+# Special case: 'test' command runs pytest (not a topic)
+# This preserves backward compatibility for users who expect `ms test` to run tests
+if command == "test":
+    try:
+        import subprocess
+        subprocess.run([sys.executable, "-m", "pytest", "tests/", "-v"])
+        sys.exit(0)
+    except Exception as e:
+        print(f"❌ Test execution failed: {e}")
+        print("💡 Make sure pytest is installed: pip install pytest")
+        sys.exit(1)
+
 # List of reserved commands (not topics)
-# Note: 'test' removed to allow generating ideas about testing
-# Users can run tests with: pytest tests/ or make test
 reserved_commands = ['coordinator', 'cli', 'config', '--help', '-h', '--version']
 if command not in reserved_commands:
     # This is a topic, not a command - convert to CLI format

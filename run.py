@@ -111,9 +111,8 @@ command = sys.argv[1]
 # This preserves backward compatibility for users who expect `ms test` to run tests
 if command == "test":
     try:
-        import subprocess
-        subprocess.run([sys.executable, "-m", "pytest", "tests/", "-v"])
-        sys.exit(0)
+        result = subprocess.run([sys.executable, "-m", "pytest", "tests/", "-v"])
+        sys.exit(result.returncode)
     except Exception as e:
         print(f"❌ Test execution failed: {e}")
         print("💡 Make sure pytest is installed: pip install pytest")

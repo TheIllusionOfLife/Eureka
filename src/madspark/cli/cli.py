@@ -96,17 +96,7 @@ def setup_logging(verbose: bool = False, detailed_mode: bool = False):
     if verbose:
         try:
             os.makedirs("logs", exist_ok=True)
-        except PermissionError:
-            print("⚠️ Warning: Cannot create logs directory due to permissions. Logs will only go to console.")
-            # Fall back to console-only logging
-            logging.basicConfig(
-                level=level,
-                format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
-                datefmt='%Y-%m-%d %H:%M:%S',
-                force=True
-            )
-            return
-        except OSError as e:
+        except (PermissionError, OSError) as e:
             print(f"⚠️ Warning: Cannot create logs directory: {e}. Logs will only go to console.")
             # Fall back to console-only logging
             logging.basicConfig(

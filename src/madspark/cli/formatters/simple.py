@@ -126,8 +126,11 @@ class SimpleFormatter(ResultFormatter):
                                 if clean_line and not clean_line.startswith('Logical Steps'):
                                     lines.append(f"   • {clean_line}")
                                     point_count += 1
-                except (ImportError, Exception):
+                except (ImportError, json.JSONDecodeError, KeyError, AttributeError, IndexError) as e:
                     # Fallback: try dict extraction
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.debug(f"Failed to format logical inference: {e}")
                     inference = result['logical_inference']
                     if isinstance(inference, dict):
                         lines.append("🧠 Logical Reasoning:")

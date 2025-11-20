@@ -120,7 +120,8 @@ if command == "test":
         sys.exit(1)
 
 # List of reserved commands (not topics)
-reserved_commands = ['coordinator', 'cli', 'config', '--help', '-h', '--version']
+# Note: 'test' is handled earlier (line 112) as a special case, but included here for consistency
+reserved_commands = ['test', 'coordinator', 'cli', 'config', '--help', '-h', '--version']
 if command not in reserved_commands:
     # This is a topic, not a command - convert to CLI format
     topic = command

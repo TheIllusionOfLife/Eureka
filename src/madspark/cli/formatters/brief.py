@@ -118,13 +118,17 @@ class BriefFormatter(ResultFormatter):
                     inference_text = format_logical_inference_results(result['logical_inference'])
                     if inference_text:
                         # Extract first line/insight for brief display
-                        first_line = inference_text.split('\n')[1] if '\n' in inference_text else inference_text
+                        lines_list = inference_text.split('\n')
+                        first_line = lines_list[1] if len(lines_list) > 1 else (lines_list[0] if lines_list else "")
                         first_line = first_line.replace('├─ Logical Steps:', '').replace('│  1.', '').strip()
                         if first_line:
                             lines.append("")
                             lines.append(f"**🔍 Logical Insight:** {first_line[:200]}")  # First 200 chars
-                except (ImportError, Exception):
+                except (ImportError, json.JSONDecodeError, KeyError, AttributeError, IndexError) as e:
                     # Fallback: try to extract from dict
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.debug(f"Failed to format logical inference: {e}")
                     inference = result['logical_inference']
                     if isinstance(inference, dict) and 'causal_chains' in inference and inference['causal_chains']:
                         first_chain = inference['causal_chains'][0] if isinstance(inference['causal_chains'], list) else str(inference['causal_chains'])

@@ -91,12 +91,14 @@ if len(sys.argv) < 2:
     print("  mad_spark                              # Show this help")
     print("  mad_spark coordinator                  # Run the coordinator")
     print("  mad_spark 'topic' ['context']         # Generate ideas (simplified!)")
-    print("  mad_spark test                         # Run tests")
     print("  mad_spark config                       # Configure API key")
+    print("  mad_spark test                         # Run test suite (shortcut)")
     print("\nExamples:")
     print("  mad_spark 'consciousness' 'what is it?'")
     print("  mad_spark 'sustainable cities'")
     print("  mad_spark coordinator")
+    print("  mad_spark test                         # Runs pytest tests/ -v")
+    print("\n💡 To generate ideas about testing: mad_spark 'testing' 'machine learning'")
     print("\nAliases: mad_spark, madspark, ms")
     sys.exit(0)
 
@@ -105,8 +107,20 @@ command = sys.argv[1]
 
 # Help commands are already handled in lines 26-41, so skip here
 
+# Special case: 'test' command runs pytest (not a topic)
+# This preserves backward compatibility for users who expect `ms test` to run tests
+if command == "test":
+    try:
+        result = subprocess.run([sys.executable, "-m", "pytest", "tests/", "-v"])
+        sys.exit(result.returncode)
+    except Exception as e:
+        print(f"❌ Test execution failed: {e}")
+        print("💡 Make sure pytest is installed: pip install pytest")
+        sys.exit(1)
+
 # List of reserved commands (not topics)
-reserved_commands = ['coordinator', 'cli', 'test', 'config', '--help', '-h', '--version']
+# Note: 'test' is handled earlier (line 112) as a special case, but included here for consistency
+reserved_commands = ['test', 'coordinator', 'cli', 'config', '--help', '-h', '--version']
 if command not in reserved_commands:
     # This is a topic, not a command - convert to CLI format
     topic = command
@@ -166,8 +180,6 @@ elif command == "cli":
     except Exception as e:
         print(f"❌ CLI execution failed: {e}")
         sys.exit(1)
-elif command == "test":
-    subprocess.run([sys.executable, "-m", "pytest", "tests/", "-v"])
 elif command == "config":
     # Run the configuration tool
     config_script = project_root / "src" / "madspark" / "bin" / "mad_spark_config"

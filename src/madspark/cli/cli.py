@@ -46,30 +46,57 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
-def setup_logging(verbose: bool = False):
-    """Setup logging configuration."""
-    level = logging.DEBUG if verbose else logging.INFO
-    
-    # Clear any existing handlers to ensure our configuration takes effect
+def setup_logging(verbose: bool = False, detailed_mode: bool = False):
+    """Setup logging configuration.
+
+    Args:
+        verbose: Enable verbose logging with file output
+        detailed_mode: Enable detailed output format (logs to file only unless verbose)
+    """
+    # Clear any existing handlers ONCE at the top (DRY principle)
     root_logger = logging.getLogger()
     for handler in root_logger.handlers[:]:
         root_logger.removeHandler(handler)
-    
+
+    # Detailed mode without verbose: file-only logging
+    if detailed_mode and not verbose:
+        # Create logs directory
+        try:
+            os.makedirs("logs", exist_ok=True)
+        except (PermissionError, OSError):
+            # Fall back to warning-only console logging
+            logging.basicConfig(
+                level=logging.WARNING,
+                format='%(levelname)s: %(message)s',
+                force=True
+            )
+            return
+
+        # Log to file only in detailed mode
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        log_file = f"logs/madspark_detailed_{timestamp}.log"
+
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S',
+            handlers=[
+                logging.FileHandler(log_file)
+                # No StreamHandler - file only!
+            ],
+            force=True
+        )
+        print(f"📝 Logs saved to: {log_file}")
+        return
+
+    # Standard mode: console logging, file if verbose
+    level = logging.DEBUG if verbose else logging.INFO
+
     # Create logs directory if verbose mode is enabled
     if verbose:
         try:
             os.makedirs("logs", exist_ok=True)
-        except PermissionError:
-            print("⚠️ Warning: Cannot create logs directory due to permissions. Logs will only go to console.")
-            # Fall back to console-only logging
-            logging.basicConfig(
-                level=level,
-                format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
-                datefmt='%Y-%m-%d %H:%M:%S',
-                force=True
-            )
-            return
-        except OSError as e:
+        except (PermissionError, OSError) as e:
             print(f"⚠️ Warning: Cannot create logs directory: {e}. Logs will only go to console.")
             # Fall back to console-only logging
             logging.basicConfig(
@@ -941,7 +968,13 @@ def main() -> None:
     parser = create_parser()
     args = parser.parse_args()
 
-    setup_logging(args.verbose)
+    # Detect detailed mode for log configuration
+    detailed_mode = (
+        args.output_mode == 'detailed' or
+        args.output_format == 'detailed' or
+        getattr(args, 'detailed', False)
+    )
+    setup_logging(args.verbose, detailed_mode)
 
     # Validate numeric arguments
     _validate_numeric_arguments(args, parser)
@@ -1114,9 +1147,13 @@ def _show_llm_stats() -> None:
         # Check if router was actually used
         if metrics[METRIC_TOTAL_REQUESTS] == 0:
             print("⚠️  NOTE: LLM Router was not used in this workflow.")
-            print("   The multi-provider routing infrastructure is ready but")
-            print("   not yet integrated into the main workflow (Phase 2).")
-            print("   Current workflow uses direct Gemini API calls.")
+            print("   Possible reasons:")
+            print("   • --no-router flag was used (bypasses router)")
+            print("   • Batch operations use direct Gemini API for efficiency")
+            print("   • Some agent functions haven't added router support yet")
+            print("")
+            print("💡 TIP: Router is enabled by default for individual agent calls.")
+            print("   It provides Ollama-first inference with automatic Gemini fallback.")
             print("")
 
         print(f"Total Requests: {metrics[METRIC_TOTAL_REQUESTS]}")

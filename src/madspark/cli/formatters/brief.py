@@ -2,6 +2,7 @@
 Brief formatter for solution-focused output.
 """
 
+import json
 from argparse import Namespace
 from typing import Any, Dict, List
 
@@ -61,6 +62,79 @@ class BriefFormatter(ResultFormatter):
                 # Brief format: show overall + all dimensions on one line
                 dim_list = ', '.join([f"{dim.replace('_', ' ').title()}: {score}" for dim, score in scores.items()])
                 lines.append(f"**Dimensions (Overall: {overall}):** {dim_list}")
+
+            # Add enhanced reasoning highlights if present
+            if 'advocacy' in result and result['advocacy']:
+                lines.append("")
+                advocacy_data = self._parse_json_field(result['advocacy'])
+                raw_strengths = advocacy_data.get('strengths')
+                if raw_strengths:
+                    # Normalize to a list and ensure each item is a string
+                    if isinstance(raw_strengths, list):
+                        strengths_items = raw_strengths[:2]
+                    else:
+                        strengths_items = [raw_strengths]
+
+                    # Convert each item to string (handle dicts with title/description)
+                    strengths_preview = []
+                    for item in strengths_items:
+                        if isinstance(item, dict):
+                            # Prefer title, fall back to description, then stringify
+                            text = item.get('title') or item.get('description') or str(item)
+                        else:
+                            text = str(item) if item else ""
+                        if text:
+                            strengths_preview.append(text)
+
+                    if strengths_preview:
+                        lines.append(f"**✅ Key Strengths:** {', '.join(strengths_preview)}")
+
+            if 'skepticism' in result and result['skepticism']:
+                skepticism_data = self._parse_json_field(result['skepticism'])
+                raw_flaws = skepticism_data.get('flaws')
+                if raw_flaws:
+                    # Normalize to a list and ensure each item is a string
+                    if isinstance(raw_flaws, list):
+                        flaws_items = raw_flaws[:2]
+                    else:
+                        flaws_items = [raw_flaws]
+
+                    # Convert each item to string (handle dicts with title/description)
+                    flaws_preview = []
+                    for item in flaws_items:
+                        if isinstance(item, dict):
+                            # Prefer title, fall back to description, then stringify
+                            text = item.get('title') or item.get('description') or str(item)
+                        else:
+                            text = str(item) if item else ""
+                        if text:
+                            flaws_preview.append(text)
+
+                    if flaws_preview:
+                        lines.append(f"**⚠️  Key Concerns:** {', '.join(flaws_preview)}")
+
+            if 'logical_inference' in result and result['logical_inference']:
+                try:
+                    from madspark.utils.output_processor import format_logical_inference_results
+                    inference_text = format_logical_inference_results(result['logical_inference'])
+                    if inference_text:
+                        # Extract first line/insight for brief display
+                        lines_list = inference_text.split('\n')
+                        first_line = lines_list[1] if len(lines_list) > 1 else (lines_list[0] if lines_list else "")
+                        first_line = first_line.replace('├─ Logical Steps:', '').replace('│  1.', '').strip()
+                        if first_line:
+                            lines.append("")
+                            lines.append(f"**🔍 Logical Insight:** {first_line[:200]}")  # First 200 chars
+                except (ImportError, json.JSONDecodeError, KeyError, AttributeError, IndexError) as e:
+                    # Fallback: try to extract from dict
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.debug(f"Failed to format logical inference: {e}")
+                    inference = result['logical_inference']
+                    if isinstance(inference, dict) and 'causal_chains' in inference and inference['causal_chains']:
+                        first_chain = inference['causal_chains'][0] if isinstance(inference['causal_chains'], list) else str(inference['causal_chains'])
+                        lines.append("")
+                        lines.append(f"**🔍 Logical Insight:** {first_chain}")
 
             if i < len(cleaned_results):
                 lines.append("")  # Empty line between ideas

@@ -1009,7 +1009,8 @@ class WorkflowOrchestrator:
         self,
         candidates: List[Dict[str, Any]],
         topic: str,
-        context: str
+        context: str,
+        text_key: str = "text"
     ) -> List[Dict[str, Any]]:
         """Add multi-dimensional evaluation to candidates.
 
@@ -1017,6 +1018,8 @@ class WorkflowOrchestrator:
             candidates: List of candidate dictionaries.
             topic: Topic/theme for context.
             context: Context/constraints.
+            text_key: Key to use for extracting text to evaluate (default: "text").
+                     Falls back to "idea" if key not found or explicitly set.
 
         Returns:
             Updated candidates with multi_dimensional_evaluation field.
@@ -1030,8 +1033,15 @@ class WorkflowOrchestrator:
             return candidates
 
         try:
-            # Extract ideas for batch evaluation
-            ideas_for_eval = [candidate.get("text", candidate.get("idea", "")) for candidate in candidates]
+            # Extract ideas for batch evaluation using specified key
+            ideas_for_eval = []
+            for candidate in candidates:
+                # Try primary key, then fallback to "idea" or "text" if not found
+                text = candidate.get(text_key, "")
+                if not text:
+                    text = candidate.get("idea", candidate.get("text", ""))
+                ideas_for_eval.append(text)
+
             eval_context = {"topic": topic, "context": context}
 
             # Batch evaluate all dimensions for all ideas
@@ -1057,7 +1067,8 @@ class WorkflowOrchestrator:
         candidates: List[Dict[str, Any]],
         topic: str,
         context: str,
-        monitor: Optional['BatchMonitor'] = None
+        monitor: Optional['BatchMonitor'] = None,
+        text_key: str = "text"
     ) -> List[Dict[str, Any]]:
         """Add multi-dimensional evaluation with monitoring.
 
@@ -1066,6 +1077,7 @@ class WorkflowOrchestrator:
             topic: Topic/theme for context.
             context: Context/constraints.
             monitor: Optional BatchMonitor instance.
+            text_key: Key to use for extracting text to evaluate.
 
         Returns:
             Updated candidates with multi_dimensional_evaluation field.
@@ -1077,7 +1089,9 @@ class WorkflowOrchestrator:
 
         with batch_call_context("multi_dimensional", len(candidates), monitor) as monitor_ctx:
             try:
-                updated = self.add_multi_dimensional_evaluation(candidates, topic, context)
+                updated = self.add_multi_dimensional_evaluation(
+                    candidates, topic, context, text_key=text_key
+                )
                 monitor_ctx.set_model_name(self.model_name)
                 return updated
 
@@ -1090,7 +1104,8 @@ class WorkflowOrchestrator:
         self,
         candidates: List[Dict[str, Any]],
         topic: str,
-        context: str
+        context: str,
+        text_key: str = "text"
     ) -> List[Dict[str, Any]]:
         """Async variant of add_multi_dimensional_evaluation.
 
@@ -1098,15 +1113,18 @@ class WorkflowOrchestrator:
             candidates: List of candidate dictionaries.
             topic: Topic/theme for context.
             context: Context/constraints.
+            text_key: Key to use for extracting text to evaluate.
 
         Returns:
             Updated candidates with multi_dimensional_evaluation field.
         """
         loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(
-            None,
+        # Use partial to pass keyword arguments
+        func = partial(
             self.add_multi_dimensional_evaluation,
-            candidates,
-            topic,
-            context
+            candidates=candidates,
+            topic=topic,
+            context=context,
+            text_key=text_key
         )
+        return await loop.run_in_executor(None, func)

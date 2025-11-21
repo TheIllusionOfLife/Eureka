@@ -35,6 +35,53 @@ class CandidateData(TypedDict):
 # --- End TypedDict Definitions ---
 
 
+# --- Helper Functions ---
+def normalize_candidate_data(candidate_data: Dict[str, Any], context: str) -> None:
+    """Normalize candidate data to ensure compatibility fields exist.
+
+    This handles technical debt where different parts of the system expect
+    different field names ("text" vs "idea", "score" vs "initial_score").
+
+    Args:
+        candidate_data: The candidate data dictionary to modify in-place.
+        context: The context string to attach to the data.
+    """
+    # Ensure both "text" and "idea" fields exist
+    # Primary field is currently "text" in early stages, "idea" in CandidateData
+    if "text" in candidate_data and "idea" not in candidate_data:
+        candidate_data["idea"] = candidate_data["text"]
+    elif "idea" in candidate_data and "text" not in candidate_data:
+        candidate_data["text"] = candidate_data["idea"]
+    else:
+        # Ensure at least empty string if neither exists (defensive)
+        if "idea" not in candidate_data:
+            candidate_data["idea"] = ""
+        if "text" not in candidate_data:
+            candidate_data["text"] = ""
+
+    # Add both "score" and "initial_score"
+    if "score" in candidate_data:
+        candidate_data["initial_score"] = candidate_data["score"]
+    elif "initial_score" in candidate_data:
+        candidate_data["score"] = candidate_data["initial_score"]
+    else:
+        candidate_data["score"] = 0
+        candidate_data["initial_score"] = 0
+
+    # Add both "critique" and "initial_critique"
+    if "critique" in candidate_data:
+        candidate_data["initial_critique"] = candidate_data["critique"]
+    elif "initial_critique" in candidate_data:
+        candidate_data["critique"] = candidate_data["initial_critique"]
+    else:
+        candidate_data["critique"] = ""
+        candidate_data["initial_critique"] = ""
+
+    # Add context for information flow (re-evaluation bias prevention)
+    candidate_data["context"] = context
+# --- End Helper Functions ---
+
+
 # --- Logging Functions ---
 def log_verbose_step(step_name: str, details: str = "", verbose: bool = False):
     """Log verbose step information with visual indicators."""

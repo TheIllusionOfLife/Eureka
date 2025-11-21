@@ -24,22 +24,48 @@ Features specialized agents for idea generation, criticism, advocacy, and skepti
 ## Quick Start
 
 ### Prerequisites
-- Python 3.10+ (required for TypedDict and modern features)
-- Google Gemini API key (optional - mock mode available)
 
-### Installation
+**For CLI Usage:**
+- Python 3.10+ (required for TypedDict and modern features)
+- Google Gemini API key (optional - Ollama/mock mode available)
+- Ollama (optional - for free local inference, Docker not required)
+
+**For Web Interface:**
+- Docker and Docker Compose
+- Google Gemini API key (optional - Ollama is auto-configured in Docker)
+
+### CLI Installation
 
 ```bash
 # Clone the repo
 git clone https://github.com/TheIllusionOfLife/Eureka.git
 cd Eureka
 
-# Initial setup with interactive configuration
-./scripts/setup.sh  
+# Run interactive setup for CLI commands (mad_spark/ms)
+./scripts/setup.sh
 
 # Configure your API key (for real AI responses)
 mad_spark config  # Interactive configuration
 ```
+
+### Web Interface Installation
+
+```bash
+# After cloning the repo
+cd Eureka/web
+
+# Run interactive setup (auto-downloads Ollama models)
+./setup.sh
+
+# Follow the prompts to choose:
+# 1) Ollama (Free, Local) - Recommended, downloads ~13GB models
+# 2) Gemini (Cloud, Requires API Key)
+# 3) Mock (Testing only, no AI)
+
+# Access the interface at http://localhost:3000
+```
+
+**Note:** You can run both setup scripts to use both CLI and web interface!
 
 ### Non-Interactive Setup (CI/CD, Automation)
 
@@ -136,7 +162,26 @@ ms "Summarize findings" --file research.pdf --url https://competitor.com
 
 ### LLM Provider Selection (Ollama-First by Default!)
 
-MadSpark uses a multi-LLM provider system with **Ollama as the default** for cost-free local inference, automatically falling back to Gemini when needed:
+MadSpark uses a multi-LLM provider system with **Ollama as the default** for cost-free local inference, automatically falling back to Gemini when needed.
+
+**Installing Ollama for CLI (Optional):**
+```bash
+# macOS/Linux
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Or download from https://ollama.com/download
+
+# Pull the models used by MadSpark
+ollama pull gemma3:4b-it-qat       # Fast tier (~4GB)
+ollama pull gemma3:12b-it-qat      # Balanced tier (~9GB)
+
+# Verify installation
+ollama list
+```
+
+**Note:** The web interface auto-configures Ollama in Docker (no manual installation needed).
+
+**Usage:**
 
 ```bash
 # Default: Auto-select provider (Ollama primary, Gemini fallback)
@@ -187,13 +232,9 @@ ms coordinator
 # Run test suite to verify functionality
 ms test
 
-# Web interface (after setting up aliases - see below)
-madspark-web                    # Start web interface at http://localhost:3000
-madspark-web-logs              # View logs from all services
-madspark-web-stop              # Stop web interface
-
-# Manual web interface commands (without aliases)
-cd web && docker compose up -d  # Start in detached mode
+# Web interface commands (see "Web Interface Setup" section for initial setup)
+cd web && ./setup.sh            # Initial setup (interactive)
+cd web && docker compose up -d  # Start services
 docker compose logs -f          # View logs
 docker compose down            # Stop services
 ```
@@ -315,20 +356,17 @@ ms "future technology" --remix --remix-ids bookmark_123,bookmark_456  # Use spec
 
 The MadSpark web interface provides a modern React-based UI for generating ideas with real-time progress updates. **Now with multi-modal support!** Add URLs and upload files directly from the browser for enhanced context.
 
-**Quick Setup with Aliases (Recommended):**
+**Quick Setup (Recommended):**
 ```bash
-# Add to your ~/.zshrc or ~/.bashrc:
-alias madspark-web="cd ~/Eureka && source .env && cd web && MADSPARK_MODE=api GOOGLE_API_KEY=\$GOOGLE_API_KEY GOOGLE_GENAI_MODEL=\$GOOGLE_GENAI_MODEL docker compose up -d"
-alias madspark-web-stop="cd ~/Eureka/web && docker compose down"
-alias madspark-web-logs="cd ~/Eureka/web && docker compose logs -f"
+cd ~/Eureka/web
+./setup.sh
 
-# Reload shell configuration
-source ~/.zshrc  # or ~/.bashrc
+# Follow interactive prompts to choose:
+# 1) Ollama (Free, Local) - Recommended, auto-downloads models
+# 2) Gemini (Cloud, Requires API Key)
+# 3) Mock (Testing only, no AI)
 
-# Use the aliases
-madspark-web       # Start at http://localhost:3000
-madspark-web-logs  # View logs
-madspark-web-stop  # Stop services
+# Access at http://localhost:3000
 ```
 
 **Features:**
@@ -338,10 +376,48 @@ madspark-web-stop  # Stop services
 - Duplicate detection with visual warnings
 - Export results in multiple formats
 - Keyboard shortcuts for power users
+- Free local inference with Ollama (auto-configured)
 
-**Notes:** 
-- The web interface uses your API key from the root `.env` file. No need to duplicate it in the web directory.
-- You may see webpack deprecation warnings about `onAfterSetupMiddleware` and `onBeforeSetupMiddleware`. These are harmless warnings from react-scripts 5.0.1 and don't affect functionality.
+**Managing the Web Interface:**
+```bash
+cd ~/Eureka/web
+
+# View logs
+docker compose logs -f
+
+# Restart services
+docker compose restart
+
+# Stop services
+docker compose down
+```
+
+<details>
+<summary><b>Advanced: Shell Aliases (Optional)</b></summary>
+
+For power users who want quick commands from anywhere:
+
+```bash
+# Add to your ~/.zshrc or ~/.bashrc:
+alias madspark-web="cd ~/Eureka/web && docker compose up -d"
+alias madspark-web-stop="cd ~/Eureka/web && docker compose down"
+alias madspark-web-logs="cd ~/Eureka/web && docker compose logs -f"
+
+# Reload shell configuration
+source ~/.zshrc  # or ~/.bashrc
+
+# Use the aliases from anywhere
+madspark-web       # Start at http://localhost:3000
+madspark-web-logs  # View logs
+madspark-web-stop  # Stop services
+```
+
+</details>
+
+**Notes:**
+- First startup downloads ~13GB of Ollama models (5-15 minutes depending on internet speed)
+- You may see webpack deprecation warnings - these are harmless and don't affect functionality
+- For detailed web interface documentation, see `web/README.md`
 
 ### Performance Optimization with Redis Caching
 

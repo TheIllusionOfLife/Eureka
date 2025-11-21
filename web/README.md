@@ -20,6 +20,15 @@ MadSpark has **two separate setup scripts** for different purposes:
 
 This guide focuses on the **web interface** only.
 
+## ⚡ Performance Tip: GPU Acceleration
+
+> **💡 Have an NVIDIA GPU? Get 5-10x faster inference!**
+>
+> - **CPU**: 20-60s per idea
+> - **GPU**: 3-12s per idea (RTX 3060/4090)
+>
+> **Quick setup:** See [GPU Setup section](#gpu-setup-optional---significant-performance-boost) below for a 3-step configuration that enables GPU acceleration in Docker.
+
 ## 🚀 Quick Start
 
 ### Automated Setup (Easiest)

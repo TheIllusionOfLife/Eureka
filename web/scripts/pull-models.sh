@@ -9,6 +9,11 @@ set -euo pipefail  # Exit on error, undefined variables, or pipe failures
 readonly MODEL_FAST="gemma3:4b-it-qat"
 readonly MODEL_BALANCED="gemma3:12b-it-qat"
 
+# Configuration constants
+readonly DISK_SPACE_MIN_GB=15           # Minimum disk space required (13GB models + 2GB overhead)
+readonly MAX_RETRIES=2                   # Number of retry attempts for failed downloads
+readonly RETRY_DELAY=10                  # Initial retry delay in seconds
+
 # Logging function
 log() {
     echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*"
@@ -18,35 +23,133 @@ error() {
     echo "[$(date +'%Y-%m-%d %H:%M:%S')] ERROR: $*" >&2
 }
 
+# Check available disk space
+check_disk_space() {
+    log "Checking available disk space..."
+
+    if command -v df &> /dev/null; then
+        local available_space=$(df -BG . | tail -1 | awk '{print $4}' | sed 's/G//')
+        if [ "$available_space" -lt "$DISK_SPACE_MIN_GB" ]; then
+            error "Insufficient disk space: ${available_space}GB available, ${DISK_SPACE_MIN_GB}GB required"
+            error "Please free up disk space and try again"
+            return 1
+        else
+            log "Sufficient disk space available: ${available_space}GB"
+            return 0
+        fi
+    else
+        log "Warning: Cannot check disk space (df command not available)"
+        return 0  # Continue anyway, will fail later if truly insufficient
+    fi
+}
+
 # Check if a model is already downloaded
 model_exists() {
     local model_name="$1"
     ollama list | grep -q "^${model_name}" && return 0 || return 1
 }
 
-# Pull a model with error handling
-pull_model() {
+# Validate that a model is complete and functional
+validate_model() {
     local model_name="$1"
 
-    if model_exists "$model_name"; then
-        log "Model ${model_name} already exists, skipping download"
-        return 0
-    fi
+    log "Validating ${model_name}..."
 
-    log "Pulling ${model_name}..."
-    if ollama pull "$model_name"; then
-        log "Successfully pulled ${model_name}"
+    # Try to generate a simple response to verify the model works
+    if echo "Test" | ollama run "$model_name" --verbose 2>&1 | grep -q ""; then
+        log "Model ${model_name} validated successfully"
         return 0
     else
-        error "Failed to pull ${model_name}"
-        error "Check network connection, disk space (~13GB required), and Ollama logs"
+        error "Model ${model_name} validation failed - may be corrupted or incomplete"
         return 1
     fi
+}
+
+# Remove a model (cleanup partial/corrupted downloads)
+remove_model() {
+    local model_name="$1"
+
+    log "Removing potentially corrupted model ${model_name}..."
+    if ollama rm "$model_name" 2>/dev/null; then
+        log "Successfully removed ${model_name}"
+        return 0
+    else
+        log "No model to remove or removal failed (this is OK)"
+        return 0  # Don't fail the script if removal fails
+    fi
+}
+
+# Pull a model with error handling, validation, and retry logic
+pull_model() {
+    local model_name="$1"
+    local attempt=0
+
+    # Check if model already exists and is valid
+    if model_exists "$model_name"; then
+        log "Model ${model_name} already exists, validating..."
+        if validate_model "$model_name"; then
+            log "Model ${model_name} is valid, skipping download"
+            return 0
+        else
+            log "Existing model ${model_name} is corrupted, will re-download"
+            remove_model "$model_name"
+        fi
+    fi
+
+    # Attempt download with retries
+    while [ $attempt -le $MAX_RETRIES ]; do
+        if [ $attempt -gt 0 ]; then
+            local delay=$((RETRY_DELAY * attempt))
+            log "Retry attempt $attempt of $MAX_RETRIES after ${delay}s delay..."
+            sleep $delay
+        fi
+
+        log "Pulling ${model_name} (attempt $((attempt + 1)) of $((MAX_RETRIES + 1)))..."
+
+        # Attempt to pull the model
+        if ollama pull "$model_name"; then
+            log "Successfully downloaded ${model_name}"
+
+            # Validate the downloaded model
+            if validate_model "$model_name"; then
+                log "Successfully pulled and validated ${model_name}"
+                return 0
+            else
+                error "Model ${model_name} downloaded but validation failed"
+                remove_model "$model_name"  # Clean up corrupted download
+            fi
+        else
+            error "Failed to pull ${model_name} (attempt $((attempt + 1)))"
+        fi
+
+        attempt=$((attempt + 1))
+    done
+
+    # All retries exhausted
+    error "Failed to pull ${model_name} after $((MAX_RETRIES + 1)) attempts"
+    error "Possible causes:"
+    error "  - Network connectivity issues"
+    error "  - Insufficient disk space (need ~15GB free)"
+    error "  - Disk space exhausted during download"
+    error "  - Ollama service issues"
+    error ""
+    error "Troubleshooting steps:"
+    error "  1. Check network: curl -I https://ollama.com"
+    error "  2. Check disk space: df -h"
+    error "  3. Check Ollama logs: docker compose logs ollama"
+    error "  4. Try manual pull: docker compose exec ollama ollama pull ${model_name}"
+    return 1
 }
 
 # Main execution
 main() {
     log "Starting Ollama model auto-pull"
+
+    # Pre-flight check: verify sufficient disk space
+    if ! check_disk_space; then
+        error "Pre-flight check failed: insufficient disk space"
+        exit 1
+    fi
 
     # Start Ollama service in background
     log "Starting Ollama service..."
@@ -72,7 +175,7 @@ main() {
         exit 1
     fi
 
-    # Pull required models
+    # Pull required models with enhanced error handling
     local failed=0
 
     if ! pull_model "$MODEL_FAST"; then
@@ -85,11 +188,12 @@ main() {
 
     if [ $failed -eq 1 ]; then
         error "One or more models failed to download"
+        error "See troubleshooting steps above for guidance"
         kill $ollama_pid 2>/dev/null || true
         exit 1
     fi
 
-    log "All models downloaded successfully"
+    log "All models downloaded and validated successfully"
     log "Waiting for Ollama service (PID: ${ollama_pid})..."
 
     # Keep Ollama running (wait for the background process)

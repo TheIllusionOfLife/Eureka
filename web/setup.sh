@@ -118,6 +118,26 @@ if [ "$MODE" = "ollama" ]; then
         sleep 10
     done
     echo ""
+
+    # Verify models were actually downloaded
+    final_model_count=$(docker compose exec ollama ollama list 2>/dev/null | grep -c "gemma3" || true)
+    if [ "$final_model_count" -lt 2 ]; then
+        echo "❌ ERROR: Ollama models failed to download after 15 minutes"
+        echo ""
+        echo "This could be due to:"
+        echo "  - Slow internet connection"
+        echo "  - Insufficient disk space (~13GB required)"
+        echo "  - Docker container issues"
+        echo ""
+        echo "Check the logs with:"
+        echo "  docker compose logs -f ollama"
+        echo ""
+        echo "Or manually pull models:"
+        echo "  docker compose exec ollama ollama pull gemma3:4b-it-qat"
+        echo "  docker compose exec ollama ollama pull gemma3:12b-it-qat"
+        echo ""
+        exit 1
+    fi
 fi
 
 echo ""

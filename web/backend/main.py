@@ -1295,9 +1295,18 @@ async def get_llm_providers():
 @limiter.limit("5/minute")  # Allow 5 idea generation requests per minute
 async def generate_ideas(
     request: Request,
-    idea_request: Optional[str] = Form(None),
-    multimodal_files: Optional[List[UploadFile]] = File(None),
-    multimodal_images: Optional[List[UploadFile]] = File(None)
+    idea_request: Optional[str] = Form(
+        None,
+        description="JSON string of IdeaGenerationRequest (for FormData uploads). Omit for JSON requests."
+    ),
+    multimodal_files: Optional[List[UploadFile]] = File(
+        None,
+        description="PDF/document files for multi-modal context (triggers FormData mode)"
+    ),
+    multimodal_images: Optional[List[UploadFile]] = File(
+        None,
+        description="Image files for multi-modal context (triggers FormData mode)"
+    )
 ):
     """Generate ideas using the async MadSpark multi-agent workflow with optional multi-modal inputs."""
     start_time = datetime.now()
@@ -1778,13 +1787,19 @@ async def check_bookmark_duplicates(request: Request, duplicate_request: Duplica
 async def find_similar_bookmarks(
     request: Request,
     idea: str = Query(..., min_length=10, description="Idea text to find similar bookmarks for"),
-    topic: str = Query(..., min_length=1, description="Topic of the idea"),  # Changed from 'theme' to 'topic'
+    topic: Optional[str] = Query(None, min_length=1, description="Topic of the idea"),
+    theme: Optional[str] = Query(None, min_length=1, description="(Deprecated: use 'topic') Theme of the idea", alias="theme"),  # Backward compatibility
     max_results: int = Query(default=5, ge=1, le=20, description="Maximum number of results")
 ):
     """Find bookmarks similar to the given idea text."""
+    # Handle backward compatibility: use topic if provided, otherwise fall back to theme
+    actual_topic = topic or theme
+    if not actual_topic:
+        raise HTTPException(status_code=422, detail="Either 'topic' or 'theme' parameter is required")
+
     try:
         similar_bookmarks_data = bookmark_system.find_similar_bookmarks(
-            idea, topic, max_results  # Changed from 'theme' to 'topic'
+            idea, actual_topic, max_results
         )
 
         # Convert to API response format

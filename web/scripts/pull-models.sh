@@ -55,8 +55,8 @@ validate_model() {
 
     log "Validating ${model_name}..."
 
-    # Try to generate a simple response to verify the model works
-    if echo "Test" | ollama run "$model_name" --verbose 2>&1 | grep -q ""; then
+    # Verify the model can generate a response (check exit code)
+    if echo "Test" | ollama run "$model_name" > /dev/null 2>&1; then
         log "Model ${model_name} validated successfully"
         return 0
     else

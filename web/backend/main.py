@@ -20,13 +20,13 @@ from contextlib import asynccontextmanager
 if TYPE_CHECKING:
     from madspark.llm.router import LLMRouter
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Request, Query, File, UploadFile
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Request, Query, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from fastapi.openapi.utils import get_openapi
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, validator, ValidationError as PydanticValidationError
 from typing import Literal
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -803,7 +803,7 @@ class SimilarBookmark(BaseModel):
     """Information about a similar bookmark."""
     id: str
     text: str
-    theme: str
+    topic: str  # Changed from 'theme' to match BookmarkedIdea model
     similarity_score: float
     match_type: str
     matched_features: List[str]
@@ -1292,17 +1292,77 @@ async def get_llm_providers():
         500: {"description": "Internal server error"}
     }
 )
+
+async def parse_idea_request(idea_request: Optional[str], request: Request) -> IdeaGenerationRequest:
+    """
+    Helper function to parse IdeaGenerationRequest from either FormData or JSON body.
+
+    Args:
+        idea_request: Optional JSON string from FormData field
+        request: FastAPI Request object for JSON body access
+
+    Returns:
+        Parsed and validated IdeaGenerationRequest
+
+    Raises:
+        HTTPException: For JSON parsing errors
+        RequestValidationError: For Pydantic validation errors
+    """
+    if idea_request:
+        # FormData submission with files
+        try:
+            request_data = json.loads(idea_request)
+        except json.JSONDecodeError as e:
+            raise HTTPException(status_code=422, detail=f"Invalid JSON in FormData 'idea_request' field: {str(e)}")
+        try:
+            return IdeaGenerationRequest(**request_data)
+        except PydanticValidationError as e:
+            # Let Pydantic validation errors pass through for proper FastAPI formatting
+            raise RequestValidationError(e.errors())
+    else:
+        # JSON submission without files - parse from request body
+        try:
+            body = await request.body()
+            if not body:
+                raise HTTPException(status_code=422, detail="Request body is required")
+            request_data = json.loads(body)
+        except json.JSONDecodeError as e:
+            raise HTTPException(status_code=422, detail=f"Invalid JSON in request body: {str(e)}")
+        try:
+            return IdeaGenerationRequest(**request_data)
+        except PydanticValidationError as e:
+            # Let Pydantic validation errors pass through for proper FastAPI formatting
+            raise RequestValidationError(e.errors())
+
 @limiter.limit("5/minute")  # Allow 5 idea generation requests per minute
 async def generate_ideas(
     request: Request,
-    idea_request: IdeaGenerationRequest,
-    multimodal_files: Optional[List[UploadFile]] = File(None),
-    multimodal_images: Optional[List[UploadFile]] = File(None)
+    idea_request: Optional[str] = Form(
+        None,
+        description="JSON string of IdeaGenerationRequest (for FormData uploads). Omit for JSON requests."
+    ),
+    multimodal_files: Optional[List[UploadFile]] = File(
+        None,
+        description="PDF/document files for multi-modal context (triggers FormData mode)"
+    ),
+    multimodal_images: Optional[List[UploadFile]] = File(
+        None,
+        description="Image files for multi-modal context (triggers FormData mode)"
+    )
 ):
-    """Generate ideas using the async MadSpark multi-agent workflow with optional multi-modal inputs."""
+    """Generate ideas using the async MadSpark multi-agent workflow with optional multi-modal inputs.
+
+    Note: This endpoint handles both JSON and FormData requests automatically.
+    Request format is determined by parameter presence (not Content-Type header) for robustness:
+    - If 'idea_request' Form parameter exists → FormData mode (with files)
+    - If 'idea_request' is None → JSON mode (request body)
+    """
     start_time = datetime.now()
     temp_files = []  # Track temp files for cleanup
-    
+
+    # Parse request using helper function (DRY principle)
+    parsed_request = await parse_idea_request(idea_request, request)
+
     # Check if running in mock mode - check environment variable properly
     google_api_key = os.environ.get("GOOGLE_API_KEY", "").strip()
     environment = os.getenv('ENVIRONMENT', '').lower()
@@ -1314,7 +1374,7 @@ async def generate_ideas(
         google_api_key.startswith('test-') or
         environment in ['test', 'ci', 'mock']):
         logger.info("Running in mock mode - returning sample results")
-        mock_results = generate_mock_results(idea_request.topic, idea_request.num_top_candidates, idea_request.logical_inference)
+        mock_results = generate_mock_results(parsed_request.topic, parsed_request.num_top_candidates, parsed_request.logical_inference)
         return IdeaGenerationResponse(
             status="success",
             message=f"Generated {len(mock_results)} mock ideas",
@@ -1330,10 +1390,10 @@ async def generate_ideas(
             await ws_manager.send_progress_update(message, progress)
         
         # Setup temperature manager
-        if idea_request.temperature_preset:
-            temp_mgr = TemperatureManager.from_preset(idea_request.temperature_preset)
-        elif idea_request.temperature:
-            temp_mgr = TemperatureManager.from_base_temperature(idea_request.temperature)
+        if parsed_request.temperature_preset:
+            temp_mgr = TemperatureManager.from_preset(parsed_request.temperature_preset)
+        elif parsed_request.temperature:
+            temp_mgr = TemperatureManager.from_base_temperature(parsed_request.temperature)
         else:
             temp_mgr = temp_manager or TemperatureManager()
         
@@ -1353,24 +1413,24 @@ async def generate_ideas(
             logger.warning(f"MAX_CONCURRENT_AGENTS must be a positive integer, got '{env_val}'. Using default: 10")
         
         # Handle remix context if bookmark IDs are provided
-        context = idea_request.context
-        if idea_request.bookmark_ids:
+        context = parsed_request.context
+        if parsed_request.bookmark_ids:
             try:
                 from madspark.utils.bookmark_system import remix_with_bookmarks
                 context = remix_with_bookmarks(
-                    theme=idea_request.topic,
-                    additional_constraints=idea_request.context,
-                    bookmark_ids=idea_request.bookmark_ids,
+                    topic=parsed_request.topic,
+                    additional_constraints=parsed_request.context,
+                    bookmark_ids=parsed_request.bookmark_ids,
                     bookmark_file=bookmark_system.bookmark_file
                 )
-                await ws_manager.send_progress_update(f"Using {len(idea_request.bookmark_ids)} bookmarks for remix context", 5.0)
+                await ws_manager.send_progress_update(f"Using {len(parsed_request.bookmark_ids)} bookmarks for remix context", 5.0)
             except Exception as e:
                 logger.warning(f"Failed to create remix context: {e}")
                 # Continue with original context if remix fails
 
         # Handle multi-modal file uploads
         multimodal_file_paths = []
-        multimodal_url_list = idea_request.multimodal_urls or []
+        multimodal_url_list = parsed_request.multimodal_urls or []
 
         # Validate URLs for SSRF protection
         if multimodal_url_list:
@@ -1435,7 +1495,7 @@ async def generate_ideas(
             raise
 
         # Create request-scoped router for thread-safe configuration
-        request_router = create_request_router(idea_request)
+        request_router = create_request_router(parsed_request)
 
         # Create async coordinator with cache, progress callback, and request-scoped router
         async_coordinator = AsyncCoordinator(
@@ -1446,10 +1506,10 @@ async def generate_ideas(
         )
 
         # Add timeout handling
-        timeout_seconds = idea_request.timeout if idea_request.timeout else DEFAULT_REQUEST_TIMEOUT
+        timeout_seconds = parsed_request.timeout if parsed_request.timeout else DEFAULT_REQUEST_TIMEOUT
 
         # Log logical inference request
-        logger.info(f"Running workflow with logical_inference={idea_request.logical_inference}, reasoning_engine={reasoning_eng is not None}")
+        logger.info(f"Running workflow with logical_inference={parsed_request.logical_inference}, reasoning_engine={reasoning_eng is not None}")
         if reasoning_eng and hasattr(reasoning_eng, 'logical_inference_engine'):
             logger.info(f"Logical inference engine available: {reasoning_eng.logical_inference_engine is not None}")
 
@@ -1457,16 +1517,16 @@ async def generate_ideas(
             try:
                 results = await asyncio.wait_for(
                     async_coordinator.run_workflow(
-                        topic=idea_request.topic,
+                        topic=parsed_request.topic,
                         context=context,  # Use potentially remixed context
-                        num_top_candidates=idea_request.num_top_candidates,
-                        enable_novelty_filter=idea_request.enable_novelty_filter,
-                        novelty_threshold=idea_request.novelty_threshold,
+                        num_top_candidates=parsed_request.num_top_candidates,
+                        enable_novelty_filter=parsed_request.enable_novelty_filter,
+                        novelty_threshold=parsed_request.novelty_threshold,
                         temperature_manager=temp_mgr,
-                        verbose=idea_request.verbose,
-                        enhanced_reasoning=idea_request.enhanced_reasoning,
+                        verbose=parsed_request.verbose,
+                        enhanced_reasoning=parsed_request.enhanced_reasoning,
                         multi_dimensional_eval=True,  # Always enabled as a core feature
-                        logical_inference=idea_request.logical_inference,
+                        logical_inference=parsed_request.logical_inference,
                         reasoning_engine=reasoning_eng,
                         multimodal_files=multimodal_file_paths if multimodal_file_paths else None,
                         multimodal_urls=multimodal_url_list if multimodal_url_list else None
@@ -1522,9 +1582,12 @@ async def generate_ideas(
         raise
     except Exception as e:
         processing_time = (datetime.now() - start_time).total_seconds()
+        # Safe error logging: parsed_request may not be initialized if parsing failed
+        topic_for_logging = getattr(parsed_request, 'topic', '[UNKNOWN]') if 'parsed_request' in locals() else '[UNKNOWN]'
+        num_candidates_for_logging = getattr(parsed_request, 'num_top_candidates', 0) if 'parsed_request' in locals() else 0
         error_context = {
-            'topic': idea_request.topic,
-            'num_candidates': idea_request.num_top_candidates,
+            'topic': topic_for_logging,
+            'num_candidates': num_candidates_for_logging,
             'processing_time': processing_time,
             'error_type': type(e).__name__
         }
@@ -1708,7 +1771,7 @@ async def check_bookmark_duplicates(request: Request, duplicate_request: Duplica
                 similar_bookmarks.append(SimilarBookmark(
                     id=similar.bookmark_id,
                     text=bookmark.text[:300] + '...' if len(bookmark.text) > 300 else bookmark.text,
-                    theme=bookmark.theme,
+                    topic=bookmark.topic,
                     similarity_score=similar.similarity_score,
                     match_type=similar.match_type,
                     matched_features=similar.matched_features
@@ -1748,38 +1811,44 @@ async def check_bookmark_duplicates(request: Request, duplicate_request: Duplica
 async def find_similar_bookmarks(
     request: Request,
     idea: str = Query(..., min_length=10, description="Idea text to find similar bookmarks for"),
-    theme: str = Query(..., min_length=1, description="Theme of the idea"),
+    topic: Optional[str] = Query(None, min_length=1, description="Topic of the idea"),
+    theme: Optional[str] = Query(None, min_length=1, description="(Deprecated: use 'topic') Theme of the idea", alias="theme"),  # Backward compatibility
     max_results: int = Query(default=5, ge=1, le=20, description="Maximum number of results")
 ):
     """Find bookmarks similar to the given idea text."""
+    # Handle backward compatibility: use topic if provided, otherwise fall back to theme
+    actual_topic = topic or theme
+    if not actual_topic:
+        raise HTTPException(status_code=422, detail="Either 'topic' or 'theme' parameter is required")
+
     try:
         similar_bookmarks_data = bookmark_system.find_similar_bookmarks(
-            idea, theme, max_results
+            idea, actual_topic, max_results
         )
-        
+
         # Convert to API response format
         similar_bookmarks = []
         for bookmark_data in similar_bookmarks_data:
             similar_bookmarks.append(SimilarBookmark(
                 id=bookmark_data['id'],
                 text=bookmark_data['text'][:300] + '...' if len(bookmark_data['text']) > 300 else bookmark_data['text'],
-                theme=bookmark_data['theme'],
+                topic=bookmark_data['topic'],  # Changed from 'theme' to 'topic'
                 similarity_score=bookmark_data['similarity_score'],
                 match_type=bookmark_data['match_type'],
                 matched_features=bookmark_data['matched_features']
             ))
-        
+
         return {
             "status": "success",
             "similar_bookmarks": similar_bookmarks,
             "total_found": len(similar_bookmarks),
             "search_idea": idea[:100] + '...' if len(idea) > 100 else idea
         }
-        
+
     except Exception as e:
         error_context = {
             'idea_length': len(idea),
-            'theme': theme,
+            'topic': topic,  # Changed from 'theme' to 'topic'
             'max_results': max_results,
             'error_type': type(e).__name__
         }
@@ -1804,8 +1873,8 @@ async def get_bookmarks(request: Request, tags: Optional[str] = None):
             bookmark_dicts.append({
                 "id": bookmark.id,
                 "text": bookmark.text,
-                "theme": bookmark.theme,
-                "constraints": bookmark.constraints,
+                "topic": bookmark.topic,  # Changed from 'theme' to match BookmarkedIdea model
+                "context": bookmark.context,  # Changed from 'constraints' to match BookmarkedIdea model
                 "score": bookmark.score,
                 "critique": bookmark.critique,
                 "advocacy": bookmark.advocacy,
@@ -1863,7 +1932,7 @@ async def create_bookmark(
                 similar_bookmarks.append(SimilarBookmark(
                     id=similar['id'],
                     text=similar['text'],
-                    theme=similar['theme'],
+                    topic=similar['topic'],  # Changed from 'theme' to match BookmarkedIdea model
                     similarity_score=similar['similarity_score'],
                     match_type=similar['match_type'],
                     matched_features=[]  # Simplified for API response

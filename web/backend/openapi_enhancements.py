@@ -184,6 +184,21 @@ The system uses multiple AI agents with different roles:
 - **Advocate**: Highlights strengths and potential
 - **Skeptic**: Identifies challenges and risks
 
+### Request Formats:
+This endpoint accepts **two request formats**:
+
+1. **JSON Request** (Content-Type: application/json):
+   - Send IdeaGenerationRequest directly as JSON body
+   - Use when no files need to be uploaded
+   - Example: `{"topic": "...", "context": "...", "num_top_candidates": 3}`
+
+2. **FormData Request** (Content-Type: multipart/form-data):
+   - Send `idea_request` as JSON string in FormData
+   - Add files as `multimodal_files` or `multimodal_images`
+   - Required when uploading PDF/image files for multi-modal context
+
+**Note:** The OpenAPI schema below shows FormData parameters. JSON clients should send the IdeaGenerationRequest model directly.
+
 ### Features:
 - **Enhanced Reasoning**: Enable context-aware agents that reference conversation history
 - **Multi-dimensional Evaluation**: Score ideas on feasibility, innovation, impact, etc.
@@ -191,6 +206,7 @@ The system uses multiple AI agents with different roles:
 - **Novelty Filter**: Remove duplicate or overly similar ideas
 - **Temperature Control**: Adjust creativity levels using presets or custom values
 - **Bookmark Integration**: Generate new ideas based on previously saved bookmarks
+- **Multi-Modal Input**: Support for images, PDFs, and documents as context
 
 ### Temperature Presets:
 - `conservative`: Low creativity, focused on practical ideas

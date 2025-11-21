@@ -50,10 +50,12 @@ class BookmarkService {
   ): Promise<EnhancedBookmarkResponse> {
     try {
       // Creating bookmark with duplicate check
+      const themeValue = truncateRequiredField(theme || 'General');
       const bookmarkData: BookmarkData = {
         idea: truncateRequiredField(result.idea || 'No idea text provided'),
         improved_idea: truncateField(result.improved_idea),
-        theme: truncateRequiredField(theme || 'General'),
+        topic: themeValue,  // Primary field
+        theme: themeValue,  // Backward compatibility
         constraints: truncateRequiredField(constraints ?? ''),
         initial_score: result.initial_score ?? 0,
         improved_score: result.improved_score ?? undefined,
@@ -129,10 +131,12 @@ class BookmarkService {
   async createBookmark(result: IdeaResult, theme: string, constraints: string): Promise<BookmarkResponse> {
     try {
       // Creating bookmark
+      const themeValue = truncateRequiredField(theme || 'General');
       const bookmarkData: BookmarkData = {
         idea: truncateRequiredField(result.idea || 'No idea text provided'),  // Required field with min_length - handle empty strings
         improved_idea: truncateField(result.improved_idea),  // Optional field - handle empty strings as undefined
-        theme: truncateRequiredField(theme || 'General'),  // Required field with min_length - handle empty strings
+        topic: themeValue,  // Primary field
+        theme: themeValue,  // Backward compatibility
         constraints: truncateRequiredField(constraints ?? ''),  // Allows empty strings - only handle null/undefined
         initial_score: result.initial_score ?? 0,  // Numeric field - preserve 0, handle null/undefined
         improved_score: result.improved_score ?? undefined,  // Numeric field - preserve 0, handle null/undefined

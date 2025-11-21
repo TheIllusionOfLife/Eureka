@@ -5,7 +5,40 @@
  * This is required when sending files to the backend API.
  */
 
-import { IdeaGenerationRequest } from '../types';
+import { IdeaGenerationRequest, IdeaFormData } from '../types';
+
+/**
+ * Convert IdeaFormData (using theme/constraints) to IdeaGenerationRequest (using topic/context)
+ *
+ * Maps frontend field names to backend API field names:
+ * - theme → topic (primary field)
+ * - constraints → context (primary field)
+ */
+export function convertFormDataToApiRequest(formData: IdeaFormData): IdeaGenerationRequest {
+  const apiRequest: IdeaGenerationRequest = {
+    topic: formData.theme,  // Map theme to topic (primary field)
+    theme: formData.theme,  // Keep theme for backward compatibility
+    context: formData.constraints,  // Map constraints to context (primary field)
+    constraints: formData.constraints,  // Keep constraints for backward compatibility
+    num_top_candidates: formData.num_top_candidates,
+    enable_novelty_filter: formData.enable_novelty_filter,
+    novelty_threshold: formData.novelty_threshold,
+    temperature_preset: formData.temperature_preset,
+    temperature: formData.temperature,
+    enhanced_reasoning: formData.enhanced_reasoning,
+    multi_dimensional_eval: formData.multi_dimensional_eval,
+    logical_inference: formData.logical_inference,
+    verbose: formData.verbose,
+    show_detailed_results: formData.show_detailed_results,
+    bookmark_ids: formData.bookmark_ids,
+    multimodal_urls: formData.multimodal_urls,
+    llm_provider: formData.llm_provider,
+    model_tier: formData.model_tier,
+    use_llm_cache: formData.use_llm_cache,
+  };
+
+  return apiRequest;
+}
 
 /**
  * Check if the request has multi-modal inputs (URLs or files)
@@ -22,12 +55,17 @@ export function hasMultiModalInputs(
 
 /**
  * Determine if FormData should be used instead of JSON
+ *
+ * Only use FormData when actual files need to be uploaded.
+ * URLs can be sent via regular JSON requests.
  */
 export function shouldUseFormData(
   request: Partial<IdeaGenerationRequest>,
   files?: File[]
 ): boolean {
-  return hasMultiModalInputs(request, files);
+  // Only use FormData if there are actual files to upload
+  // URLs can be sent via regular JSON without multipart encoding
+  return Boolean(files && files.length > 0);
 }
 
 /**
@@ -51,10 +89,11 @@ export function buildMultiModalFormData(
   // when files are present (multipart/form-data)
 
   // Clean the request object: remove undefined values
-  const cleanedRequest: Record<string, any> = {};
+  const cleanedRequest: Partial<IdeaGenerationRequest> = {};
   Object.entries(request).forEach(([key, value]) => {
     if (value !== undefined) {
-      cleanedRequest[key] = value;
+      // Type-safe property assignment using keyof operator
+      (cleanedRequest as Record<string, unknown>)[key] = value;
     }
   });
 

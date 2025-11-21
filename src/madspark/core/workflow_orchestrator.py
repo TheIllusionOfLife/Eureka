@@ -1019,7 +1019,7 @@ class WorkflowOrchestrator:
             topic: Topic/theme for context.
             context: Context/constraints.
             text_key: Key to use for extracting text to evaluate (default: "text").
-                     Falls back to "idea" if key not found or explicitly set.
+                     Falls back to "idea" if key not found or if value is empty.
 
         Returns:
             Updated candidates with multi_dimensional_evaluation field.
@@ -1037,9 +1037,7 @@ class WorkflowOrchestrator:
             ideas_for_eval = []
             for candidate in candidates:
                 # Try primary key, then fallback to "idea" or "text" if not found
-                text = candidate.get(text_key, "")
-                if not text:
-                    text = candidate.get("idea", candidate.get("text", ""))
+                text = candidate.get(text_key) or candidate.get("idea") or candidate.get("text") or ""
                 ideas_for_eval.append(text)
 
             eval_context = {"topic": topic, "context": context}

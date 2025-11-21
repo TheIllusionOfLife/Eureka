@@ -65,6 +65,7 @@ def normalize_candidate_data(candidate_data: Dict[str, Any], context: str) -> No
     elif "initial_score" in candidate_data:
         candidate_data["score"] = candidate_data["initial_score"]
     else:
+        logging.warning("No score found in candidate data, using default 0")
         candidate_data["score"] = 0
         candidate_data["initial_score"] = 0
 
@@ -74,6 +75,7 @@ def normalize_candidate_data(candidate_data: Dict[str, Any], context: str) -> No
     elif "initial_critique" in candidate_data:
         candidate_data["critique"] = candidate_data["initial_critique"]
     else:
+        logging.warning("No critique found in candidate data, using default empty string")
         candidate_data["critique"] = ""
         candidate_data["initial_critique"] = ""
 

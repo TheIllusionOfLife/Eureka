@@ -22,12 +22,17 @@ export function hasMultiModalInputs(
 
 /**
  * Determine if FormData should be used instead of JSON
+ *
+ * Only use FormData when actual files need to be uploaded.
+ * URLs can be sent via regular JSON requests.
  */
 export function shouldUseFormData(
   request: Partial<IdeaGenerationRequest>,
   files?: File[]
 ): boolean {
-  return hasMultiModalInputs(request, files);
+  // Only use FormData if there are actual files to upload
+  // URLs can be sent via regular JSON without multipart encoding
+  return Boolean(files && files.length > 0);
 }
 
 /**

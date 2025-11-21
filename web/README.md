@@ -13,8 +13,10 @@ MadSpark has **two separate setup scripts** for different purposes:
 
 **Choose based on your needs:**
 - Want to use `ms "topic" "context"` in terminal? → Use `scripts/setup.sh`
-- Want to use the web browser interface? → Use `web/setup.sh`
+- Want to use the web browser interface? → Use `web/setup.sh` (standalone, no CLI setup required)
 - Want both? → Run both setup scripts!
+
+**Important:** The web interface setup is **completely independent**. You do NOT need to run `scripts/setup.sh` to use the web interface. Docker containers include all dependencies.
 
 This guide focuses on the **web interface** only.
 
@@ -138,7 +140,7 @@ After generating ideas, scroll to the bottom to see:
 Models are automatically downloaded on first `docker compose up` (API mode is default):
 
 ```bash
-cd ~/Eureka/web
+cd web  # From repository root
 docker compose up -d  # API mode is default, downloads Ollama models
 
 # Monitor download progress (first time only):

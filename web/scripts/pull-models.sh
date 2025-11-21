@@ -53,9 +53,24 @@ main() {
     ollama serve &
     local ollama_pid=$!
 
-    # Wait for Ollama to be ready
+    # Wait for Ollama to be ready (with timeout)
     log "Waiting for Ollama service to start..."
-    sleep 10
+    local max_attempts=30
+    local attempt=0
+    while [ $attempt -lt $max_attempts ]; do
+        if ollama list >/dev/null 2>&1; then
+            log "Ollama service ready after $((attempt * 2)) seconds"
+            break
+        fi
+        attempt=$((attempt + 1))
+        sleep 2
+    done
+
+    if [ $attempt -eq $max_attempts ]; then
+        error "Ollama service failed to start after 60 seconds"
+        kill $ollama_pid 2>/dev/null || true
+        exit 1
+    fi
 
     # Pull required models
     local failed=0

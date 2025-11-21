@@ -59,8 +59,8 @@ export function buildMultiModalFormData(
   const cleanedRequest: Partial<IdeaGenerationRequest> = {};
   Object.entries(request).forEach(([key, value]) => {
     if (value !== undefined) {
-      // Type assertion needed because we're dynamically assigning properties
-      (cleanedRequest as any)[key] = value;
+      // Type-safe property assignment using keyof operator
+      (cleanedRequest as Record<string, unknown>)[key] = value;
     }
   });
 

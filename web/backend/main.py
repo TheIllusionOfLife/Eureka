@@ -1292,6 +1292,48 @@ async def get_llm_providers():
         500: {"description": "Internal server error"}
     }
 )
+
+async def parse_idea_request(idea_request: Optional[str], request: Request) -> IdeaGenerationRequest:
+    """
+    Helper function to parse IdeaGenerationRequest from either FormData or JSON body.
+
+    Args:
+        idea_request: Optional JSON string from FormData field
+        request: FastAPI Request object for JSON body access
+
+    Returns:
+        Parsed and validated IdeaGenerationRequest
+
+    Raises:
+        HTTPException: For JSON parsing errors
+        RequestValidationError: For Pydantic validation errors
+    """
+    if idea_request:
+        # FormData submission with files
+        try:
+            request_data = json.loads(idea_request)
+        except json.JSONDecodeError as e:
+            raise HTTPException(status_code=422, detail=f"Invalid JSON in FormData 'idea_request' field: {str(e)}")
+        try:
+            return IdeaGenerationRequest(**request_data)
+        except PydanticValidationError as e:
+            # Let Pydantic validation errors pass through for proper FastAPI formatting
+            raise RequestValidationError(e.errors())
+    else:
+        # JSON submission without files - parse from request body
+        try:
+            body = await request.body()
+            if not body:
+                raise HTTPException(status_code=422, detail="Request body is required")
+            request_data = json.loads(body)
+        except json.JSONDecodeError as e:
+            raise HTTPException(status_code=422, detail=f"Invalid JSON in request body: {str(e)}")
+        try:
+            return IdeaGenerationRequest(**request_data)
+        except PydanticValidationError as e:
+            # Let Pydantic validation errors pass through for proper FastAPI formatting
+            raise RequestValidationError(e.errors())
+
 @limiter.limit("5/minute")  # Allow 5 idea generation requests per minute
 async def generate_ideas(
     request: Request,
@@ -1318,33 +1360,9 @@ async def generate_ideas(
     start_time = datetime.now()
     temp_files = []  # Track temp files for cleanup
 
-    # Parse idea_request: if it's a JSON string (from FormData), parse it; otherwise use request body
-    if idea_request:
-        # FormData submission with files
-        try:
-            request_data = json.loads(idea_request)
-        except json.JSONDecodeError as e:
-            raise HTTPException(status_code=422, detail=f"Invalid JSON in request: {str(e)}")
-        try:
-            parsed_request = IdeaGenerationRequest(**request_data)
-        except PydanticValidationError as e:
-            # Let Pydantic validation errors pass through for proper FastAPI formatting
-            raise RequestValidationError(e.errors())
-    else:
-        # JSON submission without files - parse from request body
-        try:
-            body = await request.body()
-            if not body:
-                raise HTTPException(status_code=422, detail="Request body is required")
-            request_data = json.loads(body)
-        except json.JSONDecodeError as e:
-            raise HTTPException(status_code=422, detail=f"Invalid JSON in request: {str(e)}")
-        try:
-            parsed_request = IdeaGenerationRequest(**request_data)
-        except PydanticValidationError as e:
-            # Let Pydantic validation errors pass through for proper FastAPI formatting
-            raise RequestValidationError(e.errors())
-    
+    # Parse request using helper function (DRY principle)
+    parsed_request = await parse_idea_request(idea_request, request)
+
     # Check if running in mock mode - check environment variable properly
     google_api_key = os.environ.get("GOOGLE_API_KEY", "").strip()
     environment = os.getenv('ENVIRONMENT', '').lower()
@@ -1400,7 +1418,7 @@ async def generate_ideas(
             try:
                 from madspark.utils.bookmark_system import remix_with_bookmarks
                 context = remix_with_bookmarks(
-                    theme=parsed_request.topic,
+                    topic=parsed_request.topic,
                     additional_constraints=parsed_request.context,
                     bookmark_ids=parsed_request.bookmark_ids,
                     bookmark_file=bookmark_system.bookmark_file

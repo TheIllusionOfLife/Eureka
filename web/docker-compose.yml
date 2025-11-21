@@ -39,6 +39,7 @@ services:
       - madspark-network
 
   ollama:
+    # Image version pinned for stability. Python SDK (requirements.txt) uses minimum version >=0.4.1
     image: ollama/ollama:0.12.9
     ports:
       - "11434:11434"

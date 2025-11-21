@@ -145,7 +145,7 @@ if [ "$MODE" = "ollama" ]; then
     echo ""
 
     # Wait for Ollama to be healthy and models to be downloaded
-    echo -n "⏳ Waiting for Ollama service to start"
+    echo -n "⏳ Waiting for Ollama service to start (up to 5 minutes for container health check)"
     # Poll for healthy status instead of fixed sleep
     for i in {1..60}; do  # Wait up to 5 minutes for startup
         if docker compose ps ollama 2>/dev/null | grep -q "healthy"; then
@@ -157,6 +157,8 @@ if [ "$MODE" = "ollama" ]; then
     done
 
     # Check if models are being downloaded
+    echo ""
+    echo "⏳ Waiting for model downloads (up to 30 minutes for 13GB of models)"
     for i in {1..180}; do  # Wait up to 30 minutes (13GB download + slow connections)
         model_count=$(docker compose exec ollama ollama list 2>/dev/null | grep -c "gemma3" || true)
         if [ "$model_count" -ge 2 ]; then

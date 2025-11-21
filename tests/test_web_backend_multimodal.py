@@ -463,7 +463,8 @@ def temp_upload_dir():
 
     yield temp_dir
 
-    # Cleanup - be robust if the directory has already been removed by the code under test.
+    # Cleanup - robust for both parallel execution and code-under-test cleanup
+    # Combines early-exit optimization with per-operation error handling for race conditions
     if not temp_dir.exists():
         return
 
@@ -473,12 +474,12 @@ def temp_upload_dir():
                 file.unlink()
             elif file.is_dir():
                 shutil.rmtree(file)
-        except Exception:
-            # Ignore cleanup errors to avoid hiding test results due to teardown failure
+        except (FileNotFoundError, OSError):
+            # Another process/test cleaned it up during parallel execution
             pass
 
     try:
         temp_dir.rmdir()
-    except Exception:
+    except (FileNotFoundError, OSError):
         # Directory might already be removed or not empty; ignore to avoid teardown crash
         pass

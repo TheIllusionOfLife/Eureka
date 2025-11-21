@@ -283,7 +283,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
                 <ScoreComparison
                   originalScore={result.initial_score}
                   improvedScore={result.improved_score}
-                  delta={result.score_delta}
+                  delta={result.score_delta || 0}
                 />
               </>
             )}

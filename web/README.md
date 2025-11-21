@@ -2,9 +2,69 @@
 
 This README provides essential information for using the MadSpark web interface effectively.
 
+## 📌 Important: Two Setup Scripts
+
+MadSpark has **two separate setup scripts** for different purposes:
+
+| Script | Purpose | Usage |
+|--------|---------|-------|
+| **`~/Eureka/scripts/setup.sh`** | Main CLI application | Sets up `mad_spark`/`ms` commands for terminal use |
+| **`~/Eureka/web/setup.sh`** | Web interface (this guide) | Sets up Docker containers for browser UI at http://localhost:3000 |
+
+**Choose based on your needs:**
+- Want to use `ms "topic" "context"` in terminal? → Use `scripts/setup.sh`
+- Want to use the web browser interface? → Use `web/setup.sh` (standalone, no CLI setup required)
+- Want both? → Run both setup scripts!
+
+**Important:** The web interface setup is **completely independent**. You do NOT need to run `scripts/setup.sh` to use the web interface. Docker containers include all dependencies.
+
+This guide focuses on the **web interface** only.
+
+## ⚡ Performance Tip: GPU Acceleration
+
+> **💡 Have an NVIDIA GPU? Get 5-10x faster inference!**
+>
+> - **CPU**: 20-60s per idea
+> - **GPU**: 3-12s per idea (RTX 3060/4090)
+>
+> **Quick setup:** See [GPU Setup section](#gpu-setup-optional---significant-performance-boost) below for a 3-step configuration that enables GPU acceleration in Docker.
+
 ## 🚀 Quick Start
 
-### Starting with Real API Key (Production Mode)
+### Automated Setup (Easiest)
+
+**Note:** This is the web interface setup script. For the main CLI application (`mad_spark`/`ms` commands), use `~/Eureka/scripts/setup.sh` instead.
+
+```bash
+cd ~/Eureka/web
+./setup.sh
+
+# Follow the interactive prompts to choose:
+# 1) Ollama (Free, Local) - Recommended
+# 2) Gemini (Cloud, Requires API Key)
+# 3) Mock (Testing only, no LLM calls)
+```
+
+### Starting with Ollama (Free Local Inference - Default)
+
+```bash
+cd ~/Eureka/web
+docker compose up -d
+
+# Defaults to Ollama-first mode (MADSPARK_MODE=api)
+# First startup will automatically download Ollama models:
+# - gemma3:4b-it-qat (4GB) - Fast tier
+# - gemma3:12b-it-qat (8.9GB) - Balanced tier
+# This may take 5-15 minutes depending on your internet speed
+
+# Check model download progress:
+docker compose logs -f ollama
+
+# Verify models are ready:
+docker exec web-ollama-1 ollama list
+```
+
+### Starting with Gemini API Key (Cloud Inference)
 
 ```bash
 # Method 1: Using environment variables from root .env file
@@ -21,11 +81,14 @@ MADSPARK_MODE=api GOOGLE_API_KEY="your-actual-api-key" docker compose up -d
 madspark-web
 ```
 
-### Starting in Mock Mode (Development/Testing)
+### Starting in Mock Mode (Testing Only)
 
 ```bash
 cd ~/Eureka/web
-docker compose up -d  # Defaults to mock mode
+MADSPARK_MODE=mock docker compose up -d
+
+# Mock mode returns pre-generated responses without calling any LLM
+# Useful for testing the UI without API costs or model downloads
 ```
 
 ### Accessing the Interface
@@ -34,6 +97,225 @@ docker compose up -d  # Defaults to mock mode
 - Backend API: http://localhost:8000
 - API Health: http://localhost:8000/api/health
 - API Docs: http://localhost:8000/docs
+- Ollama API: http://localhost:11434
+
+## 🤖 LLM Provider Architecture
+
+MadSpark uses an **Ollama-first architecture** for cost-free local inference with automatic fallback to Gemini.
+
+### Provider Selection (Auto Mode - Default)
+
+When `MADSPARK_LLM_PROVIDER=auto` (default), the router uses:
+1. **Ollama (Primary)**: Free local inference with gemma3 models
+2. **Gemini (Fallback)**: Cloud API for PDFs, URLs, or when Ollama fails
+
+### Available Providers
+
+| Provider | Models | Cost | Use Case |
+|----------|--------|------|----------|
+| **Ollama** | gemma3:4b-it-qat (fast)<br>gemma3:12b-it-qat (balanced) | FREE | Text-only, images (local) |
+| **Gemini** | gemini-2.5-flash | Paid | PDFs, URLs, fallback |
+
+### Model Tiers
+
+Configure via UI "Advanced LLM Settings" or `MADSPARK_MODEL_TIER`:
+
+- **Fast** (default): gemma3:4b-it-qat - Quick responses (~10s)
+- **Balanced**: gemma3:12b-it-qat - Better quality (~20s)
+- **Quality**: gemini-2.5-flash - Best results (cloud, paid)
+
+### LLM Usage Statistics
+
+After generating ideas, scroll to the bottom to see:
+- **Provider Usage**: "Ollama: X | Gemini: Y"
+- **Total Cost**: Shows $0 when using Ollama
+- **Cache Hit Rate**: Percentage of cached responses
+- **Message**: "Using local Ollama inference saved you money!" when Ollama is used
+
+### Ollama Setup
+
+#### System Requirements
+
+**Minimum for Ollama models:**
+- **RAM**: 16GB minimum (models use ~13GB when loaded)
+- **Disk**: 15GB free space (13GB for models + 2GB for Docker)
+- **CPU**: Multi-core recommended (4+ cores for acceptable performance)
+- **GPU**: Optional - NVIDIA GPU significantly improves inference speed
+
+**Note**: Models are loaded into RAM during inference. System will swap to disk if insufficient RAM, causing severe performance degradation.
+
+#### Automatic Setup (Recommended)
+
+Models are automatically downloaded on first `docker compose up` (API mode is default):
+
+```bash
+cd web  # From repository root
+docker compose up -d  # API mode is default, downloads Ollama models
+
+# Monitor download progress (first time only):
+docker compose logs -f ollama
+# Expected output:
+# - "pulling manifest..."
+# - "pulling 1fb99eda86dc: XX% ..."
+# - Total download: ~13GB for both models
+```
+
+#### Manual Model Management
+
+```bash
+# List installed models
+docker exec web-ollama-1 ollama list
+
+# Pull specific model manually
+docker exec web-ollama-1 ollama pull gemma3:4b-it-qat
+
+# Remove unused model
+docker exec web-ollama-1 ollama rm model-name
+
+# Test Ollama directly
+curl http://localhost:11434/api/generate -d '{
+  "model": "gemma3:4b-it-qat",
+  "prompt": "Why is the sky blue?",
+  "stream": false
+}'
+```
+
+#### Disable Auto-Download
+
+If you want to manually control model downloads, comment out the entrypoint in `docker-compose.yml`:
+
+```yaml
+ollama:
+  # entrypoint: ["/bin/sh", "-c", "ollama serve & ..."]  # Commented out
+```
+
+Then pull models manually as shown above.
+
+#### GPU Setup (Optional - Significant Performance Boost)
+
+If you have an NVIDIA GPU, enable GPU acceleration for 5-10x faster inference:
+
+**Step 1: Install NVIDIA Container Toolkit**
+```bash
+# Ubuntu/Debian
+distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
+curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add -
+curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | sudo tee /etc/apt/sources.list.d/nvidia-docker.list
+sudo apt-get update && sudo apt-get install -y nvidia-container-toolkit
+sudo systemctl restart docker
+```
+
+**Step 2: Enable GPU in docker-compose.yml**
+```yaml
+ollama:
+  # ... existing config ...
+  deploy:
+    resources:
+      reservations:
+        devices:
+          - driver: nvidia
+            count: all
+            capabilities: [gpu]
+```
+
+**Step 3: Verify GPU access**
+```bash
+docker compose exec ollama nvidia-smi
+# Should show your GPU info
+```
+
+**Performance Comparison:**
+| Setup | Fast Model (4B) | Balanced Model (12B) |
+|-------|----------------|---------------------|
+| **CPU Only** | ~20-30s per idea | ~40-60s per idea |
+| **GPU (RTX 3060)** | ~3-5s per idea | ~8-12s per idea |
+| **GPU (RTX 4090)** | ~1-2s per idea | ~3-5s per idea |
+
+#### Troubleshooting Ollama Issues
+
+**Problem: Models fail to download**
+```bash
+# Check Ollama logs
+docker compose logs -f ollama
+
+# Common issues and fixes:
+# 1. Network timeout - retry with: docker compose restart ollama
+# 2. Disk full - check: df -h
+# 3. Permission denied - ensure Docker has write access to volumes
+```
+
+**Problem: Container healthy but models missing**
+```bash
+# Verify models are actually downloaded
+docker compose exec ollama ollama list
+
+# If empty, manually pull:
+docker compose exec ollama ollama pull gemma3:4b-it-qat
+docker compose exec ollama ollama pull gemma3:12b-it-qat
+```
+
+**Problem: High memory usage / system slowdown**
+```bash
+# Check system resources
+free -h  # Linux
+vm_stat  # macOS
+
+# If <16GB RAM, consider:
+# 1. Close other applications
+# 2. Use only fast model (remove balanced from docker-compose.yml)
+# 3. Switch to Gemini mode instead
+```
+
+**Problem: GPU not detected in Docker**
+```bash
+# Verify NVIDIA toolkit
+nvidia-container-cli info
+
+# If missing, reinstall NVIDIA Container Toolkit
+# See GPU Setup section above
+```
+
+### Cost Comparison: Ollama vs Gemini
+
+**Ollama (Local, Free):**
+- ✅ **Cost**: $0 - completely free
+- ✅ **Privacy**: Data never leaves your machine
+- ⚠️ **Speed**: 20-60s per idea (CPU), 3-12s with GPU
+- ⚠️ **Setup**: 13GB download, 16GB RAM needed
+- ⚠️ **Limitations**: Text + images only (no PDF/URL support)
+
+**Gemini (Cloud, Paid):**
+- ⚠️ **Cost**: ~$0.002-0.005 per idea (~$0.50 for 100 ideas)
+- ✅ **Speed**: 2-5s per idea (cloud latency)
+- ✅ **Setup**: Just add API key, no downloads
+- ✅ **Features**: Full multimodal (PDF, URL, images, text)
+- ⚠️ **Privacy**: Data sent to Google servers
+
+**Recommended Strategy:**
+- **Development/Testing**: Use Ollama (free, unlimited experimentation)
+- **Production with Files/URLs**: Use Gemini (required for PDF/URL processing)
+- **Hybrid (Best of Both)**: Use `auto` mode - Ollama for text, Gemini for PDFs/URLs
+
+**Example Monthly Costs (100 ideas/day):**
+- All Ollama: **$0/month** 🎉
+- All Gemini: **~$15/month**
+- Hybrid (80% Ollama, 20% Gemini): **~$3/month**
+
+### Mode Configuration
+
+The system defaults to **API mode** (production-ready with Ollama):
+
+**API Mode (Default):**
+```bash
+docker compose up -d  # Uses Ollama for free local inference
+```
+
+**Mock Mode (Testing):**
+```bash
+MADSPARK_MODE=mock docker compose up -d  # Pre-generated responses, no LLM calls
+```
+
+**Why API mode is default:** The docker-compose.yml is configured for Ollama-first architecture. Models are downloaded automatically on first startup, enabling free local inference without any API key configuration.
 
 ## 📝 Web Interface Field Names
 
@@ -121,6 +403,34 @@ docker compose up -d
    - ✅ Logical Inference
    - ✅ Show Detailed Results
 
+### Ollama Router Issues - Bypass with Direct Gemini API
+
+If you encounter issues with the LLM router or Ollama (timeouts, errors, slow performance), you can bypass it entirely and use direct Gemini API calls:
+
+**Temporary Bypass (This Session Only):**
+```bash
+cd ~/Eureka/web
+docker compose down
+MADSPARK_NO_ROUTER=true MADSPARK_MODE=api GOOGLE_API_KEY="your-key" docker compose up -d
+```
+
+**Permanent Bypass (Via .env File):**
+1. Create or edit `web/.env`:
+   ```bash
+   MADSPARK_NO_ROUTER=true
+   MADSPARK_MODE=api
+   GOOGLE_API_KEY=your-actual-api-key
+   ```
+2. Restart: `docker compose down && docker compose up -d`
+
+**When to Use:**
+- Ollama containers failing to start or models not downloading
+- Debugging router-related issues (fallback logic, provider selection)
+- Need faster responses and have Gemini API quota available
+- Testing legacy behavior before router was introduced
+
+**Note:** With `MADSPARK_NO_ROUTER=true`, all LLM calls go directly to Gemini API, bypassing Ollama entirely. This incurs API costs but ensures reliability.
+
 ### Mock Mode Indicators
 - Results appear very quickly (< 5 seconds)
 - Scores are always round numbers (6.5, 7.0, 7.5)
@@ -146,12 +456,32 @@ The web interface expects these fields in API responses:
 
 ## 🌐 Environment Variables
 
+### Core Settings
+
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `GOOGLE_API_KEY` | Your Gemini API key | `test_api_key` |
-| `GOOGLE_GENAI_MODEL` | Model to use | `gemini-2.5-flash` |
-| `MADSPARK_MODE` | `api` or `mock` | `mock` |
+| `MADSPARK_MODE` | `api` (production) or `mock` (testing) | `api` |
+| `GOOGLE_API_KEY` | Your Gemini API key (optional with Ollama) | `test_api_key` |
+| `GOOGLE_GENAI_MODEL` | Gemini model to use | `gemini-2.5-flash` |
 | `REDIS_URL` | Redis connection | `redis://redis:6379/0` |
+
+### LLM Router Settings
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `MADSPARK_LLM_PROVIDER` | `auto`, `ollama`, or `gemini` | `auto` |
+| `MADSPARK_MODEL_TIER` | `fast`, `balanced`, or `quality` | `fast` |
+| `MADSPARK_NO_ROUTER` | Disable router, use direct Gemini API | `false` |
+| `MADSPARK_CACHE_ENABLED` | Enable response caching | `true` |
+| `MADSPARK_CACHE_DIR` | Cache directory path | `/cache/llm` |
+| `OLLAMA_HOST` | Ollama server URL | `http://ollama:11434` |
+| `OLLAMA_MODEL_FAST` | Fast tier model | `gemma3:4b-it-qat` |
+| `OLLAMA_MODEL_BALANCED` | Balanced tier model | `gemma3:12b-it-qat` |
+
+**Note:** Setting `MADSPARK_NO_ROUTER=true` bypasses the LLM router entirely and uses direct Gemini API calls. Use this for:
+- Legacy behavior compatibility
+- Debugging router-related issues
+- Scenarios where Ollama is unavailable but you want to skip fallback logic
 
 ## 🧪 Testing Different Scenarios
 

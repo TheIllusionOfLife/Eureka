@@ -14,7 +14,9 @@ services:
       GOOGLE_API_KEY: ${GOOGLE_API_KEY:-test_api_key}
       GOOGLE_GENAI_MODEL: ${GOOGLE_GENAI_MODEL:-gemini-2.5-flash}
       GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT:-test_project}
-      MADSPARK_MODE: ${MADSPARK_MODE:-mock}
+      # Default to 'api' mode for Ollama-first architecture (free local inference)
+      # Set MADSPARK_MODE=mock explicitly if you want mock mode
+      MADSPARK_MODE: ${MADSPARK_MODE:-api}
       MADSPARK_PATH: /madspark
       REDIS_URL: redis://redis:6379/0
       # LLM Router configuration (Ollama-first by default)
@@ -37,11 +39,13 @@ services:
       - madspark-network
 
   ollama:
-    image: ollama/ollama:0.5.0
+    # Image version pinned for stability. Python SDK (requirements.txt) uses minimum version >=0.4.1
+    image: ollama/ollama:0.12.9
     ports:
       - "11434:11434"
     volumes:
       - ollama-models:/root/.ollama
+      - ./scripts/pull-models.sh:/usr/local/bin/pull-models.sh:ro
     networks:
       - madspark-network
     healthcheck:
@@ -50,8 +54,9 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
-    # Pull models on startup (optional, can be done manually)
-    # entrypoint: ["/bin/sh", "-c", "ollama serve & sleep 5 && ollama pull gemma3:4b-it-qat && wait"]
+    # Auto-pull Ollama models on first startup using dedicated script (prevents shell injection)
+    # Models: gemma3:4b-it-qat (fast, 4GB) and gemma3:12b-it-qat (balanced, 8.9GB)
+    entrypoint: ["/usr/local/bin/pull-models.sh"]
     # GPU support: Uncomment the deploy section below for NVIDIA GPU acceleration
     # For CPU-only systems, leave this commented out
     # deploy:

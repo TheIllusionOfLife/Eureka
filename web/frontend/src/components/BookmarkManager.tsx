@@ -65,9 +65,9 @@ const BookmarkManager: React.FC<BookmarkManagerProps> = ({
   const filteredBookmarks = useMemo(() => {
     const lowerCaseQuery = searchQuery.toLowerCase();
     return bookmarks.filter(bookmark => {
-      const matchesSearch = searchQuery === '' || 
+      const matchesSearch = searchQuery === '' ||
         bookmark.text.toLowerCase().includes(lowerCaseQuery) ||
-        bookmark.theme.toLowerCase().includes(lowerCaseQuery);
+        bookmark.topic.toLowerCase().includes(lowerCaseQuery);
       
       const matchesTag = !selectedTag || bookmark.tags.includes(selectedTag);
       
@@ -255,7 +255,7 @@ const BookmarkManager: React.FC<BookmarkManagerProps> = ({
                     <div className="flex-1">
                       <div className="flex items-center space-x-2 mb-2">
                         <span className="text-sm font-medium text-gray-900">Topic:</span>
-                        <span className="text-sm text-gray-600">{bookmark.theme}</span>
+                        <span className="text-sm text-gray-600">{bookmark.topic}</span>
                         <span className="text-sm text-gray-400">•</span>
                         <span className="text-sm text-gray-500">
                           Score: {bookmark.score}/10

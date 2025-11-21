@@ -1549,9 +1549,12 @@ async def generate_ideas(
         raise
     except Exception as e:
         processing_time = (datetime.now() - start_time).total_seconds()
+        # Safe error logging: parsed_request may not be initialized if parsing failed
+        topic_for_logging = getattr(parsed_request, 'topic', '[UNKNOWN]') if 'parsed_request' in locals() else '[UNKNOWN]'
+        num_candidates_for_logging = getattr(parsed_request, 'num_top_candidates', 0) if 'parsed_request' in locals() else 0
         error_context = {
-            'topic': idea_request.topic,
-            'num_candidates': idea_request.num_top_candidates,
+            'topic': topic_for_logging,
+            'num_candidates': num_candidates_for_logging,
             'processing_time': processing_time,
             'error_type': type(e).__name__
         }
@@ -1735,7 +1738,7 @@ async def check_bookmark_duplicates(request: Request, duplicate_request: Duplica
                 similar_bookmarks.append(SimilarBookmark(
                     id=similar.bookmark_id,
                     text=bookmark.text[:300] + '...' if len(bookmark.text) > 300 else bookmark.text,
-                    theme=bookmark.theme,
+                    topic=bookmark.topic,
                     similarity_score=similar.similarity_score,
                     match_type=similar.match_type,
                     matched_features=similar.matched_features

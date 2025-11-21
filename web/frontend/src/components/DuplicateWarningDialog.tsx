@@ -151,7 +151,7 @@ const DuplicateWarningDialog: React.FC<DuplicateWarningDialogProps> = ({
                           {formatMatchType(bookmark.match_type || bookmark.similarity_type || 'unknown')}
                         </span>
                         <div className="text-sm text-gray-600 flex-1">
-                          <span className="font-medium">Theme:</span> {bookmark.theme}
+                          <span className="font-medium">Topic:</span> {bookmark.topic}
                         </div>
                       </div>
                       <button

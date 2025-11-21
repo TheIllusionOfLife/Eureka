@@ -280,11 +280,10 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
                 </div>
 
                 {/* Score Comparison - Only show if detailed results enabled */}
-                {/* Note: originalScore and improvedScore are swapped because backend naming is reversed */}
                 <ScoreComparison
-                  originalScore={result.improved_score}
-                  improvedScore={result.initial_score}
-                  delta={result.score_delta ? -result.score_delta : 0}
+                  originalScore={result.initial_score}
+                  improvedScore={result.improved_score}
+                  delta={result.score_delta || 0}
                 />
               </>
             )}
@@ -368,14 +367,13 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
                 {expandedSections[`${index}-multidim-simple`] && (
                   <div id={`multidim-simple-content-${index}`} className="p-4">
                 {/* Use comparison chart if both original and improved evaluations exist */}
-                {/* Note: originalScore and improvedScore are swapped because backend naming is reversed */}
                 {result.improved_multi_dimensional_evaluation ? (
                   <ComparisonRadarChart
                     title="Original vs Improved Idea Comparison"
                     originalLabel="Original Idea"
                     improvedLabel="Improved Idea"
-                    originalScore={result.improved_score ?? undefined}
-                    improvedScore={result.initial_score ?? undefined}
+                    originalScore={result.initial_score ?? undefined}
+                    improvedScore={result.improved_score ?? undefined}
                     data={[
                       { 
                         dimension: 'Feasibility', 
@@ -823,14 +821,13 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
                   {expandedSections[`${index}-multidim`] && (
                     <div className="p-4">
                       {/* Use comparison chart if both original and improved evaluations exist */}
-                      {/* Note: originalScore and improvedScore are swapped because backend naming is reversed */}
                       {result.improved_multi_dimensional_evaluation ? (
                         <ComparisonRadarChart
                           title="Original vs Improved Idea Comparison"
                           originalLabel="Original Idea"
                           improvedLabel="Improved Idea"
-                          originalScore={result.improved_score ?? undefined}
-                          improvedScore={result.initial_score ?? undefined}
+                          originalScore={result.initial_score ?? undefined}
+                          improvedScore={result.improved_score ?? undefined}
                           data={[
                             { 
                               dimension: 'Feasibility', 

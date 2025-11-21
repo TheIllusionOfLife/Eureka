@@ -6,6 +6,7 @@ including file uploads (PDFs, images, documents) and URL validation.
 """
 import pytest
 import uuid
+import shutil
 from io import BytesIO
 from pathlib import Path
 from unittest.mock import Mock
@@ -462,7 +463,22 @@ def temp_upload_dir():
 
     yield temp_dir
 
-    # Cleanup
+    # Cleanup - be robust if the directory has already been removed by the code under test.
+    if not temp_dir.exists():
+        return
+
     for file in temp_dir.glob("*"):
-        file.unlink()
-    temp_dir.rmdir()
+        try:
+            if file.is_file() or file.is_symlink():
+                file.unlink()
+            elif file.is_dir():
+                shutil.rmtree(file)
+        except Exception:
+            # Ignore cleanup errors to avoid hiding test results due to teardown failure
+            pass
+
+    try:
+        temp_dir.rmdir()
+    except Exception:
+        # Directory might already be removed or not empty; ignore to avoid teardown crash
+        pass

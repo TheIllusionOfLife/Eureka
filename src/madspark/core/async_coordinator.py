@@ -960,7 +960,7 @@ class AsyncCoordinator(BatchOperationsBase):
             try:
                 # Temporarily stash initial evaluations
                 for candidate in candidates:
-                    candidate["_initial_multi_dimensional_evaluation"] = candidate.get("multi_dimensional_evaluation", None)
+                    candidate["_temp_initial_multi_dimensional_evaluation"] = candidate.get("multi_dimensional_evaluation", None)
 
                 # Evaluate improved ideas using text_key
                 candidates = await orch.add_multi_dimensional_evaluation_async(
@@ -973,14 +973,14 @@ class AsyncCoordinator(BatchOperationsBase):
                 # Restore initial eval and move new eval to improved field
                 for candidate in candidates:
                     candidate["improved_multi_dimensional_evaluation"] = candidate.pop("multi_dimensional_evaluation", None)
-                    candidate["multi_dimensional_evaluation"] = candidate.pop("_initial_multi_dimensional_evaluation", None)
+                    candidate["multi_dimensional_evaluation"] = candidate.pop("_temp_initial_multi_dimensional_evaluation", None)
 
             except Exception as e:
                 logger.error(f"Batch multi-dimensional re-evaluation failed: {e}")
                 # Restore initial evaluations if they were stashed
                 for candidate in candidates:
-                    if "_initial_multi_dimensional_evaluation" in candidate:
-                        candidate["multi_dimensional_evaluation"] = candidate.pop("_initial_multi_dimensional_evaluation")
+                    if "_temp_initial_multi_dimensional_evaluation" in candidate:
+                        candidate["multi_dimensional_evaluation"] = candidate.pop("_temp_initial_multi_dimensional_evaluation")
 
         # Step 5: Build final candidate data - Phase 3.2c: Using WorkflowOrchestrator
         await self._send_progress("Building final results...", 0.88)

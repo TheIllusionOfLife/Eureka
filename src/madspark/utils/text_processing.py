@@ -24,7 +24,9 @@ def truncate_text_intelligently(text: str, max_length: int = 300) -> str:
 
     # Prefer to break at sentence end if it's reasonably close to the end (last 50 chars)
     if last_period > max_length - 50 and last_period != -1:
-        final_text = truncation_candidate[:last_period + 1]
+        # If we break at a period, we don't include it because we append "..."
+        # Otherwise we get "...." which looks odd
+        final_text = truncation_candidate[:last_period]
     elif last_space > 0:
         # Break at space
         final_text = truncation_candidate[:last_space]

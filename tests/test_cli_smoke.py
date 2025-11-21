@@ -1,7 +1,6 @@
 """Smoke tests for CLI execution."""
 import subprocess
 import sys
-from pathlib import Path
 
 def test_cli_help_smoke():
     """Test that the CLI help command runs without crashing (imports verify)."""

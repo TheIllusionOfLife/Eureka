@@ -442,7 +442,7 @@ def _run_workflow_internal(
         # Use text_key parameter to evaluate improved ideas directly
         # IMPORTANT: Preserve the initial multi_dimensional_evaluation
         for candidate in top_candidates:
-            candidate["_initial_multi_dimensional_evaluation"] = candidate.get("multi_dimensional_evaluation", None)
+            candidate["_temp_initial_multi_dimensional_evaluation"] = candidate.get("multi_dimensional_evaluation", None)
 
         top_candidates = orchestrator.add_multi_dimensional_evaluation_with_monitoring(
             candidates=top_candidates,
@@ -456,7 +456,7 @@ def _run_workflow_internal(
         for candidate in top_candidates:
             # Keep BOTH evaluations - initial for original idea, improved for improved idea
             candidate["improved_multi_dimensional_evaluation"] = candidate.pop("multi_dimensional_evaluation", None)
-            candidate["multi_dimensional_evaluation"] = candidate.pop("_initial_multi_dimensional_evaluation", None)
+            candidate["multi_dimensional_evaluation"] = candidate.pop("_temp_initial_multi_dimensional_evaluation", None)
     
     # Step 9: Build final results
     log_verbose_step("STEP 7: Building Final Results",

@@ -41,7 +41,7 @@ class TestTextProcessing:
         max_len = len("First sentence. Second sen")
         truncated = truncate_text_intelligently(text, max_length=max_len)
         # Should truncate at first sentence end + ellipsis
-        expected = "First sentence...."
+        expected = "First sentence..."
         assert truncated == expected
 
     def test_truncate_text_intelligently_at_space(self):

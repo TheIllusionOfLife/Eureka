@@ -37,7 +37,7 @@ services:
       - madspark-network
 
   ollama:
-    image: ollama/ollama:0.5.0
+    image: ollama/ollama:0.12.9
     ports:
       - "11434:11434"
     volumes:

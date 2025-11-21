@@ -24,16 +24,42 @@ try:
         BookmarkManager,
         list_bookmarks_cli
     )
+    from madspark.utils.text_processing import truncate_text_intelligently
 except ImportError:
     # Fallback for local development/testing
-    from temperature_control import (
-        TemperatureManager,
-        add_temperature_arguments
-    )
-    from bookmark_system import (
-        BookmarkManager,
-        list_bookmarks_cli
-    )
+    # Add project root to sys.path if needed
+    import sys
+    from pathlib import Path
+    root_dir = str(Path(__file__).resolve().parents[3])  # ../../../
+    if root_dir not in sys.path:
+        sys.path.insert(0, root_dir)
+
+    try:
+        from madspark.utils.temperature_control import (
+            TemperatureManager,
+            add_temperature_arguments
+        )
+        from madspark.utils.bookmark_system import (
+            BookmarkManager,
+            list_bookmarks_cli
+        )
+        from madspark.utils.text_processing import truncate_text_intelligently
+    except ImportError:
+        # Last resort: try direct imports if running from inside module
+        from temperature_control import (
+            TemperatureManager,
+            add_temperature_arguments
+        )
+        from bookmark_system import (
+            BookmarkManager,
+            list_bookmarks_cli
+        )
+        try:
+            from text_processing import truncate_text_intelligently
+        except ImportError:
+            # Define fallback if module completely missing
+            def truncate_text_intelligently(text, max_length=300):
+                return text[:max_length] + "..." if len(text) > max_length else text
 
 # Import interactive mode after the try/except blocks
 try:
@@ -593,33 +619,6 @@ Examples:
     )
 
     return parser
-
-
-def truncate_text_intelligently(text: str, max_length: int = 300) -> str:
-    """Truncate text at a sensible boundary (sentence or word).
-    
-    Args:
-        text: Text to truncate
-        max_length: Maximum length before truncation
-        
-    Returns:
-        Truncated text with ellipsis if needed
-    """
-    if len(text) <= max_length:
-        return text
-    
-    # Find a good breaking point (end of sentence or word)
-    truncated = text[:max_length]
-    last_period = truncated.rfind('.')
-    last_space = truncated.rfind(' ')
-    
-    # Prefer to break at sentence end, otherwise at word boundary
-    if last_period > max_length - 50:  # If period is near the end
-        truncated = truncated[:last_period + 1]
-    elif last_space > 0:
-        truncated = truncated[:last_space]
-    
-    return f"{truncated}..."
 
 
 def list_bookmarks_command(args: argparse.Namespace) -> None:

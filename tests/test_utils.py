@@ -9,12 +9,55 @@ from madspark.utils.temperature_control import TemperatureManager, TemperatureCo
 from madspark.utils.bookmark_system import BookmarkManager
 from madspark.utils.novelty_filter import NoveltyFilter
 from madspark.utils.improved_idea_cleaner import clean_improved_idea
+from madspark.utils.text_processing import truncate_text_intelligently
 from madspark.utils.constants import (
     IDEA_GENERATION_INSTRUCTION, 
     DEFAULT_IDEA_TEMPERATURE, 
     DEFAULT_NUM_TOP_CANDIDATES, 
     DEFAULT_NOVELTY_THRESHOLD
 )
+
+
+class TestTextProcessing:
+    """Test cases for text processing utilities."""
+
+    def test_truncate_text_intelligently_short_text(self):
+        """Test truncation on text shorter than max length."""
+        text = "Short text."
+        truncated = truncate_text_intelligently(text, max_length=20)
+        assert truncated == text
+        assert not truncated.endswith("...")
+
+    def test_truncate_text_intelligently_exact_length(self):
+        """Test truncation on text exactly matching max length."""
+        text = "This text is exactly 30 chars."
+        truncated = truncate_text_intelligently(text, max_length=30)
+        assert truncated == text
+
+    def test_truncate_text_intelligently_at_sentence_end(self):
+        """Test truncation preferring sentence end."""
+        text = "First sentence. Second sentence. Third sentence."
+        # Max length cuts in middle of second sentence
+        max_len = len("First sentence. Second sen")
+        truncated = truncate_text_intelligently(text, max_length=max_len)
+        # Should truncate at first sentence end + ellipsis
+        expected = "First sentence...."
+        assert truncated == expected
+
+    def test_truncate_text_intelligently_at_space(self):
+        """Test truncation at space when no period is near."""
+        text = "This is a long sentence without periods near the end of the limit."
+        # Max length cuts "periods"
+        max_len = 45
+        truncated = truncate_text_intelligently(text, max_length=max_len)
+        # Should cut at last space before limit
+        assert truncated == "This is a long sentence without periods near..."
+
+    def test_truncate_text_intelligently_fallback(self):
+        """Test hard truncation when no space or period found."""
+        text = "Supercalifragilisticexpialidocious"
+        truncated = truncate_text_intelligently(text, max_length=10)
+        assert truncated == "Supercalif..."
 
 
 class TestUtilityFunctions:

@@ -20,7 +20,7 @@ from madspark.utils.batch_monitor import get_batch_monitor
 from madspark.utils.errors import ValidationError
 
 from madspark.core.types_and_logging import (
-    CandidateData, log_verbose_step
+    CandidateData, log_verbose_step, normalize_candidate_data
 )
 from madspark.utils.text_similarity import is_meaningful_improvement
 from madspark.utils.constants import (
@@ -224,20 +224,10 @@ def _run_workflow_internal(
         )
 
         # Add field normalization for compatibility with rest of workflow
-        # TODO: Technical debt - field normalization creates redundant fields
         # This compatibility layer maintains both "text"/"idea", "score"/"initial_score",
         # and "critique"/"initial_critique" pairs during gradual migration.
-        # Future work: Unify data model to use single canonical field names.
-        # Reference: gemini-code-assist review comment (PR #181)
         for idea_data in evaluated_ideas_data:
-            # Ensure both "text" and "idea" fields exist
-            idea_data["idea"] = idea_data.get("text", "")
-            # Add both "score" and "initial_score"
-            idea_data["initial_score"] = idea_data["score"]
-            # Add both "critique" and "initial_critique"
-            idea_data["initial_critique"] = idea_data["critique"]
-            # Add context for information flow (re-evaluation bias prevention)
-            idea_data["context"] = context
+            normalize_candidate_data(idea_data, context)
 
         # Sort and select top candidates
         evaluated_ideas_data.sort(key=lambda x: x["score"], reverse=True)
@@ -449,33 +439,24 @@ def _run_workflow_internal(
 
     # Step 6.5: Multi-Dimensional Re-evaluation using orchestrator (if enabled)
     if multi_dimensional_eval and orchestrator.reasoning_engine:
-        # Temporarily swap fields to evaluate improved_idea instead of text
-        # IMPORTANT: Preserve the initial multi_dimensional_evaluation before it gets overwritten
+        # Use text_key parameter to evaluate improved ideas directly
+        # IMPORTANT: Preserve the initial multi_dimensional_evaluation
         for candidate in top_candidates:
-            candidate["_original_text"] = candidate.get("text", candidate.get("idea", ""))
             candidate["_initial_multi_dimensional_evaluation"] = candidate.get("multi_dimensional_evaluation", None)
-            candidate["text"] = candidate.get("improved_idea", candidate["_original_text"])
 
         top_candidates = orchestrator.add_multi_dimensional_evaluation_with_monitoring(
             candidates=top_candidates,
             topic=topic,
             context=context,
-            monitor=monitor
+            monitor=monitor,
+            text_key="improved_idea"
         )
 
-        # TODO: Technical debt - field swapping pattern adds complexity
-        # This pattern temporarily mutates candidate["text"] to evaluate improved ideas,
-        # then restores the original and stores improved eval separately.
-        # Future work: Enhance orchestrator method with evaluation_field parameter
-        # to support evaluating arbitrary fields without temporary mutation.
-        # Reference: gemini-code-assist review comment (PR #181)
-        # Restore original text and restore initial eval, move improved eval to separate field
+        # Restore initial eval and move new eval to improved field
         for candidate in top_candidates:
-            candidate["text"] = candidate["_original_text"]
             # Keep BOTH evaluations - initial for original idea, improved for improved idea
             candidate["improved_multi_dimensional_evaluation"] = candidate.pop("multi_dimensional_evaluation", None)
             candidate["multi_dimensional_evaluation"] = candidate.pop("_initial_multi_dimensional_evaluation", None)
-            del candidate["_original_text"]
     
     # Step 9: Build final results
     log_verbose_step("STEP 7: Building Final Results",

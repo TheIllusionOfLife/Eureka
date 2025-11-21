@@ -49,7 +49,8 @@ case $mode_choice in
         MODE="gemini"
         MADSPARK_MODE="api"
         echo ""
-        read -p "Enter your Gemini API key: " api_key
+        read -s -p "Enter your Gemini API key: " api_key
+        echo ""  # New line after hidden input
         if [ -z "$api_key" ]; then
             echo "❌ API key cannot be empty"
             exit 1
@@ -94,12 +95,20 @@ if [ "$MODE" = "ollama" ]; then
     echo ""
 
     # Wait for Ollama to be healthy and models to be downloaded
-    echo "⏳ Waiting for Ollama service to start..."
-    sleep 30
+    echo -n "⏳ Waiting for Ollama service to start"
+    # Poll for healthy status instead of fixed sleep
+    for i in {1..60}; do  # Wait up to 5 minutes for startup
+        if docker compose ps ollama 2>/dev/null | grep -q "healthy"; then
+            echo " Done."
+            break
+        fi
+        echo -n "."
+        sleep 5
+    done
 
     # Check if models are being downloaded
     for i in {1..90}; do  # Wait up to 15 minutes
-        model_count=$(docker exec web-ollama-1 ollama list 2>/dev/null | grep -c "gemma3" || true)
+        model_count=$(docker compose exec ollama ollama list 2>/dev/null | grep -c "gemma3" || true)
         if [ "$model_count" -ge 2 ]; then
             echo ""
             echo "✅ Both Ollama models downloaded successfully!"
@@ -123,7 +132,7 @@ if [ "$MODE" = "ollama" ]; then
     echo "   Ollama API: http://localhost:11434"
     echo ""
     echo "💡 To verify Ollama models:"
-    echo "   docker exec web-ollama-1 ollama list"
+    echo "   docker compose exec ollama ollama list"
 fi
 
 echo ""

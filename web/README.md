@@ -301,7 +301,7 @@ The web interface expects these fields in API responses:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `MADSPARK_MODE` | `api` (production) or `mock` (testing) | `mock` |
+| `MADSPARK_MODE` | `api` (production) or `mock` (testing) | `api` |
 | `GOOGLE_API_KEY` | Your Gemini API key (optional with Ollama) | `test_api_key` |
 | `GOOGLE_GENAI_MODEL` | Gemini model to use | `gemini-2.5-flash` |
 | `REDIS_URL` | Redis connection | `redis://redis:6379/0` |

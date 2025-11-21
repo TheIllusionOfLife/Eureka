@@ -5,6 +5,13 @@
 
 set -e  # Exit on error
 
+# Configuration constants
+readonly HEALTH_CHECK_MAX_ATTEMPTS=60  # 5 minutes (60 attempts × 5s)
+readonly HEALTH_CHECK_INTERVAL=5       # seconds between health checks
+readonly MODEL_DOWNLOAD_MAX_TIME=1800  # 30 minutes in seconds
+readonly DISK_SPACE_MIN_GB=15          # Minimum disk space required
+readonly RAM_MIN_GB=16                 # Recommended RAM
+
 echo "🚀 MadSpark Web Interface Setup"
 echo "================================"
 echo "Note: This sets up the web interface at http://localhost:3000"
@@ -35,9 +42,9 @@ echo ""
 # Check available disk space (need ~15GB for Ollama)
 if command -v df &> /dev/null; then
     available_space=$(df -BG . | tail -1 | awk '{print $4}' | sed 's/G//')
-    if [ "$available_space" -lt 15 ]; then
+    if [ "$available_space" -lt "$DISK_SPACE_MIN_GB" ]; then
         echo "⚠️  WARNING: Low disk space detected (~${available_space}GB available)"
-        echo "   Ollama requires ~15GB (13GB models + 2GB Docker overhead)"
+        echo "   Ollama requires ~${DISK_SPACE_MIN_GB}GB (13GB models + 2GB Docker overhead)"
         echo "   You may encounter issues during model download."
         echo ""
         read -p "Continue anyway? (y/N): " continue_anyway
@@ -54,9 +61,9 @@ fi
 if command -v free &> /dev/null; then
     # Linux
     total_ram_gb=$(free -g | awk '/^Mem:/{print $2}')
-    if [ "$total_ram_gb" -lt 16 ]; then
+    if [ "$total_ram_gb" -lt "$RAM_MIN_GB" ]; then
         echo "⚠️  WARNING: Low system RAM detected (~${total_ram_gb}GB)"
-        echo "   Ollama models require ~16GB RAM for optimal performance"
+        echo "   Ollama models require ~${RAM_MIN_GB}GB RAM for optimal performance"
         echo "   Your system may experience slowdowns or swapping to disk."
         echo ""
     else
@@ -66,9 +73,9 @@ elif command -v sysctl &> /dev/null; then
     # macOS
     total_ram_bytes=$(sysctl -n hw.memsize 2>/dev/null || echo "0")
     total_ram_gb=$((total_ram_bytes / 1024 / 1024 / 1024))
-    if [ "$total_ram_gb" -lt 16 ]; then
+    if [ "$total_ram_gb" -lt "$RAM_MIN_GB" ]; then
         echo "⚠️  WARNING: Low system RAM detected (~${total_ram_gb}GB)"
-        echo "   Ollama models require ~16GB RAM for optimal performance"
+        echo "   Ollama models require ~${RAM_MIN_GB}GB RAM for optimal performance"
         echo "   Your system may experience slowdowns or swapping to disk."
         echo ""
     else
@@ -147,27 +154,41 @@ if [ "$MODE" = "ollama" ]; then
     # Wait for Ollama to be healthy and models to be downloaded
     echo -n "⏳ Waiting for Ollama service to start (up to 5 minutes for container health check)"
     # Poll for healthy status instead of fixed sleep
-    for i in {1..60}; do  # Wait up to 5 minutes for startup
+    for i in $(seq 1 $HEALTH_CHECK_MAX_ATTEMPTS); do
         if docker compose ps ollama 2>/dev/null | grep -q "healthy"; then
             echo " Done."
             break
         fi
         echo -n "."
-        sleep 5
+        sleep $HEALTH_CHECK_INTERVAL
     done
 
-    # Check if models are being downloaded
+    # Check if models are being downloaded with progressive backoff
     echo ""
     echo "⏳ Waiting for model downloads (up to 30 minutes for 13GB of models)"
-    for i in {1..180}; do  # Wait up to 30 minutes (13GB download + slow connections)
+    echo "   Using progressive backoff: 10s → 15s → 20s intervals"
+
+    elapsed_time=0
+    check_interval=10
+
+    while [ $elapsed_time -lt $MODEL_DOWNLOAD_MAX_TIME ]; do
         model_count=$(docker compose exec ollama ollama list 2>/dev/null | grep -c "gemma3" || true)
         if [ "$model_count" -ge 2 ]; then
             echo ""
             echo "✅ Both Ollama models downloaded successfully!"
             break
         fi
+
         echo -n "."
-        sleep 10
+        sleep $check_interval
+        elapsed_time=$((elapsed_time + check_interval))
+
+        # Progressive backoff: increase interval as time passes
+        if [ $elapsed_time -ge 600 ] && [ $check_interval -eq 10 ]; then
+            check_interval=15  # After 10 min, increase to 15s
+        elif [ $elapsed_time -ge 1200 ] && [ $check_interval -eq 15 ]; then
+            check_interval=20  # After 20 min, increase to 20s
+        fi
     done
     echo ""
 

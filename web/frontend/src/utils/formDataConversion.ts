@@ -5,7 +5,40 @@
  * This is required when sending files to the backend API.
  */
 
-import { IdeaGenerationRequest } from '../types';
+import { IdeaGenerationRequest, IdeaFormData } from '../types';
+
+/**
+ * Convert IdeaFormData (using theme/constraints) to IdeaGenerationRequest (using topic/context)
+ *
+ * Maps frontend field names to backend API field names:
+ * - theme → topic (primary field)
+ * - constraints → context (primary field)
+ */
+export function convertFormDataToApiRequest(formData: IdeaFormData): IdeaGenerationRequest {
+  const apiRequest: IdeaGenerationRequest = {
+    topic: formData.theme,  // Map theme to topic (primary field)
+    theme: formData.theme,  // Keep theme for backward compatibility
+    context: formData.constraints,  // Map constraints to context (primary field)
+    constraints: formData.constraints,  // Keep constraints for backward compatibility
+    num_top_candidates: formData.num_top_candidates,
+    enable_novelty_filter: formData.enable_novelty_filter,
+    novelty_threshold: formData.novelty_threshold,
+    temperature_preset: formData.temperature_preset,
+    temperature: formData.temperature,
+    enhanced_reasoning: formData.enhanced_reasoning,
+    multi_dimensional_eval: formData.multi_dimensional_eval,
+    logical_inference: formData.logical_inference,
+    verbose: formData.verbose,
+    show_detailed_results: formData.show_detailed_results,
+    bookmark_ids: formData.bookmark_ids,
+    multimodal_urls: formData.multimodal_urls,
+    llm_provider: formData.llm_provider,
+    model_tier: formData.model_tier,
+    use_llm_cache: formData.use_llm_cache,
+  };
+
+  return apiRequest;
+}
 
 /**
  * Check if the request has multi-modal inputs (URLs or files)

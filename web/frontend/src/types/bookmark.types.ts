@@ -6,7 +6,8 @@
 export interface BookmarkData {
   idea: string;
   improved_idea?: string;
-  theme: string;
+  topic: string;  // Renamed from 'theme' to 'topic'
+  theme?: string; // Deprecated: backward compatibility
   constraints: string;
   initial_score: number;
   improved_score?: number;
@@ -89,12 +90,14 @@ export interface CreateBookmarkInput {
   improved_idea?: string;
   evaluation: string;
   scores: Record<string, number>;
-  theme: string;
+  topic: string;  // Renamed from 'theme' to 'topic'
+  theme?: string; // Deprecated: backward compatibility
   constraints: string;
   force_save?: boolean;
 }
 
 export interface CheckDuplicatesInput {
   text: string;
-  theme: string;
+  topic: string;  // Renamed from 'theme' to 'topic'
+  theme?: string; // Deprecated: backward compatibility
 }

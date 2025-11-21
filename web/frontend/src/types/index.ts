@@ -23,10 +23,10 @@ export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 're
 // LLM Provider types are now defined in api.types.ts and re-exported via '*'
 // This avoids circular dependency issues
 
-// Form types
-export interface FormData {
-  theme: string;
-  constraints: string;
+// Form types (renamed to IdeaFormData to avoid conflict with browser's FormData)
+export interface IdeaFormData {
+  theme: string;  // Note: Frontend still uses 'theme' as display name, converted to 'topic' in API calls
+  constraints: string;  // Note: Frontend still uses 'constraints' as display name, converted to 'context' in API calls
   num_top_candidates: number;
   enable_novelty_filter: boolean;
   novelty_threshold: number;
@@ -45,6 +45,9 @@ export interface FormData {
   model_tier?: 'fast' | 'balanced' | 'quality';
   use_llm_cache?: boolean;
 }
+
+// Backward compatibility alias
+export type FormData = IdeaFormData;
 
 // Component prop types
 export interface WithClassName {

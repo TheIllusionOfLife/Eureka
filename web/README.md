@@ -4,7 +4,37 @@ This README provides essential information for using the MadSpark web interface 
 
 ## 🚀 Quick Start
 
-### Starting with Real API Key (Production Mode)
+### Automated Setup (Easiest)
+
+```bash
+cd ~/Eureka/web
+./setup.sh
+
+# Follow the interactive prompts to choose:
+# 1) Ollama (Free, Local) - Recommended
+# 2) Gemini (Cloud, Requires API Key)
+# 3) Mock (Testing only)
+```
+
+### Starting with Ollama (Free Local Inference - Recommended)
+
+```bash
+cd ~/Eureka/web
+MADSPARK_MODE=api docker compose up -d
+
+# First startup will automatically download Ollama models:
+# - gemma3:4b-it-qat (4GB) - Fast tier
+# - gemma3:12b-it-qat (8.9GB) - Balanced tier
+# This may take 5-15 minutes depending on your internet speed
+
+# Check model download progress:
+docker compose logs -f ollama
+
+# Verify models are ready:
+docker exec web-ollama-1 ollama list
+```
+
+### Starting with Gemini API Key (Cloud Inference)
 
 ```bash
 # Method 1: Using environment variables from root .env file
@@ -25,7 +55,7 @@ madspark-web
 
 ```bash
 cd ~/Eureka/web
-docker compose up -d  # Defaults to mock mode
+docker compose up -d  # Defaults to mock mode (no LLM calls)
 ```
 
 ### Accessing the Interface
@@ -34,6 +64,98 @@ docker compose up -d  # Defaults to mock mode
 - Backend API: http://localhost:8000
 - API Health: http://localhost:8000/api/health
 - API Docs: http://localhost:8000/docs
+- Ollama API: http://localhost:11434
+
+## 🤖 LLM Provider Architecture
+
+MadSpark uses an **Ollama-first architecture** for cost-free local inference with automatic fallback to Gemini.
+
+### Provider Selection (Auto Mode - Default)
+
+When `MADSPARK_LLM_PROVIDER=auto` (default), the router uses:
+1. **Ollama (Primary)**: Free local inference with gemma3 models
+2. **Gemini (Fallback)**: Cloud API for PDFs, URLs, or when Ollama fails
+
+### Available Providers
+
+| Provider | Models | Cost | Use Case |
+|----------|--------|------|----------|
+| **Ollama** | gemma3:4b-it-qat (fast)<br>gemma3:12b-it-qat (balanced) | FREE | Text-only, images (local) |
+| **Gemini** | gemini-2.5-flash | Paid | PDFs, URLs, fallback |
+
+### Model Tiers
+
+Configure via UI "Advanced LLM Settings" or `MADSPARK_MODEL_TIER`:
+
+- **Fast** (default): gemma3:4b-it-qat - Quick responses (~10s)
+- **Balanced**: gemma3:12b-it-qat - Better quality (~20s)
+- **Quality**: gemini-2.5-flash - Best results (cloud, paid)
+
+### LLM Usage Statistics
+
+After generating ideas, scroll to the bottom to see:
+- **Provider Usage**: "Ollama: X | Gemini: Y"
+- **Total Cost**: Shows $0 when using Ollama
+- **Cache Hit Rate**: Percentage of cached responses
+- **Message**: "Using local Ollama inference saved you money!" when Ollama is used
+
+### Ollama Setup
+
+#### Automatic Setup (Recommended)
+
+Models are automatically downloaded on first `docker compose up`:
+
+```bash
+cd ~/Eureka/web
+MADSPARK_MODE=api docker compose up -d
+
+# Monitor download progress (first time only):
+docker compose logs -f ollama
+# Expected output:
+# - "pulling manifest..."
+# - "pulling 1fb99eda86dc: XX% ..."
+# - Total download: ~13GB for both models
+```
+
+#### Manual Model Management
+
+```bash
+# List installed models
+docker exec web-ollama-1 ollama list
+
+# Pull specific model manually
+docker exec web-ollama-1 ollama pull gemma3:4b-it-qat
+
+# Remove unused model
+docker exec web-ollama-1 ollama rm model-name
+
+# Test Ollama directly
+curl http://localhost:11434/api/generate -d '{
+  "model": "gemma3:4b-it-qat",
+  "prompt": "Why is the sky blue?",
+  "stream": false
+}'
+```
+
+#### Disable Auto-Download
+
+If you want to manually control model downloads, comment out the entrypoint in `docker-compose.yml`:
+
+```yaml
+ollama:
+  # entrypoint: ["/bin/sh", "-c", "ollama serve & ..."]  # Commented out
+```
+
+Then pull models manually as shown above.
+
+### Production Mode Requirements
+
+**To use Ollama or Gemini in production:**
+```bash
+MADSPARK_MODE=api docker compose up -d
+```
+
+**Mock mode** (`MADSPARK_MODE=mock`, the default) returns pre-generated results without calling any LLM.
 
 ## 📝 Web Interface Field Names
 
@@ -146,12 +268,26 @@ The web interface expects these fields in API responses:
 
 ## 🌐 Environment Variables
 
+### Core Settings
+
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `GOOGLE_API_KEY` | Your Gemini API key | `test_api_key` |
-| `GOOGLE_GENAI_MODEL` | Model to use | `gemini-2.5-flash` |
-| `MADSPARK_MODE` | `api` or `mock` | `mock` |
+| `MADSPARK_MODE` | `api` (production) or `mock` (testing) | `mock` |
+| `GOOGLE_API_KEY` | Your Gemini API key (optional with Ollama) | `test_api_key` |
+| `GOOGLE_GENAI_MODEL` | Gemini model to use | `gemini-2.5-flash` |
 | `REDIS_URL` | Redis connection | `redis://redis:6379/0` |
+
+### LLM Router Settings
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `MADSPARK_LLM_PROVIDER` | `auto`, `ollama`, or `gemini` | `auto` |
+| `MADSPARK_MODEL_TIER` | `fast`, `balanced`, or `quality` | `fast` |
+| `MADSPARK_CACHE_ENABLED` | Enable response caching | `true` |
+| `MADSPARK_CACHE_DIR` | Cache directory path | `/cache/llm` |
+| `OLLAMA_HOST` | Ollama server URL | `http://ollama:11434` |
+| `OLLAMA_MODEL_FAST` | Fast tier model | `gemma3:4b-it-qat` |
+| `OLLAMA_MODEL_BALANCED` | Balanced tier model | `gemma3:12b-it-qat` |
 
 ## 🧪 Testing Different Scenarios
 

@@ -50,8 +50,9 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
-    # Pull models on startup (optional, can be done manually)
-    # entrypoint: ["/bin/sh", "-c", "ollama serve & sleep 5 && ollama pull gemma3:4b-it-qat && wait"]
+    # Auto-pull Ollama models on first startup (runs in background)
+    # Models: gemma3:4b-it-qat (fast, 4GB) and gemma3:12b-it-qat (balanced, 8.9GB)
+    entrypoint: ["/bin/sh", "-c", "ollama serve & pid=$!; sleep 10; ollama pull gemma3:4b-it-qat; ollama pull gemma3:12b-it-qat; wait $pid"]
     # GPU support: Uncomment the deploy section below for NVIDIA GPU acceleration
     # For CPU-only systems, leave this commented out
     # deploy:

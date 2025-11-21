@@ -6,6 +6,7 @@ including file uploads (PDFs, images, documents) and URL validation.
 """
 import pytest
 import uuid
+import shutil
 from io import BytesIO
 from pathlib import Path
 from unittest.mock import Mock
@@ -462,19 +463,23 @@ def temp_upload_dir():
 
     yield temp_dir
 
-    # Cleanup with error handling for parallel test execution
-    # Each operation wrapped separately to handle race conditions
+    # Cleanup - robust for both parallel execution and code-under-test cleanup
+    # Combines early-exit optimization with per-operation error handling for race conditions
+    if not temp_dir.exists():
+        return
+
+    for file in temp_dir.glob("*"):
+        try:
+            if file.is_file() or file.is_symlink():
+                file.unlink()
+            elif file.is_dir():
+                shutil.rmtree(file)
+        except (FileNotFoundError, OSError):
+            # Another process/test cleaned it up during parallel execution
+            pass
+
     try:
-        if temp_dir.exists():
-            for file in temp_dir.glob("*"):
-                try:
-                    file.unlink()
-                except (FileNotFoundError, OSError):
-                    pass  # Another process cleaned it up
-            try:
-                temp_dir.rmdir()
-            except (FileNotFoundError, OSError):
-                pass  # Another process cleaned it up
+        temp_dir.rmdir()
     except (FileNotFoundError, OSError):
-        # Directory already cleaned up by another test or process
+        # Directory might already be removed or not empty; ignore to avoid teardown crash
         pass

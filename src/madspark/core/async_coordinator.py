@@ -729,6 +729,7 @@ class AsyncCoordinator(BatchOperationsBase):
                     await self._send_progress(
                         "📊 Multi-dimensional Analysis: Evaluating across multiple dimensions...", 0.5
                     )
+                    # Note: Uses default text_key="text" since we just generated and normalized them
                     evaluated_ideas_data = await asyncio.wait_for(
                         orchestrator.add_multi_dimensional_evaluation_async(
                             candidates=evaluated_ideas_data,
@@ -950,6 +951,36 @@ class AsyncCoordinator(BatchOperationsBase):
             for candidate in candidates:
                 candidate["improved_score"] = candidate.get("score", candidate.get("initial_score", 0.0))
                 candidate["improved_critique"] = "Re-evaluation failed"
+
+        # Step 4.5: Batch Multi-Dimensional Re-evaluation (if enabled)
+        if multi_dimensional_eval:
+            await self._send_progress(
+                "Running batch multi-dimensional re-evaluation...", 0.85
+            )
+            try:
+                # Temporarily stash initial evaluations
+                for candidate in candidates:
+                    candidate["_temp_initial_multi_dimensional_evaluation"] = candidate.get("multi_dimensional_evaluation", None)
+
+                # Evaluate improved ideas using text_key
+                candidates = await orch.add_multi_dimensional_evaluation_async(
+                    candidates=candidates,
+                    topic=topic,
+                    context=context,
+                    text_key="improved_idea"
+                )
+
+                # Restore initial eval and move new eval to improved field
+                for candidate in candidates:
+                    candidate["improved_multi_dimensional_evaluation"] = candidate.pop("multi_dimensional_evaluation", None)
+                    candidate["multi_dimensional_evaluation"] = candidate.pop("_temp_initial_multi_dimensional_evaluation", None)
+
+            except Exception as e:
+                logger.error(f"Batch multi-dimensional re-evaluation failed: {e}")
+                # Restore initial evaluations if they were stashed
+                for candidate in candidates:
+                    if "_temp_initial_multi_dimensional_evaluation" in candidate:
+                        candidate["multi_dimensional_evaluation"] = candidate.pop("_temp_initial_multi_dimensional_evaluation")
 
         # Step 5: Build final candidate data - Phase 3.2c: Using WorkflowOrchestrator
         await self._send_progress("Building final results...", 0.88)

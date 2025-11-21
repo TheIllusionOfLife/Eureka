@@ -27,15 +27,39 @@ try:
     from madspark.utils.text_processing import truncate_text_intelligently
 except ImportError:
     # Fallback for local development/testing
-    from temperature_control import (
-        TemperatureManager,
-        add_temperature_arguments
-    )
-    from bookmark_system import (
-        BookmarkManager,
-        list_bookmarks_cli
-    )
-    from text_processing import truncate_text_intelligently
+    # Add project root to sys.path if needed
+    import sys
+    from pathlib import Path
+    root_dir = str(Path(__file__).resolve().parents[3])  # ../../../
+    if root_dir not in sys.path:
+        sys.path.insert(0, root_dir)
+
+    try:
+        from madspark.utils.temperature_control import (
+            TemperatureManager,
+            add_temperature_arguments
+        )
+        from madspark.utils.bookmark_system import (
+            BookmarkManager,
+            list_bookmarks_cli
+        )
+        from madspark.utils.text_processing import truncate_text_intelligently
+    except ImportError:
+        # Last resort: try direct imports if running from inside module
+        from temperature_control import (
+            TemperatureManager,
+            add_temperature_arguments
+        )
+        from bookmark_system import (
+            BookmarkManager,
+            list_bookmarks_cli
+        )
+        try:
+            from text_processing import truncate_text_intelligently
+        except ImportError:
+            # Define fallback if module completely missing
+            def truncate_text_intelligently(text, max_length=300):
+                return text[:max_length] + "..." if len(text) > max_length else text
 
 # Import interactive mode after the try/except blocks
 try:

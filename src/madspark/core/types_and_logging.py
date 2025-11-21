@@ -5,6 +5,7 @@ used by both the main coordinator and batch coordinator to avoid circular import
 """
 import logging
 from typing import Dict, Any, Optional, TypedDict
+from madspark.utils.errors import ValidationError
 
 
 # --- TypedDict Definitions ---
@@ -45,6 +46,9 @@ def normalize_candidate_data(candidate_data: Dict[str, Any], context: str) -> No
     Args:
         candidate_data: The candidate data dictionary to modify in-place.
         context: The context string to attach to the data.
+
+    Raises:
+        ValidationError: If neither 'text' nor 'idea' field is present.
     """
     # Ensure both "text" and "idea" fields exist
     # Primary field is currently "text" in early stages, "idea" in CandidateData
@@ -52,12 +56,8 @@ def normalize_candidate_data(candidate_data: Dict[str, Any], context: str) -> No
         candidate_data["idea"] = candidate_data["text"]
     elif "idea" in candidate_data and "text" not in candidate_data:
         candidate_data["text"] = candidate_data["idea"]
-    else:
-        # Ensure at least empty string if neither exists (defensive)
-        if "idea" not in candidate_data:
-            candidate_data["idea"] = ""
-        if "text" not in candidate_data:
-            candidate_data["text"] = ""
+    elif "text" not in candidate_data and "idea" not in candidate_data:
+        raise ValidationError("Candidate data must contain either 'text' or 'idea' field.")
 
     # Add both "score" and "initial_score"
     if "score" in candidate_data:
@@ -78,7 +78,9 @@ def normalize_candidate_data(candidate_data: Dict[str, Any], context: str) -> No
         candidate_data["initial_critique"] = ""
 
     # Add context for information flow (re-evaluation bias prevention)
-    candidate_data["context"] = context
+    # Only set if missing to avoid overwriting specific context (e.g. from bookmarks)
+    if "context" not in candidate_data:
+        candidate_data["context"] = context
 # --- End Helper Functions ---
 
 

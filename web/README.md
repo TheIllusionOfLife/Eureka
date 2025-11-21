@@ -403,6 +403,34 @@ docker compose up -d
    - ✅ Logical Inference
    - ✅ Show Detailed Results
 
+### Ollama Router Issues - Bypass with Direct Gemini API
+
+If you encounter issues with the LLM router or Ollama (timeouts, errors, slow performance), you can bypass it entirely and use direct Gemini API calls:
+
+**Temporary Bypass (This Session Only):**
+```bash
+cd ~/Eureka/web
+docker compose down
+MADSPARK_NO_ROUTER=true MADSPARK_MODE=api GOOGLE_API_KEY="your-key" docker compose up -d
+```
+
+**Permanent Bypass (Via .env File):**
+1. Create or edit `web/.env`:
+   ```bash
+   MADSPARK_NO_ROUTER=true
+   MADSPARK_MODE=api
+   GOOGLE_API_KEY=your-actual-api-key
+   ```
+2. Restart: `docker compose down && docker compose up -d`
+
+**When to Use:**
+- Ollama containers failing to start or models not downloading
+- Debugging router-related issues (fallback logic, provider selection)
+- Need faster responses and have Gemini API quota available
+- Testing legacy behavior before router was introduced
+
+**Note:** With `MADSPARK_NO_ROUTER=true`, all LLM calls go directly to Gemini API, bypassing Ollama entirely. This incurs API costs but ensures reliability.
+
 ### Mock Mode Indicators
 - Results appear very quickly (< 5 seconds)
 - Scores are always round numbers (6.5, 7.0, 7.5)
@@ -443,11 +471,17 @@ The web interface expects these fields in API responses:
 |----------|-------------|---------|
 | `MADSPARK_LLM_PROVIDER` | `auto`, `ollama`, or `gemini` | `auto` |
 | `MADSPARK_MODEL_TIER` | `fast`, `balanced`, or `quality` | `fast` |
+| `MADSPARK_NO_ROUTER` | Disable router, use direct Gemini API | `false` |
 | `MADSPARK_CACHE_ENABLED` | Enable response caching | `true` |
 | `MADSPARK_CACHE_DIR` | Cache directory path | `/cache/llm` |
 | `OLLAMA_HOST` | Ollama server URL | `http://ollama:11434` |
 | `OLLAMA_MODEL_FAST` | Fast tier model | `gemma3:4b-it-qat` |
 | `OLLAMA_MODEL_BALANCED` | Balanced tier model | `gemma3:12b-it-qat` |
+
+**Note:** Setting `MADSPARK_NO_ROUTER=true` bypasses the LLM router entirely and uses direct Gemini API calls. Use this for:
+- Legacy behavior compatibility
+- Debugging router-related issues
+- Scenarios where Ollama is unavailable but you want to skip fallback logic
 
 ## 🧪 Testing Different Scenarios
 

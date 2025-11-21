@@ -20,7 +20,7 @@ from contextlib import asynccontextmanager
 if TYPE_CHECKING:
     from madspark.llm.router import LLMRouter
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Request, Query, File, UploadFile, Body, Form
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Request, Query, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
@@ -1542,8 +1542,8 @@ async def generate_ideas(
     except Exception as e:
         processing_time = (datetime.now() - start_time).total_seconds()
         error_context = {
-            'topic': parsed_request.topic,
-            'num_candidates': parsed_request.num_top_candidates,
+            'topic': idea_request.topic,
+            'num_candidates': idea_request.num_top_candidates,
             'processing_time': processing_time,
             'error_type': type(e).__name__
         }
@@ -1572,10 +1572,10 @@ async def generate_ideas_async(request: Request, idea_request: IdeaGenerationReq
         await ws_manager.send_progress_update(message, progress)
 
     # Setup temperature manager
-    if parsed_request.temperature_preset:
-        temp_mgr = TemperatureManager.from_preset(parsed_request.temperature_preset)
-    elif parsed_request.temperature:
-        temp_mgr = TemperatureManager.from_base_temperature(parsed_request.temperature)
+    if idea_request.temperature_preset:
+        temp_mgr = TemperatureManager.from_preset(idea_request.temperature_preset)
+    elif idea_request.temperature:
+        temp_mgr = TemperatureManager.from_base_temperature(idea_request.temperature)
     else:
         temp_mgr = temp_manager or TemperatureManager()
 
@@ -1595,7 +1595,7 @@ async def generate_ideas_async(request: Request, idea_request: IdeaGenerationReq
         logger.warning(f"MAX_CONCURRENT_AGENTS must be a positive integer, got '{env_val}'. Using default: 10")
 
     # Create request-scoped router for thread-safe configuration
-    request_router = create_request_router(parsed_request)
+    request_router = create_request_router(idea_request)
 
     # Create async coordinator with cache and request-scoped router
     async_coordinator = AsyncCoordinator(

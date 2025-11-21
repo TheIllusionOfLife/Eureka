@@ -21,7 +21,8 @@ export interface BookmarkData {
 export interface SavedBookmark {
   id: string;
   text: string;
-  theme: string;
+  topic: string;  // Renamed from 'theme' to 'topic'
+  theme?: string; // Deprecated: backward compatibility
   constraints: string;
   score: number;
   critique: string;
@@ -48,7 +49,8 @@ export interface BookmarksListResponse {
 export interface SimilarBookmark {
   id: string;
   text: string;
-  theme: string;
+  topic: string;  // Renamed from 'theme' to 'topic'
+  theme?: string; // Deprecated: backward compatibility
   similarity_score: number;
   bookmarked_at?: string;
   // Backend returns both, handling both field names for compatibility

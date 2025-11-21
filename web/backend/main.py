@@ -26,7 +26,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from fastapi.openapi.utils import get_openapi
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, validator, ValidationError as PydanticValidationError
 from typing import Literal
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -1308,9 +1308,13 @@ async def generate_ideas(
         # FormData submission with files
         try:
             request_data = json.loads(idea_request)
-            parsed_request = IdeaGenerationRequest(**request_data)
-        except (json.JSONDecodeError, ValueError) as e:
+        except json.JSONDecodeError as e:
             raise HTTPException(status_code=422, detail=f"Invalid idea_request JSON: {str(e)}")
+        try:
+            parsed_request = IdeaGenerationRequest(**request_data)
+        except PydanticValidationError as e:
+            # Let Pydantic validation errors pass through for proper FastAPI formatting
+            raise RequestValidationError(e.errors())
     else:
         # JSON submission without files - parse from request body
         try:
@@ -1318,9 +1322,13 @@ async def generate_ideas(
             if not body:
                 raise HTTPException(status_code=422, detail="Request body is required")
             request_data = json.loads(body)
-            parsed_request = IdeaGenerationRequest(**request_data)
-        except (json.JSONDecodeError, ValueError) as e:
+        except json.JSONDecodeError as e:
             raise HTTPException(status_code=422, detail=f"Invalid request body JSON: {str(e)}")
+        try:
+            parsed_request = IdeaGenerationRequest(**request_data)
+        except PydanticValidationError as e:
+            # Let Pydantic validation errors pass through for proper FastAPI formatting
+            raise RequestValidationError(e.errors())
     
     # Check if running in mock mode - check environment variable properly
     google_api_key = os.environ.get("GOOGLE_API_KEY", "").strip()

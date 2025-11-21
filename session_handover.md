@@ -71,36 +71,36 @@
 
 ## Recent Session Learnings Summary
 
-#### Merge Conflict Resolution (PR #216)
+### Merge Conflict Resolution (PR #216)
 - **Combining Approaches**: When both conflict sides have merit, combine their strengths rather than choosing one
 - **Test Fixture Robustness**: Merge early-exit optimization with per-operation exception handling for parallel execution safety
 - **Specific Exception Types**: Use FileNotFoundError, OSError instead of broad Exception for better debugging
 - **Documentation**: Document conflict resolution reasoning in merge commit message for future reference
 
-#### Security Scan Interpretation
+### Security Scan Interpretation
 - **Advisory vs Blocking**: Workflow design (|| true pattern) indicates whether checks are blocking or informational
 - **Context Matters**: Refactoring PRs have different risk profiles than new feature PRs
 - **Multiple Approvals**: Human reviewer consensus (Jules, Claude, CodeRabbit) provides validation alongside automated checks
 
-#### Architecture & Refactoring
+### Architecture & Refactoring
 - **Mock Signature Verification**: After refactoring, always grep actual method signatures and update ALL test mocks
 - **Module Extraction**: Large monolithic files (1700+ lines) benefit from package-based organization
 - **Code Organization**: Centralized prompts and specialized modules improve maintainability
 - **Utility Extraction**: Move reusable functions to dedicated utilities (e.g., text_processing.py) for cross-module use
 
-#### Testing Patterns
+### Testing Patterns
 - **Mock Signature Matching**: Instance method mocks need `self` parameter, match exact return formats (tuple vs dict vs list)
 - **Local Verification**: Run `PYTHONPATH=src pytest tests/test_file.py::test_name -xvs` before pushing
 - **Integration Tests**: Validate real-world behavior with actual data formats, copy API responses exactly
 - **Fixture Cleanup**: Handle all file types (files, symlinks, directories) with per-operation error handling
 
-#### PR Review & CI
+### PR Review & CI
 - **Systematic Review**: Categorize issues by severity (CRITICAL→HIGH→MEDIUM→LOW), fix highest priority first
 - **File Size Validation**: Check before expensive operations to prevent resource exhaustion
 - **Environment Cleanup**: Track ALL mutated environment variables in test fixtures
 - **Force Push Safety**: Use --force-with-lease instead of --force to prevent overwriting others' work
 
-#### Thread-Safety & Concurrency
+### Thread-Safety & Concurrency
 - **Request-Scoped Resources**: Eliminate global state by passing instance-scoped configuration
 - **No Shared Mutable State**: Each request gets independent configuration to prevent race conditions
 

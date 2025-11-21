@@ -463,12 +463,18 @@ def temp_upload_dir():
     yield temp_dir
 
     # Cleanup with error handling for parallel test execution
+    # Each operation wrapped separately to handle race conditions
     try:
         if temp_dir.exists():
             for file in temp_dir.glob("*"):
-                if file.exists():
+                try:
                     file.unlink()
-            temp_dir.rmdir()
+                except (FileNotFoundError, OSError):
+                    pass  # Another process cleaned it up
+            try:
+                temp_dir.rmdir()
+            except (FileNotFoundError, OSError):
+                pass  # Another process cleaned it up
     except (FileNotFoundError, OSError):
         # Directory already cleaned up by another test or process
         pass

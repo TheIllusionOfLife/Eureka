@@ -2,9 +2,27 @@
 
 This README provides essential information for using the MadSpark web interface effectively.
 
+## 📌 Important: Two Setup Scripts
+
+MadSpark has **two separate setup scripts** for different purposes:
+
+| Script | Purpose | Usage |
+|--------|---------|-------|
+| **`~/Eureka/scripts/setup.sh`** | Main CLI application | Sets up `mad_spark`/`ms` commands for terminal use |
+| **`~/Eureka/web/setup.sh`** | Web interface (this guide) | Sets up Docker containers for browser UI at http://localhost:3000 |
+
+**Choose based on your needs:**
+- Want to use `ms "topic" "context"` in terminal? → Use `scripts/setup.sh`
+- Want to use the web browser interface? → Use `web/setup.sh`
+- Want both? → Run both setup scripts!
+
+This guide focuses on the **web interface** only.
+
 ## 🚀 Quick Start
 
 ### Automated Setup (Easiest)
+
+**Note:** This is the web interface setup script. For the main CLI application (`mad_spark`/`ms` commands), use `~/Eureka/scripts/setup.sh` instead.
 
 ```bash
 cd ~/Eureka/web
@@ -13,15 +31,16 @@ cd ~/Eureka/web
 # Follow the interactive prompts to choose:
 # 1) Ollama (Free, Local) - Recommended
 # 2) Gemini (Cloud, Requires API Key)
-# 3) Mock (Testing only)
+# 3) Mock (Testing only, no LLM calls)
 ```
 
-### Starting with Ollama (Free Local Inference - Recommended)
+### Starting with Ollama (Free Local Inference - Default)
 
 ```bash
 cd ~/Eureka/web
-MADSPARK_MODE=api docker compose up -d
+docker compose up -d
 
+# Defaults to Ollama-first mode (MADSPARK_MODE=api)
 # First startup will automatically download Ollama models:
 # - gemma3:4b-it-qat (4GB) - Fast tier
 # - gemma3:12b-it-qat (8.9GB) - Balanced tier
@@ -51,11 +70,14 @@ MADSPARK_MODE=api GOOGLE_API_KEY="your-actual-api-key" docker compose up -d
 madspark-web
 ```
 
-### Starting in Mock Mode (Development/Testing)
+### Starting in Mock Mode (Testing Only)
 
 ```bash
 cd ~/Eureka/web
-docker compose up -d  # Defaults to mock mode (no LLM calls)
+MADSPARK_MODE=mock docker compose up -d
+
+# Mock mode returns pre-generated responses without calling any LLM
+# Useful for testing the UI without API costs or model downloads
 ```
 
 ### Accessing the Interface
@@ -103,11 +125,11 @@ After generating ideas, scroll to the bottom to see:
 
 #### Automatic Setup (Recommended)
 
-Models are automatically downloaded on first `docker compose up`:
+Models are automatically downloaded on first `docker compose up` (API mode is default):
 
 ```bash
 cd ~/Eureka/web
-MADSPARK_MODE=api docker compose up -d
+docker compose up -d  # API mode is default, downloads Ollama models
 
 # Monitor download progress (first time only):
 docker compose logs -f ollama
@@ -148,14 +170,21 @@ ollama:
 
 Then pull models manually as shown above.
 
-### Production Mode Requirements
+### Mode Configuration
 
-**To use Ollama or Gemini in production:**
+The system defaults to **API mode** (production-ready with Ollama):
+
+**API Mode (Default):**
 ```bash
-MADSPARK_MODE=api docker compose up -d
+docker compose up -d  # Uses Ollama for free local inference
 ```
 
-**Mock mode** (`MADSPARK_MODE=mock`, the default) returns pre-generated results without calling any LLM.
+**Mock Mode (Testing):**
+```bash
+MADSPARK_MODE=mock docker compose up -d  # Pre-generated responses, no LLM calls
+```
+
+**Why API mode is default:** The docker-compose.yml is configured for Ollama-first architecture. Models are downloaded automatically on first startup, enabling free local inference without any API key configuration.
 
 ## 📝 Web Interface Field Names
 

@@ -14,7 +14,9 @@ services:
       GOOGLE_API_KEY: ${GOOGLE_API_KEY:-test_api_key}
       GOOGLE_GENAI_MODEL: ${GOOGLE_GENAI_MODEL:-gemini-2.5-flash}
       GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT:-test_project}
-      MADSPARK_MODE: ${MADSPARK_MODE:-mock}
+      # Default to 'api' mode for Ollama-first architecture (free local inference)
+      # Set MADSPARK_MODE=mock explicitly if you want mock mode
+      MADSPARK_MODE: ${MADSPARK_MODE:-api}
       MADSPARK_PATH: /madspark
       REDIS_URL: redis://redis:6379/0
       # LLM Router configuration (Ollama-first by default)

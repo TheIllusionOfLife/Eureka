@@ -1,11 +1,14 @@
 #!/bin/bash
 # MadSpark Web Interface Setup Script
-# This script helps first-time users set up the web interface with Ollama
+# This script helps first-time users set up the Docker-based web interface
+# Note: For CLI setup (mad_spark/ms commands), use ~/Eureka/scripts/setup.sh
 
 set -e  # Exit on error
 
 echo "🚀 MadSpark Web Interface Setup"
 echo "================================"
+echo "Note: This sets up the web interface at http://localhost:3000"
+echo "For CLI commands (mad_spark/ms), use ~/Eureka/scripts/setup.sh"
 echo ""
 
 # Check if Docker is installed

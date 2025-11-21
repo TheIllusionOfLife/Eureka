@@ -54,7 +54,7 @@ services:
       start_period: 30s
     # Auto-pull Ollama models on first startup (runs in background)
     # Models: gemma3:4b-it-qat (fast, 4GB) and gemma3:12b-it-qat (balanced, 8.9GB)
-    entrypoint: ["/bin/sh", "-c", "ollama serve & pid=$!; sleep 10; if ! ollama list | grep -q 'gemma3:4b-it-qat'; then ollama pull gemma3:4b-it-qat; fi; if ! ollama list | grep -q 'gemma3:12b-it-qat'; then ollama pull gemma3:12b-it-qat; fi; wait $pid"]
+    entrypoint: ["/bin/sh", "-c", "ollama serve & pid=$!; sleep 10; if ! ollama list | grep -q 'gemma3:4b-it-qat'; then echo 'Pulling gemma3:4b-it-qat...'; ollama pull gemma3:4b-it-qat || { echo 'ERROR: Failed to pull gemma3:4b-it-qat - check network and disk space'; exit 1; }; fi; if ! ollama list | grep -q 'gemma3:12b-it-qat'; then echo 'Pulling gemma3:12b-it-qat...'; ollama pull gemma3:12b-it-qat || { echo 'ERROR: Failed to pull gemma3:12b-it-qat - check network and disk space'; exit 1; }; fi; wait $pid"]
     # GPU support: Uncomment the deploy section below for NVIDIA GPU acceleration
     # For CPU-only systems, leave this commented out
     # deploy:

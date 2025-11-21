@@ -107,7 +107,7 @@ if [ "$MODE" = "ollama" ]; then
     done
 
     # Check if models are being downloaded
-    for i in {1..90}; do  # Wait up to 15 minutes
+    for i in {1..180}; do  # Wait up to 30 minutes (13GB download + slow connections)
         model_count=$(docker compose exec ollama ollama list 2>/dev/null | grep -c "gemma3" || true)
         if [ "$model_count" -ge 2 ]; then
             echo ""
@@ -122,7 +122,7 @@ if [ "$MODE" = "ollama" ]; then
     # Verify models were actually downloaded
     final_model_count=$(docker compose exec ollama ollama list 2>/dev/null | grep -c "gemma3" || true)
     if [ "$final_model_count" -lt 2 ]; then
-        echo "❌ ERROR: Ollama models failed to download after 15 minutes"
+        echo "❌ ERROR: Ollama models failed to download after 30 minutes"
         echo ""
         echo "This could be due to:"
         echo "  - Slow internet connection"

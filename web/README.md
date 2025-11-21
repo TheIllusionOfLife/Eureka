@@ -123,6 +123,16 @@ After generating ideas, scroll to the bottom to see:
 
 ### Ollama Setup
 
+#### System Requirements
+
+**Minimum for Ollama models:**
+- **RAM**: 16GB minimum (models use ~13GB when loaded)
+- **Disk**: 15GB free space (13GB for models + 2GB for Docker)
+- **CPU**: Multi-core recommended (4+ cores for acceptable performance)
+- **GPU**: Optional - NVIDIA GPU significantly improves inference speed
+
+**Note**: Models are loaded into RAM during inference. System will swap to disk if insufficient RAM, causing severe performance degradation.
+
 #### Automatic Setup (Recommended)
 
 Models are automatically downloaded on first `docker compose up` (API mode is default):

@@ -1308,7 +1308,13 @@ async def generate_ideas(
         description="Image files for multi-modal context (triggers FormData mode)"
     )
 ):
-    """Generate ideas using the async MadSpark multi-agent workflow with optional multi-modal inputs."""
+    """Generate ideas using the async MadSpark multi-agent workflow with optional multi-modal inputs.
+
+    Note: This endpoint handles both JSON and FormData requests automatically.
+    Request format is determined by parameter presence (not Content-Type header) for robustness:
+    - If 'idea_request' Form parameter exists → FormData mode (with files)
+    - If 'idea_request' is None → JSON mode (request body)
+    """
     start_time = datetime.now()
     temp_files = []  # Track temp files for cleanup
 
@@ -1318,7 +1324,7 @@ async def generate_ideas(
         try:
             request_data = json.loads(idea_request)
         except json.JSONDecodeError as e:
-            raise HTTPException(status_code=422, detail=f"Invalid idea_request JSON: {str(e)}")
+            raise HTTPException(status_code=422, detail=f"Invalid JSON in request: {str(e)}")
         try:
             parsed_request = IdeaGenerationRequest(**request_data)
         except PydanticValidationError as e:
@@ -1332,7 +1338,7 @@ async def generate_ideas(
                 raise HTTPException(status_code=422, detail="Request body is required")
             request_data = json.loads(body)
         except json.JSONDecodeError as e:
-            raise HTTPException(status_code=422, detail=f"Invalid request body JSON: {str(e)}")
+            raise HTTPException(status_code=422, detail=f"Invalid JSON in request: {str(e)}")
         try:
             parsed_request = IdeaGenerationRequest(**request_data)
         except PydanticValidationError as e:

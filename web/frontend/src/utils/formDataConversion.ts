@@ -56,10 +56,10 @@ export function buildMultiModalFormData(
   // when files are present (multipart/form-data)
 
   // Clean the request object: remove undefined values
-  const cleanedRequest: Record<string, any> = {};
+  const cleanedRequest: Partial<IdeaGenerationRequest> = {};
   Object.entries(request).forEach(([key, value]) => {
     if (value !== undefined) {
-      cleanedRequest[key] = value;
+      cleanedRequest[key as keyof IdeaGenerationRequest] = value;
     }
   });
 

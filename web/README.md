@@ -180,6 +180,116 @@ ollama:
 
 Then pull models manually as shown above.
 
+#### GPU Setup (Optional - Significant Performance Boost)
+
+If you have an NVIDIA GPU, enable GPU acceleration for 5-10x faster inference:
+
+**Step 1: Install NVIDIA Container Toolkit**
+```bash
+# Ubuntu/Debian
+distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
+curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add -
+curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | sudo tee /etc/apt/sources.list.d/nvidia-docker.list
+sudo apt-get update && sudo apt-get install -y nvidia-container-toolkit
+sudo systemctl restart docker
+```
+
+**Step 2: Enable GPU in docker-compose.yml**
+```yaml
+ollama:
+  # ... existing config ...
+  deploy:
+    resources:
+      reservations:
+        devices:
+          - driver: nvidia
+            count: all
+            capabilities: [gpu]
+```
+
+**Step 3: Verify GPU access**
+```bash
+docker compose exec ollama nvidia-smi
+# Should show your GPU info
+```
+
+**Performance Comparison:**
+| Setup | Fast Model (4B) | Balanced Model (12B) |
+|-------|----------------|---------------------|
+| **CPU Only** | ~20-30s per idea | ~40-60s per idea |
+| **GPU (RTX 3060)** | ~3-5s per idea | ~8-12s per idea |
+| **GPU (RTX 4090)** | ~1-2s per idea | ~3-5s per idea |
+
+#### Troubleshooting Ollama Issues
+
+**Problem: Models fail to download**
+```bash
+# Check Ollama logs
+docker compose logs -f ollama
+
+# Common issues and fixes:
+# 1. Network timeout - retry with: docker compose restart ollama
+# 2. Disk full - check: df -h
+# 3. Permission denied - ensure Docker has write access to volumes
+```
+
+**Problem: Container healthy but models missing**
+```bash
+# Verify models are actually downloaded
+docker compose exec ollama ollama list
+
+# If empty, manually pull:
+docker compose exec ollama ollama pull gemma3:4b-it-qat
+docker compose exec ollama ollama pull gemma3:12b-it-qat
+```
+
+**Problem: High memory usage / system slowdown**
+```bash
+# Check system resources
+free -h  # Linux
+vm_stat  # macOS
+
+# If <16GB RAM, consider:
+# 1. Close other applications
+# 2. Use only fast model (remove balanced from docker-compose.yml)
+# 3. Switch to Gemini mode instead
+```
+
+**Problem: GPU not detected in Docker**
+```bash
+# Verify NVIDIA toolkit
+nvidia-container-cli info
+
+# If missing, reinstall NVIDIA Container Toolkit
+# See GPU Setup section above
+```
+
+### Cost Comparison: Ollama vs Gemini
+
+**Ollama (Local, Free):**
+- ✅ **Cost**: $0 - completely free
+- ✅ **Privacy**: Data never leaves your machine
+- ⚠️ **Speed**: 20-60s per idea (CPU), 3-12s with GPU
+- ⚠️ **Setup**: 13GB download, 16GB RAM needed
+- ⚠️ **Limitations**: Text + images only (no PDF/URL support)
+
+**Gemini (Cloud, Paid):**
+- ⚠️ **Cost**: ~$0.002-0.005 per idea (~$0.50 for 100 ideas)
+- ✅ **Speed**: 2-5s per idea (cloud latency)
+- ✅ **Setup**: Just add API key, no downloads
+- ✅ **Features**: Full multimodal (PDF, URL, images, text)
+- ⚠️ **Privacy**: Data sent to Google servers
+
+**Recommended Strategy:**
+- **Development/Testing**: Use Ollama (free, unlimited experimentation)
+- **Production with Files/URLs**: Use Gemini (required for PDF/URL processing)
+- **Hybrid (Best of Both)**: Use `auto` mode - Ollama for text, Gemini for PDFs/URLs
+
+**Example Monthly Costs (100 ideas/day):**
+- All Ollama: **$0/month** 🎉
+- All Gemini: **~$15/month**
+- Hybrid (80% Ollama, 20% Gemini): **~$3/month**
+
 ### Mode Configuration
 
 The system defaults to **API mode** (production-ready with Ollama):

@@ -32,6 +32,7 @@ Features specialized agents for idea generation, criticism, advocacy, and skepti
 
 **For Web Interface:**
 - Docker and Docker Compose
+- **~13GB disk space** (for Ollama models - gemma3:4b-it-qat + gemma3:12b-it-qat)
 - Google Gemini API key (optional - Ollama is auto-configured in Docker)
 
 ### CLI Installation

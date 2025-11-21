@@ -28,6 +28,56 @@ fi
 echo "✅ Docker and Docker Compose are installed"
 echo ""
 
+# Pre-flight checks for system resources
+echo "🔍 Checking system resources..."
+echo ""
+
+# Check available disk space (need ~15GB for Ollama)
+if command -v df &> /dev/null; then
+    available_space=$(df -BG . | tail -1 | awk '{print $4}' | sed 's/G//')
+    if [ "$available_space" -lt 15 ]; then
+        echo "⚠️  WARNING: Low disk space detected (~${available_space}GB available)"
+        echo "   Ollama requires ~15GB (13GB models + 2GB Docker overhead)"
+        echo "   You may encounter issues during model download."
+        echo ""
+        read -p "Continue anyway? (y/N): " continue_anyway
+        if [[ ! "$continue_anyway" =~ ^[Yy]$ ]]; then
+            echo "Exiting. Please free up disk space and try again."
+            exit 1
+        fi
+    else
+        echo "✅ Sufficient disk space available (~${available_space}GB)"
+    fi
+fi
+
+# Check system RAM (recommend 16GB for Ollama)
+if command -v free &> /dev/null; then
+    # Linux
+    total_ram_gb=$(free -g | awk '/^Mem:/{print $2}')
+    if [ "$total_ram_gb" -lt 16 ]; then
+        echo "⚠️  WARNING: Low system RAM detected (~${total_ram_gb}GB)"
+        echo "   Ollama models require ~16GB RAM for optimal performance"
+        echo "   Your system may experience slowdowns or swapping to disk."
+        echo ""
+    else
+        echo "✅ Sufficient RAM available (~${total_ram_gb}GB)"
+    fi
+elif command -v sysctl &> /dev/null; then
+    # macOS
+    total_ram_bytes=$(sysctl -n hw.memsize 2>/dev/null || echo "0")
+    total_ram_gb=$((total_ram_bytes / 1024 / 1024 / 1024))
+    if [ "$total_ram_gb" -lt 16 ]; then
+        echo "⚠️  WARNING: Low system RAM detected (~${total_ram_gb}GB)"
+        echo "   Ollama models require ~16GB RAM for optimal performance"
+        echo "   Your system may experience slowdowns or swapping to disk."
+        echo ""
+    else
+        echo "✅ Sufficient RAM available (~${total_ram_gb}GB)"
+    fi
+fi
+
+echo ""
+
 # Ask user which mode they want
 echo "Choose your setup mode:"
 echo "1) Ollama (Free, Local) - Recommended for most users"

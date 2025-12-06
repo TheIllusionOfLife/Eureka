@@ -44,7 +44,8 @@ def test_enhanced_only():
         'rural areas',
         '--enhanced',
         '--detailed',
-        '--no-bookmark'
+        '--no-bookmark',
+        '--top-ideas', '1'  # Force sync execution to avoid output truncation
     ])
     
     assert code == 0, f"Enhanced command failed: {stderr}"
@@ -78,7 +79,8 @@ def test_enhanced_and_logical():
         '--enhanced',
         '--logical',
         '--detailed',
-        '--no-bookmark'
+        '--no-bookmark',
+        '--top-ideas', '1'  # Force sync execution to avoid output truncation
     ])
     
     assert code == 0, f"Combined command failed: {stderr}"

@@ -14,11 +14,15 @@ try:
     from madspark.core.async_coordinator import AsyncCoordinator
     from madspark.utils.cache_manager import CacheManager, CacheConfig
     from madspark.cli.cli import determine_num_candidates
+    from madspark.llm.utils import should_use_router
+    from madspark.llm.config import get_config
 except ImportError:
     from coordinator import run_multistep_workflow
     from async_coordinator import AsyncCoordinator
     from cache_manager import CacheManager, CacheConfig
     from cli import determine_num_candidates
+    should_use_router = None
+    get_config = None
 
 
 class WorkflowExecutor(CommandHandler):
@@ -50,10 +54,7 @@ class WorkflowExecutor(CommandHandler):
         try:
             # Show progress message to user (unless in mock mode)
             if os.getenv("MADSPARK_MODE") != "mock":
-                # Note: Currently agents use Gemini directly (Phase 1)
-                # Phase 2 will route through madspark.llm for provider selection
-                print("\n🚀 Generating ideas with AI model...")
-                print("⏳ This may take 30-60 seconds for quality results...\n")
+                self._show_startup_message()
 
             # Determine number of candidates and execution mode
             num_candidates = determine_num_candidates(self.args)
@@ -76,6 +77,49 @@ class WorkflowExecutor(CommandHandler):
         except Exception as e:
             self.log_error(f"Workflow execution failed: {e}")
             return CommandResult(success=False, exit_code=1, message=str(e))
+
+    def _show_startup_message(self) -> None:
+        """Show startup message with actual model name."""
+        model_name = "AI model"  # Default fallback
+        provider = "unknown"
+
+        # Try to determine the actual model that will be used
+        try:
+            if get_config:
+                config = get_config()
+                # Determine provider from config or args
+                provider_setting = getattr(self.args, 'provider', None) or config.default_provider
+                no_router = getattr(self.args, 'no_router', False)
+
+                if no_router or provider_setting == "gemini":
+                    # Explicitly using Gemini
+                    provider = "gemini"
+                    model_name = config.gemini_model
+                elif provider_setting in ("auto", "ollama", None):
+                    # Check if Ollama is available
+                    try:
+                        from madspark.llm.providers.ollama import OllamaProvider
+                        ollama = OllamaProvider()
+                        if ollama.health_check():
+                            provider = "ollama"
+                            model_name = config.get_ollama_model()
+                        else:
+                            # Fallback to Gemini
+                            provider = "gemini"
+                            model_name = config.gemini_model
+                    except Exception:
+                        # Ollama not available, fallback to Gemini
+                        provider = "gemini"
+                        model_name = config.gemini_model
+        except Exception:
+            pass  # Keep default fallback
+
+        # Show API key message only for Gemini
+        if provider == "gemini":
+            print("✅ API key configured.\n")
+
+        print(f"🚀 Generating ideas with {model_name}...")
+        print("⏳ This may take 30-60 seconds for quality results...\n")
 
     def _should_use_async(self, num_candidates: int) -> bool:
         """Determine if async execution should be used.

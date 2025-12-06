@@ -73,11 +73,9 @@ try:
                 print("🤖 No API key found. Running in mock mode...")
                 print("💡 To use real API: Run 'mad_spark config'")
                 print("")
-        else:
-            # Don't set MADSPARK_MODE - let get_mode() handle it dynamically
-            if not os.getenv("SUPPRESS_MODE_MESSAGE"):
-                print("✅ API key found. Running with Google Gemini API...")
-                print("")
+        # Note: We no longer print "Running with Google Gemini API..." here
+        # because the actual provider (Ollama/Gemini) depends on CLI flags
+        # and runtime availability. The CLI will show the actual model used.
 except (ImportError, ModuleNotFoundError, Exception) as e:
     # If imports fail, continue without mode detection
     # This handles more error types than just ImportError

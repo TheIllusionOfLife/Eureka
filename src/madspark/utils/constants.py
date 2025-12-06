@@ -80,7 +80,13 @@ SKEPTIC_SYSTEM_INSTRUCTION = (
 )
 
 # Default model configuration
-DEFAULT_GOOGLE_GENAI_MODEL = "gemini-2.5-flash"
+# Import from centralized models.py for consistency
+try:
+    from madspark.llm.models import GEMINI_MODEL_DEFAULT
+    DEFAULT_GOOGLE_GENAI_MODEL = GEMINI_MODEL_DEFAULT
+except ImportError:
+    # Fallback for environments where llm package isn't available
+    DEFAULT_GOOGLE_GENAI_MODEL = "gemini-2.5-flash"
 
 # Temperature defaults for specific agents/functions
 DEFAULT_CRITIC_TEMPERATURE = 0.3

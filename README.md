@@ -193,9 +193,9 @@ ms "urban farming" --show-llm-stats
 ms "AI healthcare" --provider ollama        # Local inference (FREE)
 ms "quantum computing" --provider gemini    # Cloud API (paid)
 
-# Control model quality tier
+# Control model quality tier (default: balanced)
 ms "space exploration" --model-tier fast      # gemma3:4b (quick)
-ms "climate solutions" --model-tier balanced  # gemma3:12b (better)
+ms "climate solutions" --model-tier balanced  # gemma3:12b (default)
 ms "renewable energy" --model-tier quality    # gemini-2.5-flash (best)
 
 # Cache management (enabled by default)

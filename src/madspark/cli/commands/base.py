@@ -76,3 +76,11 @@ class CommandHandler(ABC):
             message: Message to log
         """
         self.logger.warning(message)
+
+    def log_debug(self, message: str) -> None:
+        """Log debug message.
+
+        Args:
+            message: Message to log
+        """
+        self.logger.debug(message)

@@ -95,16 +95,32 @@ class WorkflowExecutor(CommandHandler):
                 if no_router or provider_setting == "gemini":
                     use_gemini = True
                 elif provider_setting in ("auto", "ollama", None):
-                    # Check if Ollama is available
+                    # Check if Ollama is available with timeout protection
                     try:
                         from madspark.llm.providers.ollama import OllamaProvider
-                        if OllamaProvider().health_check():
-                            provider = "ollama"
-                            model_name = config.get_ollama_model()
-                        else:
-                            use_gemini = True  # Ollama unhealthy, fallback to Gemini
+                        import concurrent.futures
+
+                        ollama_provider = OllamaProvider()
+                        # Use thread with timeout to prevent hanging on unresponsive Ollama
+                        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                            future = executor.submit(ollama_provider.health_check)
+                            try:
+                                is_healthy = future.result(timeout=2.0)  # 2 second timeout
+                                if is_healthy:
+                                    provider = "ollama"
+                                    model_name = config.get_ollama_model()
+                                else:
+                                    use_gemini = True  # Ollama unhealthy, fallback to Gemini
+                            except concurrent.futures.TimeoutError:
+                                self.log_debug("Ollama health check timed out, using Gemini")
+                                use_gemini = True
+                    except (ImportError, ConnectionError, OSError) as e:
+                        # Expected failures: missing package, network issues, socket errors
+                        self.log_debug(f"Ollama unavailable, using Gemini: {e}")
+                        use_gemini = True
                     except Exception as e:
-                        self.log_info(f"Ollama check failed, falling back to Gemini: {e}")
+                        # Unexpected errors should be more visible
+                        self.log_warning(f"Unexpected error checking Ollama: {e}")
                         use_gemini = True
 
                 if use_gemini:

@@ -97,14 +97,21 @@ class TestLLMRouterImmutable:
 
     def test_router_without_config_uses_env(self):
         """Test that router falls back to env-based config when no config provided."""
+        from madspark.llm.config import reset_config
+
         with patch.dict(os.environ, {
             "MADSPARK_LLM_PROVIDER": "gemini",
             "MADSPARK_MODEL_TIER": "quality",
         }):
+            # Reset singleton to ensure env vars are re-read
+            reset_config()
             router = LLMRouter()
 
             # Should have read from environment via get_config()
             assert router._primary_provider == "gemini"
+
+            # Reset again to not affect other tests
+            reset_config()
 
     def test_multiple_router_instances_independent(self):
         """Test that multiple router instances don't interfere with each other."""

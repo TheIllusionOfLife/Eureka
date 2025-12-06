@@ -44,19 +44,21 @@ class TestCLIIntegration:
         """Test that 'ms topic' works without providing context."""
         # This should work after implementation
         result = self.run_cli_command(["test topic"])
-        
+
         # Currently this fails, but should succeed after implementation
         assert result.returncode == 0, f"Command failed: {result.stderr}"
-        assert "Solution" in result.stdout  # Brief mode shows the solution directly
+        # Brief mode shows "## Solution" for single idea or "## Idea N" for multiple ideas (default: 3)
+        assert "## Idea" in result.stdout or "## Solution" in result.stdout
     
     def test_cli_works_with_empty_context(self):
         """Test that 'ms topic ""' works with empty context."""
         # This should work after implementation
         result = self.run_cli_command(["test topic", ""])
-        
+
         # Currently this fails, but should succeed after implementation
         assert result.returncode == 0, f"Command failed: {result.stderr}"
-        assert "Solution" in result.stdout  # Brief mode shows the solution directly
+        # Brief mode shows "## Solution" for single idea or "## Idea N" for multiple ideas (default: 3)
+        assert "## Idea" in result.stdout or "## Solution" in result.stdout
     
     def test_automatic_bookmarking(self, temp_bookmark_file):
         """Test that results are automatically bookmarked without flag."""

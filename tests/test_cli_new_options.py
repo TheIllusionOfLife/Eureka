@@ -39,9 +39,9 @@ class TestNewCLIOptions:
         # Test default
         args = parser.parse_args(['test topic'])
         assert hasattr(args, 'top_ideas'), "Should have top_ideas attribute"
-        # The attribute defaults to None, but determine_num_candidates should return 1
+        # The attribute defaults to None, but determine_num_candidates should return 3
         assert args.top_ideas is None, "Attribute should default to None"
-        assert determine_num_candidates(args) == 1, "Should default to 1 for faster execution through determine_num_candidates"
+        assert determine_num_candidates(args) == 3, "Should default to 3 for better variety through determine_num_candidates"
         
         # Test custom values
         for num in [1, 3, 5]:

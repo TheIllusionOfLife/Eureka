@@ -141,12 +141,14 @@ class TestCLIIntegration:
     def test_cli_with_temperature_2_0(self, mock_cli_environment):
         """Test CLI accepts temperature 2.0 (currently fails)."""
         # This should not raise an error when fixed
-        self.run_cli_with_args(['cli.py', 'test topic', '--temperature', '2.0', '--no-bookmark'])
+        # Use --top-ideas 1 to force sync execution (which uses run_multistep_workflow)
+        self.run_cli_with_args(['cli.py', 'test topic', '--temperature', '2.0', '--no-bookmark', '--top-ideas', '1'])
     
     def test_cli_with_wild_preset(self, mock_cli_environment):
         """Test CLI accepts wild preset."""
         # Should not raise an error
-        self.run_cli_with_args(['cli.py', 'test topic', '--temperature-preset', 'wild', '--no-bookmark'])
+        # Use --top-ideas 1 to force sync execution (which uses run_multistep_workflow)
+        self.run_cli_with_args(['cli.py', 'test topic', '--temperature-preset', 'wild', '--no-bookmark', '--top-ideas', '1'])
     
     def test_cli_rejects_creativity_option(self, mock_cli_environment):
         """Test CLI rejects --creativity option (currently fails)."""

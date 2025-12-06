@@ -91,28 +91,28 @@ class WorkflowExecutor(CommandHandler):
                 provider_setting = getattr(self.args, 'provider', None) or config.default_provider
                 no_router = getattr(self.args, 'no_router', False)
 
+                use_gemini = False
                 if no_router or provider_setting == "gemini":
-                    # Explicitly using Gemini
-                    provider = "gemini"
-                    model_name = config.gemini_model
+                    use_gemini = True
                 elif provider_setting in ("auto", "ollama", None):
                     # Check if Ollama is available
                     try:
                         from madspark.llm.providers.ollama import OllamaProvider
-                        ollama = OllamaProvider()
-                        if ollama.health_check():
+                        if OllamaProvider().health_check():
                             provider = "ollama"
                             model_name = config.get_ollama_model()
                         else:
-                            # Fallback to Gemini
-                            provider = "gemini"
-                            model_name = config.gemini_model
-                    except Exception:
-                        # Ollama not available, fallback to Gemini
-                        provider = "gemini"
-                        model_name = config.gemini_model
-        except Exception:
-            pass  # Keep default fallback
+                            use_gemini = True  # Ollama unhealthy, fallback to Gemini
+                    except Exception as e:
+                        self.log_info(f"Ollama check failed, falling back to Gemini: {e}")
+                        use_gemini = True
+
+                if use_gemini:
+                    provider = "gemini"
+                    model_name = config.gemini_model
+        except Exception as e:
+            self.log_error(f"Could not determine LLM provider for startup message: {e}")
+            # Keep default fallback values
 
         # Show API key message only for Gemini
         if provider == "gemini":

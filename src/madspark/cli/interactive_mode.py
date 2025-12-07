@@ -113,42 +113,42 @@ class InteractiveSession:
             except ValueError:
                 print("Please enter a valid number.")
                 
-    def collect_theme_and_constraints(self) -> Tuple[str, str]:
-        """Collect theme and constraints from user."""
+    def collect_topic_and_context(self) -> Tuple[str, str]:
+        """Collect topic and context from user."""
         self.print_section("Step 1: Define Your Idea Generation Topic")
-        
+
         # Show examples
         print("💡 Examples:")
-        print("   - Theme: 'AI applications in healthcare'")
-        print("     Constraints: 'Budget-friendly, implementable within 6 months'")
-        print("   - Theme: 'Sustainable urban farming'")
-        print("     Constraints: 'Small spaces, minimal water usage'")
-        print("   - Theme: 'Educational technology'")
-        print("     Constraints: 'For K-12 students, accessible offline'\n")
-        
-        # Get theme
+        print("   - Topic: 'AI applications in healthcare'")
+        print("     Context: 'Budget-friendly, implementable within 6 months'")
+        print("   - Topic: 'Sustainable urban farming'")
+        print("     Context: 'Small spaces, minimal water usage'")
+        print("   - Topic: 'Educational technology'")
+        print("     Context: 'For K-12 students, accessible offline'\n")
+
+        # Get topic
         while True:
-            theme = self.get_input_with_default("Enter your theme/topic")
-            if theme:
+            topic = self.get_input_with_default("Enter your topic")
+            if topic:
                 break
-            print("❗ Theme cannot be empty. Please enter a topic for idea generation.")
-            
-        # Get constraints
-        print("\n💡 Constraints help focus the ideas (optional).")
-        constraints = self.get_input_with_default(
-            "Enter any constraints or requirements",
-            "No specific constraints"
+            print("❗ Topic cannot be empty. Please enter a topic for idea generation.")
+
+        # Get context
+        print("\n💡 Context helps focus the ideas (optional).")
+        context = self.get_input_with_default(
+            "Enter any context or requirements",
+            "No specific context"
         )
-        
+
         # Confirm
         print("\n📋 Summary:")
-        print(f"   Theme: {theme}")
-        print(f"   Constraints: {constraints}")
-        
+        print(f"   Topic: {topic}")
+        print(f"   Context: {context}")
+
         if not self.get_yes_no("\nIs this correct?"):
-            return self.collect_theme_and_constraints()
-            
-        return theme, constraints
+            return self.collect_topic_and_context()
+
+        return topic, context
         
     def configure_temperature(self) -> TemperatureManager:
         """Configure temperature settings."""
@@ -336,14 +336,14 @@ class InteractiveSession:
         
         return config
         
-    def show_summary(self, theme: str, constraints: str, config: Dict[str, Any]):
+    def show_summary(self, topic: str, context: str, config: Dict[str, Any]):
         """Show configuration summary before execution."""
         self.print_section("Configuration Summary")
-        
+
         print("📋 Your Settings:")
         print("\n🎯 Topic:")
-        print(f"   Theme: {theme}")
-        print(f"   Constraints: {constraints}")
+        print(f"   Topic: {topic}")
+        print(f"   Context: {context}")
         
         print("\n🌡️  Temperature:")
         print(f"   Overall: {self.temp_manager.config.base_temperature}")
@@ -368,14 +368,14 @@ class InteractiveSession:
             print(f"   Bookmarking: Yes with tags {config['bookmark_tags']}")
         print(f"   Verbose: {'Yes' if config['verbose'] else 'No'}")
         
-    def save_session_config(self, theme: str, constraints: str, config: Dict[str, Any]):
+    def save_session_config(self, topic: str, context: str, config: Dict[str, Any]):
         """Save session configuration for reuse."""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"session_config_{timestamp}.json"
-        
+
         session_data = {
-            "theme": theme,
-            "constraints": constraints,
+            "topic": topic,
+            "context": context,
             "config": config,
             "temperature_settings": {
                 "overall": self.temp_manager.config.base_temperature,
@@ -415,46 +415,46 @@ class InteractiveSession:
                     logger.error(f"Failed to load last_session.json: {e}")
         
         # Collect configuration
-        theme, constraints = self.collect_theme_and_constraints()
+        topic, context = self.collect_topic_and_context()
         self.configure_temperature()
         workflow_config = self.configure_workflow_options()
         output_config = self.configure_output_options()
-        
+
         # Merge configurations
         config = {**workflow_config, **output_config}
         config['temperature_manager'] = self.temp_manager
-        
+
         # Show summary
-        self.show_summary(theme, constraints, config)
-        
+        self.show_summary(topic, context, config)
+
         # Confirm execution
         if not self.get_yes_no("\n🚀 Ready to generate ideas?"):
             print("\n❌ Generation cancelled.")
             sys.exit(0)
-            
+
         # Save configuration
         if self.get_yes_no("\n💾 Save this configuration for future use?", default=False):
-            self.save_session_config(theme, constraints, config)
-            
+            self.save_session_config(topic, context, config)
+
             # Also save as last session
             try:
                 # Create a serializable copy of the config
                 serializable_config = config.copy()
                 # The TemperatureManager object is not serializable, so remove it
                 serializable_config.pop('temperature_manager', None)
-                
+
                 with open("last_session.json", 'w') as f:
                     json.dump({
-                        "theme": theme,
-                        "constraints": constraints,
+                        "topic": topic,
+                        "context": context,
                         "config": serializable_config
                     }, f)
             except IOError as e:
                 logger.error(f"Failed to save last_session.json: {e}")
-        
+
         return {
-            "theme": theme,
-            "constraints": constraints,
+            "topic": topic,
+            "context": context,
             "config": config
         }
 

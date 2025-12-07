@@ -64,8 +64,8 @@ class WorkflowValidator(CommandHandler):
                 success=True,
                 data={
                     'temp_manager': temp_manager,
-                    'theme': self.args.theme,
-                    'constraints': self.args.constraints
+                    'topic': self.args.topic,
+                    'context': self.args.context
                 }
             )
 
@@ -79,16 +79,16 @@ class WorkflowValidator(CommandHandler):
             return CommandResult(success=False, exit_code=1, message=str(e))
 
     def _validate_theme_and_constraints(self) -> None:
-        """Validate theme and constraints arguments.
+        """Validate topic and context arguments.
 
         Raises:
-            ValueError: If theme is missing and not in remix mode
+            ValueError: If topic is missing and not in remix mode
         """
         # Check for reserved keywords that might collide with special commands
-        if self.args.theme and self.args.theme.lower() in RESERVED_KEYWORDS:
-            keyword = self.args.theme.lower()
-            print(f"\n💡 Note: Topic '{self.args.theme}' matches a reserved keyword.")
-            print(f"   You're generating ideas about '{self.args.theme}'.")
+        if self.args.topic and self.args.topic.lower() in RESERVED_KEYWORDS:
+            keyword = self.args.topic.lower()
+            print(f"\n💡 Note: Topic '{self.args.topic}' matches a reserved keyword.")
+            print(f"   You're generating ideas about '{self.args.topic}'.")
 
             # Special case for 'test' - it runs pytest, not idea generation
             if keyword == "test":
@@ -96,20 +96,20 @@ class WorkflowValidator(CommandHandler):
             else:
                 print(f"   If you intended a special command, use: ms {keyword}\n")
 
-        # Validate theme requirement
-        if not self.args.theme:
+        # Validate topic requirement
+        if not self.args.topic:
             if self.args.remix:
-                # For remix mode, use a default theme if not provided
-                self.args.theme = "Creative Innovation"
-                self.args.constraints = self.args.constraints or "Generate novel ideas based on previous concepts"
-                self.log_info("Using default theme for remix mode")
+                # For remix mode, use a default topic if not provided
+                self.args.topic = "Creative Innovation"
+                self.args.context = self.args.context or "Generate novel ideas based on previous concepts"
+                self.log_info("Using default topic for remix mode")
             else:
-                raise ValueError("Theme is required for idea generation")
+                raise ValueError("Topic is required for idea generation")
 
-        # Provide default constraints if missing
-        if not self.args.constraints:
-            self.args.constraints = "Generate practical and innovative ideas"
-            self.log_info("Using default constraints")
+        # Provide default context if missing
+        if not self.args.context:
+            self.args.context = "Generate practical and innovative ideas"
+            self.log_info("Using default context")
 
     def _setup_temperature_manager(self) -> "TemperatureManager":
         """Setup temperature manager from args.
@@ -131,21 +131,21 @@ class WorkflowValidator(CommandHandler):
     def _handle_remix_mode(self) -> None:
         """Handle remix mode integration with bookmarks.
 
-        Updates self.args.constraints with enhanced version including bookmarked ideas.
+        Updates self.args.context with enhanced version including bookmarked ideas.
 
         Raises:
             Exception: If remix mode setup fails
         """
         self.log_info("Running in remix mode - incorporating bookmarked ideas")
         try:
-            self.args.constraints = remix_with_bookmarks(
-                theme=self.args.theme,
-                additional_constraints=self.args.constraints,
+            self.args.context = remix_with_bookmarks(
+                theme=self.args.topic,
+                additional_constraints=self.args.context,
                 bookmark_ids=self.args.remix_ids,
                 bookmark_tags=self.args.bookmark_tags,
                 bookmark_file=self.args.bookmark_file
             )
-            self.log_info("Successfully enhanced constraints with bookmarked ideas")
+            self.log_info("Successfully enhanced context with bookmarked ideas")
         except Exception as e:
             self.log_error(f"Failed to setup remix mode: {e}")
             raise

@@ -84,8 +84,8 @@ class BookmarkHandler(CommandHandler):
 
             bookmark_id = manager.bookmark_idea(
                 idea_text=idea_text,
-                topic=self.args.theme,
-                context=self.args.constraints,
+                topic=self.args.topic,
+                context=self.args.context,
                 score=score,
                 critique=critique,
                 advocacy=result.get("advocacy", ""),
@@ -111,7 +111,7 @@ class BookmarkHandler(CommandHandler):
     def _show_bookmark_tip(self) -> None:
         """Show tip for manual bookmarking."""
         print("\n💡 Tip: To manually bookmark this result later, save the output to a file:")
-        print(f"   ms \"{self.args.theme}\" \"{self.args.constraints}\" --output-file result.txt")
+        print(f"   ms \"{self.args.topic}\" \"{self.args.context}\" --output-file result.txt")
 
     @staticmethod
     def list_bookmarks(args: argparse.Namespace) -> CommandResult:

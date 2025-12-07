@@ -21,8 +21,8 @@ def mock_logger():
 def basic_args():
     """Create basic argument namespace for testing."""
     args = argparse.Namespace()
-    args.theme = "Test Theme"
-    args.constraints = "Test Constraints"
+    args.topic = "Test Topic"
+    args.context = "Test Context"
     args.verbose = False
     args.timeout = 60
     args.similarity_threshold = 0.7
@@ -131,14 +131,14 @@ class TestCommandHandler:
 class TestWorkflowValidator:
     """Tests for WorkflowValidator command handler."""
 
-    def test_validates_theme_required(self, mock_logger):
-        """Test that theme validation works - theme is required."""
+    def test_validates_topic_required(self, mock_logger):
+        """Test that topic validation works - topic is required."""
         from madspark.cli.commands.validation import WorkflowValidator
 
-        # Create args without theme
+        # Create args without topic
         args = argparse.Namespace()
-        args.theme = None
-        args.constraints = "Test constraints"
+        args.topic = None
+        args.context = "Test context"
         args.remix = False
         args.temperature_preset = None
         args.temp_idea = 0.9
@@ -148,17 +148,17 @@ class TestWorkflowValidator:
         validator = WorkflowValidator(args, mock_logger)
         result = validator.execute()
 
-        # Should fail when theme is missing and not in remix mode
+        # Should fail when topic is missing and not in remix mode
         assert result.success is False
         assert result.exit_code == 1
 
-    def test_allows_missing_theme_in_remix_mode(self, mock_logger):
-        """Test that remix mode provides default theme."""
+    def test_allows_missing_topic_in_remix_mode(self, mock_logger):
+        """Test that remix mode provides default topic."""
         from madspark.cli.commands.validation import WorkflowValidator
 
         args = argparse.Namespace()
-        args.theme = None
-        args.constraints = None
+        args.topic = None
+        args.context = None
         args.remix = True
         args.remix_ids = None
         args.bookmark_tags = None
@@ -174,15 +174,15 @@ class TestWorkflowValidator:
                 result = validator.execute()
 
                 assert result.success is True
-                assert args.theme == "Creative Innovation"  # Default theme for remix
+                assert args.topic == "Creative Innovation"  # Default topic for remix
 
-    def test_provides_default_constraints(self, mock_logger):
-        """Test that default constraints are provided when missing."""
+    def test_provides_default_context(self, mock_logger):
+        """Test that default context is provided when missing."""
         from madspark.cli.commands.validation import WorkflowValidator
 
         args = argparse.Namespace()
-        args.theme = "Test Theme"
-        args.constraints = None
+        args.topic = "Test Topic"
+        args.context = None
         args.remix = False
         args.temperature_preset = None
         args.temp_idea = 0.9
@@ -194,7 +194,7 @@ class TestWorkflowValidator:
             result = validator.execute()
 
             assert result.success is True
-            assert args.constraints == "Generate practical and innovative ideas"
+            assert args.context == "Generate practical and innovative ideas"
 
     def test_temperature_manager_creation(self, basic_args, mock_logger):
         """Test temperature manager setup from args."""
@@ -212,8 +212,8 @@ class TestWorkflowValidator:
 
             assert result.success is True
             assert result.data['temp_manager'] == mock_temp_manager
-            assert result.data['theme'] == basic_args.theme
-            assert result.data['constraints'] == basic_args.constraints
+            assert result.data['topic'] == basic_args.topic
+            assert result.data['context'] == basic_args.context
 
     def test_remix_mode_integration(self, basic_args, mock_logger):
         """Test remix mode handling."""
@@ -227,21 +227,21 @@ class TestWorkflowValidator:
         basic_args.temp_critic = 0.3
         basic_args.temp_refiner = 0.7
 
-        original_constraints = basic_args.constraints  # Store original value
+        original_context = basic_args.context  # Store original value
 
         mock_temp_manager = Mock()
-        enhanced_constraints = "Enhanced with bookmarked ideas"
+        enhanced_context = "Enhanced with bookmarked ideas"
 
         with patch('madspark.cli.commands.validation.create_temperature_manager_from_args', return_value=mock_temp_manager):
-            with patch('madspark.cli.commands.validation.remix_with_bookmarks', return_value=enhanced_constraints) as mock_remix:
+            with patch('madspark.cli.commands.validation.remix_with_bookmarks', return_value=enhanced_context) as mock_remix:
                 validator = WorkflowValidator(basic_args, mock_logger)
                 result = validator.execute()
 
                 assert result.success is True
-                assert basic_args.constraints == enhanced_constraints
+                assert basic_args.context == enhanced_context
                 mock_remix.assert_called_once_with(
-                    theme=basic_args.theme,
-                    additional_constraints=original_constraints,  # Use original value
+                    theme=basic_args.topic,
+                    additional_constraints=original_context,  # Use original value
                     bookmark_ids=basic_args.remix_ids,
                     bookmark_tags=basic_args.bookmark_tags,
                     bookmark_file=basic_args.bookmark_file

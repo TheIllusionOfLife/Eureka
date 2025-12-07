@@ -1,12 +1,15 @@
 """Prompts for the Idea Generator agent."""
 
-from typing import Optional
+from typing import Optional, Dict
 
 try:
     from madspark.utils.constants import IDEA_GENERATION_INSTRUCTION, LANGUAGE_CONSISTENCY_INSTRUCTION
 except ImportError:
     # Fallback for local development/testing
     from constants import IDEA_GENERATION_INSTRUCTION, LANGUAGE_CONSISTENCY_INSTRUCTION
+
+# Threshold for identifying weak dimensions that need priority improvement (Issue #219)
+WEAK_DIMENSION_THRESHOLD = 7
 
 
 def build_generation_prompt(topic: str, context: str, use_structured_output: bool = False) -> str:
@@ -75,16 +78,18 @@ Start your response here with idea #1:
 
 
 def build_improvement_prompt(
-    original_idea: str, 
-    critique: str, 
-    advocacy_points: str, 
-    skeptic_points: str, 
+    original_idea: str,
+    critique: str,
+    advocacy_points: str,
+    skeptic_points: str,
     topic: str,
     context: str,
-    logical_inference: Optional[str] = None
+    logical_inference: Optional[str] = None,
+    initial_score: Optional[float] = None,
+    dimension_scores: Optional[Dict[str, float]] = None
 ) -> str:
   """Builds a prompt for improving an idea based on feedback.
-  
+
   Args:
     original_idea: The original idea to improve.
     critique: The critic's evaluation of the idea.
@@ -93,30 +98,50 @@ def build_improvement_prompt(
     topic: The main topic/theme for the idea.
     context: The constraints or additional context for improvement.
     logical_inference: Optional logical analysis results to inform improvement.
-    
+    initial_score: Optional initial score from critic (0-10 scale).
+    dimension_scores: Optional dict of dimension scores (feasibility, innovation, etc.).
+
   Returns:
     A formatted prompt string for idea improvement.
   """
+  # Build score section if provided (Issue #219)
+  # Handle initial_score and dimension_scores independently to avoid losing data
+  score_section = ""
+  if initial_score is not None:
+    score_section = f"INITIAL SCORE: {initial_score}/10\n"
+
+  # Render dimension scores even if initial_score is not provided
+  if dimension_scores:
+    score_section += "DIMENSION SCORES:\n"
+    # Find weak dimensions to prioritize
+    weak_dims = [k for k, v in dimension_scores.items() if v < WEAK_DIMENSION_THRESHOLD]
+    for dim, score in dimension_scores.items():
+      dim_name = dim.replace('_', ' ').title()
+      marker = " [PRIORITY]" if dim in weak_dims else ""
+      score_section += f"  - {dim_name}: {score}/10{marker}\n"
+    score_section += "\n"
+
   # Build logical inference section if provided
   logical_section = ""
   if logical_inference:
     logical_section = f"LOGICAL INFERENCE ANALYSIS:\n{logical_inference}\n\n"
-  
+
   # Build logical inference guidance if provided
   logical_guidance = ""
   if logical_inference:
     logical_guidance = "- Use logical reasoning insights to enhance coherence and address any logical gaps\n"
-  
+
   # Build logical inference instruction if provided
   logical_instruction = ""
   if logical_inference:
     logical_instruction = "6. Incorporates insights from the logical inference analysis\n"
-  
+
   return (
       "You are helping to enhance an innovative idea based on comprehensive feedback.\n" +
       LANGUAGE_CONSISTENCY_INSTRUCTION +
       f"TOPIC: {topic}\n"
       f"CONTEXT: {context}\n\n"
+      f"{score_section}"
       f"ORIGINAL IDEA:\n{original_idea}\n\n"
       f"EVALUATION CRITERIA AND FEEDBACK:\n{critique}\n"
       f"Pay special attention to the specific scores and criteria mentioned above. "

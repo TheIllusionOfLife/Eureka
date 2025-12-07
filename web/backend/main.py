@@ -1419,7 +1419,7 @@ async def generate_ideas(
                 from madspark.utils.bookmark_system import remix_with_bookmarks
                 context = remix_with_bookmarks(
                     topic=parsed_request.topic,
-                    additional_constraints=parsed_request.context,
+                    context=parsed_request.context,
                     bookmark_ids=parsed_request.bookmark_ids,
                     bookmark_file=bookmark_system.bookmark_file
                 )

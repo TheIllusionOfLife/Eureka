@@ -258,16 +258,14 @@ Examples:
     )
     
     # Positional arguments for basic workflow
-    # Note: Keeping argument names as 'theme' and 'constraints' for backward compatibility
-    # but using 'topic' and 'context' in help text for consistency with codebase
     parser.add_argument(
-        'theme',
+        'topic',
         nargs='?',
         help='Topic for idea generation (can be a phrase, question, or request)'
     )
-    
+
     parser.add_argument(
-        'constraints',
+        'context',
         nargs='?',
         help='Context and criteria for idea generation (optional additional information)'
     )
@@ -905,7 +903,7 @@ def _configure_llm_provider(args: argparse.Namespace) -> bool:
 
         # If this was the only major action, signal to main to exit
         is_other_action = any([
-            getattr(args, 'theme', None),  # Argument name is 'theme' in parser (backward compat)
+            getattr(args, 'topic', None),
             getattr(args, 'batch', None),
             getattr(args, 'interactive', False),
             getattr(args, 'list_bookmarks', False),
@@ -943,8 +941,8 @@ def _handle_interactive_mode(args: argparse.Namespace) -> bool:
     try:
         session_data = run_interactive_mode()
         # Update args with interactive session data
-        args.theme = session_data['topic']
-        args.constraints = session_data['context']
+        args.topic = session_data['topic']
+        args.context = session_data['context']
 
         # Update args with config from interactive session
         config = session_data['config']
@@ -1051,8 +1049,8 @@ def main() -> None:
             sys.exit(validation_result.exit_code)
 
         temp_manager = validation_result.data['temp_manager']
-        logger.info(f"Running MadSpark workflow with theme: '{args.theme}'")
-        logger.info(f"Constraints: {args.constraints}")
+        logger.info(f"Running MadSpark workflow with topic: '{args.topic}'")
+        logger.info(f"Context: {args.context}")
 
         # Step 2: Execute workflow
         executor = WorkflowExecutor(args, logger, temp_manager)
@@ -1085,8 +1083,8 @@ def main() -> None:
         ):
             # Auto-generate output filename
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            theme_slug = args.theme[:30].replace(' ', '_').replace('/', '_')
-            auto_filename = f"output/markdown/madspark_{theme_slug}_{timestamp}.md"
+            topic_slug = args.topic[:30].replace(' ', '_').replace('/', '_')
+            auto_filename = f"output/markdown/madspark_{topic_slug}_{timestamp}.md"
             
             # Ensure output directory exists
             os.makedirs("output/markdown", exist_ok=True)

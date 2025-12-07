@@ -390,6 +390,37 @@ class WorkflowOrchestrator:
                 candidate["skepticism"] = FALLBACK_SKEPTICISM
             return candidates, 0
 
+    def _format_logical_inference_for_prompt(
+        self,
+        logical_inference: Optional[Dict[str, Any]]
+    ) -> Optional[str]:
+        """Format logical inference data for inclusion in improvement prompt.
+
+        Args:
+            logical_inference: Dict with confidence, conclusion, inference_chain, improvements.
+
+        Returns:
+            Formatted string for prompt or None if not available.
+        """
+        if not logical_inference:
+            return None
+
+        parts = []
+        if logical_inference.get("confidence"):
+            parts.append(f"Confidence: {logical_inference['confidence']:.0%}")
+        if logical_inference.get("conclusion"):
+            parts.append(f"Conclusion: {logical_inference['conclusion']}")
+        if logical_inference.get("inference_chain"):
+            chain = logical_inference["inference_chain"]
+            if isinstance(chain, list):
+                # Limit to 5 steps max to avoid prompt bloat
+                limited_chain = chain[:5]
+                parts.append("Logical Steps: " + " -> ".join(limited_chain))
+        if logical_inference.get("improvements"):
+            parts.append(f"Suggested Improvements: {logical_inference['improvements']}")
+
+        return "\n".join(parts) if parts else None
+
     def improve_ideas(
         self,
         candidates: List[Dict[str, Any]],
@@ -414,14 +445,29 @@ class WorkflowOrchestrator:
             self.verbose
         )
 
-        # Prepare batch input for improvement
+        # Prepare batch input for improvement with enhanced evaluation data
         improve_input = []
         for candidate in candidates:
+            # Extract dimension_scores from multi_dimensional_evaluation if present
+            multi_dim_eval = candidate.get("multi_dimensional_evaluation")
+            dimension_scores = None
+            if multi_dim_eval and isinstance(multi_dim_eval, dict):
+                dimension_scores = multi_dim_eval.get("dimension_scores")
+
+            # Format logical inference for prompt
+            logical_inference_formatted = self._format_logical_inference_for_prompt(
+                candidate.get("logical_inference")
+            )
+
             improve_input.append({
                 "idea": candidate.get("idea", candidate.get("text", "")),
                 "critique": candidate.get("initial_critique", candidate.get("critique", "")),
                 "advocacy": candidate.get("advocacy", "N/A"),
-                "skepticism": candidate.get("skepticism", "N/A")
+                "skepticism": candidate.get("skepticism", "N/A"),
+                # NEW: Enhanced evaluation data (Issue #219)
+                "initial_score": candidate.get("initial_score", candidate.get("score")),
+                "dimension_scores": dimension_scores,
+                "logical_inference": logical_inference_formatted
             })
 
         try:

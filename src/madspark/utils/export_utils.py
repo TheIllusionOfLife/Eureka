@@ -84,8 +84,8 @@ class ExportManager:
             
             # Write metadata as comments
             writer.writerow([f"# MadSpark Export - {datetime.now().isoformat()}"])
-            writer.writerow([f"# Theme: {metadata.get('theme', 'N/A')}"])
-            writer.writerow([f"# Constraints: {metadata.get('constraints', 'N/A')}"])
+            writer.writerow([f"# Topic: {metadata.get('topic', 'N/A')}"])
+            writer.writerow([f"# Context: {metadata.get('context', 'N/A')}"])
             writer.writerow([f"# Total Results: {len(results)}"])
             writer.writerow([])  # Empty row
             
@@ -126,8 +126,8 @@ class ExportManager:
             # Write header
             f.write("# MadSpark Idea Generation Results\n\n")
             f.write(f"**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
-            f.write(f"**Theme:** {metadata.get('theme', 'N/A')}\n\n")
-            f.write(f"**Constraints:** {metadata.get('constraints', 'N/A')}\n\n")
+            f.write(f"**Topic:** {metadata.get('topic', 'N/A')}\n\n")
+            f.write(f"**Context:** {metadata.get('context', 'N/A')}\n\n")
             f.write(f"**Total Results:** {len(results)}\n\n")
             
             # Write enhanced features info if available
@@ -246,8 +246,8 @@ class ExportManager:
         # Metadata table
         metadata_data = [
             ["Generated:", datetime.now().strftime('%Y-%m-%d %H:%M:%S')],
-            ["Theme:", metadata.get('theme', 'N/A')],
-            ["Constraints:", metadata.get('constraints', 'N/A')],
+            ["Topic:", metadata.get('topic', 'N/A')],
+            ["Context:", metadata.get('context', 'N/A')],
             ["Total Results:", str(len(results))],
         ]
         
@@ -392,8 +392,8 @@ class ExportManager:
 def create_metadata_from_args(args, results: List[CandidateData]) -> Dict[str, Any]:
     """Create metadata dictionary from command line arguments."""
     return {
-        "theme": getattr(args, 'theme', 'N/A'),
-        "constraints": getattr(args, 'constraints', 'N/A'),
+        "topic": getattr(args, 'topic', 'N/A'),
+        "context": getattr(args, 'context', 'N/A'),
         "num_top_candidates": getattr(args, 'num_top_candidates', len(results)),
         "temperature_preset": getattr(args, 'temperature_preset', None),
         "temperature": getattr(args, 'temperature', None),

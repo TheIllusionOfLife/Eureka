@@ -242,8 +242,8 @@ class WorkflowExecutor(CommandHandler):
         multimodal_files = files + images
 
         return {
-            "topic": self.args.theme,  # Map theme to topic for consistency
-            "context": self.args.constraints,  # Map constraints to context for consistency
+            "topic": self.args.topic,
+            "context": self.args.context,
             "num_top_candidates": num_candidates,
             "enable_novelty_filter": not self.args.disable_novelty_filter,
             "novelty_threshold": self.args.similarity_threshold if self.args.similarity_threshold is not None else self.args.novelty_threshold,

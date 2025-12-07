@@ -14,8 +14,8 @@ import argparse
 def basic_args():
     """Create basic argument namespace for testing."""
     args = argparse.Namespace()
-    args.theme = "Test Theme"
-    args.constraints = "Test Constraints"
+    args.topic = "Test Topic"
+    args.context = "Test Context"
     args.verbose = False
     args.timeout = 60
     args.similarity_threshold = 0.7

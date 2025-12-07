@@ -109,8 +109,8 @@ class TestFileLimits:
 
         # Create args with too many files
         args = argparse.Namespace(
-            theme="Test",
-            constraints="Test",
+            topic="Test",
+            context="Test",
             multimodal_files=[f"/path/file{i}.pdf" for i in range(MAX_MULTIMODAL_FILES + 1)],
             multimodal_images=[],
             multimodal_urls=[],
@@ -132,8 +132,8 @@ class TestFileLimits:
 
         # Create args with too many URLs
         args = argparse.Namespace(
-            theme="Test",
-            constraints="Test",
+            topic="Test",
+            context="Test",
             multimodal_files=[],
             multimodal_images=[],
             multimodal_urls=[f"http://example.com/doc{i}" for i in range(MAX_MULTIMODAL_URLS + 1)],
@@ -155,8 +155,8 @@ class TestFileLimits:
 
         # Create args within limits (using mocks to avoid actual file validation)
         args = argparse.Namespace(
-            theme="Test",
-            constraints="Test",
+            topic="Test",
+            context="Test",
             multimodal_files=[],
             multimodal_images=[],
             multimodal_urls=[],

@@ -463,8 +463,8 @@ class TestWorkflowExecutorFlagIntegration:
 
         # Create args with enhanced_reasoning=True
         args = argparse.Namespace()
-        args.theme = "Test Theme"
-        args.constraints = "Test Context"
+        args.topic = "Test Topic"
+        args.context = "Test Context"
         args.verbose = False
         args.timeout = 60
         args.top_ideas = None
@@ -505,8 +505,8 @@ class TestWorkflowExecutorFlagIntegration:
 
         # Create args with logical_inference=True
         args = argparse.Namespace()
-        args.theme = "Test Theme"
-        args.constraints = "Test Context"
+        args.topic = "Test Topic"
+        args.context = "Test Context"
         args.verbose = False
         args.timeout = 60
         args.top_ideas = None
@@ -547,8 +547,8 @@ class TestWorkflowExecutorFlagIntegration:
 
         # Create args with both flags enabled
         args = argparse.Namespace()
-        args.theme = "Test Theme"
-        args.constraints = "Test Context"
+        args.topic = "Test Topic"
+        args.context = "Test Context"
         args.verbose = False
         args.timeout = 60
         args.top_ideas = None

@@ -1077,7 +1077,8 @@ def main() -> None:
         formatted_output = format_results(results, output_format, args)
         
         # Check if automatic output file is needed for long outputs
-        num_ideas = args.top_ideas if args.top_ideas is not None else 3
+        # Use determine_num_candidates to respect both --top-ideas and --num-candidates
+        num_ideas = determine_num_candidates(args)
         if not args.output_file and output_format == 'detailed' and (
             (num_ideas >= 3 and (args.enhanced_reasoning or args.logical_inference)) or
             len(formatted_output) > 5000  # More than ~100 lines

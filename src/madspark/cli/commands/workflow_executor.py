@@ -130,9 +130,16 @@ class WorkflowExecutor(CommandHandler):
             self.log_error(f"Could not determine LLM provider for startup message: {e}")
             # Keep default fallback values
 
-        # Show API key message only for Gemini
+        # Show API key message only for Gemini (and only if key is actually configured)
         if provider == "gemini":
-            print("✅ API key configured.\n")
+            try:
+                if get_config and get_config().validate_api_key():
+                    print("✅ API key configured.\n")
+                else:
+                    print("⚠️  No valid API key configured. Set GOOGLE_API_KEY environment variable.\n")
+            except Exception:
+                # If config check fails, don't show misleading message
+                pass
 
         print(f"🚀 Generating ideas with {model_name}...")
         print("⏳ This may take 30-60 seconds for quality results...\n")

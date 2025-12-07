@@ -44,7 +44,7 @@ class TestLLMConfig:
     def test_default_config(self, reset_config_fixture):
         """Test default configuration values."""
         config = LLMConfig()
-        assert config.model_tier == ModelTier.FAST
+        assert config.model_tier == ModelTier.BALANCED  # Default changed from FAST to BALANCED
         assert config.fallback_enabled is True
         assert config.cache_enabled is True
         assert config.default_provider == "auto"
@@ -73,7 +73,7 @@ class TestLLMConfig:
 
         config = LLMConfig.from_env()
         assert config.default_provider == "auto"
-        assert config.model_tier == ModelTier.FAST
+        assert config.model_tier == ModelTier.BALANCED  # Default changed from FAST to BALANCED
         assert config.ollama_host == "http://localhost:11434"
 
     def test_from_env_custom_values(self, reset_config_fixture, monkeypatch):
@@ -89,14 +89,14 @@ class TestLLMConfig:
         assert config.fallback_enabled is False
         assert config.ollama_host == "http://custom:11434"
 
-    def test_from_env_invalid_tier_defaults_to_fast(
+    def test_from_env_invalid_tier_defaults_to_balanced(
         self, reset_config_fixture, monkeypatch
     ):
-        """Test invalid tier falls back to FAST."""
+        """Test invalid tier falls back to BALANCED."""
         monkeypatch.setenv("MADSPARK_MODEL_TIER", "invalid")
 
         config = LLMConfig.from_env()
-        assert config.model_tier == ModelTier.FAST
+        assert config.model_tier == ModelTier.BALANCED  # Default changed from FAST to BALANCED
 
     def test_singleton_get_config(self, reset_config_fixture):
         """Test get_config returns singleton."""

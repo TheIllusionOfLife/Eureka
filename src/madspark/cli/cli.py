@@ -332,7 +332,7 @@ Examples:
         type=int,
         choices=range(1, 6),
         default=None,  # Changed to None to detect if explicitly set
-        help='Number of top ideas to generate (1-5, default: 1 for faster execution). Multiple ideas may take up to 5 minutes to process.'
+        help='Number of top ideas to generate (1-5, default: 3). Multiple ideas may take up to 5 minutes to process.'
     )
     
     workflow_group.add_argument(
@@ -479,7 +479,7 @@ Examples:
         '--model-tier',
         choices=['fast', 'balanced', 'quality'],
         default=None,
-        help='Model quality tier: fast (4B, quick), balanced (12B, better), quality (Gemini, best)'
+        help='Model quality tier: fast (4B, quick), balanced (12B, default), quality (Gemini, best)'
     )
 
     llm_group.add_argument(
@@ -789,7 +789,7 @@ def determine_num_candidates(args) -> int:
         return args.top_ideas
 
     # Default value
-    return 1
+    return 3
 
 
 def _validate_numeric_arguments(args: argparse.Namespace, parser: argparse.ArgumentParser) -> None:
@@ -1077,7 +1077,8 @@ def main() -> None:
         formatted_output = format_results(results, output_format, args)
         
         # Check if automatic output file is needed for long outputs
-        num_ideas = args.top_ideas if args.top_ideas is not None else 1
+        # Use determine_num_candidates to respect both --top-ideas and --num-candidates
+        num_ideas = determine_num_candidates(args)
         if not args.output_file and output_format == 'detailed' and (
             (num_ideas >= 3 and (args.enhanced_reasoning or args.logical_inference)) or
             len(formatted_output) > 5000  # More than ~100 lines

@@ -130,9 +130,9 @@ ms "topic" --provider auto         # Default: Ollama primary, Gemini fallback
 ms "topic" --provider ollama       # Force local inference (FREE)
 ms "topic" --provider gemini       # Force cloud API
 
-# Model tier
+# Model tier (default: balanced)
 ms "topic" --model-tier fast       # gemma3:4b-it-qat (quick)
-ms "topic" --model-tier balanced   # gemma3:12b-it-qat (better)
+ms "topic" --model-tier balanced   # gemma3:12b-it-qat (default)
 ms "topic" --model-tier quality    # gemini-2.5-flash (best)
 
 # Cache control (enabled by default)
@@ -149,7 +149,7 @@ ms "topic" --no-router             # Use direct Gemini API
 ### Environment Variables
 ```bash
 MADSPARK_LLM_PROVIDER=auto        # auto, ollama, gemini
-MADSPARK_MODEL_TIER=fast           # fast, balanced, quality
+MADSPARK_MODEL_TIER=balanced       # fast, balanced (default), quality
 MADSPARK_FALLBACK_ENABLED=true     # Enable provider fallback
 MADSPARK_CACHE_ENABLED=true        # Enable response caching
 MADSPARK_CACHE_TTL=86400           # Cache TTL in seconds (24h)

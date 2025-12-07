@@ -133,20 +133,21 @@ class TestCLITimeoutIntegration:
         """Test that CLI passes timeout to run_multistep_workflow()"""
         # Setup mock
         mock_workflow.return_value = [{"idea": "test"}]
-        
+
         # Import after patching
         from madspark.cli.cli import main
-        
+
         # Run CLI with timeout
-        with patch('sys.argv', ['mad_spark', 'topic', 'context', '--timeout', '300']):
+        # Use --top-ideas 1 to force sync execution (which uses run_multistep_workflow)
+        with patch('sys.argv', ['mad_spark', 'topic', 'context', '--timeout', '300', '--top-ideas', '1']):
             with patch('madspark.cli.cli.print'):  # Suppress output
                 with patch('os.getenv', return_value=None):  # Force sync mode
                     main()
-        
+
         # Verify timeout was passed
         mock_workflow.assert_called()
         call_args = mock_workflow.call_args
-        
+
         # Check if timeout is in kwargs
         assert 'timeout' in call_args.kwargs, "Timeout should be passed to workflow"
         assert call_args.kwargs['timeout'] == 300, "Timeout value should be 300"

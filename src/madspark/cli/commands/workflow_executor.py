@@ -14,11 +14,15 @@ try:
     from madspark.core.async_coordinator import AsyncCoordinator
     from madspark.utils.cache_manager import CacheManager, CacheConfig
     from madspark.cli.cli import determine_num_candidates
+    from madspark.llm.utils import should_use_router
+    from madspark.llm.config import get_config
 except ImportError:
     from coordinator import run_multistep_workflow
     from async_coordinator import AsyncCoordinator
     from cache_manager import CacheManager, CacheConfig
     from cli import determine_num_candidates
+    should_use_router = None
+    get_config = None
 
 
 class WorkflowExecutor(CommandHandler):
@@ -50,10 +54,7 @@ class WorkflowExecutor(CommandHandler):
         try:
             # Show progress message to user (unless in mock mode)
             if os.getenv("MADSPARK_MODE") != "mock":
-                # Note: Currently agents use Gemini directly (Phase 1)
-                # Phase 2 will route through madspark.llm for provider selection
-                print("\n🚀 Generating ideas with AI model...")
-                print("⏳ This may take 30-60 seconds for quality results...\n")
+                self._show_startup_message()
 
             # Determine number of candidates and execution mode
             num_candidates = determine_num_candidates(self.args)
@@ -76,6 +77,72 @@ class WorkflowExecutor(CommandHandler):
         except Exception as e:
             self.log_error(f"Workflow execution failed: {e}")
             return CommandResult(success=False, exit_code=1, message=str(e))
+
+    def _show_startup_message(self) -> None:
+        """Show startup message with actual model name."""
+        model_name = "AI model"  # Default fallback
+        provider = "unknown"
+
+        # Try to determine the actual model that will be used
+        try:
+            if get_config:
+                config = get_config()
+                # Determine provider from config or args
+                provider_setting = getattr(self.args, 'provider', None) or config.default_provider
+                no_router = getattr(self.args, 'no_router', False)
+
+                use_gemini = False
+                if no_router or provider_setting == "gemini":
+                    use_gemini = True
+                elif provider_setting in ("auto", "ollama", None):
+                    # Check if Ollama is available with timeout protection
+                    try:
+                        from madspark.llm.providers.ollama import OllamaProvider
+                        import concurrent.futures
+
+                        ollama_provider = OllamaProvider()
+                        # Use thread with timeout to prevent hanging on unresponsive Ollama
+                        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                            future = executor.submit(ollama_provider.health_check)
+                            try:
+                                is_healthy = future.result(timeout=2.0)  # 2 second timeout
+                                if is_healthy:
+                                    provider = "ollama"
+                                    model_name = config.get_ollama_model()
+                                else:
+                                    use_gemini = True  # Ollama unhealthy, fallback to Gemini
+                            except concurrent.futures.TimeoutError:
+                                self.log_debug("Ollama health check timed out, using Gemini")
+                                use_gemini = True
+                    except (ImportError, ConnectionError, OSError) as e:
+                        # Expected failures: missing package, network issues, socket errors
+                        self.log_debug(f"Ollama unavailable, using Gemini: {e}")
+                        use_gemini = True
+                    except Exception as e:
+                        # Unexpected errors should be more visible
+                        self.log_warning(f"Unexpected error checking Ollama: {e}")
+                        use_gemini = True
+
+                if use_gemini:
+                    provider = "gemini"
+                    model_name = config.gemini_model
+        except Exception as e:
+            self.log_error(f"Could not determine LLM provider for startup message: {e}")
+            # Keep default fallback values
+
+        # Show API key message only for Gemini (and only if key is actually configured)
+        if provider == "gemini":
+            try:
+                if get_config and get_config().validate_api_key():
+                    print("✅ API key configured.\n")
+                else:
+                    print("⚠️  No valid API key configured. Set GOOGLE_API_KEY environment variable.\n")
+            except Exception:
+                # If config check fails, don't show misleading message
+                pass
+
+        print(f"🚀 Generating ideas with {model_name}...")
+        print("⏳ This may take 30-60 seconds for quality results...\n")
 
     def _should_use_async(self, num_candidates: int) -> bool:
         """Determine if async execution should be used.

@@ -120,8 +120,8 @@ When `MADSPARK_LLM_PROVIDER=auto` (default), the router uses:
 
 Configure via UI "Advanced LLM Settings" or `MADSPARK_MODEL_TIER`:
 
-- **Fast** (default): gemma3:4b-it-qat - Quick responses (~10s)
-- **Balanced**: gemma3:12b-it-qat - Better quality (~20s)
+- **Fast**: gemma3:4b-it-qat - Quick responses (~10s)
+- **Balanced** (default): gemma3:12b-it-qat - Better quality (~20s)
 - **Quality**: gemini-2.5-flash - Best results (cloud, paid)
 
 ### LLM Usage Statistics

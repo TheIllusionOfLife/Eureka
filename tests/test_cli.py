@@ -58,8 +58,9 @@ class TestCLIMain:
             }
         ]
         
-        test_args = ["cli.py", "AI automation", "Cost-effective", "--verbose"]
-        
+        # Use --top-ideas 1 to force sync execution (which uses run_multistep_workflow)
+        test_args = ["cli.py", "AI automation", "Cost-effective", "--verbose", "--top-ideas", "1"]
+
         with patch.object(sys, 'argv', test_args):
             try:
                 _ = cli_main()
@@ -87,8 +88,9 @@ class TestCLIMain:
             }
         ]
         
-        test_args = ["cli.py", "AI automation", "Cost-effective", "--temperature", "0.8"]
-        
+        # Use --top-ideas 1 to force sync execution (which uses run_multistep_workflow)
+        test_args = ["cli.py", "AI automation", "Cost-effective", "--temperature", "0.8", "--top-ideas", "1"]
+
         with patch.object(sys, 'argv', test_args):
             try:
                 _ = cli_main()
@@ -121,8 +123,9 @@ class TestCLIMain:
             }
         ]
         
-        test_args = ["cli.py", "AI automation", "Cost-effective", "--temperature-preset", "creative"]
-        
+        # Use --top-ideas 1 to force sync execution (which uses run_multistep_workflow)
+        test_args = ["cli.py", "AI automation", "Cost-effective", "--temperature-preset", "creative", "--top-ideas", "1"]
+
         with patch.object(sys, 'argv', test_args):
             try:
                 _ = cli_main()
@@ -153,8 +156,9 @@ class TestCLIMain:
             }
         ]
         
-        test_args = ["cli.py", "AI automation", "Cost-effective", "--timeout", "30"]
-        
+        # Use --top-ideas 1 to force sync execution (which uses run_multistep_workflow)
+        test_args = ["cli.py", "AI automation", "Cost-effective", "--timeout", "30", "--top-ideas", "1"]
+
         with patch.object(sys, 'argv', test_args):
             try:
                 _ = cli_main()
@@ -181,8 +185,9 @@ class TestCLIMain:
             }
         ]
         
-        test_args = ["cli.py", "AI automation", "Cost-effective", "--enhanced-reasoning"]
-        
+        # Use --top-ideas 1 to force sync execution (which uses run_multistep_workflow)
+        test_args = ["cli.py", "AI automation", "Cost-effective", "--enhanced-reasoning", "--top-ideas", "1"]
+
         with patch.object(sys, 'argv', test_args):
             try:
                 _ = cli_main()
@@ -309,18 +314,19 @@ class TestCLIIntegration:
             }
         ]
         
-        test_args = ["cli.py", "AI automation", "Cost-effective solutions", "--verbose", "--enhanced-reasoning"]
-        
+        # Use --top-ideas 1 to force sync execution (which uses run_multistep_workflow)
+        test_args = ["cli.py", "AI automation", "Cost-effective solutions", "--verbose", "--enhanced-reasoning", "--top-ideas", "1"]
+
         with patch.object(sys, 'argv', test_args):
             try:
                 _ = cli_main()
                 mock_workflow.assert_called_once()
-                
+
                 # Verify all expected parameters were passed
                 args, kwargs = mock_workflow.call_args
                 assert kwargs.get('verbose') is True
                 assert kwargs.get('enhanced_reasoning') is True
-                
+
             except SystemExit as e:
                 assert e.code == 0
     

@@ -12,6 +12,12 @@ from enum import Enum
 from pathlib import Path
 from typing import Optional
 
+from madspark.llm.models import (
+    OLLAMA_MODEL_FAST,
+    OLLAMA_MODEL_BALANCED,
+    GEMINI_MODEL_DEFAULT,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -19,7 +25,7 @@ class ModelTier(Enum):
     """Model quality/speed tiers."""
 
     FAST = "fast"  # 4B - quick iterations, lower quality
-    BALANCED = "balanced"  # 12B - better quality, slower
+    BALANCED = "balanced"  # 12B - better quality, slower (DEFAULT)
     QUALITY = "quality"  # Gemini - best quality, fastest, paid
 
 
@@ -33,17 +39,17 @@ class LLMConfig:
 
     # Provider selection
     default_provider: str = "auto"  # auto, ollama, gemini
-    model_tier: ModelTier = ModelTier.FAST
+    model_tier: ModelTier = ModelTier.BALANCED  # Default to balanced (12B) for better quality
     fallback_enabled: bool = True
 
     # Ollama settings
     ollama_host: str = "http://localhost:11434"
-    ollama_model_fast: str = "gemma3:4b-it-qat"
-    ollama_model_balanced: str = "gemma3:12b-it-qat"
+    ollama_model_fast: str = OLLAMA_MODEL_FAST
+    ollama_model_balanced: str = OLLAMA_MODEL_BALANCED
 
     # Gemini settings
     gemini_api_key: Optional[str] = None
-    gemini_model: str = "gemini-2.5-flash"
+    gemini_model: str = GEMINI_MODEL_DEFAULT
 
     # Performance tuning
     default_temperature: float = 0.7
@@ -74,11 +80,11 @@ class LLMConfig:
         - MADSPARK_CACHE_MAX_SIZE_MB: Maximum cache size in MB
         - MADSPARK_CACHE_DIR: Cache directory path
         """
-        tier_str = os.getenv("MADSPARK_MODEL_TIER", "fast").lower()
+        tier_str = os.getenv("MADSPARK_MODEL_TIER", "balanced").lower()
         try:
             tier = ModelTier(tier_str)
         except ValueError:
-            tier = ModelTier.FAST
+            tier = ModelTier.BALANCED
 
         # Parse cache TTL with validation
         cache_ttl = 86400  # Default: 24 hours
@@ -128,12 +134,12 @@ class LLMConfig:
             fallback_enabled=os.getenv("MADSPARK_FALLBACK_ENABLED", "true").lower()
             == "true",
             ollama_host=os.getenv("OLLAMA_HOST", "http://localhost:11434"),
-            ollama_model_fast=os.getenv("OLLAMA_MODEL_FAST", "gemma3:4b-it-qat"),
+            ollama_model_fast=os.getenv("OLLAMA_MODEL_FAST", OLLAMA_MODEL_FAST),
             ollama_model_balanced=os.getenv(
-                "OLLAMA_MODEL_BALANCED", "gemma3:12b-it-qat"
+                "OLLAMA_MODEL_BALANCED", OLLAMA_MODEL_BALANCED
             ),
             gemini_api_key=os.getenv("GOOGLE_API_KEY"),
-            gemini_model=os.getenv("GOOGLE_GENAI_MODEL", "gemini-2.5-flash"),
+            gemini_model=os.getenv("GOOGLE_GENAI_MODEL", GEMINI_MODEL_DEFAULT),
             cache_enabled=os.getenv("MADSPARK_CACHE_ENABLED", "true").lower()
             == "true",
             cache_ttl_seconds=cache_ttl,

@@ -22,7 +22,8 @@ sys.argv = [
     'affordable for cities',
     '--detailed',
     '--logical',
-    '--no-bookmark'
+    '--no-bookmark',
+    '--top-ideas', '1'  # Force sync execution to avoid output truncation
 ]
 
 # Run the CLI
@@ -82,7 +83,8 @@ sys.argv = [
     '--detailed',
     '--enhanced',
     '--logical',
-    '--no-bookmark'
+    '--no-bookmark',
+    '--top-ideas', '1'  # Force sync execution to avoid output truncation
 ]
 
 # Run the CLI

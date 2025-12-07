@@ -105,18 +105,21 @@ def build_improvement_prompt(
     A formatted prompt string for idea improvement.
   """
   # Build score section if provided (Issue #219)
+  # Handle initial_score and dimension_scores independently to avoid losing data
   score_section = ""
   if initial_score is not None:
     score_section = f"INITIAL SCORE: {initial_score}/10\n"
-    if dimension_scores:
-      score_section += "DIMENSION SCORES:\n"
-      # Find weak dimensions to prioritize
-      weak_dims = [k for k, v in dimension_scores.items() if v < WEAK_DIMENSION_THRESHOLD]
-      for dim, score in dimension_scores.items():
-        dim_name = dim.replace('_', ' ').title()
-        marker = " [PRIORITY]" if dim in weak_dims else ""
-        score_section += f"  - {dim_name}: {score}/10{marker}\n"
-      score_section += "\n"
+
+  # Render dimension scores even if initial_score is not provided
+  if dimension_scores:
+    score_section += "DIMENSION SCORES:\n"
+    # Find weak dimensions to prioritize
+    weak_dims = [k for k, v in dimension_scores.items() if v < WEAK_DIMENSION_THRESHOLD]
+    for dim, score in dimension_scores.items():
+      dim_name = dim.replace('_', ' ').title()
+      marker = " [PRIORITY]" if dim in weak_dims else ""
+      score_section += f"  - {dim_name}: {score}/10{marker}\n"
+    score_section += "\n"
 
   # Build logical inference section if provided
   logical_section = ""

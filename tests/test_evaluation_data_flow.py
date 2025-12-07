@@ -107,11 +107,12 @@ class TestFormatLogicalInferenceForPrompt:
         from madspark.core.workflow_orchestrator import WorkflowOrchestrator
 
         orchestrator = WorkflowOrchestrator(verbose=False)
+        # improvements should be a string per InferenceResult schema
         logical_inference = {
             "confidence": 0.92,
             "conclusion": "The approach is sound.",
             "inference_chain": ["Given premise", "We can infer", "Therefore"],
-            "improvements": {"optimize": "resource usage"}
+            "improvements": "Optimize resource usage for better efficiency"
         }
 
         result = orchestrator._format_logical_inference_for_prompt(logical_inference)
@@ -357,14 +358,16 @@ class TestBuildImprovementPromptEnhancements:
 class TestImproveBatchWithNewFields:
     """Test improve_ideas_batch handles new evaluation fields."""
 
-    @patch('madspark.agents.idea_generator.GENAI_AVAILABLE', True)
-    @patch('madspark.agents.idea_generator.idea_generator_client')
+    @patch('madspark.agents.idea_generator.types')
     @patch('madspark.agents.idea_generator.get_model_name')
-    def test_batch_prompt_includes_initial_score(self, mock_model_name, mock_client):
+    @patch('madspark.agents.idea_generator.idea_generator_client')
+    @patch('madspark.agents.idea_generator.GENAI_AVAILABLE', True)
+    def test_batch_prompt_includes_initial_score(self, mock_client, mock_model_name, mock_types):
         """Verify batch prompt includes initial_score when provided."""
         from madspark.agents.idea_generator import improve_ideas_batch
 
         mock_model_name.return_value = "gemini-2.5-flash"
+        mock_types.GenerateContentConfig.return_value = Mock()
         mock_response = Mock()
         mock_response.text = '[{"idea_index": 0, "improved_idea": "Better idea", "key_improvements": []}]'
         mock_client.models.generate_content.return_value = mock_response
@@ -384,14 +387,16 @@ class TestImproveBatchWithNewFields:
         prompt_content = str(call_args)
         assert "7.5/10" in prompt_content or "INITIAL SCORE" in prompt_content
 
-    @patch('madspark.agents.idea_generator.GENAI_AVAILABLE', True)
-    @patch('madspark.agents.idea_generator.idea_generator_client')
+    @patch('madspark.agents.idea_generator.types')
     @patch('madspark.agents.idea_generator.get_model_name')
-    def test_batch_prompt_includes_dimension_scores(self, mock_model_name, mock_client):
+    @patch('madspark.agents.idea_generator.idea_generator_client')
+    @patch('madspark.agents.idea_generator.GENAI_AVAILABLE', True)
+    def test_batch_prompt_includes_dimension_scores(self, mock_client, mock_model_name, mock_types):
         """Verify batch prompt includes dimension_scores when provided."""
         from madspark.agents.idea_generator import improve_ideas_batch
 
         mock_model_name.return_value = "gemini-2.5-flash"
+        mock_types.GenerateContentConfig.return_value = Mock()
         mock_response = Mock()
         mock_response.text = '[{"idea_index": 0, "improved_idea": "Better idea", "key_improvements": []}]'
         mock_client.models.generate_content.return_value = mock_response
@@ -415,14 +420,16 @@ class TestImproveBatchWithNewFields:
         prompt_content = str(call_args)
         assert "Feasibility" in prompt_content or "DIMENSION SCORES" in prompt_content
 
-    @patch('madspark.agents.idea_generator.GENAI_AVAILABLE', True)
-    @patch('madspark.agents.idea_generator.idea_generator_client')
+    @patch('madspark.agents.idea_generator.types')
     @patch('madspark.agents.idea_generator.get_model_name')
-    def test_batch_prompt_includes_logical_inference(self, mock_model_name, mock_client):
+    @patch('madspark.agents.idea_generator.idea_generator_client')
+    @patch('madspark.agents.idea_generator.GENAI_AVAILABLE', True)
+    def test_batch_prompt_includes_logical_inference(self, mock_client, mock_model_name, mock_types):
         """Verify batch prompt includes logical_inference when provided."""
         from madspark.agents.idea_generator import improve_ideas_batch
 
         mock_model_name.return_value = "gemini-2.5-flash"
+        mock_types.GenerateContentConfig.return_value = Mock()
         mock_response = Mock()
         mock_response.text = '[{"idea_index": 0, "improved_idea": "Better idea", "key_improvements": []}]'
         mock_client.models.generate_content.return_value = mock_response

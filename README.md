@@ -104,15 +104,15 @@ See [Command Aliases Documentation](docs/COMMAND_ALIASES.md) for detailed inform
 ms --help
 
 # Basic usage with any alias
-# command "question/topic/theme" "constraints/context"
-mad_spark "how to reduce carbon footprint?" "small business"          
+# command "topic" "context"
+mad_spark "how to reduce carbon footprint?" "small business"
 madspark "innovative teaching methods" "high school science"
 ms "Come up with innovative ways to teach math" "elementary school"
 
-# Second argument is optional.   
+# Second argument (context) is optional
 ms "I want to learn AI. Guide me."
 
-# Single argument works too - constraints will default                                    
+# Single argument works too - context will use default
 ms "future technology"                                                 
 
 # Output modes for different needs
@@ -322,7 +322,7 @@ MadSpark uses Google Gemini's structured output feature for cleaner, more consis
 ### Bookmark Management
 
 MadSpark automatically saves all generated ideas as bookmarks for future reference and remixing. 
-Each bookmark includes the improved idea text, score, theme, and timestamp.
+Each bookmark includes the improved idea text, score, topic, and timestamp.
 
 #### Key Features:
 - **Automatic Deduplication**: Uses Jaccard similarity (default threshold: 0.8) to prevent saving duplicate ideas
@@ -580,7 +580,7 @@ pytest tests/ -v --cov=src --cov-report=html
 
 - **[System Architecture](docs/ARCHITECTURE.md)** - Complete technical architecture, data flows, and component details
 - **[Quick Start Examples](docs/QUICK_START_EXAMPLES.md)** - Common usage patterns
-- **[Batch Processing Guide](docs/BATCH_PROCESSING_GUIDE.md)** - Process multiple themes
+- **[Batch Processing Guide](docs/BATCH_PROCESSING_GUIDE.md)** - Process multiple topics
 - **[Interactive Mode Guide](docs/INTERACTIVE_MODE_GUIDE.md)** - Conversational interface
 - **[Web Interface Guide](docs/WEB_INTERFACE_GUIDE.md)** - Modern web UI
 - **[Cost & Time Analysis](docs/COST_TIME_ANALYSIS.md)** - Detailed pricing and performance metrics

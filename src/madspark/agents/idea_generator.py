@@ -480,14 +480,26 @@ def improve_ideas_batch(
   # Build batch prompt
   items_text = []
   for i, item in enumerate(ideas_with_feedback):
+    # Build score section if available (Issue #219)
+    score_section = ""
+    if item.get('initial_score') is not None:
+      score_section = f"\n\nINITIAL SCORE: {item['initial_score']}/10"
+      if item.get('dimension_scores'):
+        dims = item['dimension_scores']
+        score_section += "\nDIMENSION SCORES: "
+        score_section += ", ".join(
+          f"{k.replace('_', ' ').title()}: {v}"
+          for k, v in dims.items()
+        )
+
     # Build logical inference section if available
     logical_section = ""
     if item.get('logical_inference'):
       logical_section = f"\n\nLOGICAL INFERENCE ANALYSIS:\n{item['logical_inference']}"
-    
+
     items_text.append(
       f"IDEA {i+1}:\n{item['idea']}\n\n"
-      f"CRITIQUE:\n{item['critique']}\n\n"
+      f"CRITIQUE:\n{item['critique']}{score_section}\n\n"
       f"ADVOCACY:\n{item['advocacy']}\n\n"
       f"SKEPTICISM:\n{item['skepticism']}{logical_section}"
     )

@@ -49,19 +49,31 @@ class SummaryFormatter(ResultFormatter):
             eval_data = result.get('improved_multi_dimensional_evaluation') or result.get('multi_dimensional_evaluation')
             if eval_data:
                 lines.append("\nMulti-Dimensional Evaluation:")
-                lines.append(f"  Overall Score: {eval_data.get('overall_score', 'N/A')}")
+                # Only show overall score if it has a value
+                overall_score = eval_data.get('overall_score')
+                if overall_score is not None:
+                    lines.append(f"  Overall Score: {overall_score}")
 
-                if 'dimension_scores' in eval_data:
+                # Only show dimension scores that have actual values (no N/A clutter)
+                if 'dimension_scores' in eval_data and eval_data['dimension_scores']:
                     scores = eval_data['dimension_scores']
-                    lines.append(f"  - Feasibility: {scores.get('feasibility', 'N/A')}")
-                    lines.append(f"  - Innovation: {scores.get('innovation', 'N/A')}")
-                    lines.append(f"  - Impact: {scores.get('impact', 'N/A')}")
-                    lines.append(f"  - Cost-Effectiveness: {scores.get('cost_effectiveness', 'N/A')}")
-                    lines.append(f"  - Scalability: {scores.get('scalability', 'N/A')}")
-                    lines.append(f"  - Risk Assessment: {scores.get('risk_assessment', 'N/A')} (lower is better)")
-                    lines.append(f"  - Timeline: {scores.get('timeline', 'N/A')}")
+                    # Only display dimensions with actual values
+                    if scores.get('feasibility') is not None:
+                        lines.append(f"  - Feasibility: {scores['feasibility']}")
+                    if scores.get('innovation') is not None:
+                        lines.append(f"  - Innovation: {scores['innovation']}")
+                    if scores.get('impact') is not None:
+                        lines.append(f"  - Impact: {scores['impact']}")
+                    if scores.get('cost_effectiveness') is not None:
+                        lines.append(f"  - Cost-Effectiveness: {scores['cost_effectiveness']}")
+                    if scores.get('scalability') is not None:
+                        lines.append(f"  - Scalability: {scores['scalability']}")
+                    if scores.get('risk_assessment') is not None:
+                        lines.append(f"  - Risk Assessment: {scores['risk_assessment']} (lower is better)")
+                    if scores.get('timeline') is not None:
+                        lines.append(f"  - Timeline: {scores['timeline']}")
 
-                if 'evaluation_summary' in eval_data:
+                if 'evaluation_summary' in eval_data and eval_data.get('evaluation_summary'):
                     lines.append(f"  Summary: {eval_data['evaluation_summary']}")
 
             lines.append("")  # Empty line between ideas

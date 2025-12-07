@@ -57,19 +57,18 @@ class SummaryFormatter(ResultFormatter):
                 # Only show dimension scores that have actual values (no N/A clutter)
                 if 'dimension_scores' in eval_data and eval_data['dimension_scores']:
                     scores = eval_data['dimension_scores']
-                    # Dimension display mapping for DRY formatting
+                    # Dimension display mapping with suffix for DRY formatting
                     dimension_display = {
-                        "feasibility": "Feasibility",
-                        "innovation": "Innovation",
-                        "impact": "Impact",
-                        "cost_effectiveness": "Cost-Effectiveness",
-                        "scalability": "Scalability",
-                        "risk_assessment": "Risk Assessment",
-                        "timeline": "Timeline",
+                        "feasibility": ("Feasibility", ""),
+                        "innovation": ("Innovation", ""),
+                        "impact": ("Impact", ""),
+                        "cost_effectiveness": ("Cost-Effectiveness", ""),
+                        "scalability": ("Scalability", ""),
+                        "risk_assessment": ("Risk Assessment", " (lower is better)"),
+                        "timeline": ("Timeline", ""),
                     }
-                    for key, display_name in dimension_display.items():
+                    for key, (display_name, suffix) in dimension_display.items():
                         if scores.get(key) is not None:
-                            suffix = " (lower is better)" if key == "risk_assessment" else ""
                             lines.append(f"  - {display_name}: {scores[key]}{suffix}")
 
                 if 'evaluation_summary' in eval_data and eval_data.get('evaluation_summary'):

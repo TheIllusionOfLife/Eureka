@@ -481,16 +481,19 @@ def improve_ideas_batch(
   items_text = []
   for i, item in enumerate(ideas_with_feedback):
     # Build score section if available (Issue #219)
+    # Handle initial_score and dimension_scores independently to avoid data loss
     score_section = ""
     if item.get('initial_score') is not None:
       score_section = f"\n\nINITIAL SCORE: {item['initial_score']}/10"
-      if item.get('dimension_scores'):
-        dims = item['dimension_scores']
-        score_section += "\nDIMENSION SCORES: "
-        score_section += ", ".join(
-          f"{k.replace('_', ' ').title()}: {v}"
-          for k, v in dims.items()
-        )
+
+    # Render dimension scores independently (not nested in initial_score check)
+    if item.get('dimension_scores'):
+      dims = item['dimension_scores']
+      score_section += "\nDIMENSION SCORES: "
+      score_section += ", ".join(
+        f"{k.replace('_', ' ').title()}: {v}"
+        for k, v in dims.items()
+      )
 
     # Build logical inference section if available
     logical_section = ""

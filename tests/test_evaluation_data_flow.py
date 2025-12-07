@@ -155,6 +155,34 @@ class TestImproveInputDataFlow:
             call_args = mock_improve.call_args[0][0]  # First positional arg
             assert call_args[0].get("initial_score") == 7.5
 
+    def test_improve_input_includes_zero_score(self):
+        """Verify initial_score=0 is correctly passed (edge case for falsy value)."""
+        from madspark.core.workflow_orchestrator import WorkflowOrchestrator
+
+        orchestrator = WorkflowOrchestrator(verbose=False)
+
+        candidates = [{
+            "idea": "Test idea",
+            "text": "Test idea",
+            "initial_critique": "Poor critique",
+            "initial_score": 0,  # Edge case: valid score but falsy
+            "advocacy": "Some points",
+            "skepticism": "Many concerns"
+        }]
+
+        with patch('madspark.core.workflow_orchestrator.improve_ideas_batch') as mock_improve:
+            mock_improve.return_value = ([{"improved_idea": "Better idea"}], 100)
+
+            orchestrator.improve_ideas(
+                candidates=candidates,
+                topic="Test",
+                context="Test context"
+            )
+
+            # Verify initial_score=0 is passed (not treated as missing)
+            call_args = mock_improve.call_args[0][0]
+            assert call_args[0].get("initial_score") == 0
+
     def test_improve_input_includes_dimension_scores(self):
         """Verify dimension_scores are passed when multi_dimensional_evaluation exists."""
         from madspark.core.workflow_orchestrator import WorkflowOrchestrator

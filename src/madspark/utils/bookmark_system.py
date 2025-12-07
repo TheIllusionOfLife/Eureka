@@ -517,26 +517,26 @@ def list_bookmarks_cli(bookmark_file: str = "examples/data/bookmarks.json") -> L
 
 
 def remix_with_bookmarks(
-    theme: str,
-    additional_constraints: str = "",
+    topic: str,
+    context: str = "",
     bookmark_ids: Optional[List[str]] = None,
     bookmark_tags: Optional[List[str]] = None,
     bookmark_file: str = "examples/data/bookmarks.json"
 ) -> str:
     """Generate remix context from bookmarks.
-    
+
     Args:
-        theme: New theme for remix
-        additional_constraints: Additional constraints
+        topic: Topic for idea generation remix
+        context: Additional context for idea generation
         bookmark_ids: Optional specific bookmarks to use
         bookmark_tags: Optional tags to filter bookmarks by
         bookmark_file: Bookmark storage file
-        
+
     Returns:
-        Enhanced constraints with remix context
+        Enhanced context with remix content from bookmarks
     """
     manager = BookmarkManager(bookmark_file)
     remix_context = manager.get_remix_context(bookmark_ids, bookmark_tags)
-    
-    combined_constraints = f"{additional_constraints}\n\n{remix_context}"
-    return combined_constraints.strip()
+
+    combined_context = f"{context}\n\n{remix_context}"
+    return combined_context.strip()

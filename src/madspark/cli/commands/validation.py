@@ -139,8 +139,8 @@ class WorkflowValidator(CommandHandler):
         self.log_info("Running in remix mode - incorporating bookmarked ideas")
         try:
             self.args.context = remix_with_bookmarks(
-                theme=self.args.topic,
-                additional_constraints=self.args.context,
+                topic=self.args.topic,
+                context=self.args.context,
                 bookmark_ids=self.args.remix_ids,
                 bookmark_tags=self.args.bookmark_tags,
                 bookmark_file=self.args.bookmark_file

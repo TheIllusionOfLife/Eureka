@@ -240,8 +240,8 @@ class TestWorkflowValidator:
                 assert result.success is True
                 assert basic_args.context == enhanced_context
                 mock_remix.assert_called_once_with(
-                    theme=basic_args.topic,
-                    additional_constraints=original_context,  # Use original value
+                    topic=basic_args.topic,
+                    context=original_context,  # Use original value
                     bookmark_ids=basic_args.remix_ids,
                     bookmark_tags=basic_args.bookmark_tags,
                     bookmark_file=basic_args.bookmark_file

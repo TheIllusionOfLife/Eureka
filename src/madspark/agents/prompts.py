@@ -8,6 +8,9 @@ except ImportError:
     # Fallback for local development/testing
     from constants import IDEA_GENERATION_INSTRUCTION, LANGUAGE_CONSISTENCY_INSTRUCTION
 
+# Threshold for identifying weak dimensions that need priority improvement (Issue #219)
+WEAK_DIMENSION_THRESHOLD = 7
+
 
 def build_generation_prompt(topic: str, context: str, use_structured_output: bool = False) -> str:
   """Builds a prompt for generating ideas based on user input and context.
@@ -107,8 +110,8 @@ def build_improvement_prompt(
     score_section = f"INITIAL SCORE: {initial_score}/10\n"
     if dimension_scores:
       score_section += "DIMENSION SCORES:\n"
-      # Find weak dimensions to prioritize (score < 7)
-      weak_dims = [k for k, v in dimension_scores.items() if v < 7]
+      # Find weak dimensions to prioritize
+      weak_dims = [k for k, v in dimension_scores.items() if v < WEAK_DIMENSION_THRESHOLD]
       for dim, score in dimension_scores.items():
         dim_name = dim.replace('_', ' ').title()
         marker = " [PRIORITY]" if dim in weak_dims else ""

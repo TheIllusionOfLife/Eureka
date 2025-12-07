@@ -92,8 +92,9 @@ class TestFormatLogicalInferenceForPrompt:
         from madspark.core.workflow_orchestrator import WorkflowOrchestrator
 
         orchestrator = WorkflowOrchestrator(verbose=False)
+        # improvements should be a string per InferenceResult schema
         logical_inference = {
-            "improvements": {"suggestion": "Add more detail"}
+            "improvements": "Add more detail to the implementation plan"
         }
 
         result = orchestrator._format_logical_inference_for_prompt(logical_inference)

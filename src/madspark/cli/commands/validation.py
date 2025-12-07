@@ -48,7 +48,7 @@ class WorkflowValidator(CommandHandler):
         """
         try:
             # Validate theme and constraints
-            self._validate_theme_and_constraints()
+            self._validate_topic_and_context()
 
             # Validate multi-modal inputs if provided
             self._validate_multimodal_inputs()
@@ -78,7 +78,7 @@ class WorkflowValidator(CommandHandler):
             print(f"Error: {e}")
             return CommandResult(success=False, exit_code=1, message=str(e))
 
-    def _validate_theme_and_constraints(self) -> None:
+    def _validate_topic_and_context(self) -> None:
         """Validate topic and context arguments.
 
         Raises:

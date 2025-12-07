@@ -57,21 +57,20 @@ class SummaryFormatter(ResultFormatter):
                 # Only show dimension scores that have actual values (no N/A clutter)
                 if 'dimension_scores' in eval_data and eval_data['dimension_scores']:
                     scores = eval_data['dimension_scores']
-                    # Only display dimensions with actual values
-                    if scores.get('feasibility') is not None:
-                        lines.append(f"  - Feasibility: {scores['feasibility']}")
-                    if scores.get('innovation') is not None:
-                        lines.append(f"  - Innovation: {scores['innovation']}")
-                    if scores.get('impact') is not None:
-                        lines.append(f"  - Impact: {scores['impact']}")
-                    if scores.get('cost_effectiveness') is not None:
-                        lines.append(f"  - Cost-Effectiveness: {scores['cost_effectiveness']}")
-                    if scores.get('scalability') is not None:
-                        lines.append(f"  - Scalability: {scores['scalability']}")
-                    if scores.get('risk_assessment') is not None:
-                        lines.append(f"  - Risk Assessment: {scores['risk_assessment']} (lower is better)")
-                    if scores.get('timeline') is not None:
-                        lines.append(f"  - Timeline: {scores['timeline']}")
+                    # Dimension display mapping for DRY formatting
+                    dimension_display = {
+                        "feasibility": "Feasibility",
+                        "innovation": "Innovation",
+                        "impact": "Impact",
+                        "cost_effectiveness": "Cost-Effectiveness",
+                        "scalability": "Scalability",
+                        "risk_assessment": "Risk Assessment",
+                        "timeline": "Timeline",
+                    }
+                    for key, display_name in dimension_display.items():
+                        if scores.get(key) is not None:
+                            suffix = " (lower is better)" if key == "risk_assessment" else ""
+                            lines.append(f"  - {display_name}: {scores[key]}{suffix}")
 
                 if 'evaluation_summary' in eval_data and eval_data.get('evaluation_summary'):
                     lines.append(f"  Summary: {eval_data['evaluation_summary']}")

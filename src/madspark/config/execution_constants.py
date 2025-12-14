@@ -76,14 +76,15 @@ class TimeoutConfig:
     # Workflow step timeouts (from workflow_constants.py)
     # These are longer than the hardcoded values in async_coordinator.py
     # to reduce premature timeout errors
-    IDEA_GENERATION_TIMEOUT = 60.0
-    EVALUATION_TIMEOUT = 60.0
-    ADVOCACY_TIMEOUT = 90.0
-    SKEPTICISM_TIMEOUT = 90.0
-    IMPROVEMENT_TIMEOUT = 120.0
-    REEVALUATION_TIMEOUT = 60.0
-    MULTI_DIMENSIONAL_EVAL_TIMEOUT = 120.0
-    LOGICAL_INFERENCE_TIMEOUT = 90.0
+    # Increased for Ollama which can be slower than cloud APIs
+    IDEA_GENERATION_TIMEOUT = 180.0  # 3 minutes for slow local inference
+    EVALUATION_TIMEOUT = 180.0       # 3 minutes
+    ADVOCACY_TIMEOUT = 120.0         # 2 minutes
+    SKEPTICISM_TIMEOUT = 120.0       # 2 minutes
+    IMPROVEMENT_TIMEOUT = 180.0      # 3 minutes
+    REEVALUATION_TIMEOUT = 120.0     # 2 minutes
+    MULTI_DIMENSIONAL_EVAL_TIMEOUT = 180.0  # 3 minutes
+    LOGICAL_INFERENCE_TIMEOUT = 120.0       # 2 minutes
 
     # URL fetch timeout (new for multi-modal support)
     URL_FETCH_TIMEOUT = 30.0

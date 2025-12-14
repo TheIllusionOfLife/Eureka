@@ -8,6 +8,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
+    env_file:
+      - ../.env  # Load API keys from parent directory
     environment:
       # Use environment variable substitution with defaults for CI/testing
       # Values will be read from host environment or use defaults if not set
@@ -18,6 +20,7 @@ services:
       # Set MADSPARK_MODE=mock explicitly if you want mock mode
       MADSPARK_MODE: ${MADSPARK_MODE:-api}
       MADSPARK_PATH: /madspark
+      PYTHONPATH: /madspark/src
       REDIS_URL: redis://redis:6379/0
       # LLM Router configuration (Ollama-first by default)
       OLLAMA_HOST: http://ollama:11434

@@ -41,8 +41,17 @@ echo ""
 
 # Check available disk space (need ~15GB for Ollama)
 if command -v df &> /dev/null; then
-    available_space=$(df -BG . | tail -1 | awk '{print $4}' | sed 's/G//')
-    if [ "$available_space" -lt "$DISK_SPACE_MIN_GB" ]; then
+    # Detect OS and use appropriate df command
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS: use -g for 1GB blocks, output is in column 4
+        available_space=$(df -g . 2>/dev/null | tail -1 | awk '{print $4}')
+    else
+        # Linux: use -BG for GB blocks
+        available_space=$(df -BG . 2>/dev/null | tail -1 | awk '{print $4}' | sed 's/G//')
+    fi
+
+    # Only proceed with check if we got a valid number
+    if [[ "$available_space" =~ ^[0-9]+$ ]] && [ "$available_space" -lt "$DISK_SPACE_MIN_GB" ]; then
         echo "⚠️  WARNING: Low disk space detected (~${available_space}GB available)"
         echo "   Ollama requires ~${DISK_SPACE_MIN_GB}GB (13GB models + 2GB Docker overhead)"
         echo "   You may encounter issues during model download."
@@ -52,8 +61,10 @@ if command -v df &> /dev/null; then
             echo "Exiting. Please free up disk space and try again."
             exit 1
         fi
-    else
+    elif [[ "$available_space" =~ ^[0-9]+$ ]]; then
         echo "✅ Sufficient disk space available (~${available_space}GB)"
+    else
+        echo "⚠️  Could not determine available disk space, continuing anyway..."
     fi
 fi
 

@@ -93,7 +93,7 @@ DEFAULT_CRITIC_TEMPERATURE = 0.3
 DEBUG_DEFAULT_TEMPERATURE = 0.9
 
 # Timeout constants
-DEFAULT_REQUEST_TIMEOUT = 600  # 10 minutes in seconds
+DEFAULT_REQUEST_TIMEOUT = 1200  # 20 minutes for Ollama-first mode (local inference is slower)
 MIN_REQUEST_TIMEOUT = 60  # 1 minute minimum
 MAX_REQUEST_TIMEOUT = 3600  # 1 hour maximum
 

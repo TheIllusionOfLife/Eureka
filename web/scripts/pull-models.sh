@@ -28,7 +28,22 @@ check_disk_space() {
     log "Checking available disk space..."
 
     if command -v df &> /dev/null; then
-        local available_space=$(df -BG . | tail -1 | awk '{print $4}' | sed 's/G//')
+        local available_space
+        # Detect OS and use appropriate df command
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            # macOS: use -g for 1GB blocks
+            available_space=$(df -g . 2>/dev/null | tail -1 | awk '{print $4}')
+        else
+            # Linux: use -BG for GB blocks
+            available_space=$(df -BG . 2>/dev/null | tail -1 | awk '{print $4}' | sed 's/G//')
+        fi
+
+        # Validate that available_space is a number
+        if ! [[ "$available_space" =~ ^[0-9]+$ ]]; then
+            log "Warning: Could not parse disk space, continuing anyway"
+            return 0
+        fi
+
         if [ "$available_space" -lt "$DISK_SPACE_MIN_GB" ]; then
             error "Insufficient disk space: ${available_space}GB available, ${DISK_SPACE_MIN_GB}GB required"
             error "Please free up disk space and try again"
@@ -176,24 +191,37 @@ main() {
     fi
 
     # Pull required models with enhanced error handling
-    local failed=0
+    # At least one model must be available for the system to work
+    local fast_ok=0
+    local balanced_ok=0
 
-    if ! pull_model "$MODEL_FAST"; then
-        failed=1
+    if pull_model "$MODEL_FAST"; then
+        fast_ok=1
+        log "Fast tier model ready"
+    else
+        log "Warning: Fast tier model not available"
     fi
 
-    if ! pull_model "$MODEL_BALANCED"; then
-        failed=1
+    if pull_model "$MODEL_BALANCED"; then
+        balanced_ok=1
+        log "Balanced tier model ready"
+    else
+        log "Warning: Balanced tier model not available"
     fi
 
-    if [ $failed -eq 1 ]; then
-        error "One or more models failed to download"
+    # Continue if at least one model is available
+    if [ $fast_ok -eq 0 ] && [ $balanced_ok -eq 0 ]; then
+        error "No models available - cannot start Ollama service"
         error "See troubleshooting steps above for guidance"
         kill $ollama_pid 2>/dev/null || true
         exit 1
     fi
 
-    log "All models downloaded and validated successfully"
+    if [ $fast_ok -eq 1 ] && [ $balanced_ok -eq 1 ]; then
+        log "All models downloaded and validated successfully"
+    else
+        log "Warning: Some models unavailable, but service can still run"
+    fi
     log "Waiting for Ollama service (PID: ${ollama_pid})..."
 
     # Keep Ollama running (wait for the background process)

@@ -12,3 +12,4 @@ redis>=5.0.0
 anyio>=4.8.0
 slowapi>=0.1.9
 ollama>=0.4.1  # LLM router support for local inference
+diskcache>=5.6.0  # LLM response caching

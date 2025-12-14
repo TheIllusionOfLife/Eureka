@@ -1272,27 +1272,6 @@ async def get_llm_providers():
     }
 
 
-@app.post(
-    "/api/generate-ideas", 
-    response_model=IdeaGenerationResponse,
-    tags=["idea-generation"],
-    summary="Generate creative ideas",
-    description=ENDPOINT_DESCRIPTIONS.get("generate_ideas", ""),
-    responses={
-        200: {
-            "description": "Ideas generated successfully",
-            "content": {
-                "application/json": {
-                    "example": API_EXAMPLES.get("idea_generation_response", {}).get("value", {})
-                }
-            }
-        },
-        422: {"$ref": "#/components/responses/ValidationError"},
-        429: {"$ref": "#/components/responses/RateLimitError"},
-        500: {"description": "Internal server error"}
-    }
-)
-
 async def parse_idea_request(idea_request: Optional[str], request: Request) -> IdeaGenerationRequest:
     """
     Helper function to parse IdeaGenerationRequest from either FormData or JSON body.
@@ -1334,6 +1313,26 @@ async def parse_idea_request(idea_request: Optional[str], request: Request) -> I
             # Let Pydantic validation errors pass through for proper FastAPI formatting
             raise RequestValidationError(e.errors())
 
+@app.post(
+    "/api/generate-ideas",
+    response_model=IdeaGenerationResponse,
+    tags=["idea-generation"],
+    summary="Generate creative ideas",
+    description=ENDPOINT_DESCRIPTIONS.get("generate_ideas", ""),
+    responses={
+        200: {
+            "description": "Ideas generated successfully",
+            "content": {
+                "application/json": {
+                    "example": API_EXAMPLES.get("idea_generation_response", {}).get("value", {})
+                }
+            }
+        },
+        422: {"$ref": "#/components/responses/ValidationError"},
+        429: {"$ref": "#/components/responses/RateLimitError"},
+        500: {"description": "Internal server error"}
+    }
+)
 @limiter.limit("5/minute")  # Allow 5 idea generation requests per minute
 async def generate_ideas(
     request: Request,

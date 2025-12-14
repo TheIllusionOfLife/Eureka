@@ -44,7 +44,9 @@ services:
     ports:
       - "11434:11434"
     volumes:
-      - ollama-models:/root/.ollama
+      # Mount local Ollama directory to reuse existing models (avoids re-downloading ~13GB)
+      # Falls back to Docker volume if ~/.ollama doesn't exist
+      - ${OLLAMA_MODELS_DIR:-~/.ollama}:/root/.ollama
       - ./scripts/pull-models.sh:/usr/local/bin/pull-models.sh:ro
     networks:
       - madspark-network
@@ -95,7 +97,6 @@ services:
 
 volumes:
   redis-data:
-  ollama-models:  # Persistent storage for Ollama models
   llm-cache:      # LLM response cache for faster repeated queries
 
 networks:

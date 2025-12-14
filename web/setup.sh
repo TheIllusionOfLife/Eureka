@@ -155,16 +155,8 @@ echo ""
 
 # If Ollama mode, monitor model download
 if [ "$MODE" = "ollama" ]; then
-    echo "📥 Downloading Ollama models..."
-    echo "You can monitor progress in another terminal with:"
-    echo "   docker compose logs -f ollama"
-    echo ""
-    echo "Waiting for models to download (this may take 5-15 minutes)..."
-    echo ""
-
-    # Wait for Ollama to be healthy and models to be downloaded
-    echo -n "⏳ Waiting for Ollama service to start (up to 5 minutes for container health check)"
-    # Poll for healthy status instead of fixed sleep
+    # Wait for Ollama to be healthy first
+    echo -n "⏳ Waiting for Ollama service to start"
     for i in $(seq 1 $HEALTH_CHECK_MAX_ATTEMPTS); do
         if docker compose ps ollama 2>/dev/null | grep -q "healthy"; then
             echo " Done."
@@ -174,34 +166,45 @@ if [ "$MODE" = "ollama" ]; then
         sleep $HEALTH_CHECK_INTERVAL
     done
 
-    # Check if models are being downloaded with progressive backoff
-    echo ""
-    echo "⏳ Waiting for model downloads (up to 30 minutes for 13GB of models)"
-    echo "   Using progressive backoff: 10s → 15s → 20s intervals"
+    # Check if models are already present
+    existing_model_count=$(docker compose exec ollama ollama list 2>/dev/null | grep -c "gemma3" || true)
+    if [ "$existing_model_count" -ge 2 ]; then
+        echo "✅ Ollama models already present, skipping download."
+    else
+        echo ""
+        echo "📥 Downloading Ollama models..."
+        echo "You can monitor progress in another terminal with:"
+        echo "   docker compose logs -f ollama"
+        echo ""
+        echo "Waiting for models to download (this may take 5-15 minutes)..."
+        echo ""
+        echo "⏳ Waiting for model downloads (up to 30 minutes for 13GB of models)"
+        echo "   Using progressive backoff: 10s → 15s → 20s intervals"
 
-    elapsed_time=0
-    check_interval=10
+        elapsed_time=0
+        check_interval=10
 
-    while [ $elapsed_time -lt $MODEL_DOWNLOAD_MAX_TIME ]; do
-        model_count=$(docker compose exec ollama ollama list 2>/dev/null | grep -c "gemma3" || true)
-        if [ "$model_count" -ge 2 ]; then
-            echo ""
-            echo "✅ Both Ollama models downloaded successfully!"
-            break
-        fi
+        while [ $elapsed_time -lt $MODEL_DOWNLOAD_MAX_TIME ]; do
+            model_count=$(docker compose exec ollama ollama list 2>/dev/null | grep -c "gemma3" || true)
+            if [ "$model_count" -ge 2 ]; then
+                echo ""
+                echo "✅ Both Ollama models downloaded successfully!"
+                break
+            fi
 
-        echo -n "."
-        sleep $check_interval
-        elapsed_time=$((elapsed_time + check_interval))
+            echo -n "."
+            sleep $check_interval
+            elapsed_time=$((elapsed_time + check_interval))
 
-        # Progressive backoff: increase interval as time passes
-        if [ $elapsed_time -ge 600 ] && [ $check_interval -eq 10 ]; then
-            check_interval=15  # After 10 min, increase to 15s
-        elif [ $elapsed_time -ge 1200 ] && [ $check_interval -eq 15 ]; then
-            check_interval=20  # After 20 min, increase to 20s
-        fi
-    done
-    echo ""
+            # Progressive backoff: increase interval as time passes
+            if [ $elapsed_time -ge 600 ] && [ $check_interval -eq 10 ]; then
+                check_interval=15  # After 10 min, increase to 15s
+            elif [ $elapsed_time -ge 1200 ] && [ $check_interval -eq 15 ]; then
+                check_interval=20  # After 20 min, increase to 20s
+            fi
+        done
+        echo ""
+    fi
 
     # Verify models were actually downloaded
     final_model_count=$(docker compose exec ollama ollama list 2>/dev/null | grep -c "gemma3" || true)

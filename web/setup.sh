@@ -220,8 +220,8 @@ if [ "$MODE" = "ollama" ]; then
         echo "  docker compose logs -f ollama"
         echo ""
         echo "Or manually pull models:"
-        echo "  docker compose exec ollama ollama pull gemma3:4b-it-qat"
-        echo "  docker compose exec ollama ollama pull gemma3:12b-it-qat"
+        echo "  docker compose exec ollama ollama pull gemma3:4b"
+        echo "  docker compose exec ollama ollama pull gemma3:12b"
         echo ""
         exit 1
     fi

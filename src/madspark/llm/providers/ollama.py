@@ -128,7 +128,7 @@ class OllamaProvider(LLMProvider):
                 ]
                 # Check if model is available
                 # Strict matching: exact match or model matches without tag
-                # e.g., "gemma3:4b-it-qat" matches "gemma3:4b-it-qat" or "gemma3"
+                # e.g., "gemma3:4b" matches "gemma3:4b" or "gemma3"
                 result = False
                 for name in model_names:
                     # Exact match (highest priority)
@@ -137,8 +137,8 @@ class OllamaProvider(LLMProvider):
                         break
                     # Precise prefix matching: pulled model must start with requested model
                     # followed by a delimiter (-, :, or end of string)
-                    # e.g., requested "gemma3:4b" matches pulled "gemma3:4b-it-qat"
-                    # but "gemma3:4b" does NOT match "gemma3:12b-it-qat" or "gemma3:4bx"
+                    # e.g., requested "gemma3:4b" matches pulled "gemma3:4b"
+                    # but "gemma3:4b" does NOT match "gemma3:12b" or "gemma3:4bx"
                     if name.startswith(f"{self._model}") and (
                         len(name) == len(self._model)
                         or name[len(self._model)] in ("-", ":", "_")

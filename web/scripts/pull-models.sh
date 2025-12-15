@@ -6,11 +6,13 @@
 set -euo pipefail  # Exit on error, undefined variables, or pipe failures
 
 # Model list (hardcoded to prevent injection)
-readonly MODEL_FAST="gemma3:4b-it-qat"
-readonly MODEL_BALANCED="gemma3:12b-it-qat"
+# NOTE: Using non-quantized models for reliable JSON output
+# Quantized (-it-qat) models fail to produce valid JSON for structured output
+readonly MODEL_FAST="gemma3:4b"
+readonly MODEL_BALANCED="gemma3:12b"
 
 # Configuration constants
-readonly DISK_SPACE_MIN_GB=15           # Minimum disk space required (13GB models + 2GB overhead)
+readonly DISK_SPACE_MIN_GB=15           # Minimum disk space required (~12GB models + overhead)
 readonly MAX_RETRIES=2                   # Number of retry attempts for failed downloads
 readonly RETRY_DELAY=10                  # Initial retry delay in seconds
 

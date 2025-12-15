@@ -26,9 +26,12 @@ services:
       # host.docker.internal resolves to the host machine from inside Docker
       OLLAMA_HOST: http://host.docker.internal:11434
       MADSPARK_LLM_PROVIDER: ${MADSPARK_LLM_PROVIDER:-auto}
-      MADSPARK_MODEL_TIER: ${MADSPARK_MODEL_TIER:-fast}
+      MADSPARK_MODEL_TIER: ${MADSPARK_MODEL_TIER:-balanced}
       MADSPARK_CACHE_ENABLED: ${MADSPARK_CACHE_ENABLED:-true}
       MADSPARK_CACHE_DIR: /cache/llm
+      # Ollama model configuration (non-quantized models for reliable JSON output)
+      OLLAMA_MODEL_FAST: ${OLLAMA_MODEL_FAST:-gemma3:4b}
+      OLLAMA_MODEL_BALANCED: ${OLLAMA_MODEL_BALANCED:-gemma3:12b}
     volumes:
       - ./backend:/app
       - ../:/madspark  # Mount parent directory for MadSpark imports
@@ -71,7 +74,7 @@ services:
   #     retries: 10
   #     start_period: 30s
   #   # Auto-pull Ollama models on first startup using dedicated script (prevents shell injection)
-  #   # Models: gemma3:4b-it-qat (fast, 4GB) and gemma3:12b-it-qat (balanced, 8.9GB)
+  #   # Models: gemma3:4b (fast, 3.3GB) and gemma3:12b (balanced, 8.1GB)
   #   entrypoint: ["/usr/local/bin/pull-models.sh"]
   #   # GPU support: Uncomment the deploy section below for NVIDIA GPU acceleration
   #   # For CPU-only systems, leave this commented out

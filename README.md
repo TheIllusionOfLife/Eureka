@@ -32,7 +32,7 @@ Features specialized agents for idea generation, criticism, advocacy, and skepti
 
 **For Web Interface:**
 - Docker and Docker Compose
-- **~13GB disk space** (for Ollama models - gemma3:4b-it-qat + gemma3:12b-it-qat)
+- **~12GB disk space** (for Ollama models - gemma3:4b + gemma3:12b)
 - Google Gemini API key (optional - Ollama is auto-configured in Docker)
 
 ### CLI Installation
@@ -172,9 +172,9 @@ curl -fsSL https://ollama.com/install.sh | sh
 
 # Or download from https://ollama.com/download
 
-# Pull the models used by MadSpark
-ollama pull gemma3:4b-it-qat       # Fast tier (~4GB)
-ollama pull gemma3:12b-it-qat      # Balanced tier (~9GB)
+# Pull the models used by MadSpark (non-quantized for reliable JSON output)
+ollama pull gemma3:4b       # Fast tier (~3.3GB)
+ollama pull gemma3:12b      # Balanced tier (~8.1GB)
 
 # Verify installation
 ollama list
@@ -194,9 +194,9 @@ ms "AI healthcare" --provider ollama        # Local inference (FREE)
 ms "quantum computing" --provider gemini    # Cloud API (paid)
 
 # Control model quality tier (default: balanced)
-ms "space exploration" --model-tier fast      # gemma3:4b (quick)
-ms "climate solutions" --model-tier balanced  # gemma3:12b (default)
-ms "renewable energy" --model-tier quality    # gemini-2.5-flash (best)
+ms "space exploration" --model-tier fast      # gemma3:4b (~3.3GB, quick)
+ms "climate solutions" --model-tier balanced  # gemma3:12b (~8.1GB, default)
+ms "renewable energy" --model-tier quality    # gemini-2.5-flash (cloud, best)
 
 # Cache management (enabled by default)
 ms "education innovation" --no-cache       # Disable caching
@@ -416,7 +416,7 @@ madspark-web-stop  # Stop services
 </details>
 
 **Notes:**
-- First startup downloads ~13GB of Ollama models (5-15 minutes depending on internet speed)
+- First startup downloads ~12GB of Ollama models (5-15 minutes depending on internet speed)
 - You may see webpack deprecation warnings - these are harmless and don't affect functionality
 - For detailed web interface documentation, see `web/README.md`
 

@@ -42,15 +42,19 @@ if [ -n "$COMPOSE_VERSION" ]; then
     # Extract major.minor (portable - no sort -V which doesn't exist on macOS)
     MAJOR=$(echo "$COMPOSE_VERSION" | cut -d. -f1)
     MINOR=$(echo "$COMPOSE_VERSION" | cut -d. -f2)
-    # Check if version meets requirement
-    if [ "$MAJOR" -gt "$REQUIRED_COMPOSE_MAJOR" ] 2>/dev/null || \
-       { [ "$MAJOR" -eq "$REQUIRED_COMPOSE_MAJOR" ] && [ "$MINOR" -ge "$REQUIRED_COMPOSE_MINOR" ]; } 2>/dev/null; then
-        : # Version is OK
+    # Validate extracted values are integers before comparison
+    if [[ "$MAJOR" =~ ^[0-9]+$ && "$MINOR" =~ ^[0-9]+$ ]]; then
+        if (( MAJOR > REQUIRED_COMPOSE_MAJOR || (MAJOR == REQUIRED_COMPOSE_MAJOR && MINOR >= REQUIRED_COMPOSE_MINOR) )); then
+            : # Version is OK
+        else
+            echo "❌ Docker Compose version $COMPOSE_VERSION is too old."
+            echo "   Version ${REQUIRED_COMPOSE_MAJOR}.${REQUIRED_COMPOSE_MINOR}+ is required."
+            echo "   Please upgrade Docker Compose: https://docs.docker.com/compose/install/"
+            exit 1
+        fi
     else
-        echo "❌ Docker Compose version $COMPOSE_VERSION is too old."
-        echo "   Version ${REQUIRED_COMPOSE_MAJOR}.${REQUIRED_COMPOSE_MINOR}+ is required."
-        echo "   Please upgrade Docker Compose: https://docs.docker.com/compose/install/"
-        exit 1
+        echo "⚠️  Could not parse Docker Compose version: $COMPOSE_VERSION"
+        echo "   Continuing anyway..."
     fi
 fi
 
@@ -134,13 +138,12 @@ set_env_var() {
     local key="$1"
     local value="$2"
     ensure_env_file
-    # Remove existing key if present, then add new value
-    if grep -q "^${key}=" "$ENV_FILE" 2>/dev/null; then
-        # Use portable sed syntax (works on both macOS and Linux)
-        sed -i.bak "s|^${key}=.*|${key}=${value}|" "$ENV_FILE" && rm -f "${ENV_FILE}.bak"
-    else
-        echo "${key}=${value}" >> "$ENV_FILE"
-    fi
+    # Remove existing key if present (avoids sed injection with special chars in value)
+    grep -v "^${key}=" "$ENV_FILE" > "${ENV_FILE}.tmp" 2>/dev/null || true
+    mv "${ENV_FILE}.tmp" "$ENV_FILE"
+    # Append new value
+    echo "${key}=${value}" >> "$ENV_FILE"
+    chmod 600 "$ENV_FILE"
 }
 
 # Ask user which mode they want

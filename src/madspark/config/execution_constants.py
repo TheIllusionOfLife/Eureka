@@ -94,16 +94,23 @@ class TimeoutConfig:
     # Workflow step timeouts (from workflow_constants.py)
     # These are longer than the hardcoded values in async_coordinator.py
     # to reduce premature timeout errors
-    # Increased significantly for Ollama which can be much slower than cloud APIs
+    #
+    # NOTE: Timeouts increased 2-5x for Ollama (slower than cloud APIs).
+    # Old values for reference (Gemini API): ~60-120s per step.
+    # If operations consistently exceed old thresholds, consider:
+    #   - Checking Ollama model performance
+    #   - Using faster model tier (MADSPARK_MODEL_TIER=fast)
+    #   - Switching to Gemini API (MADSPARK_LLM_PROVIDER=gemini)
+    #
     # Override via MADSPARK_*_TIMEOUT environment variables for per-environment tuning
-    IDEA_GENERATION_TIMEOUT = _safe_float("MADSPARK_IDEA_TIMEOUT", 300.0)  # 5 min
-    EVALUATION_TIMEOUT = _safe_float("MADSPARK_EVAL_TIMEOUT", 300.0)       # 5 min
-    ADVOCACY_TIMEOUT = _safe_float("MADSPARK_ADVOCACY_TIMEOUT", 240.0)     # 4 min
-    SKEPTICISM_TIMEOUT = _safe_float("MADSPARK_SKEPTICISM_TIMEOUT", 240.0) # 4 min
-    IMPROVEMENT_TIMEOUT = _safe_float("MADSPARK_IMPROVEMENT_TIMEOUT", 300.0)  # 5 min
-    REEVALUATION_TIMEOUT = _safe_float("MADSPARK_REEVAL_TIMEOUT", 240.0)   # 4 min
-    MULTI_DIMENSIONAL_EVAL_TIMEOUT = _safe_float("MADSPARK_MULTIDIM_TIMEOUT", 300.0)  # 5 min
-    LOGICAL_INFERENCE_TIMEOUT = _safe_float("MADSPARK_INFERENCE_TIMEOUT", 240.0)     # 4 min
+    IDEA_GENERATION_TIMEOUT = _safe_float("MADSPARK_IDEA_TIMEOUT", 300.0)  # 5 min (was 60s)
+    EVALUATION_TIMEOUT = _safe_float("MADSPARK_EVAL_TIMEOUT", 300.0)       # 5 min (was 60s)
+    ADVOCACY_TIMEOUT = _safe_float("MADSPARK_ADVOCACY_TIMEOUT", 240.0)     # 4 min (was 60s)
+    SKEPTICISM_TIMEOUT = _safe_float("MADSPARK_SKEPTICISM_TIMEOUT", 240.0) # 4 min (was 60s)
+    IMPROVEMENT_TIMEOUT = _safe_float("MADSPARK_IMPROVEMENT_TIMEOUT", 300.0)  # 5 min (was 60s)
+    REEVALUATION_TIMEOUT = _safe_float("MADSPARK_REEVAL_TIMEOUT", 240.0)   # 4 min (was 60s)
+    MULTI_DIMENSIONAL_EVAL_TIMEOUT = _safe_float("MADSPARK_MULTIDIM_TIMEOUT", 300.0)  # 5 min (was 120s)
+    LOGICAL_INFERENCE_TIMEOUT = _safe_float("MADSPARK_INFERENCE_TIMEOUT", 240.0)     # 4 min (was 60s)
 
     # URL fetch timeout (new for multi-modal support)
     URL_FETCH_TIMEOUT = 30.0

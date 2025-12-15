@@ -2,6 +2,12 @@
 # MadSpark Web Interface Setup Script
 # This script helps first-time users set up the Docker-based web interface
 # Note: For CLI setup (mad_spark/ms commands), use ~/Eureka/scripts/setup.sh
+#
+# Ollama Configuration:
+#   - Default: Uses native Ollama installed on host machine (recommended)
+#   - The web containers connect to host Ollama via host.docker.internal
+#   - To use Docker-based Ollama instead, see docker-compose.yml comments
+#   - Docker Ollama is useful for isolated environments or CI testing
 
 set -e  # Exit on error
 
@@ -229,6 +235,13 @@ case $mode_choice in
         echo ""  # New line after hidden input
         if [ -z "$api_key" ]; then
             echo "❌ API key cannot be empty"
+            exit 1
+        fi
+
+        # Validate API key format (alphanumeric, underscores, hyphens only)
+        # This prevents shell injection and catches obvious typos
+        if [[ ! "$api_key" =~ ^[A-Za-z0-9_-]+$ ]]; then
+            echo "❌ Invalid API key format. Keys should contain only letters, numbers, underscores, and hyphens."
             exit 1
         fi
 

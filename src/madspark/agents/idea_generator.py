@@ -6,6 +6,7 @@ and contextual information.
 """
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Any, List, Dict, Tuple, Optional, Union, TYPE_CHECKING
 
@@ -67,6 +68,29 @@ except ImportError:
 # Use centralized safety handler to avoid duplication
 _safety_handler = GeminiSafetyHandler()
 _IMPROVER_SAFETY_SETTINGS = _safety_handler.get_safety_settings()
+
+
+def _sanitize_error_message(error: Exception) -> str:
+    """Sanitize error message to redact potential API keys.
+
+    API libraries sometimes include request details in error messages,
+    which could leak API keys. This function redacts any potential keys.
+
+    Args:
+        error: The exception to sanitize
+
+    Returns:
+        Sanitized error string with API keys redacted
+    """
+    error_str = str(error)
+    api_key = os.getenv('GOOGLE_API_KEY', '')
+    if api_key and len(api_key) > 8:
+        # Redact full key and partial matches (first/last 4 chars)
+        error_str = error_str.replace(api_key, '[REDACTED]')
+        # Also redact if only part of the key appears
+        if api_key[:8] in error_str:
+            error_str = error_str.replace(api_key[:8], '[REDACTED...]')
+    return error_str
 
 
 def _validate_non_empty_string(value: Any, param_name: str) -> None:
@@ -623,7 +647,7 @@ def improve_ideas_batch(
     # Gracefully fallback to original ideas when API key is invalid (common in Ollama-only mode)
     if "API_KEY_INVALID" in error_str or "API key not valid" in error_str:
       logging.warning("⚠️  Gemini API unavailable - returning original ideas. Configure GOOGLE_API_KEY for improvements.")
-      logging.debug(f"Gemini API error details: {e}")  # Full error at debug level to avoid leaking secrets
+      logging.debug(f"Gemini API error details: {_sanitize_error_message(e)}")
       # Return original ideas without Gemini enhancement
       fallback_results = []
       for i, item in enumerate(ideas_with_feedback):

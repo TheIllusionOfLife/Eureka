@@ -52,17 +52,17 @@ class TestLLMConfig:
     def test_get_ollama_model_fast(self, reset_config_fixture):
         """Test fast tier returns 4B model."""
         config = LLMConfig(model_tier=ModelTier.FAST)
-        assert config.get_ollama_model() == "gemma3:4b-it-qat"
+        assert config.get_ollama_model() == "gemma3:4b"
 
     def test_get_ollama_model_balanced(self, reset_config_fixture):
         """Test balanced tier returns 12B model."""
         config = LLMConfig(model_tier=ModelTier.BALANCED)
-        assert config.get_ollama_model() == "gemma3:12b-it-qat"
+        assert config.get_ollama_model() == "gemma3:12b"
 
     def test_get_ollama_model_quality(self, reset_config_fixture):
         """Test quality tier still returns balanced Ollama model."""
         config = LLMConfig(model_tier=ModelTier.QUALITY)
-        assert config.get_ollama_model() == "gemma3:12b-it-qat"
+        assert config.get_ollama_model() == "gemma3:12b"
 
     def test_from_env_defaults(self, reset_config_fixture, monkeypatch):
         """Test from_env uses defaults when no env vars set."""
@@ -232,7 +232,7 @@ class TestOllamaProvider:
     @patch("madspark.llm.providers.ollama.ollama")
     def test_gemma3_supports_multimodal(self, mock_ollama):
         """Test gemma3 models support images."""
-        provider = OllamaProvider(model="gemma3:4b-it-qat")
+        provider = OllamaProvider(model="gemma3:4b")
         assert provider.supports_multimodal is True
 
     @patch("madspark.llm.providers.ollama.ollama")
@@ -245,9 +245,9 @@ class TestOllamaProvider:
     def test_health_check_success(self, mock_ollama):
         """Test health check when server is running and model available."""
         mock_client = Mock()
-        mock_client.list.return_value = {"models": [{"model": "gemma3:4b-it-qat"}]}
+        mock_client.list.return_value = {"models": [{"model": "gemma3:4b"}]}
 
-        provider = OllamaProvider(model="gemma3:4b-it-qat")
+        provider = OllamaProvider(model="gemma3:4b")
         provider._client = mock_client
 
         assert provider.health_check() is True
@@ -258,7 +258,7 @@ class TestOllamaProvider:
         mock_client = Mock()
         mock_client.list.return_value = {"models": [{"model": "llama3:8b"}]}
 
-        provider = OllamaProvider(model="gemma3:4b-it-qat")
+        provider = OllamaProvider(model="gemma3:4b")
         provider._client = mock_client
 
         assert provider.health_check() is False
@@ -336,8 +336,8 @@ class TestOllamaProvider:
         # SimpleSchema has 2 fields
         budget = provider._estimate_token_budget(SimpleSchema.model_json_schema())
 
-        # Should be 100 + (2 * 80) = 260
-        assert budget == 260
+        # Should be 500 + (2 * 200) = 900 (increased for Japanese text support)
+        assert budget == 900
 
     @patch("madspark.llm.providers.ollama.ollama")
     def test_estimate_token_budget_nested(self, mock_ollama):
@@ -407,7 +407,7 @@ class TestOllamaIntegration:
     def test_real_ollama_health_check(self):
         """Test health check with real Ollama server."""
         try:
-            provider = OllamaProvider(model="gemma3:4b-it-qat")
+            provider = OllamaProvider(model="gemma3:4b")
             is_healthy = provider.health_check()
 
             # If Ollama is running and model is pulled, should be True
@@ -420,7 +420,7 @@ class TestOllamaIntegration:
     def test_real_ollama_structured_output(self):
         """Test structured output with real Ollama server."""
         try:
-            provider = OllamaProvider(model="gemma3:4b-it-qat")
+            provider = OllamaProvider(model="gemma3:4b")
 
             if not provider.health_check():
                 pytest.skip("Ollama server not running or model not available")

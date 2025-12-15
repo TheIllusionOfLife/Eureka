@@ -31,6 +31,11 @@ This guide focuses on the **web interface** only.
 
 ## 🚀 Quick Start
 
+### Prerequisites
+
+- **Docker**: Version 20.10 or higher
+- **Docker Compose**: Version 2.24 or higher (required for `env_file.required: false` syntax)
+
 ### Automated Setup (Easiest)
 
 **Note:** This is the web interface setup script. For the main CLI application (`mad_spark`/`ms` commands), use `~/Eureka/scripts/setup.sh` instead.
@@ -53,8 +58,8 @@ docker compose up -d
 
 # Defaults to Ollama-first mode (MADSPARK_MODE=api)
 # First startup will automatically download Ollama models:
-# - gemma3:4b-it-qat (4GB) - Fast tier
-# - gemma3:12b-it-qat (8.9GB) - Balanced tier
+# - gemma3:4b (3.3GB) - Fast tier
+# - gemma3:12b (8.1GB) - Balanced tier
 # This may take 5-15 minutes depending on your internet speed
 
 # Check model download progress:
@@ -113,15 +118,15 @@ When `MADSPARK_LLM_PROVIDER=auto` (default), the router uses:
 
 | Provider | Models | Cost | Use Case |
 |----------|--------|------|----------|
-| **Ollama** | gemma3:4b-it-qat (fast)<br>gemma3:12b-it-qat (balanced) | FREE | Text-only, images (local) |
+| **Ollama** | gemma3:4b (fast, 3.3GB)<br>gemma3:12b (balanced, 8.1GB) | FREE | Text-only, images (local) |
 | **Gemini** | gemini-2.5-flash | Paid | PDFs, URLs, fallback |
 
 ### Model Tiers
 
 Configure via UI "Advanced LLM Settings" or `MADSPARK_MODEL_TIER`:
 
-- **Fast**: gemma3:4b-it-qat - Quick responses (~10s)
-- **Balanced** (default): gemma3:12b-it-qat - Better quality (~20s)
+- **Fast**: gemma3:4b (3.3GB) - Quick responses (~10s)
+- **Balanced** (default): gemma3:12b (8.1GB) - Better quality (~20s)
 - **Quality**: gemini-2.5-flash - Best results (cloud, paid)
 
 ### LLM Usage Statistics
@@ -137,8 +142,8 @@ After generating ideas, scroll to the bottom to see:
 #### System Requirements
 
 **Minimum for Ollama models:**
-- **RAM**: 16GB minimum (models use ~13GB when loaded)
-- **Disk**: 15GB free space (13GB for models + 2GB for Docker)
+- **RAM**: 16GB minimum (models use ~12GB when loaded)
+- **Disk**: 15GB free space (~12GB for models + overhead for Docker)
 - **CPU**: Multi-core recommended (4+ cores for acceptable performance)
 - **GPU**: Optional - NVIDIA GPU significantly improves inference speed
 
@@ -157,27 +162,43 @@ docker compose logs -f ollama
 # Expected output:
 # - "pulling manifest..."
 # - "pulling 1fb99eda86dc: XX% ..."
-# - Total download: ~13GB for both models
+# - Total download: ~12GB for both models
 ```
 
 #### Manual Model Management
 
+**Note**: By default, the web interface uses host-based Ollama (running on your machine at http://localhost:11434).
+The docker exec commands below only apply if you've enabled the Ollama Docker service in docker-compose.yml.
+
+**For host-based Ollama (default):**
+```bash
+# List installed models
+ollama list
+
+# Pull specific model manually
+ollama pull gemma3:4b
+
+# Remove unused model
+ollama rm model-name
+
+# Test Ollama directly
+curl http://localhost:11434/api/generate -d '{
+  "model": "gemma3:4b",
+  "prompt": "Why is the sky blue?",
+  "stream": false
+}'
+```
+
+**For Docker-based Ollama (if enabled in docker-compose.yml):**
 ```bash
 # List installed models
 docker exec web-ollama-1 ollama list
 
 # Pull specific model manually
-docker exec web-ollama-1 ollama pull gemma3:4b-it-qat
+docker exec web-ollama-1 ollama pull gemma3:4b
 
 # Remove unused model
 docker exec web-ollama-1 ollama rm model-name
-
-# Test Ollama directly
-curl http://localhost:11434/api/generate -d '{
-  "model": "gemma3:4b-it-qat",
-  "prompt": "Why is the sky blue?",
-  "stream": false
-}'
 ```
 
 #### Disable Auto-Download
@@ -245,13 +266,22 @@ docker compose logs -f ollama
 ```
 
 **Problem: Container healthy but models missing**
+
+For host-based Ollama (default):
 ```bash
 # Verify models are actually downloaded
-docker compose exec ollama ollama list
+ollama list
 
 # If empty, manually pull:
-docker compose exec ollama ollama pull gemma3:4b-it-qat
-docker compose exec ollama ollama pull gemma3:12b-it-qat
+ollama pull gemma3:4b
+ollama pull gemma3:12b
+```
+
+For Docker-based Ollama (if enabled):
+```bash
+docker compose exec ollama ollama list
+docker compose exec ollama ollama pull gemma3:4b
+docker compose exec ollama ollama pull gemma3:12b
 ```
 
 **Problem: High memory usage / system slowdown**
@@ -281,7 +311,7 @@ nvidia-container-cli info
 - ✅ **Cost**: $0 - completely free
 - ✅ **Privacy**: Data never leaves your machine
 - ⚠️ **Speed**: 20-60s per idea (CPU), 3-12s with GPU
-- ⚠️ **Setup**: 13GB download, 16GB RAM needed
+- ⚠️ **Setup**: ~12GB download, 16GB RAM needed
 - ⚠️ **Limitations**: Text + images only (no PDF/URL support)
 
 **Gemini (Cloud, Paid):**
@@ -470,13 +500,13 @@ The web interface expects these fields in API responses:
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `MADSPARK_LLM_PROVIDER` | `auto`, `ollama`, or `gemini` | `auto` |
-| `MADSPARK_MODEL_TIER` | `fast`, `balanced`, or `quality` | `fast` |
+| `MADSPARK_MODEL_TIER` | `fast`, `balanced`, or `quality` | `balanced` |
 | `MADSPARK_NO_ROUTER` | Disable router, use direct Gemini API | `false` |
 | `MADSPARK_CACHE_ENABLED` | Enable response caching | `true` |
 | `MADSPARK_CACHE_DIR` | Cache directory path | `/cache/llm` |
 | `OLLAMA_HOST` | Ollama server URL | `http://ollama:11434` |
-| `OLLAMA_MODEL_FAST` | Fast tier model | `gemma3:4b-it-qat` |
-| `OLLAMA_MODEL_BALANCED` | Balanced tier model | `gemma3:12b-it-qat` |
+| `OLLAMA_MODEL_FAST` | Fast tier model | `gemma3:4b` |
+| `OLLAMA_MODEL_BALANCED` | Balanced tier model | `gemma3:12b` |
 
 **Note:** Setting `MADSPARK_NO_ROUTER=true` bypasses the LLM router entirely and uses direct Gemini API calls. Use this for:
 - Legacy behavior compatibility

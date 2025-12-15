@@ -131,9 +131,9 @@ ms "topic" --provider ollama       # Force local inference (FREE)
 ms "topic" --provider gemini       # Force cloud API
 
 # Model tier (default: balanced)
-ms "topic" --model-tier fast       # gemma3:4b-it-qat (quick)
-ms "topic" --model-tier balanced   # gemma3:12b-it-qat (default)
-ms "topic" --model-tier quality    # gemini-2.5-flash (best)
+ms "topic" --model-tier fast       # gemma3:4b (quick, ~3.3GB)
+ms "topic" --model-tier balanced   # gemma3:12b (default, ~8.1GB)
+ms "topic" --model-tier quality    # gemini-2.5-flash (cloud, best)
 
 # Cache control (enabled by default)
 ms "topic" --no-cache              # Disable caching
@@ -156,8 +156,8 @@ MADSPARK_CACHE_TTL=86400           # Cache TTL in seconds (24h)
 MADSPARK_CACHE_DIR=~/.cache/madspark/llm  # Cache directory (absolute path)
 MADSPARK_NO_ROUTER=false           # Set to true to disable router
 OLLAMA_HOST=http://localhost:11434 # Ollama server
-OLLAMA_MODEL_FAST=gemma3:4b-it-qat # Fast tier model
-OLLAMA_MODEL_BALANCED=gemma3:12b-it-qat # Balanced tier model
+OLLAMA_MODEL_FAST=gemma3:4b        # Fast tier model (non-quantized for reliable JSON)
+OLLAMA_MODEL_BALANCED=gemma3:12b   # Balanced tier model (non-quantized for reliable JSON)
 ```
 
 ### Key Features

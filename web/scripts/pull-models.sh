@@ -6,11 +6,13 @@
 set -euo pipefail  # Exit on error, undefined variables, or pipe failures
 
 # Model list (hardcoded to prevent injection)
-readonly MODEL_FAST="gemma3:4b-it-qat"
-readonly MODEL_BALANCED="gemma3:12b-it-qat"
+# NOTE: Using non-quantized models for reliable JSON output
+# Quantized (-it-qat) models fail to produce valid JSON for structured output
+readonly MODEL_FAST="gemma3:4b"
+readonly MODEL_BALANCED="gemma3:12b"
 
 # Configuration constants
-readonly DISK_SPACE_MIN_GB=15           # Minimum disk space required (13GB models + 2GB overhead)
+readonly DISK_SPACE_MIN_GB=15           # Minimum disk space required (~12GB models + overhead)
 readonly MAX_RETRIES=2                   # Number of retry attempts for failed downloads
 readonly RETRY_DELAY=10                  # Initial retry delay in seconds
 
@@ -28,7 +30,22 @@ check_disk_space() {
     log "Checking available disk space..."
 
     if command -v df &> /dev/null; then
-        local available_space=$(df -BG . | tail -1 | awk '{print $4}' | sed 's/G//')
+        local available_space
+        # Detect OS and use appropriate df command (using uname -s for POSIX compatibility)
+        if [[ "$(uname -s)" == "Darwin" ]]; then
+            # macOS: use -g for 1GB blocks
+            available_space=$(df -g . 2>/dev/null | tail -1 | awk '{print $4}')
+        else
+            # Linux: use -BG for GB blocks
+            available_space=$(df -BG . 2>/dev/null | tail -1 | awk '{print $4}' | sed 's/G//')
+        fi
+
+        # Validate that available_space is a number
+        if ! [[ "$available_space" =~ ^[0-9]+$ ]]; then
+            log "Warning: Could not parse disk space, continuing anyway"
+            return 0
+        fi
+
         if [ "$available_space" -lt "$DISK_SPACE_MIN_GB" ]; then
             error "Insufficient disk space: ${available_space}GB available, ${DISK_SPACE_MIN_GB}GB required"
             error "Please free up disk space and try again"
@@ -46,7 +63,9 @@ check_disk_space() {
 # Check if a model is already downloaded
 model_exists() {
     local model_name="$1"
-    ollama list | grep -q "^${model_name}" && return 0 || return 1
+    # Use exact literal string match with grep -F for security (no regex metacharacter interpretation)
+    # Then filter with awk for exact first-column match to avoid partial matches
+    ollama list 2>/dev/null | awk -v model="$model_name" '$1 == model {found=1; exit} END {exit !found}'
 }
 
 # Validate that a model is complete and functional
@@ -55,12 +74,14 @@ validate_model() {
 
     log "Validating ${model_name}..."
 
-    # Verify the model can generate a response (check exit code)
-    if echo "Test" | ollama run "$model_name" > /dev/null 2>&1; then
-        log "Model ${model_name} validated successfully"
+    # Fast validation: check model exists in ollama list (no inference, ~0.1s vs ~15s)
+    # Full inference validation is too slow for startup (10-30s per model)
+    # Use awk for exact first-column match (security: no regex metacharacter interpretation)
+    if ollama list 2>/dev/null | awk -v model="$model_name" '$1 == model {found=1; exit} END {exit !found}'; then
+        log "Model ${model_name} validated successfully (found in model list)"
         return 0
     else
-        error "Model ${model_name} validation failed - may be corrupted or incomplete"
+        error "Model ${model_name} validation failed - not found in ollama list"
         return 1
     fi
 }
@@ -156,44 +177,66 @@ main() {
     ollama serve &
     local ollama_pid=$!
 
-    # Wait for Ollama to be ready (with timeout)
+    # Wait for Ollama to be ready (with exponential backoff for faster startup on quick systems)
     log "Waiting for Ollama service to start..."
-    local max_attempts=30
-    local attempt=0
-    while [ $attempt -lt $max_attempts ]; do
+    local max_wait_seconds=60
+    local elapsed=0
+    local wait_time=0.5  # Start with 0.5 seconds
+    local max_wait_time=4  # Cap at 4 seconds between attempts
+
+    while [ "$elapsed" -lt "$max_wait_seconds" ]; do
         if ollama list >/dev/null 2>&1; then
-            log "Ollama service ready after $((attempt * 2)) seconds"
+            log "Ollama service ready after ${elapsed} seconds"
             break
         fi
-        attempt=$((attempt + 1))
-        sleep 2
+
+        # Sleep with current wait time
+        sleep "$wait_time"
+        elapsed=$((elapsed + ${wait_time%.*}))  # Handle decimal for elapsed calculation
+        elapsed=$((elapsed < 1 ? 1 : elapsed))  # Minimum 1 second increment
+
+        # Exponential backoff: double wait time up to max
+        wait_time=$(awk "BEGIN {t=$wait_time * 2; print (t > $max_wait_time ? $max_wait_time : t)}")
     done
 
-    if [ $attempt -eq $max_attempts ]; then
-        error "Ollama service failed to start after 60 seconds"
+    if [ "$elapsed" -ge "$max_wait_seconds" ]; then
+        error "Ollama service failed to start after ${max_wait_seconds} seconds"
         kill $ollama_pid 2>/dev/null || true
         exit 1
     fi
 
     # Pull required models with enhanced error handling
-    local failed=0
+    # At least one model must be available for the system to work
+    local fast_ok=0
+    local balanced_ok=0
 
-    if ! pull_model "$MODEL_FAST"; then
-        failed=1
+    if pull_model "$MODEL_FAST"; then
+        fast_ok=1
+        log "Fast tier model ready"
+    else
+        log "Warning: Fast tier model not available"
     fi
 
-    if ! pull_model "$MODEL_BALANCED"; then
-        failed=1
+    if pull_model "$MODEL_BALANCED"; then
+        balanced_ok=1
+        log "Balanced tier model ready"
+    else
+        log "Warning: Balanced tier model not available"
     fi
 
-    if [ $failed -eq 1 ]; then
-        error "One or more models failed to download"
+    # Continue if at least one model is available
+    if [ $fast_ok -eq 0 ] && [ $balanced_ok -eq 0 ]; then
+        error "No models available - cannot start Ollama service"
         error "See troubleshooting steps above for guidance"
         kill $ollama_pid 2>/dev/null || true
         exit 1
     fi
 
-    log "All models downloaded and validated successfully"
+    if [ $fast_ok -eq 1 ] && [ $balanced_ok -eq 1 ]; then
+        log "All models downloaded and validated successfully"
+    else
+        log "Warning: Some models unavailable, but service can still run"
+    fi
     log "Waiting for Ollama service (PID: ${ollama_pid})..."
 
     # Keep Ollama running (wait for the background process)

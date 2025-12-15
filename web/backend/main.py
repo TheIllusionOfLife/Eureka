@@ -119,9 +119,9 @@ try:
         COST_EFFECTIVENESS_KEY,
         SCALABILITY_KEY,
         RISK_ASSESSMENT_KEY,
-        TIMELINE_KEY,
-        DEFAULT_REQUEST_TIMEOUT
+        TIMELINE_KEY
     )
+    from madspark.config.execution_constants import TimeoutConfig
     from madspark.utils.bookmark_system import BookmarkManager
     from madspark.utils.cache_manager import CacheManager, CacheConfig
     from madspark.utils.improved_idea_cleaner import clean_improved_ideas_in_results
@@ -152,9 +152,9 @@ except ImportError as e:
             COST_EFFECTIVENESS_KEY,
             SCALABILITY_KEY,
             RISK_ASSESSMENT_KEY,
-            TIMELINE_KEY,
-            DEFAULT_REQUEST_TIMEOUT
+            TIMELINE_KEY
         )
+        from src.madspark.config.execution_constants import TimeoutConfig
         from src.madspark.utils.bookmark_system import BookmarkManager
         from src.madspark.utils.cache_manager import CacheManager, CacheConfig
         from src.madspark.utils.improved_idea_cleaner import clean_improved_ideas_in_results
@@ -497,9 +497,13 @@ cache_manager: Optional[CacheManager] = None
 async def lifespan(app: FastAPI):
     """Initialize and cleanup MadSpark components."""
     global temp_manager, reasoning_engine, bookmark_system, cache_manager
-    
+
     # Startup
     logger.info("Initializing MadSpark backend services...")
+
+    # Log timeout configuration (configurable via environment variables)
+    logger.info(f"Timeout configuration: DEFAULT={TimeoutConfig.DEFAULT_REQUEST_TIMEOUT}s "
+                f"(override via MADSPARK_DEFAULT_TIMEOUT env var)")
     
     # Store application start time for uptime calculation
     app.state.start_time = datetime.now()
@@ -1272,27 +1276,6 @@ async def get_llm_providers():
     }
 
 
-@app.post(
-    "/api/generate-ideas", 
-    response_model=IdeaGenerationResponse,
-    tags=["idea-generation"],
-    summary="Generate creative ideas",
-    description=ENDPOINT_DESCRIPTIONS.get("generate_ideas", ""),
-    responses={
-        200: {
-            "description": "Ideas generated successfully",
-            "content": {
-                "application/json": {
-                    "example": API_EXAMPLES.get("idea_generation_response", {}).get("value", {})
-                }
-            }
-        },
-        422: {"$ref": "#/components/responses/ValidationError"},
-        429: {"$ref": "#/components/responses/RateLimitError"},
-        500: {"description": "Internal server error"}
-    }
-)
-
 async def parse_idea_request(idea_request: Optional[str], request: Request) -> IdeaGenerationRequest:
     """
     Helper function to parse IdeaGenerationRequest from either FormData or JSON body.
@@ -1334,6 +1317,26 @@ async def parse_idea_request(idea_request: Optional[str], request: Request) -> I
             # Let Pydantic validation errors pass through for proper FastAPI formatting
             raise RequestValidationError(e.errors())
 
+@app.post(
+    "/api/generate-ideas",
+    response_model=IdeaGenerationResponse,
+    tags=["idea-generation"],
+    summary="Generate creative ideas",
+    description=ENDPOINT_DESCRIPTIONS.get("generate_ideas", ""),
+    responses={
+        200: {
+            "description": "Ideas generated successfully",
+            "content": {
+                "application/json": {
+                    "example": API_EXAMPLES.get("idea_generation_response", {}).get("value", {})
+                }
+            }
+        },
+        422: {"$ref": "#/components/responses/ValidationError"},
+        429: {"$ref": "#/components/responses/RateLimitError"},
+        500: {"description": "Internal server error"}
+    }
+)
 @limiter.limit("5/minute")  # Allow 5 idea generation requests per minute
 async def generate_ideas(
     request: Request,
@@ -1506,7 +1509,9 @@ async def generate_ideas(
         )
 
         # Add timeout handling
-        timeout_seconds = parsed_request.timeout if parsed_request.timeout else DEFAULT_REQUEST_TIMEOUT
+        # TimeoutConfig.DEFAULT_REQUEST_TIMEOUT is configurable via MADSPARK_DEFAULT_TIMEOUT env var
+        timeout_seconds = parsed_request.timeout if parsed_request.timeout else TimeoutConfig.DEFAULT_REQUEST_TIMEOUT
+        logger.info(f"Request timeout configured: {timeout_seconds}s (env override: MADSPARK_DEFAULT_TIMEOUT)")
 
         # Log logical inference request
         logger.info(f"Running workflow with logical_inference={parsed_request.logical_inference}, reasoning_engine={reasoning_eng is not None}")

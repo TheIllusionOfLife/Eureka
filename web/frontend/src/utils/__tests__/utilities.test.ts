@@ -449,13 +449,13 @@ describe('Logger Utility', () => {
     });
 
     it('should log idea generation phases', () => {
-      logger.ideaGeneration('started', { theme: 'AI' });
+      logger.ideaGeneration('started', { topic: 'AI' });
 
       const logs = logger.getLogs();
       expect(logs).toHaveLength(1);
       expect(logs[0].message).toBe('Idea generation: started');
       expect(logs[0].context).toBe('IDEA_GEN');
-      expect(logs[0].data).toEqual({ theme: 'AI' });
+      expect(logs[0].data).toEqual({ topic: 'AI' });
     });
   });
 

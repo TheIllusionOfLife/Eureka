@@ -16,7 +16,7 @@ class LLMResponse:
     Attributes:
         text: Raw text response from the LLM
         provider: Name of the provider (e.g., 'ollama', 'gemini')
-        model: Model used (e.g., 'gemma3:4b-it-qat', 'gemini-2.5-flash')
+        model: Model used (e.g., 'gemma3:4b', 'gemma3:12b', 'gemini-2.5-flash')
         tokens_used: Total tokens consumed
         latency_ms: Response time in milliseconds
         cost: Estimated cost in USD

@@ -42,10 +42,8 @@ export interface TemperaturePresetsResponse {
 
 // Idea generation API types
 export interface IdeaGenerationRequest {
-  topic?: string;  // Primary field (renamed from 'theme') - optional for backward compat
-  theme?: string; // Deprecated: backward compatibility (backend accepts both via alias)
-  context?: string;  // Primary field (renamed from 'constraints')
-  constraints?: string; // Deprecated: backward compatibility (backend accepts both via alias)
+  topic: string;
+  context?: string;
   num_top_candidates: number;
   enable_novelty_filter: boolean;
   novelty_threshold: number;

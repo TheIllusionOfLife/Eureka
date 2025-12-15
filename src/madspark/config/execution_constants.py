@@ -14,6 +14,23 @@ Configuration is organized into logical classes:
 - TemperatureConfig: Temperature values for different operations
 - ContentSafetyConfig: Content safety threshold settings
 """
+import logging
+import os
+
+
+def _safe_float(env_var: str, default: float) -> float:
+    """Safely parse environment variable as float, with fallback to default.
+
+    Handles invalid values gracefully to prevent startup failures.
+    """
+    value = os.getenv(env_var)
+    if value is None:
+        return default
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        logging.warning(f"Invalid value for {env_var}='{value}', using default {default}")
+        return default
 
 
 # ========================================
@@ -68,7 +85,8 @@ class TimeoutConfig:
     """
 
     # General timeouts (in seconds)
-    DEFAULT_REQUEST_TIMEOUT = 1200.0    # 20 minutes (consolidated default)
+    # Override via environment variables: MADSPARK_DEFAULT_TIMEOUT, MADSPARK_IDEA_TIMEOUT, etc.
+    DEFAULT_REQUEST_TIMEOUT = _safe_float("MADSPARK_DEFAULT_TIMEOUT", 1200.0)  # 20 minutes
     SHORT_TIMEOUT = 30.0
     MEDIUM_TIMEOUT = 60.0
     LONG_TIMEOUT = 120.0
@@ -76,14 +94,23 @@ class TimeoutConfig:
     # Workflow step timeouts (from workflow_constants.py)
     # These are longer than the hardcoded values in async_coordinator.py
     # to reduce premature timeout errors
-    IDEA_GENERATION_TIMEOUT = 60.0
-    EVALUATION_TIMEOUT = 60.0
-    ADVOCACY_TIMEOUT = 90.0
-    SKEPTICISM_TIMEOUT = 90.0
-    IMPROVEMENT_TIMEOUT = 120.0
-    REEVALUATION_TIMEOUT = 60.0
-    MULTI_DIMENSIONAL_EVAL_TIMEOUT = 120.0
-    LOGICAL_INFERENCE_TIMEOUT = 90.0
+    #
+    # NOTE: Timeouts increased 2-5x for Ollama (slower than cloud APIs).
+    # Old values for reference (Gemini API): ~60-120s per step.
+    # If operations consistently exceed old thresholds, consider:
+    #   - Checking Ollama model performance
+    #   - Using faster model tier (MADSPARK_MODEL_TIER=fast)
+    #   - Switching to Gemini API (MADSPARK_LLM_PROVIDER=gemini)
+    #
+    # Override via MADSPARK_*_TIMEOUT environment variables for per-environment tuning
+    IDEA_GENERATION_TIMEOUT = _safe_float("MADSPARK_IDEA_TIMEOUT", 300.0)  # 5 min (was 60s)
+    EVALUATION_TIMEOUT = _safe_float("MADSPARK_EVAL_TIMEOUT", 300.0)       # 5 min (was 60s)
+    ADVOCACY_TIMEOUT = _safe_float("MADSPARK_ADVOCACY_TIMEOUT", 240.0)     # 4 min (was 60s)
+    SKEPTICISM_TIMEOUT = _safe_float("MADSPARK_SKEPTICISM_TIMEOUT", 240.0) # 4 min (was 60s)
+    IMPROVEMENT_TIMEOUT = _safe_float("MADSPARK_IMPROVEMENT_TIMEOUT", 300.0)  # 5 min (was 60s)
+    REEVALUATION_TIMEOUT = _safe_float("MADSPARK_REEVAL_TIMEOUT", 240.0)   # 4 min (was 60s)
+    MULTI_DIMENSIONAL_EVAL_TIMEOUT = _safe_float("MADSPARK_MULTIDIM_TIMEOUT", 300.0)  # 5 min (was 120s)
+    LOGICAL_INFERENCE_TIMEOUT = _safe_float("MADSPARK_INFERENCE_TIMEOUT", 240.0)     # 4 min (was 60s)
 
     # URL fetch timeout (new for multi-modal support)
     URL_FETCH_TIMEOUT = 30.0

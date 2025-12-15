@@ -25,8 +25,8 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({
   onSelectedBookmarkIdsChange
 }) => {
   const [formData, setFormData] = useState<FormData>({
-    theme: '',
-    constraints: '',
+    topic: '',
+    context: '',
     num_top_candidates: 3,
     enable_novelty_filter: true,
     novelty_threshold: 0.8,
@@ -112,9 +112,9 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({
       baseData.multimodal_urls = multimodalUrls;
     }
 
-    // Remove constraints field if it's empty to allow backend default
-    if (!baseData.constraints || baseData.constraints.trim() === '') {
-      delete baseData.constraints;
+    // Remove context field if it's empty to allow backend default
+    if (!baseData.context || baseData.context.trim() === '') {
+      delete baseData.context;
     }
 
     // Determine if we need FormData (for file uploads)
@@ -138,33 +138,33 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({
       <h2 className="text-lg font-medium text-gray-900 mb-6">Generate Ideas</h2>
       
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Topic (internally mapped to 'theme' for API compatibility) */}
+        {/* Topic */}
         <div>
-          <label htmlFor="theme" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="topic" className="block text-sm font-medium text-gray-700">
             Topic *
           </label>
           <input
             type="text"
-            id="theme"
-            name="theme"
+            id="topic"
+            name="topic"
             required
-            value={formData.theme}
+            value={formData.topic}
             onChange={handleInputChange}
             placeholder="e.g., Sustainable urban living"
             className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
           />
         </div>
 
-        {/* Context (internally mapped to 'constraints' for API compatibility) */}
+        {/* Context */}
         <div>
-          <label htmlFor="constraints" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="context" className="block text-sm font-medium text-gray-700">
             Context (Optional)
           </label>
           <textarea
-            id="constraints"
-            name="constraints"
+            id="context"
+            name="context"
             rows={3}
-            value={formData.constraints}
+            value={formData.context}
             onChange={handleInputChange}
             placeholder="e.g., Budget-friendly, implementable within 5 years, community-focused"
             className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
@@ -595,7 +595,7 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({
         <div>
           <button
             type="submit"
-            disabled={isLoading || !formData.theme}
+            disabled={isLoading || !formData.topic}
             className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? (

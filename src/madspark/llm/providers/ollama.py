@@ -28,6 +28,112 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
+def _simplify_schema_for_ollama(schema: dict) -> dict:
+    """
+    Simplify a Pydantic JSON schema for Ollama compatibility.
+
+    Ollama's schema parser can't handle complex Pydantic metadata like:
+    - $defs (nested model definitions)
+    - description, title, examples fields
+    - anyOf/oneOf for optional fields
+
+    This function flattens and simplifies the schema.
+    """
+
+    def simplify_property(prop: dict) -> dict:
+        """Recursively simplify a property definition."""
+        result = {}
+
+        # Handle anyOf (optional fields) - take the first non-null type
+        if "anyOf" in prop:
+            for option in prop["anyOf"]:
+                if option.get("type") != "null":
+                    return simplify_property(option)
+            return {"type": "string"}  # fallback
+
+        # Copy basic type info
+        if "type" in prop:
+            result["type"] = prop["type"]
+
+        # Handle arrays
+        if prop.get("type") == "array" and "items" in prop:
+            result["items"] = simplify_property(prop["items"])
+
+        # Handle nested objects
+        if prop.get("type") == "object" and "properties" in prop:
+            result["properties"] = {
+                k: simplify_property(v) for k, v in prop["properties"].items()
+            }
+            if "required" in prop:
+                result["required"] = prop["required"]
+
+        # Handle $ref - resolve from $defs
+        if "$ref" in prop:
+            ref_name = prop["$ref"].split("/")[-1]
+            return {"$ref": f"#/$defs/{ref_name}"}
+
+        return result
+
+    def resolve_refs(obj: dict, defs: dict) -> dict:
+        """Resolve $ref references to their definitions."""
+        if isinstance(obj, dict):
+            if "$ref" in obj:
+                ref_name = obj["$ref"].split("/")[-1]
+                if ref_name in defs:
+                    return resolve_refs(defs[ref_name], defs)
+                return obj
+            return {k: resolve_refs(v, defs) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [resolve_refs(item, defs) for item in obj]
+        return obj
+
+    # Extract $defs for reference resolution
+    defs = {}
+    if "$defs" in schema:
+        for name, definition in schema["$defs"].items():
+            simplified_def = {}
+            if "type" in definition:
+                simplified_def["type"] = definition["type"]
+            if "properties" in definition:
+                simplified_def["properties"] = {
+                    k: simplify_property(v)
+                    for k, v in definition["properties"].items()
+                }
+            if "required" in definition:
+                simplified_def["required"] = definition["required"]
+            defs[name] = simplified_def
+
+    # Build simplified schema
+    result = {}
+
+    if "type" in schema:
+        result["type"] = schema["type"]
+
+    if "items" in schema:
+        result["items"] = simplify_property(schema["items"])
+
+    if "properties" in schema:
+        result["properties"] = {
+            k: simplify_property(v) for k, v in schema["properties"].items()
+        }
+
+    if "required" in schema:
+        result["required"] = schema["required"]
+
+    # Include simplified $defs if needed
+    if defs:
+        result["$defs"] = defs
+
+    # Resolve all refs
+    result = resolve_refs(result, defs)
+
+    # Remove $defs after resolution (Ollama doesn't need them)
+    if "$defs" in result:
+        del result["$defs"]
+
+    return result
+
+
 class OllamaProvider(LLMProvider):
     """
     Ollama-based LLM provider using local models.
@@ -128,7 +234,7 @@ class OllamaProvider(LLMProvider):
                 ]
                 # Check if model is available
                 # Strict matching: exact match or model matches without tag
-                # e.g., "gemma3:4b-it-qat" matches "gemma3:4b-it-qat" or "gemma3"
+                # e.g., "gemma3:4b" matches "gemma3:4b" or "gemma3"
                 result = False
                 for name in model_names:
                     # Exact match (highest priority)
@@ -137,8 +243,8 @@ class OllamaProvider(LLMProvider):
                         break
                     # Precise prefix matching: pulled model must start with requested model
                     # followed by a delimiter (-, :, or end of string)
-                    # e.g., requested "gemma3:4b" matches pulled "gemma3:4b-it-qat"
-                    # but "gemma3:4b" does NOT match "gemma3:12b-it-qat" or "gemma3:4bx"
+                    # e.g., requested "gemma3:4b" matches pulled "gemma3:4b"
+                    # but "gemma3:4b" does NOT match "gemma3:12b" or "gemma3:4bx"
                     if name.startswith(f"{self._model}") and (
                         len(name) == len(self._model)
                         or name[len(self._model)] in ("-", ":", "_")
@@ -267,8 +373,10 @@ class OllamaProvider(LLMProvider):
         if not self.health_check():
             raise ProviderUnavailableError(f"Ollama not available. Model: {self._model}")
 
-        # Get JSON schema from Pydantic model
-        json_schema = schema.model_json_schema()
+        # Get JSON schema from Pydantic model and simplify for Ollama
+        raw_schema = schema.model_json_schema()
+        json_schema = _simplify_schema_for_ollama(raw_schema)
+        logger.debug(f"Simplified schema for Ollama: {json_schema}")
 
         # Determine token budget
         if token_budget is None:
@@ -367,23 +475,23 @@ class OllamaProvider(LLMProvider):
                 elif prop_schema.get("type") == "array":
                     items = prop_schema.get("items", {})
                     if items.get("type") == "object":
-                        count += count_fields(items) * 3
-
-            # Check for $defs (nested models)
-            defs = s.get("$defs", {})
-            for def_schema in defs.values():
-                count += count_fields(def_schema)
+                        count += count_fields(items) * 5  # Increased for array items
 
             return count
 
         field_count = count_fields(schema)
 
-        # Base budget + per-field allocation
-        # Each field needs ~50-100 tokens for content
-        budget = 100 + (field_count * 80)
+        # Check if this is an array schema (like GeneratedIdeas)
+        is_array = schema.get("type") == "array"
+        array_multiplier = 5 if is_array else 1  # Expect ~5 items in arrays
 
-        # Cap at reasonable maximum
-        return min(budget, 2000)
+        # Base budget + per-field allocation
+        # Each field needs ~150-300 tokens for content (generous for Japanese)
+        budget = 500 + (field_count * 200 * array_multiplier)
+
+        # Cap at generous maximum for complex Japanese output
+        # GeneratedIdeas with 5 ideas × detailed descriptions needs ~15000 tokens
+        return min(budget, 16000)
 
     def get_cost_per_token(self) -> float:
         """Local inference is free."""

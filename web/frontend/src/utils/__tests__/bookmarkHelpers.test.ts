@@ -104,36 +104,32 @@ describe('bookmarkHelpers', () => {
   });
 
   describe('mapBookmarkToApiFormat', () => {
-    it('maps theme to topic and constraints to context', () => {
+    it('passes through topic and context fields unchanged', () => {
       const input = {
-        theme: 'Science',
-        constraints: 'Must be practical',
+        topic: 'Science',
+        context: 'Must be practical',
         idea: 'Test idea',
         otherField: 'value'
       };
 
       const result = mapBookmarkToApiFormat(input);
-      
+
       expect(result).toEqual({
         topic: 'Science',
         context: 'Must be practical',
         idea: 'Test idea',
         otherField: 'value'
       });
-      expect(result).not.toHaveProperty('theme');
-      expect(result).not.toHaveProperty('constraints');
     });
 
-    it('handles missing theme and constraints', () => {
+    it('handles missing topic and context', () => {
       const input = {
         idea: 'Test idea'
       };
 
       const result = mapBookmarkToApiFormat(input);
-      
+
       expect(result).toEqual({
-        topic: undefined,
-        context: undefined,
         idea: 'Test idea'
       });
     });

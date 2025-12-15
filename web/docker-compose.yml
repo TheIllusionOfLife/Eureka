@@ -8,6 +8,13 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
+    # Load API keys from parent .env (created by setup.sh or manually)
+    # Note: File must exist. Run 'touch ../.env' if missing, or use web/setup.sh
+    env_file:
+      - ../.env
+    extra_hosts:
+      # Enable host.docker.internal on Linux (works out of box on macOS/Windows)
+      - "host.docker.internal:host-gateway"
     environment:
       # Use environment variable substitution with defaults for CI/testing
       # Values will be read from host environment or use defaults if not set
@@ -18,13 +25,18 @@ services:
       # Set MADSPARK_MODE=mock explicitly if you want mock mode
       MADSPARK_MODE: ${MADSPARK_MODE:-api}
       MADSPARK_PATH: /madspark
+      PYTHONPATH: /madspark/src
       REDIS_URL: redis://redis:6379/0
-      # LLM Router configuration (Ollama-first by default)
-      OLLAMA_HOST: http://ollama:11434
+      # LLM Router configuration (uses native Ollama on host machine)
+      # host.docker.internal resolves to the host via extra_hosts mapping above
+      OLLAMA_HOST: http://host.docker.internal:11434
       MADSPARK_LLM_PROVIDER: ${MADSPARK_LLM_PROVIDER:-auto}
-      MADSPARK_MODEL_TIER: ${MADSPARK_MODEL_TIER:-fast}
+      MADSPARK_MODEL_TIER: ${MADSPARK_MODEL_TIER:-balanced}
       MADSPARK_CACHE_ENABLED: ${MADSPARK_CACHE_ENABLED:-true}
       MADSPARK_CACHE_DIR: /cache/llm
+      # Ollama model configuration (non-quantized models for reliable JSON output)
+      OLLAMA_MODEL_FAST: ${OLLAMA_MODEL_FAST:-gemma3:4b}
+      OLLAMA_MODEL_BALANCED: ${OLLAMA_MODEL_BALANCED:-gemma3:12b}
     volumes:
       - ./backend:/app
       - ../:/madspark  # Mount parent directory for MadSpark imports
@@ -33,39 +45,51 @@ services:
     depends_on:
       redis:
         condition: service_started
-      ollama:
-        condition: service_healthy
+      # Note: Ollama runs natively on host, not in Docker
+      # To use Docker Ollama, uncomment the ollama service below and add:
+      #   ollama:
+      #     condition: service_healthy
     networks:
       - madspark-network
 
-  ollama:
-    # Image version pinned for stability. Python SDK (requirements.txt) uses minimum version >=0.4.1
-    image: ollama/ollama:0.12.9
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama-models:/root/.ollama
-      - ./scripts/pull-models.sh:/usr/local/bin/pull-models.sh:ro
-    networks:
-      - madspark-network
-    healthcheck:
-      test: ["CMD", "ollama", "list"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
-    # Auto-pull Ollama models on first startup using dedicated script (prevents shell injection)
-    # Models: gemma3:4b-it-qat (fast, 4GB) and gemma3:12b-it-qat (balanced, 8.9GB)
-    entrypoint: ["/usr/local/bin/pull-models.sh"]
-    # GPU support: Uncomment the deploy section below for NVIDIA GPU acceleration
-    # For CPU-only systems, leave this commented out
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: all
-    #           capabilities: [gpu]
+  # ==========================================================================
+  # OLLAMA SERVICE (DISABLED - Using native Ollama on host machine)
+  # ==========================================================================
+  # To re-enable Docker Ollama:
+  # 1. Uncomment the service below
+  # 2. Change OLLAMA_HOST above to: http://ollama:11434
+  # 3. Add ollama to backend's depends_on
+  # ==========================================================================
+  # ollama:
+  #   # Image version pinned for stability. Python SDK (requirements.txt) uses minimum version >=0.4.1
+  #   image: ollama/ollama:0.12.9
+  #   ports:
+  #     - "11434:11434"
+  #   volumes:
+  #     # Mount local Ollama directory to reuse existing models (avoids re-downloading ~12GB)
+  #     # Falls back to Docker volume if ~/.ollama doesn't exist
+  #     - ${OLLAMA_MODELS_DIR:-~/.ollama}:/root/.ollama
+  #     - ./scripts/pull-models.sh:/usr/local/bin/pull-models.sh:ro
+  #   networks:
+  #     - madspark-network
+  #   healthcheck:
+  #     test: ["CMD", "ollama", "list"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 10
+  #     start_period: 30s
+  #   # Auto-pull Ollama models on first startup using dedicated script (prevents shell injection)
+  #   # Models: gemma3:4b (fast, 3.3GB) and gemma3:12b (balanced, 8.1GB)
+  #   entrypoint: ["/usr/local/bin/pull-models.sh"]
+  #   # GPU support: Uncomment the deploy section below for NVIDIA GPU acceleration
+  #   # For CPU-only systems, leave this commented out
+  #   # deploy:
+  #   #   resources:
+  #   #     reservations:
+  #   #       devices:
+  #   #         - driver: nvidia
+  #   #           count: all
+  #   #           capabilities: [gpu]
 
   frontend:
     build:
@@ -95,7 +119,6 @@ services:
 
 volumes:
   redis-data:
-  ollama-models:  # Persistent storage for Ollama models
   llm-cache:      # LLM response cache for faster repeated queries
 
 networks:

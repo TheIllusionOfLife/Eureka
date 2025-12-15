@@ -8,18 +8,14 @@
 import { IdeaGenerationRequest, IdeaFormData } from '../types';
 
 /**
- * Convert IdeaFormData (using theme/constraints) to IdeaGenerationRequest (using topic/context)
+ * Convert IdeaFormData to IdeaGenerationRequest
  *
- * Maps frontend field names to backend API field names:
- * - theme → topic (primary field)
- * - constraints → context (primary field)
+ * Frontend now uses topic/context directly (same as backend).
  */
 export function convertFormDataToApiRequest(formData: IdeaFormData): IdeaGenerationRequest {
   const apiRequest: IdeaGenerationRequest = {
-    topic: formData.theme,  // Map theme to topic (primary field)
-    theme: formData.theme,  // Keep theme for backward compatibility
-    context: formData.constraints,  // Map constraints to context (primary field)
-    constraints: formData.constraints,  // Keep constraints for backward compatibility
+    topic: formData.topic,
+    context: formData.context,
     num_top_candidates: formData.num_top_candidates,
     enable_novelty_filter: formData.enable_novelty_filter,
     novelty_threshold: formData.novelty_threshold,

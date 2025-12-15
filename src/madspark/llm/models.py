@@ -13,10 +13,10 @@ Usage:
 # =============================================================================
 
 # Fast tier - quick iterations, lower quality
-OLLAMA_MODEL_FAST: str = "gemma3:4b-it-qat"
+OLLAMA_MODEL_FAST: str = "gemma3:4b"
 
 # Balanced tier - better quality, slower (DEFAULT)
-OLLAMA_MODEL_BALANCED: str = "gemma3:12b-it-qat"
+OLLAMA_MODEL_BALANCED: str = "gemma3:12b"
 
 # =============================================================================
 # Gemini Models (Cloud Inference)

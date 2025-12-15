@@ -56,8 +56,8 @@ function App() {
   const [duplicateWarningData, setDuplicateWarningData] = useState<{
     result: IdeaResult;
     index: number;
-    theme: string;
-    constraints: string;
+    topic: string;
+    context: string;
     similarBookmarks: SimilarBookmark[];
     recommendation: 'block' | 'warn' | 'notice' | 'allow';
     message: string;
@@ -119,13 +119,13 @@ function App() {
   };
 
   // Helper function to create bookmark without duplicate checking
-  const createBookmarkDirect = async (result: IdeaResult, theme: string, constraints: string, forceSave: boolean) => {
+  const createBookmarkDirect = async (result: IdeaResult, topic: string, context: string, forceSave: boolean) => {
     logger.bookmarkAction('create', undefined, false);
-    
+
     const response = await bookmarkService.createBookmarkWithDuplicateCheck(
-      result, 
-      theme,
-      constraints,
+      result,
+      topic,
+      context,
       forceSave
     );
     
@@ -150,12 +150,12 @@ function App() {
   // Duplicate warning dialog handlers
   const handleSaveBookmarkAnyway = async () => {
     if (!duplicateWarningData) return;
-    
+
     try {
       await createBookmarkDirect(
-        duplicateWarningData.result, 
-        duplicateWarningData.theme, 
-        duplicateWarningData.constraints, 
+        duplicateWarningData.result,
+        duplicateWarningData.topic,
+        duplicateWarningData.context,
         true // force save
       );
       
@@ -297,7 +297,7 @@ function App() {
     setLlmMetrics(null);
 
     const startTime = Date.now();
-    logUserAction('generate_ideas', { theme: formData.theme, numCandidates: formData.num_top_candidates });
+    logUserAction('generate_ideas', { topic: formData.topic, numCandidates: formData.num_top_candidates });
     logger.ideaGeneration('started', formData);
 
     try {
@@ -371,8 +371,8 @@ function App() {
       ctrlKey: true,
       description: 'Focus on idea generation form',
       handler: () => {
-        const themeInput = document.querySelector('input[name="theme"]') as HTMLInputElement;
-        themeInput?.focus();
+        const topicInput = document.querySelector('input[name="topic"]') as HTMLInputElement;
+        topicInput?.focus();
         formRef.current?.scrollIntoView({ behavior: 'smooth' });
       }
     },
@@ -546,11 +546,11 @@ function App() {
 
           {/* Right Column - Results */}
           <div ref={resultsRef}>
-            <ResultsDisplay 
-              results={results} 
+            <ResultsDisplay
+              results={results}
               showDetailedResults={showDetailedResults}
-              theme={lastFormData?.theme || ''}
-              constraints={lastFormData?.constraints || ''}
+              topic={lastFormData?.topic || ''}
+              context={lastFormData?.context || ''}
               bookmarkedIdeas={bookmarkedIdeas}
               structuredOutput={structuredOutput}
               onBookmarkToggle={async (result: IdeaResult, index: number) => {
@@ -567,23 +567,23 @@ function App() {
                     await handleDeleteBookmark(existingBookmark.id);
                   } else {
                     // Create bookmark with duplicate detection
-                    const bookmarkTheme = lastFormData?.theme || 'General';
-                    const bookmarkConstraints = lastFormData?.constraints || 'No specific constraints';
-                    
-                    logUserAction('create_bookmark_with_duplicate_check', { ideaIndex: index, theme: bookmarkTheme });
-                    
+                    const bookmarkTopic = lastFormData?.topic || 'General';
+                    const bookmarkContext = lastFormData?.context || 'No specific context';
+
+                    logUserAction('create_bookmark_with_duplicate_check', { ideaIndex: index, topic: bookmarkTopic });
+
                     try {
                       // First check for duplicates using improved idea if available
                       const ideaToCheck = result.improved_idea || result.idea;
-                      const duplicateCheck = await bookmarkService.checkForDuplicates(ideaToCheck, bookmarkTheme);
-                      
+                      const duplicateCheck = await bookmarkService.checkForDuplicates(ideaToCheck, bookmarkTopic);
+
                       if (duplicateCheck.has_duplicates && duplicateCheck.recommendation !== 'allow') {
                         // Show duplicate warning dialog
                         setDuplicateWarningData({
                           result,
                           index,
-                          theme: bookmarkTheme,
-                          constraints: bookmarkConstraints,
+                          topic: bookmarkTopic,
+                          context: bookmarkContext,
                           similarBookmarks: duplicateCheck.similar_bookmarks,
                           recommendation: duplicateCheck.recommendation,
                           message: duplicateCheck.message
@@ -591,13 +591,13 @@ function App() {
                         setShowDuplicateWarning(true);
                       } else {
                         // No significant duplicates or user preference to skip check, save directly
-                        await createBookmarkDirect(result, bookmarkTheme, bookmarkConstraints, false);
+                        await createBookmarkDirect(result, bookmarkTopic, bookmarkContext, false);
                       }
                     } catch (duplicateCheckError) {
                       // If duplicate check fails, fall back to regular bookmark creation with warning
                       console.warn('Duplicate check failed, proceeding with regular bookmark creation:', duplicateCheckError);
                       showInfo('Duplicate detection unavailable, saving bookmark normally.');
-                      await createBookmarkDirect(result, bookmarkTheme, bookmarkConstraints, false);
+                      await createBookmarkDirect(result, bookmarkTopic, bookmarkContext, false);
                     }
                   }
                 } catch (error: any) {

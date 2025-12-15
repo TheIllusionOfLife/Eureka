@@ -185,19 +185,57 @@ case $mode_choice in
             echo ""
             echo "⚠️  Ollama is installed but not running."
             echo "   Starting Ollama..."
+
+            # Track background process for cleanup
+            OLLAMA_PID=""
+
+            # Cleanup function for trap
+            cleanup_ollama() {
+                if [ -n "$OLLAMA_PID" ] && kill -0 "$OLLAMA_PID" 2>/dev/null; then
+                    echo "Cleaning up Ollama process..."
+                    kill "$OLLAMA_PID" 2>/dev/null || true
+                fi
+            }
+
+            # Set trap for cleanup on exit/error
+            trap cleanup_ollama EXIT INT TERM
+
             # Try to start ollama serve in background
             if [ "$(uname -s)" = "Darwin" ]; then
-                # macOS: ollama should auto-start, but let's try
-                open -a Ollama 2>/dev/null || ollama serve &> /dev/null &
+                # macOS: try Ollama.app first, then serve
+                if ! open -a Ollama 2>/dev/null; then
+                    ollama serve &> /dev/null &
+                    OLLAMA_PID=$!
+                fi
             else
                 # Linux: start serve in background
                 ollama serve &> /dev/null &
+                OLLAMA_PID=$!
             fi
-            sleep 3
+
+            # Wait for Ollama with exponential backoff (faster startup on quick systems)
+            echo "   Waiting for Ollama to start..."
+            max_wait=30
+            elapsed=0
+            wait_time=1
+
+            while [ "$elapsed" -lt "$max_wait" ]; do
+                if ollama list &> /dev/null; then
+                    echo "   Ollama ready after ${elapsed} seconds"
+                    # Clear trap on success - we want Ollama to keep running
+                    trap - EXIT INT TERM
+                    OLLAMA_PID=""
+                    break
+                fi
+                sleep "$wait_time"
+                elapsed=$((elapsed + wait_time))
+                # Exponential backoff: 1, 2, 4 seconds (capped)
+                wait_time=$((wait_time < 4 ? wait_time * 2 : 4))
+            done
 
             if ! ollama list &> /dev/null; then
-                echo "❌ Failed to start Ollama. Please start it manually:"
-                echo "   ollama serve"
+                echo "❌ Failed to start Ollama after ${max_wait} seconds."
+                echo "   Please start it manually: ollama serve"
                 exit 1
             fi
         fi

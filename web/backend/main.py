@@ -497,9 +497,13 @@ cache_manager: Optional[CacheManager] = None
 async def lifespan(app: FastAPI):
     """Initialize and cleanup MadSpark components."""
     global temp_manager, reasoning_engine, bookmark_system, cache_manager
-    
+
     # Startup
     logger.info("Initializing MadSpark backend services...")
+
+    # Log timeout configuration (configurable via environment variables)
+    logger.info(f"Timeout configuration: DEFAULT={TimeoutConfig.DEFAULT_REQUEST_TIMEOUT}s "
+                f"(override via MADSPARK_DEFAULT_TIMEOUT env var)")
     
     # Store application start time for uptime calculation
     app.state.start_time = datetime.now()
@@ -1505,7 +1509,9 @@ async def generate_ideas(
         )
 
         # Add timeout handling
+        # TimeoutConfig.DEFAULT_REQUEST_TIMEOUT is configurable via MADSPARK_DEFAULT_TIMEOUT env var
         timeout_seconds = parsed_request.timeout if parsed_request.timeout else TimeoutConfig.DEFAULT_REQUEST_TIMEOUT
+        logger.info(f"Request timeout configured: {timeout_seconds}s (env override: MADSPARK_DEFAULT_TIMEOUT)")
 
         # Log logical inference request
         logger.info(f"Running workflow with logical_inference={parsed_request.logical_inference}, reasoning_engine={reasoning_eng is not None}")

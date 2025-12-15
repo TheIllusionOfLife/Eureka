@@ -63,8 +63,9 @@ check_disk_space() {
 # Check if a model is already downloaded
 model_exists() {
     local model_name="$1"
-    # Use exact match with whitespace delimiter to avoid partial matches (e.g., gemma3:4b vs gemma3:4b-it)
-    ollama list | grep -q "^${model_name}[[:space:]]" && return 0 || return 1
+    # Use exact literal string match with grep -F for security (no regex metacharacter interpretation)
+    # Then filter with awk for exact first-column match to avoid partial matches
+    ollama list 2>/dev/null | awk -v model="$model_name" '$1 == model {found=1; exit} END {exit !found}'
 }
 
 # Validate that a model is complete and functional
@@ -75,8 +76,8 @@ validate_model() {
 
     # Fast validation: check model exists in ollama list (no inference, ~0.1s vs ~15s)
     # Full inference validation is too slow for startup (10-30s per model)
-    # Use exact match with whitespace delimiter to avoid partial matches
-    if ollama list 2>/dev/null | grep -q "^${model_name}[[:space:]]"; then
+    # Use awk for exact first-column match (security: no regex metacharacter interpretation)
+    if ollama list 2>/dev/null | awk -v model="$model_name" '$1 == model {found=1; exit} END {exit !found}'; then
         log "Model ${model_name} validated successfully (found in model list)"
         return 0
     else
@@ -176,21 +177,30 @@ main() {
     ollama serve &
     local ollama_pid=$!
 
-    # Wait for Ollama to be ready (with timeout)
+    # Wait for Ollama to be ready (with exponential backoff for faster startup on quick systems)
     log "Waiting for Ollama service to start..."
-    local max_attempts=30
-    local attempt=0
-    while [ $attempt -lt $max_attempts ]; do
+    local max_wait_seconds=60
+    local elapsed=0
+    local wait_time=0.5  # Start with 0.5 seconds
+    local max_wait_time=4  # Cap at 4 seconds between attempts
+
+    while [ "$elapsed" -lt "$max_wait_seconds" ]; do
         if ollama list >/dev/null 2>&1; then
-            log "Ollama service ready after $((attempt * 2)) seconds"
+            log "Ollama service ready after ${elapsed} seconds"
             break
         fi
-        attempt=$((attempt + 1))
-        sleep 2
+
+        # Sleep with current wait time
+        sleep "$wait_time"
+        elapsed=$((elapsed + ${wait_time%.*}))  # Handle decimal for elapsed calculation
+        elapsed=$((elapsed < 1 ? 1 : elapsed))  # Minimum 1 second increment
+
+        # Exponential backoff: double wait time up to max
+        wait_time=$(awk "BEGIN {t=$wait_time * 2; print (t > $max_wait_time ? $max_wait_time : t)}")
     done
 
-    if [ $attempt -eq $max_attempts ]; then
-        error "Ollama service failed to start after 60 seconds"
+    if [ "$elapsed" -ge "$max_wait_seconds" ]; then
+        error "Ollama service failed to start after ${max_wait_seconds} seconds"
         kill $ollama_pid 2>/dev/null || true
         exit 1
     fi

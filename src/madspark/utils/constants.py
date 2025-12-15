@@ -93,6 +93,9 @@ DEFAULT_CRITIC_TEMPERATURE = 0.3
 DEBUG_DEFAULT_TEMPERATURE = 0.9
 
 # Timeout constants
+# NOTE: For configurable timeouts with env var overrides, use:
+#   from madspark.config.execution_constants import TimeoutConfig
+# These are kept for backward compatibility but TimeoutConfig is authoritative.
 DEFAULT_REQUEST_TIMEOUT = 1200  # 20 minutes for Ollama-first mode (local inference is slower)
 MIN_REQUEST_TIMEOUT = 60  # 1 minute minimum
 MAX_REQUEST_TIMEOUT = 3600  # 1 hour maximum

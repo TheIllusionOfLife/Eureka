@@ -622,7 +622,8 @@ def improve_ideas_batch(
     error_str = str(e)
     # Gracefully fallback to original ideas when API key is invalid (common in Ollama-only mode)
     if "API_KEY_INVALID" in error_str or "API key not valid" in error_str:
-      logging.warning(f"⚠️  Gemini API unavailable - returning original ideas. Configure GOOGLE_API_KEY for improvements. Error: {e}")
+      logging.warning("⚠️  Gemini API unavailable - returning original ideas. Configure GOOGLE_API_KEY for improvements.")
+      logging.debug(f"Gemini API error details: {e}")  # Full error at debug level to avoid leaking secrets
       # Return original ideas without Gemini enhancement
       fallback_results = []
       for i, item in enumerate(ideas_with_feedback):

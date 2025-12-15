@@ -32,6 +32,21 @@ if ! docker compose version &> /dev/null; then
     exit 1
 fi
 
+# Check Docker Compose version (v2.24+ required for env_file.required syntax)
+COMPOSE_VERSION=$(docker compose version --short 2>/dev/null | sed 's/^v//')
+REQUIRED_VERSION="2.24.0"
+if [ -n "$COMPOSE_VERSION" ]; then
+    # Compare versions (works for semantic versioning)
+    if printf '%s\n%s' "$REQUIRED_VERSION" "$COMPOSE_VERSION" | sort -V -C 2>/dev/null; then
+        : # Version is OK
+    else
+        echo "⚠️  WARNING: Docker Compose version $COMPOSE_VERSION detected."
+        echo "   Version $REQUIRED_VERSION or higher is recommended."
+        echo "   Some features may not work correctly with older versions."
+        echo ""
+    fi
+fi
+
 echo "✅ Docker and Docker Compose are installed"
 echo ""
 

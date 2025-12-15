@@ -72,12 +72,13 @@ validate_model() {
 
     log "Validating ${model_name}..."
 
-    # Verify the model can generate a response (check exit code)
-    if echo "Test" | ollama run "$model_name" > /dev/null 2>&1; then
-        log "Model ${model_name} validated successfully"
+    # Fast validation: check model exists in ollama list (no inference, ~0.1s vs ~15s)
+    # Full inference validation is too slow for startup (10-30s per model)
+    if ollama list 2>/dev/null | grep -q "^${model_name}"; then
+        log "Model ${model_name} validated successfully (found in model list)"
         return 0
     else
-        error "Model ${model_name} validation failed - may be corrupted or incomplete"
+        error "Model ${model_name} validation failed - not found in ollama list"
         return 1
     fi
 }

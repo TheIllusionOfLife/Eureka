@@ -26,6 +26,7 @@ services:
       REDIS_URL: redis://redis:6379/0
       # LLM Router configuration (uses native Ollama on host machine)
       # host.docker.internal resolves to the host machine from inside Docker
+      # Linux alternative (if host.docker.internal doesn't work): http://172.17.0.1:11434
       OLLAMA_HOST: http://host.docker.internal:11434
       MADSPARK_LLM_PROVIDER: ${MADSPARK_LLM_PROVIDER:-auto}
       MADSPARK_MODEL_TIER: ${MADSPARK_MODEL_TIER:-balanced}

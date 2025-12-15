@@ -14,7 +14,23 @@ Configuration is organized into logical classes:
 - TemperatureConfig: Temperature values for different operations
 - ContentSafetyConfig: Content safety threshold settings
 """
+import logging
 import os
+
+
+def _safe_float(env_var: str, default: float) -> float:
+    """Safely parse environment variable as float, with fallback to default.
+
+    Handles invalid values gracefully to prevent startup failures.
+    """
+    value = os.getenv(env_var)
+    if value is None:
+        return default
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        logging.warning(f"Invalid value for {env_var}='{value}', using default {default}")
+        return default
 
 
 # ========================================
@@ -70,7 +86,7 @@ class TimeoutConfig:
 
     # General timeouts (in seconds)
     # Override via environment variables: MADSPARK_DEFAULT_TIMEOUT, MADSPARK_IDEA_TIMEOUT, etc.
-    DEFAULT_REQUEST_TIMEOUT = float(os.getenv("MADSPARK_DEFAULT_TIMEOUT", "1200.0"))  # 20 minutes
+    DEFAULT_REQUEST_TIMEOUT = _safe_float("MADSPARK_DEFAULT_TIMEOUT", 1200.0)  # 20 minutes
     SHORT_TIMEOUT = 30.0
     MEDIUM_TIMEOUT = 60.0
     LONG_TIMEOUT = 120.0
@@ -80,14 +96,14 @@ class TimeoutConfig:
     # to reduce premature timeout errors
     # Increased significantly for Ollama which can be much slower than cloud APIs
     # Override via MADSPARK_*_TIMEOUT environment variables for per-environment tuning
-    IDEA_GENERATION_TIMEOUT = float(os.getenv("MADSPARK_IDEA_TIMEOUT", "300.0"))  # 5 min
-    EVALUATION_TIMEOUT = float(os.getenv("MADSPARK_EVAL_TIMEOUT", "300.0"))       # 5 min
-    ADVOCACY_TIMEOUT = float(os.getenv("MADSPARK_ADVOCACY_TIMEOUT", "240.0"))     # 4 min
-    SKEPTICISM_TIMEOUT = float(os.getenv("MADSPARK_SKEPTICISM_TIMEOUT", "240.0")) # 4 min
-    IMPROVEMENT_TIMEOUT = float(os.getenv("MADSPARK_IMPROVEMENT_TIMEOUT", "300.0"))  # 5 min
-    REEVALUATION_TIMEOUT = float(os.getenv("MADSPARK_REEVAL_TIMEOUT", "240.0"))   # 4 min
-    MULTI_DIMENSIONAL_EVAL_TIMEOUT = float(os.getenv("MADSPARK_MULTIDIM_TIMEOUT", "300.0"))  # 5 min
-    LOGICAL_INFERENCE_TIMEOUT = float(os.getenv("MADSPARK_INFERENCE_TIMEOUT", "240.0"))     # 4 min
+    IDEA_GENERATION_TIMEOUT = _safe_float("MADSPARK_IDEA_TIMEOUT", 300.0)  # 5 min
+    EVALUATION_TIMEOUT = _safe_float("MADSPARK_EVAL_TIMEOUT", 300.0)       # 5 min
+    ADVOCACY_TIMEOUT = _safe_float("MADSPARK_ADVOCACY_TIMEOUT", 240.0)     # 4 min
+    SKEPTICISM_TIMEOUT = _safe_float("MADSPARK_SKEPTICISM_TIMEOUT", 240.0) # 4 min
+    IMPROVEMENT_TIMEOUT = _safe_float("MADSPARK_IMPROVEMENT_TIMEOUT", 300.0)  # 5 min
+    REEVALUATION_TIMEOUT = _safe_float("MADSPARK_REEVAL_TIMEOUT", 240.0)   # 4 min
+    MULTI_DIMENSIONAL_EVAL_TIMEOUT = _safe_float("MADSPARK_MULTIDIM_TIMEOUT", 300.0)  # 5 min
+    LOGICAL_INFERENCE_TIMEOUT = _safe_float("MADSPARK_INFERENCE_TIMEOUT", 240.0)     # 4 min
 
     # URL fetch timeout (new for multi-modal support)
     URL_FETCH_TIMEOUT = 30.0

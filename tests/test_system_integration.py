@@ -101,10 +101,23 @@ class TestSystemIntegration:
 
 class TestDockerIntegration:
     """Test Docker container integration."""
-    
+
+    @pytest.fixture(autouse=True)
+    def ensure_env_file(self):
+        """Ensure .env file exists for docker compose config validation."""
+        env_file = Path(".env")
+        created = False
+        if not env_file.exists():
+            env_file.touch()
+            created = True
+        yield
+        # Cleanup if we created it
+        if created and env_file.exists():
+            env_file.unlink()
+
     @pytest.mark.skipif(
         not os.path.exists("/.dockerenv") and subprocess.run(
-            ["docker", "version"], 
+            ["docker", "version"],
             capture_output=True
         ).returncode != 0,
         reason="Docker not available"
@@ -114,7 +127,7 @@ class TestDockerIntegration:
         # Check docker-compose.yml exists
         compose_file = Path("web/docker-compose.yml")
         assert compose_file.exists()
-        
+
         # Validate compose file
         result = subprocess.run(
             ["docker", "compose", "-f", str(compose_file), "config"],
@@ -122,14 +135,14 @@ class TestDockerIntegration:
             text=True
         )
         # Docker compose should validate successfully
-        assert result.returncode == 0
+        assert result.returncode == 0, f"docker compose config failed: {result.stderr}"
         # Ensure both services are defined in the configuration
         assert "frontend" in result.stdout
         assert "backend" in result.stdout
-    
+
     @pytest.mark.skipif(
         not os.path.exists("/.dockerenv") and subprocess.run(
-            ["docker", "version"], 
+            ["docker", "version"],
             capture_output=True
         ).returncode != 0,
         reason="Docker not available"
@@ -137,16 +150,16 @@ class TestDockerIntegration:
     def test_container_networking(self):
         """Test container networking configuration."""
         compose_file = Path("web/docker-compose.yml")
-        
+
         # Check network configuration
         result = subprocess.run(
             ["docker", "compose", "-f", str(compose_file), "config"],
             capture_output=True,
             text=True
         )
-        
+
         # Docker compose should validate successfully
-        assert result.returncode == 0
+        assert result.returncode == 0, f"docker compose config failed: {result.stderr}"
         # Verify network configuration exists
         assert "madspark-network" in result.stdout or "networks:" in result.stdout
 

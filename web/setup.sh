@@ -34,14 +34,19 @@ fi
 
 # Check Docker Compose version (v2.24+ required for env_file.required syntax)
 COMPOSE_VERSION=$(docker compose version --short 2>/dev/null | sed 's/^v//')
-REQUIRED_VERSION="2.24.0"
+REQUIRED_MAJOR=2
+REQUIRED_MINOR=24
 if [ -n "$COMPOSE_VERSION" ]; then
-    # Compare versions (works for semantic versioning)
-    if printf '%s\n%s' "$REQUIRED_VERSION" "$COMPOSE_VERSION" | sort -V -C 2>/dev/null; then
+    # Extract major.minor (portable - no sort -V which doesn't exist on macOS)
+    MAJOR=$(echo "$COMPOSE_VERSION" | cut -d. -f1)
+    MINOR=$(echo "$COMPOSE_VERSION" | cut -d. -f2)
+    # Check if version meets requirement (major > required OR major == required AND minor >= required)
+    if [ "$MAJOR" -gt "$REQUIRED_MAJOR" ] 2>/dev/null || \
+       { [ "$MAJOR" -eq "$REQUIRED_MAJOR" ] && [ "$MINOR" -ge "$REQUIRED_MINOR" ]; } 2>/dev/null; then
         : # Version is OK
     else
         echo "⚠️  WARNING: Docker Compose version $COMPOSE_VERSION detected."
-        echo "   Version $REQUIRED_VERSION or higher is recommended."
+        echo "   Version ${REQUIRED_MAJOR}.${REQUIRED_MINOR}+ is recommended."
         echo "   Some features may not work correctly with older versions."
         echo ""
     fi

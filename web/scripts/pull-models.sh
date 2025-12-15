@@ -63,7 +63,8 @@ check_disk_space() {
 # Check if a model is already downloaded
 model_exists() {
     local model_name="$1"
-    ollama list | grep -q "^${model_name}" && return 0 || return 1
+    # Use exact match with whitespace delimiter to avoid partial matches (e.g., gemma3:4b vs gemma3:4b-it)
+    ollama list | grep -q "^${model_name}[[:space:]]" && return 0 || return 1
 }
 
 # Validate that a model is complete and functional
@@ -74,7 +75,8 @@ validate_model() {
 
     # Fast validation: check model exists in ollama list (no inference, ~0.1s vs ~15s)
     # Full inference validation is too slow for startup (10-30s per model)
-    if ollama list 2>/dev/null | grep -q "^${model_name}"; then
+    # Use exact match with whitespace delimiter to avoid partial matches
+    if ollama list 2>/dev/null | grep -q "^${model_name}[[:space:]]"; then
         log "Model ${model_name} validated successfully (found in model list)"
         return 0
     else

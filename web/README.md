@@ -31,6 +31,11 @@ This guide focuses on the **web interface** only.
 
 ## 🚀 Quick Start
 
+### Prerequisites
+
+- **Docker**: Version 20.10 or higher
+- **Docker Compose**: Version 2.24 or higher (required for `env_file.required: false` syntax)
+
 ### Automated Setup (Easiest)
 
 **Note:** This is the web interface setup script. For the main CLI application (`mad_spark`/`ms` commands), use `~/Eureka/scripts/setup.sh` instead.
@@ -137,7 +142,7 @@ After generating ideas, scroll to the bottom to see:
 #### System Requirements
 
 **Minimum for Ollama models:**
-- **RAM**: 16GB minimum (models use ~13GB when loaded)
+- **RAM**: 16GB minimum (models use ~12GB when loaded)
 - **Disk**: 15GB free space (~12GB for models + overhead for Docker)
 - **CPU**: Multi-core recommended (4+ cores for acceptable performance)
 - **GPU**: Optional - NVIDIA GPU significantly improves inference speed

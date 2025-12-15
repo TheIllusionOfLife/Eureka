@@ -31,8 +31,8 @@ check_disk_space() {
 
     if command -v df &> /dev/null; then
         local available_space
-        # Detect OS and use appropriate df command
-        if [[ "$OSTYPE" == "darwin"* ]]; then
+        # Detect OS and use appropriate df command (using uname -s for POSIX compatibility)
+        if [[ "$(uname -s)" == "Darwin" ]]; then
             # macOS: use -g for 1GB blocks
             available_space=$(df -g . 2>/dev/null | tail -1 | awk '{print $4}')
         else

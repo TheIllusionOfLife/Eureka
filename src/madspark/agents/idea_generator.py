@@ -620,16 +620,16 @@ def improve_ideas_batch(
     raise RuntimeError(f"Batch improvement data error: {e}")
   except Exception as e:
     error_str = str(e)
-    # Gracefully fallback to mock results when API key is invalid (common in Ollama-only mode)
+    # Gracefully fallback to original ideas when API key is invalid (common in Ollama-only mode)
     if "API_KEY_INVALID" in error_str or "API key not valid" in error_str:
-      logging.warning(f"Gemini API key invalid, falling back to simple improvements: {e}")
-      # Return simple improvements without Gemini enhancement
+      logging.warning(f"⚠️  Gemini API unavailable - returning original ideas. Configure GOOGLE_API_KEY for improvements. Error: {e}")
+      # Return original ideas without Gemini enhancement
       fallback_results = []
       for i, item in enumerate(ideas_with_feedback):
         fallback_results.append({
           "idea_index": i,
           "improved_idea": item['idea'],  # Return original idea
-          "key_improvements": ["(Gemini API unavailable - showing original idea)"]
+          "key_improvements": ["⚠️ Gemini API unavailable - configure GOOGLE_API_KEY for AI-powered improvements"]
         })
       return fallback_results, 0
     logging.error(f"Unexpected batch improvement failure: {e}", exc_info=True)

@@ -11,19 +11,19 @@ import { renderAdvocacyContent, renderSkepticismContent } from '../utils/content
 interface ResultsDisplayProps {
   results: IdeaResult[];
   showDetailedResults?: boolean;
-  theme?: string;
-  constraints?: string;
+  topic?: string;
+  context?: string;
   bookmarkedIdeas?: Set<string>;
   onBookmarkToggle?: (result: IdeaResult, index: number) => void;
   savedBookmarks?: SavedBookmark[];
   structuredOutput?: boolean;
 }
 
-const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ 
-  results, 
+const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
+  results,
   showDetailedResults = false,
-  theme = '',
-  constraints = '',
+  topic = '',
+  context = '',
   bookmarkedIdeas,
   onBookmarkToggle,
   savedBookmarks = [],

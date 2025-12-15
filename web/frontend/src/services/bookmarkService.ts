@@ -13,11 +13,11 @@ import { truncateField, truncateRequiredField, mapBookmarkToApiFormat } from '..
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000';
 
 class BookmarkService {
-  async checkForDuplicates(idea: string, theme: string, similarityThreshold?: number): Promise<DuplicateCheckResponse> {
+  async checkForDuplicates(idea: string, topic: string, similarityThreshold?: number): Promise<DuplicateCheckResponse> {
     try {
       const requestData = {
         idea: truncateRequiredField(idea),
-        topic: truncateRequiredField(theme),  // Using new terminology, also truncate theme
+        topic: truncateRequiredField(topic),
         similarity_threshold: similarityThreshold
       };
 
@@ -43,20 +43,19 @@ class BookmarkService {
   }
 
   async createBookmarkWithDuplicateCheck(
-    result: IdeaResult, 
-    theme: string, 
-    constraints: string,
+    result: IdeaResult,
+    topic: string,
+    context: string,
     forceSave: boolean = false
   ): Promise<EnhancedBookmarkResponse> {
     try {
       // Creating bookmark with duplicate check
-      const themeValue = truncateRequiredField(theme || 'General');
+      const topicValue = truncateRequiredField(topic || 'General');
       const bookmarkData: BookmarkData = {
         idea: truncateRequiredField(result.idea || 'No idea text provided'),
         improved_idea: truncateField(result.improved_idea),
-        topic: themeValue,  // Primary field
-        theme: themeValue,  // Backward compatibility
-        constraints: truncateRequiredField(constraints ?? ''),
+        topic: topicValue,
+        context: truncateRequiredField(context ?? ''),
         initial_score: result.initial_score ?? 0,
         improved_score: result.improved_score ?? undefined,
         initial_critique: truncateRequiredField(result.initial_critique),
@@ -98,7 +97,7 @@ class BookmarkService {
     }
   }
 
-  async findSimilarBookmarks(idea: string, theme: string, maxResults: number = 5): Promise<{
+  async findSimilarBookmarks(idea: string, topic: string, maxResults: number = 5): Promise<{
     status: string;
     similar_bookmarks: SimilarBookmark[];
     total_found: number;
@@ -110,7 +109,7 @@ class BookmarkService {
       // Use more aggressive truncation for URL parameters
       const maxUrlParamLength = 500;  // Conservative limit for URL parameters
       url.searchParams.append('idea', truncateRequiredField(idea, maxUrlParamLength));
-      url.searchParams.append('topic', truncateRequiredField(theme, maxUrlParamLength));  // Backend expects 'topic' not 'theme'
+      url.searchParams.append('topic', truncateRequiredField(topic, maxUrlParamLength));
       url.searchParams.append('max_results', maxResults.toString());
 
       const response = await fetch(url.toString());
@@ -128,16 +127,15 @@ class BookmarkService {
     }
   }
 
-  async createBookmark(result: IdeaResult, theme: string, constraints: string): Promise<BookmarkResponse> {
+  async createBookmark(result: IdeaResult, topic: string, context: string): Promise<BookmarkResponse> {
     try {
       // Creating bookmark
-      const themeValue = truncateRequiredField(theme || 'General');
+      const topicValue = truncateRequiredField(topic || 'General');
       const bookmarkData: BookmarkData = {
         idea: truncateRequiredField(result.idea || 'No idea text provided'),  // Required field with min_length - handle empty strings
         improved_idea: truncateField(result.improved_idea),  // Optional field - handle empty strings as undefined
-        topic: themeValue,  // Primary field
-        theme: themeValue,  // Backward compatibility
-        constraints: truncateRequiredField(constraints ?? ''),  // Allows empty strings - only handle null/undefined
+        topic: topicValue,
+        context: truncateRequiredField(context ?? ''),  // Allows empty strings - only handle null/undefined
         initial_score: result.initial_score ?? 0,  // Numeric field - preserve 0, handle null/undefined
         improved_score: result.improved_score ?? undefined,  // Numeric field - preserve 0, handle null/undefined
         initial_critique: truncateRequiredField(result.initial_critique),  // Optional field, sent as empty string if falsy

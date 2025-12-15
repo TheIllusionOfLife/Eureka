@@ -8,8 +8,8 @@ describe('Multi-Modal Type Definitions', () => {
   describe('IdeaGenerationRequest', () => {
     it('should allow multimodal_urls field', () => {
       const request: IdeaGenerationRequest = {
-        theme: 'Test theme',
-        constraints: 'Test constraints',
+        topic: 'Test topic',
+        context: 'Test context',
         num_top_candidates: 3,
         enable_novelty_filter: true,
         novelty_threshold: 0.7,
@@ -27,7 +27,7 @@ describe('Multi-Modal Type Definitions', () => {
 
     it('should allow multimodal_urls to be optional', () => {
       const request: IdeaGenerationRequest = {
-        theme: 'Test theme',
+        topic: 'Test topic',
         num_top_candidates: 3,
         enable_novelty_filter: true,
         novelty_threshold: 0.7,
@@ -43,7 +43,7 @@ describe('Multi-Modal Type Definitions', () => {
 
     it('should allow empty multimodal_urls array', () => {
       const request: IdeaGenerationRequest = {
-        theme: 'Test theme',
+        topic: 'Test topic',
         num_top_candidates: 3,
         enable_novelty_filter: true,
         novelty_threshold: 0.7,
@@ -60,7 +60,7 @@ describe('Multi-Modal Type Definitions', () => {
 
     it('should handle maximum 5 URLs', () => {
       const request: IdeaGenerationRequest = {
-        theme: 'Test theme',
+        topic: 'Test topic',
         num_top_candidates: 3,
         enable_novelty_filter: true,
         novelty_threshold: 0.7,
@@ -85,8 +85,8 @@ describe('Multi-Modal Type Definitions', () => {
   describe('FormData', () => {
     it('should allow multimodal_urls field', () => {
       const formData: FormData = {
-        theme: 'Test theme',
-        constraints: 'Test constraints',
+        topic: 'Test topic',
+        context: 'Test context',
         num_top_candidates: 3,
         enable_novelty_filter: true,
         novelty_threshold: 0.7,
@@ -107,8 +107,8 @@ describe('Multi-Modal Type Definitions', () => {
       const mockFile = new File(['test'], 'test.pdf', { type: 'application/pdf' });
 
       const formData: FormData = {
-        theme: 'Test theme',
-        constraints: 'Test constraints',
+        topic: 'Test topic',
+        context: 'Test context',
         num_top_candidates: 3,
         enable_novelty_filter: true,
         novelty_threshold: 0.7,
@@ -130,8 +130,8 @@ describe('Multi-Modal Type Definitions', () => {
       const mockFile = new File(['test'], 'test.pdf', { type: 'application/pdf' });
 
       const formData: FormData = {
-        theme: 'Test theme',
-        constraints: 'Test constraints',
+        topic: 'Test topic',
+        context: 'Test context',
         num_top_candidates: 3,
         enable_novelty_filter: true,
         novelty_threshold: 0.7,
@@ -152,8 +152,8 @@ describe('Multi-Modal Type Definitions', () => {
 
     it('should allow multimodal fields to be optional', () => {
       const formData: FormData = {
-        theme: 'Test theme',
-        constraints: 'Test constraints',
+        topic: 'Test topic',
+        context: 'Test context',
         num_top_candidates: 3,
         enable_novelty_filter: true,
         novelty_threshold: 0.7,

@@ -67,8 +67,8 @@ describe('FormData Conversion Utilities', () => {
 
   describe('buildMultiModalFormData', () => {
     const baseRequest: IdeaGenerationRequest = {
-      theme: 'Test Theme',
-      constraints: 'Test Constraints',
+      topic: 'Test Topic',
+      context: 'Test Context',
       num_top_candidates: 3,
       enable_novelty_filter: true,
       novelty_threshold: 0.7,
@@ -89,8 +89,8 @@ describe('FormData Conversion Utilities', () => {
       expect(typeof ideaRequestStr).toBe('string');
 
       const parsed = JSON.parse(ideaRequestStr as string);
-      expect(parsed.theme).toBe('Test Theme');
-      expect(parsed.constraints).toBe('Test Constraints');
+      expect(parsed.topic).toBe('Test Topic');
+      expect(parsed.context).toBe('Test Context');
       expect(parsed.num_top_candidates).toBe(3);
       expect(parsed.enable_novelty_filter).toBe(true);
       expect(parsed.novelty_threshold).toBe(0.7);
@@ -99,7 +99,7 @@ describe('FormData Conversion Utilities', () => {
     it('should handle null and undefined values', () => {
       const request = {
         ...baseRequest,
-        constraints: undefined,
+        context: undefined,
         temperature_preset: null
       };
 
@@ -107,7 +107,7 @@ describe('FormData Conversion Utilities', () => {
       const parsed = JSON.parse(formData.get('idea_request') as string);
 
       // Undefined should be omitted
-      expect(parsed.constraints).toBeUndefined();
+      expect(parsed.context).toBeUndefined();
       // Null should be included
       expect(parsed.temperature_preset).toBe(null);
     });

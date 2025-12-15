@@ -36,16 +36,11 @@ export const truncateRequiredField = (str: string | undefined, maxLength: number
 
 /**
  * Maps frontend bookmark data to backend API format
- * Transforms 'theme' to 'topic' and 'constraints' to 'context'
+ * Frontend now uses topic/context directly (same as backend).
  * @param bookmarkData - Frontend bookmark data
- * @returns API-formatted data with proper field names
+ * @returns API-formatted data
  */
 export const mapBookmarkToApiFormat = (bookmarkData: any): any => {
-  const { theme, constraints, ...rest } = bookmarkData;
-  
-  return {
-    ...rest,
-    topic: theme,           // Backend expects 'topic' not 'theme'
-    context: constraints,   // Backend expects 'context' not 'constraints'
-  };
+  // Frontend now uses the same field names as backend (topic/context)
+  return { ...bookmarkData };
 };

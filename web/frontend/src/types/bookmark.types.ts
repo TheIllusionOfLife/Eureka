@@ -6,9 +6,8 @@
 export interface BookmarkData {
   idea: string;
   improved_idea?: string;
-  topic: string;  // Renamed from 'theme' to 'topic'
-  theme?: string; // Deprecated: backward compatibility
-  constraints: string;
+  topic: string;
+  context: string;
   initial_score: number;
   improved_score?: number;
   initial_critique: string;
@@ -22,9 +21,8 @@ export interface BookmarkData {
 export interface SavedBookmark {
   id: string;
   text: string;
-  topic: string;  // Renamed from 'theme' to 'topic'
-  theme?: string; // Deprecated: backward compatibility
-  constraints: string;
+  topic: string;
+  context: string;
   score: number;
   critique: string;
   advocacy: string;
@@ -50,11 +48,9 @@ export interface BookmarksListResponse {
 export interface SimilarBookmark {
   id: string;
   text: string;
-  topic: string;  // Renamed from 'theme' to 'topic'
-  theme?: string; // Deprecated: backward compatibility
+  topic: string;
   similarity_score: number;
   bookmarked_at?: string;
-  // Backend returns both, handling both field names for compatibility
   match_type?: string;
   similarity_type?: 'exact' | 'high' | 'moderate' | 'low';
   matched_features?: string[];
@@ -90,14 +86,12 @@ export interface CreateBookmarkInput {
   improved_idea?: string;
   evaluation: string;
   scores: Record<string, number>;
-  topic: string;  // Renamed from 'theme' to 'topic'
-  theme?: string; // Deprecated: backward compatibility
-  constraints: string;
+  topic: string;
+  context: string;
   force_save?: boolean;
 }
 
 export interface CheckDuplicatesInput {
   text: string;
-  topic: string;  // Renamed from 'theme' to 'topic'
-  theme?: string; // Deprecated: backward compatibility
+  topic: string;
 }

@@ -25,8 +25,8 @@ export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 're
 
 // Form types (renamed to IdeaFormData to avoid conflict with browser's FormData)
 export interface IdeaFormData {
-  theme: string;  // Note: Frontend still uses 'theme' as display name, converted to 'topic' in API calls
-  constraints: string;  // Note: Frontend still uses 'constraints' as display name, converted to 'context' in API calls
+  topic: string;
+  context: string;
   num_top_candidates: number;
   enable_novelty_filter: boolean;
   novelty_threshold: number;

@@ -9,7 +9,9 @@ services:
     ports:
       - "8000:8000"
     env_file:
-      - ../.env  # Load API keys from parent directory
+      # Load API keys from parent directory (optional - won't fail if missing)
+      - path: ../.env
+        required: false
     environment:
       # Use environment variable substitution with defaults for CI/testing
       # Values will be read from host environment or use defaults if not set

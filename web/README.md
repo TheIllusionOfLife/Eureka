@@ -157,11 +157,34 @@ docker compose logs -f ollama
 # Expected output:
 # - "pulling manifest..."
 # - "pulling 1fb99eda86dc: XX% ..."
-# - Total download: ~13GB for both models
+# - Total download: ~12GB for both models
 ```
 
 #### Manual Model Management
 
+**Note**: By default, the web interface uses host-based Ollama (running on your machine at http://localhost:11434).
+The docker exec commands below only apply if you've enabled the Ollama Docker service in docker-compose.yml.
+
+**For host-based Ollama (default):**
+```bash
+# List installed models
+ollama list
+
+# Pull specific model manually
+ollama pull gemma3:4b
+
+# Remove unused model
+ollama rm model-name
+
+# Test Ollama directly
+curl http://localhost:11434/api/generate -d '{
+  "model": "gemma3:4b",
+  "prompt": "Why is the sky blue?",
+  "stream": false
+}'
+```
+
+**For Docker-based Ollama (if enabled in docker-compose.yml):**
 ```bash
 # List installed models
 docker exec web-ollama-1 ollama list
@@ -171,13 +194,6 @@ docker exec web-ollama-1 ollama pull gemma3:4b
 
 # Remove unused model
 docker exec web-ollama-1 ollama rm model-name
-
-# Test Ollama directly
-curl http://localhost:11434/api/generate -d '{
-  "model": "gemma3:4b",
-  "prompt": "Why is the sky blue?",
-  "stream": false
-}'
 ```
 
 #### Disable Auto-Download
@@ -245,11 +261,20 @@ docker compose logs -f ollama
 ```
 
 **Problem: Container healthy but models missing**
+
+For host-based Ollama (default):
 ```bash
 # Verify models are actually downloaded
-docker compose exec ollama ollama list
+ollama list
 
 # If empty, manually pull:
+ollama pull gemma3:4b
+ollama pull gemma3:12b
+```
+
+For Docker-based Ollama (if enabled):
+```bash
+docker compose exec ollama ollama list
 docker compose exec ollama ollama pull gemma3:4b
 docker compose exec ollama ollama pull gemma3:12b
 ```
@@ -281,7 +306,7 @@ nvidia-container-cli info
 - ✅ **Cost**: $0 - completely free
 - ✅ **Privacy**: Data never leaves your machine
 - ⚠️ **Speed**: 20-60s per idea (CPU), 3-12s with GPU
-- ⚠️ **Setup**: 13GB download, 16GB RAM needed
+- ⚠️ **Setup**: ~12GB download, 16GB RAM needed
 - ⚠️ **Limitations**: Text + images only (no PDF/URL support)
 
 **Gemini (Cloud, Paid):**

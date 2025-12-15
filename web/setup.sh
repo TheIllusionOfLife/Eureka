@@ -42,7 +42,7 @@ echo ""
 # Check available disk space (need ~15GB for Ollama)
 if command -v df &> /dev/null; then
     # Detect OS and use appropriate df command
-    if [[ "$OSTYPE" == "darwin"* ]]; then
+    if [[ "$(uname -s)" == "Darwin" ]]; then
         # macOS: use -g for 1GB blocks, output is in column 4
         available_space=$(df -g . 2>/dev/null | tail -1 | awk '{print $4}')
     else
@@ -53,7 +53,7 @@ if command -v df &> /dev/null; then
     # Only proceed with check if we got a valid number
     if [[ "$available_space" =~ ^[0-9]+$ ]] && [ "$available_space" -lt "$DISK_SPACE_MIN_GB" ]; then
         echo "⚠️  WARNING: Low disk space detected (~${available_space}GB available)"
-        echo "   Ollama requires ~${DISK_SPACE_MIN_GB}GB (13GB models + 2GB Docker overhead)"
+        echo "   Ollama requires ~${DISK_SPACE_MIN_GB}GB (~12GB models + overhead)"
         echo "   You may encounter issues during model download."
         echo ""
         read -p "Continue anyway? (y/N): " continue_anyway
@@ -110,7 +110,7 @@ case $mode_choice in
         MADSPARK_MODE="api"
         echo ""
         echo "📦 Setting up with Ollama (free local inference)"
-        echo "This will download ~13GB of models on first startup."
+        echo "This will download ~12GB of models on first startup."
         echo "Download time: 5-15 minutes depending on your internet speed."
         ;;
     2)
@@ -178,7 +178,7 @@ if [ "$MODE" = "ollama" ]; then
         echo ""
         echo "Waiting for models to download (this may take 5-15 minutes)..."
         echo ""
-        echo "⏳ Waiting for model downloads (up to 30 minutes for 13GB of models)"
+        echo "⏳ Waiting for model downloads (up to 30 minutes for ~12GB of models)"
         echo "   Using progressive backoff: 10s → 15s → 20s intervals"
 
         elapsed_time=0
@@ -213,7 +213,7 @@ if [ "$MODE" = "ollama" ]; then
         echo ""
         echo "This could be due to:"
         echo "  - Slow internet connection"
-        echo "  - Insufficient disk space (~13GB required)"
+        echo "  - Insufficient disk space (~12GB required)"
         echo "  - Docker container issues"
         echo ""
         echo "Check the logs with:"

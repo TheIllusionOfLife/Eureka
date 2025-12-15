@@ -59,7 +59,7 @@ cd Eureka/web
 ./setup.sh
 
 # Follow the prompts to choose:
-# 1) Ollama (Free, Local) - Recommended, downloads ~13GB models
+# 1) Ollama (Free, Local) - Recommended, downloads ~12GB models
 # 2) Gemini (Cloud, Requires API Key)
 # 3) Mock (Testing only, no AI)
 

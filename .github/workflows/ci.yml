@@ -216,6 +216,8 @@ jobs:
         run: |
           # Only check syntax, don't build images in PR CI
           if [ -f web/docker-compose.yml ]; then
+            # Create stub .env file (docker-compose.yml requires it)
+            touch .env
             docker compose -f web/docker-compose.yml config > /dev/null
             echo "✅ Docker Compose syntax valid"
           else

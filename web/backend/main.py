@@ -119,9 +119,9 @@ try:
         COST_EFFECTIVENESS_KEY,
         SCALABILITY_KEY,
         RISK_ASSESSMENT_KEY,
-        TIMELINE_KEY,
-        DEFAULT_REQUEST_TIMEOUT
+        TIMELINE_KEY
     )
+    from madspark.config.execution_constants import TimeoutConfig
     from madspark.utils.bookmark_system import BookmarkManager
     from madspark.utils.cache_manager import CacheManager, CacheConfig
     from madspark.utils.improved_idea_cleaner import clean_improved_ideas_in_results
@@ -152,9 +152,9 @@ except ImportError as e:
             COST_EFFECTIVENESS_KEY,
             SCALABILITY_KEY,
             RISK_ASSESSMENT_KEY,
-            TIMELINE_KEY,
-            DEFAULT_REQUEST_TIMEOUT
+            TIMELINE_KEY
         )
+        from src.madspark.config.execution_constants import TimeoutConfig
         from src.madspark.utils.bookmark_system import BookmarkManager
         from src.madspark.utils.cache_manager import CacheManager, CacheConfig
         from src.madspark.utils.improved_idea_cleaner import clean_improved_ideas_in_results
@@ -1505,7 +1505,7 @@ async def generate_ideas(
         )
 
         # Add timeout handling
-        timeout_seconds = parsed_request.timeout if parsed_request.timeout else DEFAULT_REQUEST_TIMEOUT
+        timeout_seconds = parsed_request.timeout if parsed_request.timeout else TimeoutConfig.DEFAULT_REQUEST_TIMEOUT
 
         # Log logical inference request
         logger.info(f"Running workflow with logical_inference={parsed_request.logical_inference}, reasoning_engine={reasoning_eng is not None}")

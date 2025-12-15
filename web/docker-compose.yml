@@ -8,10 +8,13 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
+    # Load API keys from parent .env (created by setup.sh or manually)
+    # Note: File must exist. Run 'touch ../.env' if missing, or use web/setup.sh
     env_file:
-      # Load API keys from parent directory (optional - won't fail if missing)
-      - path: ../.env
-        required: false
+      - ../.env
+    extra_hosts:
+      # Enable host.docker.internal on Linux (works out of box on macOS/Windows)
+      - "host.docker.internal:host-gateway"
     environment:
       # Use environment variable substitution with defaults for CI/testing
       # Values will be read from host environment or use defaults if not set
@@ -25,8 +28,7 @@ services:
       PYTHONPATH: /madspark/src
       REDIS_URL: redis://redis:6379/0
       # LLM Router configuration (uses native Ollama on host machine)
-      # host.docker.internal resolves to the host machine from inside Docker
-      # Linux alternative (if host.docker.internal doesn't work): http://172.17.0.1:11434
+      # host.docker.internal resolves to the host via extra_hosts mapping above
       OLLAMA_HOST: http://host.docker.internal:11434
       MADSPARK_LLM_PROVIDER: ${MADSPARK_LLM_PROVIDER:-auto}
       MADSPARK_MODEL_TIER: ${MADSPARK_MODEL_TIER:-balanced}

@@ -164,12 +164,12 @@ def evaluate_ideas(ideas: str, topic: str, context: str, temperature: float = DE
 
           # Log detailed evaluation results for debugging
           num_returned = len(validated.root)
-          logger.info(f"CRITIC DEBUG: Expected {num_ideas} evaluations, received {num_returned}")
+          logger.debug(f"Expected {num_ideas} evaluations, received {num_returned}")
           for i, eval_item in enumerate(validated.root):
-              logger.info(f"CRITIC DEBUG: Eval {i+1}: score={eval_item.score}, comment_len={len(eval_item.comment)}")
+              logger.debug(f"Eval {i+1}: score={eval_item.score}, comment_len={len(eval_item.comment)}")
 
           if num_returned != num_ideas:
-              logger.warning(f"CRITIC WARNING: Evaluation count mismatch! Expected {num_ideas}, got {num_returned}")
+              logger.warning(f"Evaluation count mismatch! Expected {num_ideas}, got {num_returned}")
 
           # Convert validated Pydantic model to JSON string for backward compatibility
           # CriticEvaluations is a RootModel containing list[CriticEvaluation]

@@ -5,7 +5,7 @@ These models replace the legacy InferenceResult dataclass and logical
 inference schema dictionaries from response_schemas.py.
 """
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, RootModel
 from typing import List, Optional, Dict, Any
 from .base import ConfidenceRated
 
@@ -307,3 +307,21 @@ class ImplicationsAnalysis(InferenceResult):
             }]
         }
     }
+
+
+class InferenceResultBatch(RootModel[List[InferenceResult]]):
+    """
+    Batch response for multiple logical inference analyses.
+
+    Used by LogicalInferenceEngine.analyze_batch() when routing through
+    Ollama for efficient single-call batch processing.
+
+    Example:
+        >>> response = InferenceResultBatch.model_validate([
+        ...     {"inference_chain": ["Step 1"], "conclusion": "Result 1", "confidence": 0.8},
+        ...     {"inference_chain": ["Step 2"], "conclusion": "Result 2", "confidence": 0.9}
+        ... ])
+        >>> for item in response.root:
+        ...     print(f"Confidence: {item.confidence}, Conclusion: {item.conclusion[:50]}...")
+    """
+    pass

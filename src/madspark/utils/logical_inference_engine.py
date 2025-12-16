@@ -20,6 +20,7 @@ from google import genai
 # Pydantic schemas for logical inference
 from madspark.schemas.logical_inference import (
     InferenceResult as PydanticInferenceResult,
+    InferenceResultBatch,
     CausalAnalysis,
     ConstraintAnalysis,
     ContradictionAnalysis,
@@ -244,10 +245,58 @@ class LogicalInferenceEngine:
         if isinstance(analysis_type, str):
             analysis_type = InferenceType(analysis_type)
 
-        try:
-            # Create batch prompt for all ideas
-            batch_prompt = self._get_batch_analysis_prompt(ideas, topic, context, analysis_type)
+        # Create batch prompt for all ideas
+        batch_prompt = self._get_batch_analysis_prompt(ideas, topic, context, analysis_type)
 
+        # Router path: Use LLM router for Ollama-only or multi-provider support
+        if self._should_use_router():
+            try:
+                logger.info(f"Using LLM router for batch logical inference ({len(ideas)} ideas)")
+
+                validated, response = self.router.generate_structured(
+                    prompt=batch_prompt,
+                    schema=InferenceResultBatch,
+                    system_instruction="You are a logical reasoning expert. Analyze multiple ideas systematically and provide structured logical insights for each one in JSON array format.",
+                    temperature=0.7
+                )
+
+                # Convert Pydantic batch response to InferenceResult list
+                results = []
+                for item in validated.root:
+                    # Items are already PydanticInferenceResult instances
+                    results.append(item)
+
+                # Fill remaining slots if parsing didn't get all ideas
+                while len(results) < len(ideas):
+                    results.append(PydanticInferenceResult(
+                        inference_chain=["Batch parsing incomplete"],
+                        conclusion="Unable to parse logical analysis from batch response",
+                        confidence=0.0
+                    ))
+
+                logger.info(f"Router batch logical inference completed: {len(results)} items, {response.tokens_used} tokens")
+                return results[:len(ideas)]
+
+            except AllProvidersFailedError as e:
+                logger.warning(f"All providers failed for batch logical inference: {e}")
+                # Fall through to direct Gemini API
+            except Exception as e:
+                logger.warning(f"Router batch logical inference failed: {e}, falling back to direct API")
+                # Fall through to direct Gemini API
+
+        # Direct Gemini API path (fallback)
+        if self.genai_client is None:
+            logger.error("No genai_client available and router failed - cannot perform batch logical inference")
+            return [
+                PydanticInferenceResult(
+                    inference_chain=["No LLM provider available"],
+                    conclusion="Unable to perform logical analysis - configure Gemini API key or Ollama",
+                    confidence=0.0
+                )
+                for _ in ideas
+            ]
+
+        try:
             # Call LLM using proper API pattern with structured output
             from madspark.agents.genai_client import get_model_name
 

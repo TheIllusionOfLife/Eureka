@@ -1532,7 +1532,8 @@ async def generate_ideas(
                         enhanced_reasoning=parsed_request.enhanced_reasoning,
                         multi_dimensional_eval=True,  # Always enabled as a core feature
                         logical_inference=parsed_request.logical_inference,
-                        reasoning_engine=reasoning_eng,
+                        # NOTE: reasoning_engine intentionally NOT passed
+                        # Let async_coordinator create it with router for batch operations
                         multimodal_files=multimodal_file_paths if multimodal_file_paths else None,
                         multimodal_urls=multimodal_url_list if multimodal_url_list else None
                     ),
@@ -1684,7 +1685,8 @@ async def generate_ideas_async(request: Request, idea_request: IdeaGenerationReq
             enhanced_reasoning=idea_request.enhanced_reasoning,
             multi_dimensional_eval=True,  # Always enabled as a core feature
             logical_inference=idea_request.logical_inference,
-            reasoning_engine=reasoning_eng,
+            # NOTE: reasoning_engine intentionally NOT passed
+            # Let async_coordinator create it with router for batch operations
             multimodal_files=None,  # Async endpoint does not support file uploads
             multimodal_urls=multimodal_url_list
         )

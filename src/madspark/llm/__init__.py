@@ -22,7 +22,7 @@ from madspark.llm.exceptions import (
 )
 from madspark.llm.cache import ResponseCache, get_cache, reset_cache
 from madspark.llm.router import LLMRouter, get_router, reset_router
-from madspark.llm.utils import should_use_router
+from madspark.llm.utils import should_use_router, batch_generate_with_router
 from madspark.llm.models import (
     OLLAMA_MODEL_FAST,
     OLLAMA_MODEL_BALANCED,
@@ -55,6 +55,7 @@ __all__ = [
     "SchemaValidationError",
     # Utilities
     "should_use_router",
+    "batch_generate_with_router",
     # Model constants
     "OLLAMA_MODEL_FAST",
     "OLLAMA_MODEL_BALANCED",

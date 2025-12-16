@@ -1,7 +1,17 @@
 """Tests for AI-powered MultiDimensionalEvaluator."""
-import pytest
-from unittest.mock import Mock, patch
-from madspark.core.enhanced_reasoning import MultiDimensionalEvaluator
+import os
+
+# Explicit mock-mode guard - prevent accidental real API calls
+# This check runs at import time to fail fast if conftest changes
+assert os.environ.get("MADSPARK_MODE") == "mock", (
+    "MADSPARK_MODE must be 'mock' for AI evaluator tests. "
+    "This prevents accidental real API calls in CI. "
+    "Check tests/conftest.py pytest_configure()."
+)
+
+import pytest  # noqa: E402
+from unittest.mock import Mock, patch  # noqa: E402
+from madspark.core.enhanced_reasoning import MultiDimensionalEvaluator  # noqa: E402
 
 
 class TestAIMultiDimensionalEvaluator:
@@ -11,8 +21,9 @@ class TestAIMultiDimensionalEvaluator:
         """Test that evaluator requires a GenAI client and fails without it."""
         with pytest.raises(ValueError) as exc_info:
             MultiDimensionalEvaluator(genai_client=None)
-        
-        assert "MultiDimensionalEvaluator requires a GenAI client" in str(exc_info.value)
+
+        # Error message now mentions "either a GenAI client or LLM router"
+        assert "MultiDimensionalEvaluator requires either a GenAI client or LLM router" in str(exc_info.value)
         assert "Keyword-based evaluation has been deprecated" in str(exc_info.value)
         assert "GOOGLE_API_KEY" in str(exc_info.value)
     

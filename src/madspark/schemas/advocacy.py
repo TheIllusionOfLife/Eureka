@@ -5,7 +5,7 @@ These models replace the legacy ADVOCACY_SCHEMA dictionary definition
 from response_schemas.py.
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, RootModel
 from typing import List
 from .base import TitledItem
 
@@ -169,3 +169,81 @@ class AdvocacyResponse(BaseModel):
             }]
         }
     }
+
+
+class AdvocacyBatchItem(BaseModel):
+    """
+    Single advocacy item with idea_index for batch operations.
+
+    Used when processing multiple ideas in a single API call. Each item
+    contains the advocacy analysis for one idea, identified by its index.
+
+    Fields:
+        idea_index: 0-based index of the idea being analyzed
+        strengths: List of positive aspects (using simplified string format for batch)
+        opportunities: List of opportunities (using simplified string format for batch)
+        addressing_concerns: List of concern responses (using simplified string format for batch)
+
+    Note:
+        For batch operations, we use simplified string lists instead of nested
+        TitledItem/ConcernResponse objects for better LLM generation reliability.
+    """
+    idea_index: int = Field(
+        ...,
+        ge=0,
+        description="0-based index of the idea being analyzed"
+    )
+    strengths: List[str] = Field(
+        default_factory=list,
+        description="List of strengths as strings (format: 'title: description')"
+    )
+    opportunities: List[str] = Field(
+        default_factory=list,
+        description="List of opportunities as strings (format: 'title: description')"
+    )
+    addressing_concerns: List[str] = Field(
+        default_factory=list,
+        description="List of concern responses as strings (format: 'concern -> response')"
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [{
+                "idea_index": 0,
+                "strengths": [
+                    "Market Timing: Perfect timing as industry shifts to AI-first approaches",
+                    "Technical Feasibility: Built on proven frameworks"
+                ],
+                "opportunities": [
+                    "Enterprise Expansion: Clear path to enterprise sales",
+                    "Platform Play: Can become ecosystem"
+                ],
+                "addressing_concerns": [
+                    "High cost -> Phased MVP approach reduces burn",
+                    "Competition -> Unique AI differentiation"
+                ]
+            }]
+        }
+    }
+
+
+class AdvocacyBatchResponse(RootModel[List[AdvocacyBatchItem]]):
+    """
+    Batch response containing advocacy for multiple ideas.
+
+    This RootModel wraps a list of AdvocacyBatchItem objects, one per idea.
+    Used for efficient batch processing where multiple ideas are analyzed
+    in a single LLM API call.
+
+    Example:
+        >>> response = AdvocacyBatchResponse.model_validate([
+        ...     {"idea_index": 0, "strengths": ["..."], "opportunities": ["..."], "addressing_concerns": ["..."]},
+        ...     {"idea_index": 1, "strengths": ["..."], "opportunities": ["..."], "addressing_concerns": ["..."]}
+        ... ])
+        >>> for item in response.root:
+        ...     print(f"Idea {item.idea_index}: {len(item.strengths)} strengths")
+
+    Note:
+        Access items via .root attribute (standard RootModel pattern).
+    """
+    pass

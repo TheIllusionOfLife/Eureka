@@ -20,12 +20,16 @@ from .generation import (
     IdeaItem,
     GeneratedIdeas,
     ImprovementResponse,
+    ImprovementBatchItem,
+    ImprovementBatchResponse,
 )
 from .advocacy import (
     StrengthItem,
     OpportunityItem,
     ConcernResponse,
     AdvocacyResponse,
+    AdvocacyBatchItem,
+    AdvocacyBatchResponse,
 )
 from .skepticism import (
     CriticalFlaw,
@@ -33,6 +37,8 @@ from .skepticism import (
     QuestionableAssumption,
     MissingConsideration,
     SkepticismResponse,
+    SkepticismBatchItem,
+    SkepticismBatchResponse,
 )
 from .logical_inference import (
     InferenceResult,
@@ -58,17 +64,23 @@ __all__ = [
     "IdeaItem",
     "GeneratedIdeas",
     "ImprovementResponse",
+    "ImprovementBatchItem",
+    "ImprovementBatchResponse",
     # Advocacy models
     "StrengthItem",
     "OpportunityItem",
     "ConcernResponse",
     "AdvocacyResponse",
+    "AdvocacyBatchItem",
+    "AdvocacyBatchResponse",
     # Skepticism models
     "CriticalFlaw",
     "RiskChallenge",
     "QuestionableAssumption",
     "MissingConsideration",
     "SkepticismResponse",
+    "SkepticismBatchItem",
+    "SkepticismBatchResponse",
     # Logical inference models
     "InferenceResult",
     "CausalAnalysis",

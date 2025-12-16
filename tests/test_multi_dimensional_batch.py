@@ -15,7 +15,8 @@ class TestMultiDimensionalBatchEvaluation:
     
     def test_batch_evaluation_requires_genai_client(self):
         """Test that batch evaluation requires a configured GenAI client."""
-        with pytest.raises(ValueError, match="MultiDimensionalEvaluator requires a GenAI client"):
+        # Error message now mentions "either a GenAI client or LLM router"
+        with pytest.raises(ValueError, match="MultiDimensionalEvaluator requires either a GenAI client or LLM router"):
             MultiDimensionalEvaluator(genai_client=None)
     
     def test_evaluate_ideas_batch_single_idea(self):

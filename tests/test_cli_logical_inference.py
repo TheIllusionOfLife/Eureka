@@ -65,8 +65,9 @@ class TestCLILogicalInference:
     
     def test_logical_inference_display_formatting(self):
         """Test that logical inference results are properly formatted for display."""
+        from unittest.mock import Mock
         from madspark.utils.logical_inference_engine import LogicalInferenceEngine, InferenceResult
-        
+
         # Create test result
         result = InferenceResult(
             inference_chain=[
@@ -78,9 +79,10 @@ class TestCLILogicalInference:
             confidence=0.9,
             improvements="Consider solar panels for energy independence"
         )
-        
-        # Test formatting
-        engine = LogicalInferenceEngine(None)
+
+        # Test formatting - provide mock client since __init__ requires genai_client or router
+        mock_client = Mock()
+        engine = LogicalInferenceEngine(genai_client=mock_client)
         
         # Brief format
         brief = engine.format_for_display(result, 'brief')

@@ -12,17 +12,21 @@ from .base import CommandHandler, CommandResult
 try:
     from madspark.core.coordinator import run_multistep_workflow
     from madspark.core.async_coordinator import AsyncCoordinator
+    from madspark.core.workflow_config import WorkflowConfig
     from madspark.utils.cache_manager import CacheManager, CacheConfig
     from madspark.cli.cli import determine_num_candidates
     from madspark.llm.utils import should_use_router
     from madspark.llm.config import get_config
+    from madspark.llm import get_router
 except ImportError:
     from coordinator import run_multistep_workflow
     from async_coordinator import AsyncCoordinator
+    from workflow_config import WorkflowConfig
     from cache_manager import CacheManager, CacheConfig
     from cli import determine_num_candidates
     should_use_router = None
     get_config = None
+    get_router = None
 
 
 class WorkflowExecutor(CommandHandler):
@@ -213,11 +217,15 @@ class WorkflowExecutor(CommandHandler):
             if num_candidates > 1:
                 print(f"[{progress:.0%}] {message}")
 
+        # Get router for multi-provider support
+        router = get_router() if get_router is not None else None
+
         # Create async coordinator
         async_coordinator = AsyncCoordinator(
             max_concurrent_agents=int(os.getenv("MAX_CONCURRENT_AGENTS", "10")),
             progress_callback=progress_callback if num_candidates > 1 else None,
-            cache_manager=cache_manager
+            cache_manager=cache_manager,
+            router=router
         )
 
         try:
@@ -228,32 +236,41 @@ class WorkflowExecutor(CommandHandler):
                 await cache_manager.close()
 
     def _build_workflow_kwargs(self, num_candidates: int) -> Dict[str, Any]:
-        """Build workflow arguments dictionary.
+        """Build workflow arguments dictionary using shared WorkflowConfig.
 
         Args:
             num_candidates: Number of candidates to generate
 
         Returns:
             Dictionary of workflow keyword arguments
+
+        Note:
+            Uses WorkflowConfig for consistent parameter building between
+            CLI and web interfaces. The CLI transforms args before passing
+            to WorkflowConfig.
         """
         # Combine files and images into single list for multi-modal inputs
         files = getattr(self.args, 'multimodal_files', None) or []
         images = getattr(self.args, 'multimodal_images', None) or []
         multimodal_files = files + images
 
-        return {
-            "topic": self.args.topic,
-            "context": self.args.context,
-            "num_top_candidates": num_candidates,
-            "enable_novelty_filter": not self.args.disable_novelty_filter,
-            "novelty_threshold": self.args.similarity_threshold if self.args.similarity_threshold is not None else self.args.novelty_threshold,
-            "temperature_manager": self.temp_manager,
-            "verbose": self.args.verbose,
-            "enhanced_reasoning": self.args.enhanced_reasoning,
-            "multi_dimensional_eval": True,  # Always enabled as a core feature
-            "logical_inference": self.args.logical_inference,
-            "timeout": self.args.timeout,
-            # Multi-modal inputs
-            "multimodal_files": multimodal_files if multimodal_files else None,
-            "multimodal_urls": getattr(self.args, 'multimodal_urls', None) or None,
-        }
+        # Use shared WorkflowConfig for consistent parameter building
+        return WorkflowConfig.build_workflow_params(
+            topic=self.args.topic,
+            context=self.args.context,
+            num_candidates=num_candidates,
+            temperature_manager=self.temp_manager,
+            enable_novelty_filter=not self.args.disable_novelty_filter,
+            novelty_threshold=(
+                self.args.similarity_threshold
+                if self.args.similarity_threshold is not None
+                else self.args.novelty_threshold
+            ),
+            verbose=self.args.verbose,
+            enhanced_reasoning=self.args.enhanced_reasoning,
+            multi_dimensional_eval=True,  # Always enabled as a core feature
+            logical_inference=self.args.logical_inference,
+            timeout=self.args.timeout,
+            multimodal_files=multimodal_files if multimodal_files else None,
+            multimodal_urls=getattr(self.args, 'multimodal_urls', None) or None,
+        )

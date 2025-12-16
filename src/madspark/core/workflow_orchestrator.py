@@ -62,6 +62,9 @@ advocate_ideas_batch = _batch_functions['advocate_ideas_batch']
 criticize_ideas_batch = _batch_functions['criticize_ideas_batch']
 improve_ideas_batch = _batch_functions['improve_ideas_batch']
 
+# Set up logger
+logger = logging.getLogger(__name__)
+
 
 class WorkflowOrchestrator:
     """Orchestrates multi-step workflow execution for idea refinement.
@@ -128,7 +131,7 @@ class WorkflowOrchestrator:
             self.reasoning_engine = ReasoningEngine(genai_client=genai_client)
             return self.reasoning_engine
         except (ImportError, AttributeError, RuntimeError) as e:
-            logging.warning(f"Could not create reasoning engine: {e}")
+            logger.warning(f"Could not create reasoning engine: {e}")
             # Fallback to basic initialization
             self.reasoning_engine = ReasoningEngine()
             return self.reasoning_engine
@@ -186,10 +189,10 @@ class WorkflowOrchestrator:
         parsed_ideas = parse_idea_generator_response(ideas_text)
 
         if not parsed_ideas:
-            logging.warning("No ideas were generated.")
+            logger.warning("No ideas were generated.")
             return [], 0
 
-        logging.info(f"Generated {len(parsed_ideas)} ideas")
+        logger.info(f"Generated {len(parsed_ideas)} ideas")
 
         # TODO: Replace with actual API token counts from response metadata
         # Currently using rough estimation based on text length (characters / 4)
@@ -240,6 +243,11 @@ class WorkflowOrchestrator:
                 expected_count=len(ideas)
             )
 
+            # Debug logging for score flow tracing
+            logger.debug(f"Parsed {len(evaluation_results)} evaluation results for {len(ideas)} ideas")
+            for i, result in enumerate(evaluation_results):
+                logger.debug(f"Parsed eval {i+1}: score={result.get('score', 'N/A')}")
+
             # Create evaluated ideas
             evaluated_ideas_data: List[EvaluatedIdea] = []
             for i, idea in enumerate(ideas):
@@ -247,9 +255,11 @@ class WorkflowOrchestrator:
                     eval_data = evaluation_results[i]
                     score = eval_data.get("score", FALLBACK_SCORE)
                     critique = eval_data.get("comment", "No critique available")
+                    logger.debug(f"Idea {i+1} assigned score={score}")
                 else:
                     score = FALLBACK_SCORE
                     critique = FALLBACK_CRITIQUE
+                    logger.warning(f"Idea {i+1} missing evaluation, using FALLBACK_SCORE={FALLBACK_SCORE}")
 
                 evaluated_idea: EvaluatedIdea = {
                     "text": idea,
@@ -265,7 +275,7 @@ class WorkflowOrchestrator:
             return evaluated_ideas_data, token_count
 
         except Exception as e:
-            logging.error(f"Evaluation failed: {e}")
+            logger.error(f"Evaluation failed: {e}")
             # Return ideas with fallback values
             evaluated_ideas_data = []
             for idea in ideas:
@@ -328,7 +338,7 @@ class WorkflowOrchestrator:
             return candidates, token_usage
 
         except Exception as e:
-            logging.error(f"Batch advocate failed: {e}")
+            logger.error(f"Batch advocate failed: {e}")
             # Fallback: mark all as N/A
             for candidate in candidates:
                 candidate["advocacy"] = FALLBACK_ADVOCACY
@@ -384,7 +394,7 @@ class WorkflowOrchestrator:
             return candidates, token_usage
 
         except Exception as e:
-            logging.error(f"Batch skeptic failed: {e}")
+            logger.error(f"Batch skeptic failed: {e}")
             # Fallback: mark all as N/A
             for candidate in candidates:
                 candidate["skepticism"] = FALLBACK_SKEPTICISM
@@ -492,7 +502,7 @@ class WorkflowOrchestrator:
             return candidates, token_usage
 
         except Exception as e:
-            logging.error(f"Batch improve failed: {e}")
+            logger.error(f"Batch improve failed: {e}")
             # Fallback: use original ideas
             for candidate in candidates:
                 candidate["improved_idea"] = candidate.get("idea", candidate.get("text", ""))
@@ -562,7 +572,7 @@ class WorkflowOrchestrator:
             return candidates, token_count
 
         except Exception as e:
-            logging.error(f"Re-evaluation failed: {e}")
+            logger.error(f"Re-evaluation failed: {e}")
             # Fallback: use original scores
             for candidate in candidates:
                 candidate["improved_score"] = float(candidate.get("initial_score", FALLBACK_SCORE))
@@ -674,7 +684,7 @@ class WorkflowOrchestrator:
                 return ideas, token_count
 
             except Exception as e:
-                logging.error(f"Idea generation with monitoring failed: {e}")
+                logger.error(f"Idea generation with monitoring failed: {e}")
                 monitor_ctx.set_fallback_used(str(e))
                 raise
 
@@ -712,7 +722,7 @@ class WorkflowOrchestrator:
                 return evaluated, token_count
 
             except Exception as e:
-                logging.error(f"Evaluation with monitoring failed: {e}")
+                logger.error(f"Evaluation with monitoring failed: {e}")
                 monitor_ctx.set_fallback_used(str(e))
                 raise
 
@@ -750,7 +760,7 @@ class WorkflowOrchestrator:
                 return updated, token_count
 
             except Exception as e:
-                logging.error(f"Advocacy with monitoring failed: {e}")
+                logger.error(f"Advocacy with monitoring failed: {e}")
                 monitor_ctx.set_fallback_used(str(e))
                 # Return candidates with fallback values
                 for candidate in candidates:
@@ -792,7 +802,7 @@ class WorkflowOrchestrator:
                 return updated, token_count
 
             except Exception as e:
-                logging.error(f"Skepticism with monitoring failed: {e}")
+                logger.error(f"Skepticism with monitoring failed: {e}")
                 monitor_ctx.set_fallback_used(str(e))
                 # Return candidates with fallback values
                 for candidate in candidates:
@@ -834,7 +844,7 @@ class WorkflowOrchestrator:
                 return updated, token_count
 
             except Exception as e:
-                logging.error(f"Improvement with monitoring failed: {e}")
+                logger.error(f"Improvement with monitoring failed: {e}")
                 monitor_ctx.set_fallback_used(str(e))
                 # Return candidates with fallback (original ideas)
                 for candidate in candidates:
@@ -876,7 +886,7 @@ class WorkflowOrchestrator:
                 return updated, token_count
 
             except Exception as e:
-                logging.error(f"Re-evaluation with monitoring failed: {e}")
+                logger.error(f"Re-evaluation with monitoring failed: {e}")
                 monitor_ctx.set_fallback_used(str(e))
                 # Return candidates with fallback scores
                 for candidate in candidates:
@@ -1071,11 +1081,11 @@ class WorkflowOrchestrator:
             Updated candidates with multi_dimensional_evaluation field.
         """
         if not self.reasoning_engine:
-            logging.warning("ReasoningEngine not available, skipping multi-dimensional evaluation")
+            logger.warning("ReasoningEngine not available, skipping multi-dimensional evaluation")
             return candidates
 
         if not hasattr(self.reasoning_engine, 'multi_evaluator') or not self.reasoning_engine.multi_evaluator:
-            logging.warning("Multi-evaluator not available, skipping multi-dimensional evaluation")
+            logger.warning("Multi-evaluator not available, skipping multi-dimensional evaluation")
             return candidates
 
         try:
@@ -1098,10 +1108,10 @@ class WorkflowOrchestrator:
                 if i < len(candidates):
                     candidates[i]["multi_dimensional_evaluation"] = result
 
-            logging.info(f"Added multi-dimensional evaluation to {len(candidates)} candidates")
+            logger.info(f"Added multi-dimensional evaluation to {len(candidates)} candidates")
 
         except Exception as e:
-            logging.warning(f"Multi-dimensional evaluation failed: {e}")
+            logger.warning(f"Multi-dimensional evaluation failed: {e}")
             # Don't crash, just leave multi_dimensional_evaluation as None
 
         return candidates
@@ -1140,7 +1150,7 @@ class WorkflowOrchestrator:
                 return updated
 
             except Exception as e:
-                logging.error(f"Multi-dimensional evaluation with monitoring failed: {e}")
+                logger.error(f"Multi-dimensional evaluation with monitoring failed: {e}")
                 monitor_ctx.set_fallback_used(str(e))
                 return candidates
 

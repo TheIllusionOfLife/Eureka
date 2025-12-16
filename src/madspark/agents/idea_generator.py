@@ -17,7 +17,7 @@ from madspark.utils.utils import parse_batch_json_with_fallback
 from madspark.utils.batch_exceptions import BatchParsingError
 from madspark.utils.content_safety import GeminiSafetyHandler
 from madspark.utils.multimodal_input import build_prompt_with_multimodal
-from madspark.schemas.generation import GeneratedIdeas, ImprovementResponse
+from madspark.schemas.generation import GeneratedIdeas, ImprovementResponse, ImprovementBatchResponse
 from madspark.schemas.adapters import pydantic_to_genai_schema
 
 # Set up logger
@@ -36,14 +36,16 @@ except ImportError:
 
 # Optional LLM Router import
 try:
-    from madspark.llm import get_router, should_use_router
-    from madspark.llm.exceptions import AllProvidersFailedError
+    from madspark.llm import get_router, should_use_router, batch_generate_with_router
+    from madspark.llm.exceptions import AllProvidersFailedError, SchemaValidationError
     LLM_ROUTER_AVAILABLE = True
 except ImportError:
     LLM_ROUTER_AVAILABLE = False
     get_router = None  # type: ignore
     should_use_router = None  # type: ignore
+    batch_generate_with_router = None  # type: ignore
     AllProvidersFailedError = Exception  # type: ignore
+    SchemaValidationError = Exception  # type: ignore
 
 try:
     from madspark.utils.errors import ValidationError
@@ -291,11 +293,11 @@ def generate_ideas(
     agent_response = response.text if response.text else ""
   except (AttributeError, TypeError) as e:
     # Handle API response structure errors
-    logging.error(f"API response structure error: {e}", exc_info=True)
+    logger.error(f"API response structure error: {e}", exc_info=True)
     agent_response = ""
   except Exception as e:
     # Log other unexpected errors
-    logging.error(f"Unexpected error calling Gemini API: {e}", exc_info=True)
+    logger.error(f"Unexpected error calling Gemini API: {e}", exc_info=True)
     agent_response = ""
 
   # If agent_response is empty or only whitespace, it will be returned as such.
@@ -371,7 +373,7 @@ def improve_idea(
     # This ensures consistent behavior whether structured output fails to import
     # or raises an exception during execution
     if not isinstance(e, ImportError):
-        logging.warning(f"Structured output failed, falling back to original: {e}")
+        logger.warning(f"Structured output failed, falling back to original: {e}")
     pass  # Continue with original implementation below
   
   # Original implementation as fallback
@@ -425,35 +427,35 @@ def improve_idea(
       finish_reason = getattr(candidate, 'finish_reason', None)
       
       if finish_reason == 1:  # SAFETY (content filtered)
-        logging.warning("Gemini API response was filtered for safety. Using fallback improvement.")
+        logger.warning("Gemini API response was filtered for safety. Using fallback improvement.")
         agent_response = generate_fallback_improvement(original_idea, "safety", advocacy_points)
       elif finish_reason == 3:  # RECITATION (potential copyright issues)
-        logging.warning("Gemini API response was blocked for recitation. Using fallback improvement.")
+        logger.warning("Gemini API response was blocked for recitation. Using fallback improvement.")
         agent_response = generate_fallback_improvement(original_idea, "recitation")
       elif response.text:
         agent_response = response.text
       else:
-        logging.warning("Gemini API returned empty response. Using fallback improvement.")
+        logger.warning("Gemini API returned empty response. Using fallback improvement.")
         agent_response = generate_fallback_improvement(original_idea, "empty")
     else:
-      logging.warning("Gemini API returned no candidates. Using fallback improvement.")
+      logger.warning("Gemini API returned no candidates. Using fallback improvement.")
       agent_response = generate_fallback_improvement(original_idea, "no_candidates")
       
   except ValueError as e:
     # Handle specific content filtering errors
     if "response.text" in str(e) and "finish_reason" in str(e):
-      logging.warning(f"Gemini API content filtered: {e}. Using fallback improvement.")
+      logger.warning(f"Gemini API content filtered: {e}. Using fallback improvement.")
       agent_response = generate_fallback_improvement(original_idea, "content_filtered")
     else:
-      logging.error(f"Gemini API ValueError: {e}", exc_info=True)
+      logger.error(f"Gemini API ValueError: {e}", exc_info=True)
       agent_response = generate_fallback_improvement(original_idea, "value_error")
   except (AttributeError, TypeError) as e:
     # Handle API response structure errors
-    logging.error(f"API response structure error in improve_idea: {e}", exc_info=True)
+    logger.error(f"API response structure error in improve_idea: {e}", exc_info=True)
     agent_response = generate_fallback_improvement(original_idea, "general_error")
   except Exception as e:
     # Log other unexpected errors
-    logging.error(f"Unexpected error calling Gemini API: {e}", exc_info=True)
+    logger.error(f"Unexpected error calling Gemini API: {e}", exc_info=True)
     agent_response = generate_fallback_improvement(original_idea, "general_error")
   
   return agent_response
@@ -553,7 +555,40 @@ def improve_ideas_batch(
       "Return ONLY a JSON array containing one object per idea, in order.\n"
       "Write only the improved ideas, no meta-commentary."
   )
-  
+
+  # Helper function to check router availability
+  def _should_use_router_local() -> bool:
+      """Check if router should be used (local function to avoid circular imports)."""
+      if not LLM_ROUTER_AVAILABLE or should_use_router is None:
+          return False
+      return should_use_router(LLM_ROUTER_AVAILABLE, get_router)
+
+  # Router path: Use LLM router for Ollama-only or multi-provider support
+  # Check router FIRST before falling back to mock mode
+  if router is not None and _should_use_router_local() and batch_generate_with_router is not None:
+      validated, tokens_used = batch_generate_with_router(
+          router=router,
+          prompt=prompt,
+          schema=ImprovementBatchResponse,
+          system_instruction=SYSTEM_INSTRUCTION + " Return a JSON array of improved ideas.",
+          temperature=temperature,
+          batch_type="improvement",
+          item_count=len(ideas_with_feedback),
+      )
+
+      if validated is not None:
+          # Convert Pydantic batch response to existing dict format
+          results = []
+          for item in validated.root:
+              results.append({
+                  "idea_index": item.idea_index,
+                  "improved_idea": item.improved_idea,
+                  "key_improvements": item.key_improvements or []
+              })
+          return results, tokens_used
+
+      # validated is None means router failed, fall through to direct API
+
   if not GENAI_AVAILABLE or idea_generator_client is None:
     # Return mock improvements for CI/testing
     mock_results = []
@@ -637,17 +672,17 @@ def improve_ideas_batch(
     return results, token_usage if isinstance(token_usage, (int, float)) else 0
     
   except json.JSONDecodeError as e:
-    logging.error(f"JSON parsing error in batch improvement: {e}", exc_info=True)
+    logger.error(f"JSON parsing error in batch improvement: {e}", exc_info=True)
     raise ValueError(f"Invalid JSON response: {e}")
   except (AttributeError, TypeError, KeyError) as e:
-    logging.error(f"Data structure error in batch improvement: {e}", exc_info=True)
+    logger.error(f"Data structure error in batch improvement: {e}", exc_info=True)
     raise RuntimeError(f"Batch improvement data error: {e}")
   except Exception as e:
     error_str = str(e)
     # Gracefully fallback to original ideas when API key is invalid (common in Ollama-only mode)
     if "API_KEY_INVALID" in error_str or "API key not valid" in error_str:
-      logging.warning("⚠️  Gemini API unavailable - returning original ideas. Configure GOOGLE_API_KEY for improvements.")
-      logging.debug(f"Gemini API error details: {_sanitize_error_message(e)}")
+      logger.warning("⚠️  Gemini API unavailable - returning original ideas. Configure GOOGLE_API_KEY for improvements.")
+      logger.debug(f"Gemini API error details: {_sanitize_error_message(e)}")
       # Return original ideas without Gemini enhancement
       fallback_results = []
       for i, item in enumerate(ideas_with_feedback):
@@ -657,7 +692,7 @@ def improve_ideas_batch(
           "key_improvements": ["⚠️ Gemini API unavailable - configure GOOGLE_API_KEY for AI-powered improvements"]
         })
       return fallback_results, 0
-    logging.error(f"Unexpected batch improvement failure: {e}", exc_info=True)
+    logger.error(f"Unexpected batch improvement failure: {e}", exc_info=True)
     raise RuntimeError(f"Batch improvement failed: {e}")
 
 

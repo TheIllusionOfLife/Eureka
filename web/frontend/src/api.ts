@@ -10,7 +10,7 @@ const api: AxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 12 * 60 * 1000, // 12 minutes timeout for idea generation
+  timeout: 25 * 60 * 1000, // 25 minutes timeout for full-featured generation with Ollama
 });
 
 // Request interceptor to handle FormData

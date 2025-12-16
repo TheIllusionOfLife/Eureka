@@ -29,23 +29,24 @@ except ImportError:
 
 # Optional LLM Router import
 try:
-    from madspark.llm import get_router, should_use_router
+    from madspark.llm import get_router, should_use_router, batch_generate_with_router
     from madspark.llm.exceptions import AllProvidersFailedError
     LLM_ROUTER_AVAILABLE = True
 except ImportError:
     LLM_ROUTER_AVAILABLE = False
     get_router = None  # type: ignore
     should_use_router = None  # type: ignore
+    batch_generate_with_router = None  # type: ignore
     AllProvidersFailedError = Exception  # type: ignore
 
 # Import constants directly (not in compat_imports yet)
 try:
     from madspark.utils.constants import ADVOCATE_EMPTY_RESPONSE, ADVOCATE_SYSTEM_INSTRUCTION, LANGUAGE_CONSISTENCY_INSTRUCTION
-    from madspark.schemas.advocacy import AdvocacyResponse
+    from madspark.schemas.advocacy import AdvocacyResponse, AdvocacyBatchResponse
     from madspark.schemas.adapters import pydantic_to_genai_schema
 except ImportError:
     from ..utils.constants import ADVOCATE_EMPTY_RESPONSE, ADVOCATE_SYSTEM_INSTRUCTION, LANGUAGE_CONSISTENCY_INSTRUCTION
-    from ..schemas.advocacy import AdvocacyResponse
+    from ..schemas.advocacy import AdvocacyResponse, AdvocacyBatchResponse
     from ..schemas.adapters import pydantic_to_genai_schema
 
 # Import genai_client using compat helper
@@ -224,7 +225,7 @@ def advocate_idea(idea: str, evaluation: str, topic: str, context: str, temperat
     agent_response = response.text if response.text else ""
   except Exception as e:
     # Log the full error for better debugging
-    logging.error(f"Error calling Gemini API in advocate_idea: {e}", exc_info=True)
+    logger.error(f"Error calling Gemini API in advocate_idea: {e}", exc_info=True)
     agent_response = ""
 
   if not agent_response.strip():
@@ -304,6 +305,47 @@ def advocate_ideas_batch(
       "DO NOT skip any idea - provide advocacy for ALL ideas listed above."
   )
   
+  # Router path: Use LLM router for Ollama-only or multi-provider support
+  # Check router FIRST before falling back to mock mode
+  if router is not None and _should_use_router() and batch_generate_with_router is not None:
+    validated, tokens_used = batch_generate_with_router(
+        router=router,
+        prompt=prompt,
+        schema=AdvocacyBatchResponse,
+        system_instruction=ADVOCATE_SYSTEM_INSTRUCTION + " Return a JSON array of advocacy responses.",
+        temperature=temperature,
+        batch_type="advocacy",
+        item_count=len(ideas_with_evaluations),
+    )
+
+    if validated is not None:
+      # Convert Pydantic batch response to existing dict format
+      results = []
+      newline = '\n'
+      for item in validated.root:
+        formatted = (
+          f"STRENGTHS:\n"
+          f"{newline.join(f'• {s}' for s in item.strengths)}\n\n"
+          f"OPPORTUNITIES:\n"
+          f"{newline.join(f'• {o}' for o in item.opportunities)}\n\n"
+          f"ADDRESSING CONCERNS:\n"
+          f"{newline.join(f'• {c}' for c in item.addressing_concerns)}"
+        )
+        results.append({
+          "idea_index": item.idea_index,
+          "strengths": item.strengths,
+          "opportunities": item.opportunities,
+          "addressing_concerns": item.addressing_concerns,
+          "formatted": formatted
+        })
+
+      # Sort by idea_index to ensure correct order
+      results.sort(key=lambda x: x['idea_index'])
+      return results, tokens_used
+
+    # validated is None means router failed, fall through to direct API
+
+  # Mock mode: Return mock advocacy when no API is available
   if not GENAI_AVAILABLE or advocate_client is None:
     # Return mock advocacy for CI/testing
     mock_results = []
@@ -318,9 +360,9 @@ def advocate_ideas_batch(
                     "ADDRESSING CONCERNS:\n• Mock mitigation 1\n• Mock mitigation 2"
       })
     return mock_results, 0  # Return tuple for consistency
-  
+
   try:
-    
+
     config = types.GenerateContentConfig(
         temperature=temperature,
         response_mime_type="application/json",
@@ -449,7 +491,7 @@ def advocate_ideas_batch(
     
   except ValueError as e:
     from madspark.utils.batch_exceptions import BatchValidationError
-    logging.error(f"Batch advocate validation failed: {e}", exc_info=True)
+    logger.error(f"Batch advocate validation failed: {e}", exc_info=True)
     raise BatchValidationError(
         str(e),
         batch_type="advocate", 
@@ -457,7 +499,7 @@ def advocate_ideas_batch(
     )
   except Exception as e:
     from madspark.utils.batch_exceptions import BatchAPIError
-    logging.error(f"Batch advocate API call failed: {e}", exc_info=True)
+    logger.error(f"Batch advocate API call failed: {e}", exc_info=True)
     raise BatchAPIError(
         f"Batch advocate failed: {e}",
         batch_type="advocate",

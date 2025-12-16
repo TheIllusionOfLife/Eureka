@@ -29,25 +29,26 @@ except ImportError:
 
 # Optional LLM Router import
 try:
-    from madspark.llm import get_router, should_use_router
+    from madspark.llm import get_router, should_use_router, batch_generate_with_router
     from madspark.llm.exceptions import AllProvidersFailedError
     LLM_ROUTER_AVAILABLE = True
 except ImportError:
     LLM_ROUTER_AVAILABLE = False
     get_router = None  # type: ignore
     should_use_router = None  # type: ignore
+    batch_generate_with_router = None  # type: ignore
     AllProvidersFailedError = Exception  # type: ignore
 
 try:
     from madspark.utils.constants import SKEPTIC_EMPTY_RESPONSE, SKEPTIC_SYSTEM_INSTRUCTION, LANGUAGE_CONSISTENCY_INSTRUCTION
     from madspark.agents.genai_client import get_genai_client, get_model_name
-    from madspark.schemas.skepticism import SkepticismResponse
+    from madspark.schemas.skepticism import SkepticismResponse, SkepticismBatchResponse
     from madspark.schemas.adapters import pydantic_to_genai_schema
 except ImportError:
     # Fallback for local development/testing
     from constants import SKEPTIC_EMPTY_RESPONSE, SKEPTIC_SYSTEM_INSTRUCTION, LANGUAGE_CONSISTENCY_INSTRUCTION
     from .genai_client import get_genai_client, get_model_name
-    from ..schemas.skepticism import SkepticismResponse
+    from ..schemas.skepticism import SkepticismResponse, SkepticismBatchResponse
     from ..schemas.adapters import pydantic_to_genai_schema
 
 # Configure the Google GenAI client
@@ -216,7 +217,7 @@ def criticize_idea(idea: str, advocacy: str, topic: str, context: str, temperatu
     agent_response = response.text if response.text else ""
   except Exception as e:
     # Log the full error for better debugging
-    logging.error(f"Error calling Gemini API in criticize_idea: {e}", exc_info=True)
+    logger.error(f"Error calling Gemini API in criticize_idea: {e}", exc_info=True)
     agent_response = ""
 
   if not agent_response.strip():
@@ -295,6 +296,50 @@ def criticize_ideas_batch(
       "Each object must contain all five fields. Be thorough and critical."
   )
   
+  # Router path: Use LLM router for Ollama-only or multi-provider support
+  # Check router FIRST before falling back to mock mode
+  if router is not None and _should_use_router() and batch_generate_with_router is not None:
+    validated, tokens_used = batch_generate_with_router(
+        router=router,
+        prompt=prompt,
+        schema=SkepticismBatchResponse,
+        system_instruction=SKEPTIC_SYSTEM_INSTRUCTION + " Return a JSON array of critical analyses.",
+        temperature=temperature,
+        batch_type="skepticism",
+        item_count=len(ideas_with_advocacies),
+    )
+
+    if validated is not None:
+      # Convert Pydantic batch response to existing dict format
+      results = []
+      newline = '\n'
+      for item in validated.root:
+        formatted = (
+          f"CRITICAL FLAWS:\n"
+          f"{newline.join(f'• {f}' for f in item.critical_flaws)}\n\n"
+          f"RISKS & CHALLENGES:\n"
+          f"{newline.join(f'• {r}' for r in item.risks_challenges)}\n\n"
+          f"QUESTIONABLE ASSUMPTIONS:\n"
+          f"{newline.join(f'• {a}' for a in item.questionable_assumptions)}\n\n"
+          f"MISSING CONSIDERATIONS:\n"
+          f"{newline.join(f'• {m}' for m in item.missing_considerations)}"
+        )
+        results.append({
+          "idea_index": item.idea_index,
+          "critical_flaws": item.critical_flaws,
+          "risks_challenges": item.risks_challenges,
+          "questionable_assumptions": item.questionable_assumptions,
+          "missing_considerations": item.missing_considerations,
+          "formatted": formatted
+        })
+
+      # Sort by idea_index to ensure correct order
+      results.sort(key=lambda x: x['idea_index'])
+      return results, tokens_used
+
+    # validated is None means router failed, fall through to direct API
+
+  # Mock mode: Return mock skepticism when no API is available
   if not GENAI_AVAILABLE or skeptic_client is None:
     # Return mock skepticism for CI/testing
     mock_results = []
@@ -311,9 +356,9 @@ def criticize_ideas_batch(
                     "MISSING CONSIDERATIONS:\n• Mock missing factor 1\n• Mock missing factor 2"
       })
     return mock_results, 0  # Return tuple for consistency
-  
+
   try:
-    
+
     config = types.GenerateContentConfig(
         temperature=temperature,
         response_mime_type="application/json",
@@ -391,7 +436,7 @@ def criticize_ideas_batch(
     return results, token_usage if isinstance(token_usage, (int, float)) else 0
     
   except Exception as e:
-    logging.error(f"Batch skeptic failed: {e}", exc_info=True)
+    logger.error(f"Batch skeptic failed: {e}", exc_info=True)
     raise RuntimeError(f"Batch skeptic failed: {e}")
 
 

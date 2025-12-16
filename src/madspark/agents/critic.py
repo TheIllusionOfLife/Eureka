@@ -8,6 +8,9 @@ import json
 import logging
 from typing import Optional, TYPE_CHECKING
 
+# Set up logger
+logger = logging.getLogger(__name__)
+
 if TYPE_CHECKING:
     from ..llm.router import LLMRouter
 
@@ -105,7 +108,13 @@ def evaluate_ideas(ideas: str, topic: str, context: str, temperature: float = DE
   if not isinstance(context, str) or not context.strip():
     raise ValueError("Input 'context' to evaluate_ideas must be a non-empty string.")
 
-  prompt: str = (
+  # Count ideas to tell the model exactly how many evaluations to produce
+  # Ideas are formatted as "Idea 1: ...\nIdea 2: ..." by the orchestrator
+  ideas_lines = [line.strip() for line in ideas.split('\n') if line.strip()]
+  num_ideas = len(ideas_lines)
+
+  # Legacy prompt for NDJSON format (direct API without structured output)
+  legacy_prompt: str = (
       LANGUAGE_CONSISTENCY_INSTRUCTION +
       "You will be provided with a list of ideas, topic, and context.\n"
       "For each idea, you MUST provide an evaluation in the form of a single-line JSON object string.\n"
@@ -120,6 +129,20 @@ def evaluate_ideas(ideas: str, topic: str, context: str, temperature: float = DE
       "Provide your JSON evaluations now (one per line, in the same order as the input ideas):"
   )
 
+  # Structured output prompt for JSON array format (router with Pydantic schema)
+  structured_prompt: str = (
+      LANGUAGE_CONSISTENCY_INSTRUCTION +
+      f"You will be provided with {num_ideas} ideas, a topic, and context.\n"
+      f"You MUST evaluate ALL {num_ideas} ideas and return a JSON array with EXACTLY {num_ideas} evaluation objects.\n"
+      "Each evaluation object must have:\n"
+      "  - 'score': an integer from 1 to 10 (10 = excellent, 1 = poor)\n"
+      "  - 'comment': a detailed critique explaining your reasoning and suggestions\n\n"
+      f"Here are the {num_ideas} ideas to evaluate:\n{ideas}\n\n"
+      f"Topic:\n{topic}\n\n"
+      f"Context for evaluation:\n{context}\n\n"
+      f"IMPORTANT: You MUST return an array with EXACTLY {num_ideas} evaluations, one for each idea in order."
+  )
+
   # Try LLM Router first if available and configured
   # Router only used when use_structured_output=True since router inherently returns structured JSON
   should_route = use_router and use_structured_output and LLM_ROUTER_AVAILABLE and (router is not None or get_router is not None)
@@ -128,25 +151,35 @@ def evaluate_ideas(ideas: str, topic: str, context: str, temperature: float = DE
           # Use provided router or fall back to singleton (backward compatible)
           router_instance = router if router is not None else get_router()
           # Router generates structured output with automatic provider selection
+          # Use structured_prompt that explicitly asks for a JSON array
           validated, response = router_instance.generate_structured(
-              prompt=prompt,
+              prompt=structured_prompt,
               schema=CriticEvaluations,
               system_instruction=CRITIC_SYSTEM_INSTRUCTION,
               temperature=temperature,
           )
 
           # Successfully got structured response via router
-          logging.info(f"Router generated evaluation via {response.provider} ({response.tokens_used} tokens)")
+          logger.info(f"Router generated evaluation via {response.provider} ({response.tokens_used} tokens)")
+
+          # Log detailed evaluation results for debugging
+          num_returned = len(validated.root)
+          logger.debug(f"Expected {num_ideas} evaluations, received {num_returned}")
+          for i, eval_item in enumerate(validated.root):
+              logger.debug(f"Eval {i+1}: score={eval_item.score}, comment_len={len(eval_item.comment)}")
+
+          if num_returned != num_ideas:
+              logger.warning(f"Evaluation count mismatch! Expected {num_ideas}, got {num_returned}")
 
           # Convert validated Pydantic model to JSON string for backward compatibility
           # CriticEvaluations is a RootModel containing list[CriticEvaluation]
           return json.dumps([eval_item.model_dump() for eval_item in validated.root])
 
       except AllProvidersFailedError as e:
-          logging.warning(f"LLM Router failed, falling back to direct API: {e}")
+          logger.warning(f"LLM Router failed, falling back to direct API: {e}")
           # Fall through to direct API call
       except Exception as e:
-          logging.warning(f"Router error, falling back to direct API: {e}")
+          logger.warning(f"Router error, falling back to direct API: {e}")
           # Fall through to direct API call
 
   if not GENAI_AVAILABLE or critic_client is None:
@@ -209,22 +242,26 @@ def evaluate_ideas(ideas: str, topic: str, context: str, temperature: float = DE
             response_schema=_CRITIC_GENAI_SCHEMA,
             system_instruction=CRITIC_SYSTEM_INSTRUCTION
         )
+        # Use structured_prompt for JSON array format
+        api_prompt = structured_prompt
     else:
         # Legacy config without structured output
         config = types.GenerateContentConfig(
             temperature=temperature,
             system_instruction=CRITIC_SYSTEM_INSTRUCTION
         )
-    
+        # Use legacy_prompt for NDJSON format
+        api_prompt = legacy_prompt
+
     response = critic_client.models.generate_content(
         model=model_name,
-        contents=prompt,
+        contents=api_prompt,
         config=config
     )
     agent_response = response.text if response.text else ""
   except (AttributeError, ValueError, RuntimeError) as e:
     # Return empty string on API/connection errors - coordinator will handle this
-    logging.error(f"Error calling Gemini API in criticize_ideas: {e}", exc_info=True)
+    logger.error(f"Error calling Gemini API in criticize_ideas: {e}", exc_info=True)
     agent_response = ""
 
   # If agent_response is empty or only whitespace, it will be returned as such.

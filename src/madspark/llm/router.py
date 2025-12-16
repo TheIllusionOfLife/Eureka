@@ -96,6 +96,7 @@ class RouterMetrics(TypedDict):
     ollama_calls: int
     gemini_calls: int
     fallback_triggers: int
+    failed_requests: int
     total_tokens: int
     total_cost: float
     total_latency_ms: float
@@ -208,6 +209,7 @@ class LLMRouter:
             "ollama_calls": 0,
             "gemini_calls": 0,
             "fallback_triggers": 0,
+            "failed_requests": 0,
             "total_tokens": 0,
             "total_cost": 0.0,
             "total_latency_ms": 0.0,
@@ -437,6 +439,116 @@ class LLMRouter:
         )
 
         return results, aggregated_response
+
+    def generate(
+        self,
+        prompt: str,
+        system_instruction: str = "",
+        temperature: float = 0.7,
+        max_tokens: Optional[int] = None,
+        force_provider: Optional[str] = None,
+    ) -> tuple[str, LLMResponse]:
+        """
+        Generate plain text (non-structured) output with automatic provider selection.
+
+        This is useful for tasks that don't require JSON schema validation,
+        such as generating summaries or natural language responses.
+
+        Args:
+            prompt: User prompt
+            system_instruction: System instruction
+            temperature: Sampling temperature
+            max_tokens: Maximum tokens to generate
+            force_provider: Force specific provider
+
+        Returns:
+            tuple: (generated_text, response_metadata)
+
+        Raises:
+            AllProvidersFailedError: If all providers fail
+            ValueError: If prompt is empty
+        """
+        # Input validation
+        if not prompt or not prompt.strip():
+            raise ValueError("Prompt cannot be empty")
+
+        # Security: prevent resource exhaustion via extremely long prompts
+        if len(prompt) > MAX_PROMPT_LENGTH:
+            raise ValueError(
+                f"Prompt length ({len(prompt)}) exceeds maximum allowed ({MAX_PROMPT_LENGTH})"
+            )
+
+        with self._metrics_lock:
+            self._metrics["total_requests"] += 1
+
+        errors = []
+        providers_tried = []
+
+        try:
+            # Select provider using existing logic
+            provider, provider_name = self._select_provider(force_provider=force_provider)
+            providers_tried.append(provider_name)
+
+            response = provider.generate(
+                prompt=prompt,
+                system_instruction=system_instruction,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+
+            self._update_metrics(provider_name, response)
+
+            logger.info(
+                f"Generated text via {provider_name} in {response.latency_ms}ms ({response.tokens_used} tokens)"
+            )
+
+            return response.text, response
+
+        except Exception as e:
+            errors.append((providers_tried[-1] if providers_tried else "unknown", str(e)))
+            logger.warning(f"Primary provider failed: {type(e).__name__}: {e}")
+
+            # Try fallback if enabled
+            if self._fallback_enabled and not force_provider:
+                try:
+                    fallback_provider = self._get_fallback_provider(providers_tried)
+                    if fallback_provider:
+                        provider_name = fallback_provider.provider_name
+                        providers_tried.append(provider_name)
+
+                        with self._metrics_lock:
+                            self._metrics["fallback_triggers"] += 1
+
+                        logger.info(f"Attempting fallback to {provider_name}")
+
+                        response = fallback_provider.generate(
+                            prompt=prompt,
+                            system_instruction=system_instruction,
+                            temperature=temperature,
+                            max_tokens=max_tokens,
+                        )
+
+                        self._update_metrics(provider_name, response)
+
+                        logger.info(
+                            f"Generated text via fallback {provider_name} in {response.latency_ms}ms "
+                            f"({response.tokens_used} tokens)"
+                        )
+
+                        return response.text, response
+
+                except Exception as fallback_error:
+                    errors.append((provider_name, str(fallback_error)))
+                    logger.warning(f"Fallback provider also failed: {fallback_error}")
+
+        # All providers failed
+        with self._metrics_lock:
+            self._metrics["failed_requests"] += 1
+
+        raise AllProvidersFailedError(
+            errors={p: str(e) for p, e in errors},
+            prompt=prompt[:100] + "..." if len(prompt) > 100 else prompt,
+        )
 
     def generate_structured(
         self,

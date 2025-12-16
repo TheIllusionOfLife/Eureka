@@ -53,3 +53,79 @@ def should_use_router(router_available: bool = False, get_router_func=None) -> b
     # Router is enabled by default when available (Ollama-first behavior)
     logger.debug("Router enabled by default (Ollama-first behavior)")
     return True
+
+
+def batch_generate_with_router(
+    router,
+    prompt: str,
+    schema,
+    system_instruction: str,
+    temperature: float,
+    batch_type: str,
+    item_count: int,
+):
+    """
+    Execute batch generation through LLM router with standard error handling.
+
+    This helper centralizes the common pattern used by batch operations across
+    agents (advocate, skeptic, idea_generator) for router-based generation.
+
+    Only catches expected, recoverable failures and returns (None, 0) for fallback.
+    Programming errors (AttributeError, TypeError, etc.) are re-raised to aid debugging.
+
+    Args:
+        router: LLMRouter instance for request-scoped routing
+        prompt: The prompt to send to the LLM
+        schema: Pydantic model class for response validation
+        system_instruction: System instruction for the LLM
+        temperature: Generation temperature
+        batch_type: Type identifier for logging (e.g., "advocacy", "skepticism")
+        item_count: Number of items being processed (for logging)
+
+    Returns:
+        Tuple of (validated_response, tokens_used) on success.
+        Returns (None, 0) only for expected, recoverable failures.
+
+    Raises:
+        AttributeError, TypeError, KeyError: Programming errors (re-raised)
+    """
+    import json
+    from pydantic import ValidationError
+
+    # Import expected router exceptions
+    try:
+        from madspark.llm.exceptions import (
+            AllProvidersFailedError,
+            SchemaValidationError,
+            ProviderUnavailableError,
+        )
+        router_exceptions = (AllProvidersFailedError, SchemaValidationError, ProviderUnavailableError)
+    except ImportError:
+        router_exceptions = ()
+
+    # Expected recoverable exceptions
+    recoverable_exceptions = (
+        *router_exceptions,
+        ValidationError,
+        json.JSONDecodeError,
+        OSError,
+        ConnectionError,
+        TimeoutError,
+    )
+
+    try:
+        logger.info(f"Using LLM router for batch {batch_type} of {item_count} ideas")
+
+        validated, response = router.generate_structured(
+            prompt=prompt,
+            schema=schema,
+            system_instruction=system_instruction,
+            temperature=temperature,
+        )
+
+        logger.info(f"Router batch {batch_type} completed: {len(validated.root)} items, {response.tokens_used} tokens")
+        return validated, response.tokens_used
+
+    except recoverable_exceptions as e:
+        logger.warning(f"Router failed for batch {batch_type}, falling back to direct API: {type(e).__name__}: {e}")
+        return None, 0

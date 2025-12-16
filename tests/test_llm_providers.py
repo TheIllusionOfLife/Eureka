@@ -3,17 +3,26 @@ Unit tests for LLM Provider implementations.
 
 Tests configuration, Ollama provider, Gemini provider, and response handling.
 """
+import os
 
-import pytest
-from unittest.mock import Mock, patch
-from pydantic import BaseModel, Field
-from datetime import datetime
+# Explicit mock-mode guard - prevent accidental real API calls
+# This check runs at import time to fail fast if conftest changes
+assert os.environ.get("MADSPARK_MODE") == "mock", (
+    "MADSPARK_MODE must be 'mock' for LLM provider tests. "
+    "This prevents accidental real API calls in CI. "
+    "Check tests/conftest.py pytest_configure()."
+)
 
-from madspark.llm.providers.ollama import OllamaProvider, OLLAMA_AVAILABLE
-from madspark.llm.providers.gemini import GeminiProvider, GENAI_AVAILABLE
-from madspark.llm.response import LLMResponse
-from madspark.llm.config import LLMConfig, ModelTier, get_config, reset_config
-from madspark.llm.exceptions import ProviderUnavailableError, SchemaValidationError
+import pytest  # noqa: E402
+from unittest.mock import Mock, patch  # noqa: E402
+from pydantic import BaseModel, Field  # noqa: E402
+from datetime import datetime  # noqa: E402
+
+from madspark.llm.providers.ollama import OllamaProvider, OLLAMA_AVAILABLE  # noqa: E402
+from madspark.llm.providers.gemini import GeminiProvider, GENAI_AVAILABLE  # noqa: E402
+from madspark.llm.response import LLMResponse  # noqa: E402
+from madspark.llm.config import LLMConfig, ModelTier, get_config, reset_config  # noqa: E402
+from madspark.llm.exceptions import ProviderUnavailableError, SchemaValidationError  # noqa: E402
 
 
 class SimpleSchema(BaseModel):
@@ -336,8 +345,8 @@ class TestOllamaProvider:
         # SimpleSchema has 2 fields
         budget = provider._estimate_token_budget(SimpleSchema.model_json_schema())
 
-        # Should be 500 + (2 * 200) = 900 (increased for Japanese text support)
-        assert budget == 900
+        # Should be 1000 + (2 * 400) = 1800 (increased for Japanese text support)
+        assert budget == 1800
 
     @patch("madspark.llm.providers.ollama.ollama")
     def test_estimate_token_budget_nested(self, mock_ollama):

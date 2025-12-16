@@ -249,7 +249,7 @@ class AsyncCoordinator(BatchOperationsBase):
         advocacy_temp: float,
         skepticism_temp: float,
         orchestrator: Optional["WorkflowOrchestrator"] = None,
-        timeout: float = 60,
+        timeout: float = 300,  # Generous timeout for Ollama batch operations
     ) -> List[EvaluatedIdea]:
         """Process advocacy and skepticism in parallel for better performance.
 
@@ -640,7 +640,7 @@ class AsyncCoordinator(BatchOperationsBase):
                             else None
                         )
                         engine = ReasoningEngine(
-                            config=config, genai_client=genai_client
+                            config=config, genai_client=genai_client, router=self.router
                         )
                         logger.info(
                             f"Created ReasoningEngine with logical_inference={logical_inference}"
@@ -652,7 +652,7 @@ class AsyncCoordinator(BatchOperationsBase):
                             if logical_inference
                             else None
                         )
-                        engine = ReasoningEngine(config=config)
+                        engine = ReasoningEngine(config=config, router=self.router)
 
             # Phase 3.2c: Initialize WorkflowOrchestrator for centralized workflow logic
             # Store on self for stateful access across batch methods

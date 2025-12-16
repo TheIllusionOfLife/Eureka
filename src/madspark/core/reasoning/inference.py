@@ -1,7 +1,10 @@
 """Logical Inference system for performing logical inference and reasoning validation."""
 
 import re
-from typing import Dict, List, Any, Union
+from typing import Dict, List, Any, Union, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from madspark.llm.router import LLMRouter
 
 from .types import InferenceStep
 from madspark.utils.logical_inference_engine import (
@@ -13,19 +16,25 @@ from madspark.utils.logical_inference_engine import (
 
 class LogicalInference:
     """System for performing logical inference and reasoning validation.
-    
+
     This class now serves as a compatibility layer that uses the new
     LogicalInferenceEngine for actual inference processing.
     """
-    
-    def __init__(self, genai_client=None):
+
+    def __init__(self, genai_client=None, router: Optional["LLMRouter"] = None):
         """Initialize logical inference system.
-        
+
         Args:
             genai_client: Optional GenAI client for LLM-based inference
+            router: Optional LLM router for multi-provider support
         """
         self.genai_client = genai_client
-        self.inference_engine = LogicalInferenceEngine(genai_client) if genai_client else None
+        self.router = router
+        # Initialize engine if either genai_client or router is available
+        if genai_client or router:
+            self.inference_engine = LogicalInferenceEngine(genai_client=genai_client, router=router)
+        else:
+            self.inference_engine = None
         self.inference_rules = {
             'modus_ponens': self._modus_ponens,
             'modus_tollens': self._modus_tollens,
@@ -50,8 +59,8 @@ class LogicalInference:
         if not premises:
             return {'steps': [], 'conclusion': '', 'validity_score': 0.0}
         
-        # Use new LLM-based engine if available
-        if self.inference_engine and self.genai_client:
+        # Use new LLM-based engine if available (supports both genai_client and router)
+        if self.inference_engine:
             # Combine premises into an idea for analysis
             idea = " Therefore, ".join(premises)
             

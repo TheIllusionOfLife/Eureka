@@ -1399,10 +1399,7 @@ async def generate_ideas(
             temp_mgr = TemperatureManager.from_base_temperature(parsed_request.temperature)
         else:
             temp_mgr = temp_manager or TemperatureManager()
-        
-        # Always setup reasoning engine for multi-dimensional evaluation (now a core feature)
-        reasoning_eng = reasoning_engine
-        
+
         # Parse and validate MAX_CONCURRENT_AGENTS environment variable
         max_concurrent_agents = 10  # default
         env_val = os.getenv("MAX_CONCURRENT_AGENTS", "10")
@@ -1513,10 +1510,10 @@ async def generate_ideas(
         timeout_seconds = parsed_request.timeout if parsed_request.timeout else TimeoutConfig.DEFAULT_REQUEST_TIMEOUT
         logger.info(f"Request timeout configured: {timeout_seconds}s (env override: MADSPARK_DEFAULT_TIMEOUT)")
 
-        # Log logical inference request
-        logger.info(f"Running workflow with logical_inference={parsed_request.logical_inference}, reasoning_engine={reasoning_eng is not None}")
-        if reasoning_eng and hasattr(reasoning_eng, 'logical_inference_engine'):
-            logger.info(f"Logical inference engine available: {reasoning_eng.logical_inference_engine is not None}")
+        # Log workflow configuration
+        logger.info(f"Running workflow: logical_inference={parsed_request.logical_inference}, "
+                    f"provider={parsed_request.llm_provider or 'auto'}, "
+                    f"tier={parsed_request.model_tier or 'balanced'}")
 
         try:
             try:
@@ -1532,7 +1529,8 @@ async def generate_ideas(
                         enhanced_reasoning=parsed_request.enhanced_reasoning,
                         multi_dimensional_eval=True,  # Always enabled as a core feature
                         logical_inference=parsed_request.logical_inference,
-                        reasoning_engine=reasoning_eng,
+                        # NOTE: reasoning_engine intentionally NOT passed
+                        # Let async_coordinator create it with router for batch operations
                         multimodal_files=multimodal_file_paths if multimodal_file_paths else None,
                         multimodal_urls=multimodal_url_list if multimodal_url_list else None
                     ),
@@ -1628,9 +1626,6 @@ async def generate_ideas_async(request: Request, idea_request: IdeaGenerationReq
     else:
         temp_mgr = temp_manager or TemperatureManager()
 
-    # Always setup reasoning engine for multi-dimensional evaluation (now a core feature)
-    reasoning_eng = reasoning_engine
-
     # Parse and validate MAX_CONCURRENT_AGENTS environment variable
     max_concurrent_agents = 10  # default
     env_val = os.getenv("MAX_CONCURRENT_AGENTS", "10")
@@ -1684,7 +1679,8 @@ async def generate_ideas_async(request: Request, idea_request: IdeaGenerationReq
             enhanced_reasoning=idea_request.enhanced_reasoning,
             multi_dimensional_eval=True,  # Always enabled as a core feature
             logical_inference=idea_request.logical_inference,
-            reasoning_engine=reasoning_eng,
+            # NOTE: reasoning_engine intentionally NOT passed
+            # Let async_coordinator create it with router for batch operations
             multimodal_files=None,  # Async endpoint does not support file uploads
             multimodal_urls=multimodal_url_list
         )

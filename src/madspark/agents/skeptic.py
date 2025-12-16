@@ -216,7 +216,7 @@ def criticize_idea(idea: str, advocacy: str, topic: str, context: str, temperatu
     agent_response = response.text if response.text else ""
   except Exception as e:
     # Log the full error for better debugging
-    logging.error(f"Error calling Gemini API in criticize_idea: {e}", exc_info=True)
+    logger.error(f"Error calling Gemini API in criticize_idea: {e}", exc_info=True)
     agent_response = ""
 
   if not agent_response.strip():
@@ -439,7 +439,7 @@ def criticize_ideas_batch(
     return results, token_usage if isinstance(token_usage, (int, float)) else 0
     
   except Exception as e:
-    logging.error(f"Batch skeptic failed: {e}", exc_info=True)
+    logger.error(f"Batch skeptic failed: {e}", exc_info=True)
     raise RuntimeError(f"Batch skeptic failed: {e}")
 
 

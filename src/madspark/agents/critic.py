@@ -8,6 +8,9 @@ import json
 import logging
 from typing import Optional, TYPE_CHECKING
 
+# Set up logger
+logger = logging.getLogger(__name__)
+
 if TYPE_CHECKING:
     from ..llm.router import LLMRouter
 
@@ -157,26 +160,26 @@ def evaluate_ideas(ideas: str, topic: str, context: str, temperature: float = DE
           )
 
           # Successfully got structured response via router
-          logging.info(f"Router generated evaluation via {response.provider} ({response.tokens_used} tokens)")
+          logger.info(f"Router generated evaluation via {response.provider} ({response.tokens_used} tokens)")
 
           # Log detailed evaluation results for debugging
           num_returned = len(validated.root)
-          logging.info(f"CRITIC DEBUG: Expected {num_ideas} evaluations, received {num_returned}")
+          logger.info(f"CRITIC DEBUG: Expected {num_ideas} evaluations, received {num_returned}")
           for i, eval_item in enumerate(validated.root):
-              logging.info(f"CRITIC DEBUG: Eval {i+1}: score={eval_item.score}, comment_len={len(eval_item.comment)}")
+              logger.info(f"CRITIC DEBUG: Eval {i+1}: score={eval_item.score}, comment_len={len(eval_item.comment)}")
 
           if num_returned != num_ideas:
-              logging.warning(f"CRITIC WARNING: Evaluation count mismatch! Expected {num_ideas}, got {num_returned}")
+              logger.warning(f"CRITIC WARNING: Evaluation count mismatch! Expected {num_ideas}, got {num_returned}")
 
           # Convert validated Pydantic model to JSON string for backward compatibility
           # CriticEvaluations is a RootModel containing list[CriticEvaluation]
           return json.dumps([eval_item.model_dump() for eval_item in validated.root])
 
       except AllProvidersFailedError as e:
-          logging.warning(f"LLM Router failed, falling back to direct API: {e}")
+          logger.warning(f"LLM Router failed, falling back to direct API: {e}")
           # Fall through to direct API call
       except Exception as e:
-          logging.warning(f"Router error, falling back to direct API: {e}")
+          logger.warning(f"Router error, falling back to direct API: {e}")
           # Fall through to direct API call
 
   if not GENAI_AVAILABLE or critic_client is None:
@@ -258,7 +261,7 @@ def evaluate_ideas(ideas: str, topic: str, context: str, temperature: float = DE
     agent_response = response.text if response.text else ""
   except (AttributeError, ValueError, RuntimeError) as e:
     # Return empty string on API/connection errors - coordinator will handle this
-    logging.error(f"Error calling Gemini API in criticize_ideas: {e}", exc_info=True)
+    logger.error(f"Error calling Gemini API in criticize_ideas: {e}", exc_info=True)
     agent_response = ""
 
   # If agent_response is empty or only whitespace, it will be returned as such.

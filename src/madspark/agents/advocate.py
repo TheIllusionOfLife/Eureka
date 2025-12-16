@@ -224,7 +224,7 @@ def advocate_idea(idea: str, evaluation: str, topic: str, context: str, temperat
     agent_response = response.text if response.text else ""
   except Exception as e:
     # Log the full error for better debugging
-    logging.error(f"Error calling Gemini API in advocate_idea: {e}", exc_info=True)
+    logger.error(f"Error calling Gemini API in advocate_idea: {e}", exc_info=True)
     agent_response = ""
 
   if not agent_response.strip():
@@ -494,7 +494,7 @@ def advocate_ideas_batch(
     
   except ValueError as e:
     from madspark.utils.batch_exceptions import BatchValidationError
-    logging.error(f"Batch advocate validation failed: {e}", exc_info=True)
+    logger.error(f"Batch advocate validation failed: {e}", exc_info=True)
     raise BatchValidationError(
         str(e),
         batch_type="advocate", 
@@ -502,7 +502,7 @@ def advocate_ideas_batch(
     )
   except Exception as e:
     from madspark.utils.batch_exceptions import BatchAPIError
-    logging.error(f"Batch advocate API call failed: {e}", exc_info=True)
+    logger.error(f"Batch advocate API call failed: {e}", exc_info=True)
     raise BatchAPIError(
         f"Batch advocate failed: {e}",
         batch_type="advocate",

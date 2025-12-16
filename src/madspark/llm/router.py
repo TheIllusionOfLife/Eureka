@@ -96,6 +96,7 @@ class RouterMetrics(TypedDict):
     ollama_calls: int
     gemini_calls: int
     fallback_triggers: int
+    failed_requests: int
     total_tokens: int
     total_cost: float
     total_latency_ms: float
@@ -208,6 +209,7 @@ class LLMRouter:
             "ollama_calls": 0,
             "gemini_calls": 0,
             "fallback_triggers": 0,
+            "failed_requests": 0,
             "total_tokens": 0,
             "total_cost": 0.0,
             "total_latency_ms": 0.0,

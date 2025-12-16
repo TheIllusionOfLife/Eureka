@@ -1,6 +1,6 @@
 # Session Handover
 
-## Last Updated: 2025-12-07 14:15 JST
+## Last Updated: 2025-12-16 19:09 JST
 
 ## Work In Progress
 
@@ -8,29 +8,21 @@
 
 ## Recently Completed
 
-- ✅ **[PR #221](https://github.com/TheIllusionOfLife/Eureka/pull/221)**: Feed Evaluations into Improvement Step & Standardize CLI Arguments - **MERGED** (December 7, 2025)
-  - **Core Achievement**: Evaluation data (initial_score, dimension_scores, logical_inference) now flows to improvement step
+- ✅ **[PR #225](https://github.com/TheIllusionOfLife/Eureka/pull/225)**: Route Agents Through Ollama LLM Router - **MERGED** (December 16, 2025)
+  - **Core Achievement**: Integrated LLM router into all core agents (Critic, Advocate, Skeptic, Idea Generator)
   - **Key Changes**:
-    - Added `_format_logical_inference_for_prompt()` and `WEAK_DIMENSION_THRESHOLD` constant
-    - Fixed dimension_scores rendering bugs (both in prompts.py and idea_generator.py batch processing)
-    - Standardized CLI args from theme/constraints to topic/context across codebase
-    - Renamed `remix_with_bookmarks` params to topic/context for consistency
-    - DRY improvement in summary.py formatter with tuple-based dimension_display mapping
-  - **Bug Fixes**:
-    - Fixed dimension_scores silently dropped when initial_score was None (data loss)
-    - Fixed batch tests missing `types.GenerateContentConfig` mock
-    - Fixed test data types (improvements field was dict instead of string)
-  - **Files Changed**: 20 files (+923, -186 lines)
-  - **New Tests**: `tests/test_evaluation_data_flow.py` (640 lines, 25 tests)
+    - Added `batch_generate_with_router()` DRY helper in `src/madspark/llm/utils.py`
+    - Added `failed_requests` metric to RouterMetrics TypedDict
+    - Added custom `__init__` to `AllProvidersFailedError` for error details
+    - Schema-aware token budget calculation in Ollama provider
+    - Mock mode guards (`MADSPARK_MODE=mock`) in test files
+    - New `WorkflowConfig` class for centralized configuration
+  - **Files Changed**: 30 files (+1401, -200 lines)
   - **CI Status**: All tests passing ✅
 
-- ✅ **[PR #220](https://github.com/TheIllusionOfLife/Eureka/pull/220)**: Centralize Model Definitions and Improve CLI Startup Message - **MERGED** (December 7, 2025)
-  - **Core Achievement**: Centralized all model name constants into `src/madspark/llm/models.py`
-  - **Key Changes**:
-    - Improved CLI startup message to show actual model used (Ollama/Gemini)
-    - Refactored model name constants out of `utils/constants.py`
-    - Updated all modules to import from central location
-  - **CI Status**: All tests passing ✅
+- ✅ **[PR #223](https://github.com/TheIllusionOfLife/Eureka/pull/223)**: Make web/setup.sh Disk Space Check Work on macOS - **MERGED** (December 15, 2025)
+
+- ✅ **[PR #221](https://github.com/TheIllusionOfLife/Eureka/pull/221)**: Feed Evaluations into Improvement Step & Standardize CLI Arguments - **MERGED** (December 7, 2025)
 
 ## Next Priority Tasks
 
@@ -43,43 +35,26 @@
 ## Context for Next Session
 
 **Current State**: All major features complete, codebase stable with 90%+ test coverage.
-**Recent Focus**: Evaluation data flow improvements, CLI standardization.
+**Recent Focus**: LLM router integration, Ollama-first deployment.
 **Recommended Next**: Maintenance, performance optimization, or new feature development as needed.
-
-## Recent Session Learnings
-
-### Mock Decorator Order (PR #221)
-- **Pattern**: `@patch` decorators apply bottom-up, parameters must be in reverse order
-- **Gotcha**: Value patches like `@patch('module.CONSTANT', True)` don't add a parameter
-- **Example**: `@patch('A')` → `@patch('B')` → `def test(self, mock_b, mock_a)`
-
-### Independent Data Rendering
-- **Anti-pattern**: Nesting optional field rendering (dimension_scores inside initial_score check)
-- **Fix**: Handle each optional field independently to prevent silent data loss
 
 ## Historical Sessions (Summarized)
 
 <details>
-<summary>November 2025: Major Features & Refactoring (PRs #206, #208, #210-212, #215-216)</summary>
+<summary>December 2025: Router Integration (PRs #221, #223, #225)</summary>
 
-- **PR #216**: Workflow Orchestrator refactor, candidate data normalization
-- **PR #215**: Web Interface Ollama integration, setup improvements
-- **PR #212**: Enhanced Reasoning modularization (1778→0 lines)
-- **PR #211**: --enhanced and --logical CLI flags
-- **PR #210**: Multi-Dimensional Evaluation display fixes
-- **PR #208**: Backend thread-safety with request-scoped router
-- **PR #206**: Full LLM Router integration (Ollama-first default)
-- **Key Learnings**: Mock signature verification, fixture cleanup, merge conflict resolution
+- **PR #225**: Route agents through Ollama LLM router, DRY batch helper
+- **PR #223**: macOS disk space check fix
+- **PR #221**: Evaluation data flow, CLI arg standardization
 
 </details>
 
 <details>
-<summary>Earlier: Foundation & Core Features</summary>
+<summary>November 2025: Major Features & Refactoring (PRs #206-216)</summary>
 
-- Pydantic schema migration (Phases 1-3)
-- Multi-dimensional evaluation system
-- Logical inference engine
-- CLI formatter architecture (Strategy Pattern)
-- Test coverage improvements (90%+)
+- **PR #216**: Workflow Orchestrator refactor
+- **PR #215**: Web Interface Ollama integration
+- **PR #212**: Enhanced Reasoning modularization
+- **PR #206**: Full LLM Router integration (Ollama-first default)
 
 </details>

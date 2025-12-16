@@ -558,10 +558,14 @@ def improve_ideas_batch(
   # Helper function to check router availability
   def _should_use_router_local() -> bool:
       """Check if router should be used (local function to avoid circular imports)."""
-      if not LLM_ROUTER_AVAILABLE or should_use_router is None:
+      try:
+          if not LLM_ROUTER_AVAILABLE or should_use_router is None:
+              return False
+          # Pass required arguments to centralized should_use_router utility
+          return should_use_router(LLM_ROUTER_AVAILABLE, get_router)
+      except Exception as e:
+          logger.debug("Error checking router availability: %s", e)
           return False
-      # Pass required arguments to centralized should_use_router utility
-      return should_use_router(LLM_ROUTER_AVAILABLE, get_router)
 
   # Router path: Use LLM router for Ollama-only or multi-provider support
   # Check router FIRST before falling back to mock mode

@@ -5,7 +5,7 @@ These models replace the legacy SKEPTICISM_SCHEMA dictionary definition
 from response_schemas.py.
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, RootModel
 from typing import List
 from .base import TitledItem
 
@@ -233,3 +233,90 @@ class SkepticismResponse(BaseModel):
             }]
         }
     }
+
+
+class SkepticismBatchItem(BaseModel):
+    """
+    Single skepticism item with idea_index for batch operations.
+
+    Used when processing multiple ideas in a single API call. Each item
+    contains the skeptical analysis for one idea, identified by its index.
+
+    Fields:
+        idea_index: 0-based index of the idea being analyzed
+        critical_flaws: List of major flaws (simplified string format for batch)
+        risks_challenges: List of risks and their impacts (simplified string format)
+        questionable_assumptions: List of questionable assumptions (simplified string format)
+        missing_considerations: List of overlooked factors (simplified string format)
+
+    Note:
+        For batch operations, we use simplified string lists instead of nested
+        objects for better LLM generation reliability.
+    """
+    idea_index: int = Field(
+        ...,
+        ge=0,
+        description="0-based index of the idea being analyzed"
+    )
+    critical_flaws: List[str] = Field(
+        default_factory=list,
+        description="List of critical flaws as strings (format: 'title: description')"
+    )
+    risks_challenges: List[str] = Field(
+        default_factory=list,
+        description="List of risks and challenges as strings (format: 'risk and impact')"
+    )
+    questionable_assumptions: List[str] = Field(
+        default_factory=list,
+        description="List of questionable assumptions as strings"
+    )
+    missing_considerations: List[str] = Field(
+        default_factory=list,
+        description="List of missing considerations as strings"
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [{
+                "idea_index": 0,
+                "critical_flaws": [
+                    "Scalability: Architecture cannot handle 1000+ users",
+                    "Dependency: Relies on deprecated API"
+                ],
+                "risks_challenges": [
+                    "Regulatory uncertainty may delay launch 6-12 months",
+                    "High competition from established players"
+                ],
+                "questionable_assumptions": [
+                    "Users will pay premium pricing without market validation",
+                    "Viral growth will occur naturally"
+                ],
+                "missing_considerations": [
+                    "GDPR compliance for EU market",
+                    "Customer support infrastructure"
+                ]
+            }]
+        }
+    }
+
+
+class SkepticismBatchResponse(RootModel[List[SkepticismBatchItem]]):
+    """
+    Batch response containing skepticism for multiple ideas.
+
+    This RootModel wraps a list of SkepticismBatchItem objects, one per idea.
+    Used for efficient batch processing where multiple ideas are analyzed
+    in a single LLM API call.
+
+    Example:
+        >>> response = SkepticismBatchResponse.model_validate([
+        ...     {"idea_index": 0, "critical_flaws": ["..."], "risks_challenges": ["..."], ...},
+        ...     {"idea_index": 1, "critical_flaws": ["..."], "risks_challenges": ["..."], ...}
+        ... ])
+        >>> for item in response.root:
+        ...     print(f"Idea {item.idea_index}: {len(item.critical_flaws)} flaws")
+
+    Note:
+        Access items via .root attribute (standard RootModel pattern).
+    """
+    pass

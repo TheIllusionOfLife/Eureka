@@ -41,11 +41,11 @@ except ImportError:
 # Import constants directly (not in compat_imports yet)
 try:
     from madspark.utils.constants import ADVOCATE_EMPTY_RESPONSE, ADVOCATE_SYSTEM_INSTRUCTION, LANGUAGE_CONSISTENCY_INSTRUCTION
-    from madspark.schemas.advocacy import AdvocacyResponse
+    from madspark.schemas.advocacy import AdvocacyResponse, AdvocacyBatchResponse
     from madspark.schemas.adapters import pydantic_to_genai_schema
 except ImportError:
     from ..utils.constants import ADVOCATE_EMPTY_RESPONSE, ADVOCATE_SYSTEM_INSTRUCTION, LANGUAGE_CONSISTENCY_INSTRUCTION
-    from ..schemas.advocacy import AdvocacyResponse
+    from ..schemas.advocacy import AdvocacyResponse, AdvocacyBatchResponse
     from ..schemas.adapters import pydantic_to_genai_schema
 
 # Import genai_client using compat helper
@@ -304,6 +304,51 @@ def advocate_ideas_batch(
       "DO NOT skip any idea - provide advocacy for ALL ideas listed above."
   )
   
+  # Router path: Use LLM router for Ollama-only or multi-provider support
+  # Check router FIRST before falling back to mock mode
+  if router is not None and _should_use_router():
+    try:
+      logger.info(f"Using LLM router for batch advocacy of {len(ideas_with_evaluations)} ideas")
+
+      # Use the same prompt we built above, but with batch schema
+      validated, response = router.generate_structured(
+          prompt=prompt,
+          schema=AdvocacyBatchResponse,
+          system_instruction=ADVOCATE_SYSTEM_INSTRUCTION + " Return a JSON array of advocacy responses.",
+          temperature=temperature
+      )
+
+      # Convert Pydantic batch response to existing dict format
+      results = []
+      newline = '\n'
+      for item in validated.root:
+        formatted = (
+          f"STRENGTHS:\n"
+          f"{newline.join(f'• {s}' for s in item.strengths)}\n\n"
+          f"OPPORTUNITIES:\n"
+          f"{newline.join(f'• {o}' for o in item.opportunities)}\n\n"
+          f"ADDRESSING CONCERNS:\n"
+          f"{newline.join(f'• {c}' for c in item.addressing_concerns)}"
+        )
+        results.append({
+          "idea_index": item.idea_index,
+          "strengths": item.strengths,
+          "opportunities": item.opportunities,
+          "addressing_concerns": item.addressing_concerns,
+          "formatted": formatted
+        })
+
+      # Sort by idea_index to ensure correct order
+      results.sort(key=lambda x: x['idea_index'])
+
+      logger.info(f"Router batch advocacy completed: {len(results)} items, {response.tokens_used} tokens")
+      return results, response.tokens_used
+
+    except AllProvidersFailedError as e:
+      logger.warning(f"Router failed for batch advocacy, falling back to direct API: {e}")
+      # Fall through to direct Gemini API below
+
+  # Mock mode: Return mock advocacy when no API is available
   if not GENAI_AVAILABLE or advocate_client is None:
     # Return mock advocacy for CI/testing
     mock_results = []
@@ -318,9 +363,9 @@ def advocate_ideas_batch(
                     "ADDRESSING CONCERNS:\n• Mock mitigation 1\n• Mock mitigation 2"
       })
     return mock_results, 0  # Return tuple for consistency
-  
+
   try:
-    
+
     config = types.GenerateContentConfig(
         temperature=temperature,
         response_mime_type="application/json",

@@ -41,13 +41,13 @@ except ImportError:
 try:
     from madspark.utils.constants import SKEPTIC_EMPTY_RESPONSE, SKEPTIC_SYSTEM_INSTRUCTION, LANGUAGE_CONSISTENCY_INSTRUCTION
     from madspark.agents.genai_client import get_genai_client, get_model_name
-    from madspark.schemas.skepticism import SkepticismResponse
+    from madspark.schemas.skepticism import SkepticismResponse, SkepticismBatchResponse
     from madspark.schemas.adapters import pydantic_to_genai_schema
 except ImportError:
     # Fallback for local development/testing
     from constants import SKEPTIC_EMPTY_RESPONSE, SKEPTIC_SYSTEM_INSTRUCTION, LANGUAGE_CONSISTENCY_INSTRUCTION
     from .genai_client import get_genai_client, get_model_name
-    from ..schemas.skepticism import SkepticismResponse
+    from ..schemas.skepticism import SkepticismResponse, SkepticismBatchResponse
     from ..schemas.adapters import pydantic_to_genai_schema
 
 # Configure the Google GenAI client
@@ -295,6 +295,54 @@ def criticize_ideas_batch(
       "Each object must contain all five fields. Be thorough and critical."
   )
   
+  # Router path: Use LLM router for Ollama-only or multi-provider support
+  # Check router FIRST before falling back to mock mode
+  if router is not None and _should_use_router():
+    try:
+      logger.info(f"Using LLM router for batch skepticism of {len(ideas_with_advocacies)} ideas")
+
+      # Use the same prompt we built above, but with batch schema
+      validated, response = router.generate_structured(
+          prompt=prompt,
+          schema=SkepticismBatchResponse,
+          system_instruction=SKEPTIC_SYSTEM_INSTRUCTION + " Return a JSON array of critical analyses.",
+          temperature=temperature
+      )
+
+      # Convert Pydantic batch response to existing dict format
+      results = []
+      newline = '\n'
+      for item in validated.root:
+        formatted = (
+          f"CRITICAL FLAWS:\n"
+          f"{newline.join(f'• {f}' for f in item.critical_flaws)}\n\n"
+          f"RISKS & CHALLENGES:\n"
+          f"{newline.join(f'• {r}' for r in item.risks_challenges)}\n\n"
+          f"QUESTIONABLE ASSUMPTIONS:\n"
+          f"{newline.join(f'• {a}' for a in item.questionable_assumptions)}\n\n"
+          f"MISSING CONSIDERATIONS:\n"
+          f"{newline.join(f'• {m}' for m in item.missing_considerations)}"
+        )
+        results.append({
+          "idea_index": item.idea_index,
+          "critical_flaws": item.critical_flaws,
+          "risks_challenges": item.risks_challenges,
+          "questionable_assumptions": item.questionable_assumptions,
+          "missing_considerations": item.missing_considerations,
+          "formatted": formatted
+        })
+
+      # Sort by idea_index to ensure correct order
+      results.sort(key=lambda x: x['idea_index'])
+
+      logger.info(f"Router batch skepticism completed: {len(results)} items, {response.tokens_used} tokens")
+      return results, response.tokens_used
+
+    except AllProvidersFailedError as e:
+      logger.warning(f"Router failed for batch skepticism, falling back to direct API: {e}")
+      # Fall through to direct Gemini API below
+
+  # Mock mode: Return mock skepticism when no API is available
   if not GENAI_AVAILABLE or skeptic_client is None:
     # Return mock skepticism for CI/testing
     mock_results = []
@@ -311,9 +359,9 @@ def criticize_ideas_batch(
                     "MISSING CONSIDERATIONS:\n• Mock missing factor 1\n• Mock missing factor 2"
       })
     return mock_results, 0  # Return tuple for consistency
-  
+
   try:
-    
+
     config = types.GenerateContentConfig(
         temperature=temperature,
         response_mime_type="application/json",

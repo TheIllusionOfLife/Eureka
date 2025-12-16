@@ -7,9 +7,12 @@ the hardcoded templates with genuine logical analysis.
 import logging
 import json
 from enum import Enum
-from typing import Dict, Any, List, Optional, Union
+from typing import Dict, Any, List, Optional, Union, TYPE_CHECKING
 # Removed dataclass import - using Pydantic models instead
 import re
+
+if TYPE_CHECKING:
+    from madspark.llm.router import LLMRouter
 
 # Third-party imports
 from google import genai
@@ -23,6 +26,16 @@ from madspark.schemas.logical_inference import (
     ImplicationsAnalysis
 )
 from madspark.schemas.adapters import pydantic_to_genai_schema
+
+# Optional LLM Router import
+try:
+    from madspark.llm import should_use_router
+    from madspark.llm.exceptions import AllProvidersFailedError
+    LLM_ROUTER_AVAILABLE = True
+except ImportError:
+    LLM_ROUTER_AVAILABLE = False
+    should_use_router = None  # type: ignore
+    AllProvidersFailedError = Exception  # type: ignore
 
 logger = logging.getLogger(__name__)
 
@@ -51,21 +64,28 @@ InferenceResult = PydanticInferenceResult
 class LogicalInferenceEngine:
     """
     LLM-based logical inference engine for analyzing ideas.
-    
+
     Replaces hardcoded logical templates with genuine reasoning using
     the language model's capabilities.
     """
-    
-    def __init__(self, genai_client):
+
+    def __init__(self, genai_client=None, router: Optional["LLMRouter"] = None):
         """
         Initialize the inference engine.
-        
+
         Args:
-            genai_client: Google GenAI client instance
+            genai_client: Google GenAI client instance (optional if router provided)
+            router: LLM router for multi-provider support (optional if genai_client provided)
         """
+        if genai_client is None and router is None:
+            raise ValueError(
+                "LogicalInferenceEngine requires either a GenAI client or LLM router. "
+                "Please ensure GOOGLE_API_KEY is configured or Ollama is running."
+            )
         self.genai_client = genai_client
+        self.router = router
         self.inference_types = list(InferenceType)
-        
+
         # Prompt templates
         self.prompts = {
             InferenceType.FULL: self._get_full_analysis_prompt,
@@ -74,6 +94,14 @@ class LogicalInferenceEngine:
             InferenceType.CONTRADICTION: self._get_contradiction_analysis_prompt,
             InferenceType.IMPLICATIONS: self._get_implications_analysis_prompt,
         }
+
+    def _should_use_router(self) -> bool:
+        """Check if router should be used based on configuration."""
+        if self.router is None:
+            return False
+        if should_use_router is None:
+            return False
+        return should_use_router(LLM_ROUTER_AVAILABLE, lambda: self.router)
 
     def _normalize_percentage_score(self, score: float) -> float:
         """
@@ -110,9 +138,38 @@ class LogicalInferenceEngine:
         if isinstance(analysis_type, str):
             analysis_type = InferenceType(analysis_type)
 
+        # Map analysis type to Pydantic schema for router
+        pydantic_schema_map = {
+            InferenceType.FULL: PydanticInferenceResult,
+            InferenceType.CAUSAL: CausalAnalysis,
+            InferenceType.CONSTRAINTS: ConstraintAnalysis,
+            InferenceType.CONTRADICTION: ContradictionAnalysis,
+            InferenceType.IMPLICATIONS: ImplicationsAnalysis
+        }
+
         try:
             # Get appropriate prompt
             prompt = self.prompts[analysis_type](idea, topic, context)
+
+            # Router path: Use LLM router for Ollama-only or multi-provider support
+            if self._should_use_router():
+                try:
+                    logger.info(f"Using LLM router for logical inference ({analysis_type.value})")
+
+                    validated, response = self.router.generate_structured(
+                        prompt=prompt,
+                        schema=pydantic_schema_map[analysis_type],
+                        system_instruction="You are a logical reasoning expert. Analyze ideas systematically and provide structured logical insights in JSON format.",
+                        temperature=0.7  # Moderate temperature for balanced reasoning
+                    )
+
+                    # Convert Pydantic model to InferenceResult format
+                    return self._create_result_from_pydantic(validated, analysis_type)
+
+                except AllProvidersFailedError as e:
+                    logger.warning(f"Router failed for logical inference, falling back: {e}")
+                    if self.genai_client is None:
+                        raise RuntimeError(f"Router failed and no Gemini client available: {e}")
 
             # Call LLM using proper API pattern with structured output
             from madspark.agents.genai_client import get_model_name
@@ -543,6 +600,21 @@ Consider both positive and negative implications."""
 
         # Parse and validate using Pydantic model
         return model_class(**data)
+
+    def _create_result_from_pydantic(self, validated: Any, analysis_type: InferenceType) -> InferenceResult:
+        """Convert validated Pydantic model from router to InferenceResult format.
+
+        Args:
+            validated: Validated Pydantic model from router.generate_structured()
+            analysis_type: Type of analysis performed
+
+        Returns:
+            InferenceResult (or subclass) ready for use
+        """
+        # Router returns the same Pydantic types we expect, so just return directly
+        # The validated object is already one of: PydanticInferenceResult, CausalAnalysis,
+        # ConstraintAnalysis, ContradictionAnalysis, or ImplicationsAnalysis
+        return validated
 
     def _parse_response(self, response_text: str, analysis_type: InferenceType) -> InferenceResult:
         """Parse LLM response into structured Pydantic InferenceResult."""

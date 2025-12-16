@@ -20,6 +20,8 @@ from .generation import (
     IdeaItem,
     GeneratedIdeas,
     ImprovementResponse,
+    ImprovementBatchItem,
+    ImprovementBatchResponse,
 )
 from .advocacy import (
     StrengthItem,
@@ -58,6 +60,8 @@ __all__ = [
     "IdeaItem",
     "GeneratedIdeas",
     "ImprovementResponse",
+    "ImprovementBatchItem",
+    "ImprovementBatchResponse",
     # Advocacy models
     "StrengthItem",
     "OpportunityItem",

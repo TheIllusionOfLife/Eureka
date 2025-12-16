@@ -202,3 +202,57 @@ class ImprovementResponse(BaseModel):
             }]
         }
     }
+
+
+class ImprovementBatchItem(BaseModel):
+    """
+    Single improvement item with idea_index for batch operations.
+
+    Used by improve_ideas_batch() for efficient batch processing
+    via the LLM router (Ollama-first with Gemini fallback).
+
+    Fields:
+        idea_index: 0-based index of the idea being improved
+        improved_idea: The complete improved idea text
+        key_improvements: List of specific improvements made (optional)
+
+    Example:
+        >>> item = ImprovementBatchItem(
+        ...     idea_index=0,
+        ...     improved_idea="Enhanced urban farming system with modular design...",
+        ...     key_improvements=["Added cost analysis", "Addressed maintenance concerns"]
+        ... )
+    """
+    idea_index: int = Field(
+        ...,
+        ge=0,
+        description="0-based index of the idea being improved"
+    )
+    improved_idea: str = Field(
+        ...,
+        min_length=10,
+        max_length=5000,
+        description="The complete improved idea text incorporating feedback"
+    )
+    key_improvements: Optional[List[str]] = Field(
+        default=None,
+        description="List of specific improvements made to address critique"
+    )
+
+
+class ImprovementBatchResponse(RootModel[List[ImprovementBatchItem]]):
+    """
+    Batch response for multiple idea improvements.
+
+    Used by improve_ideas_batch() when routing through Ollama
+    for efficient single-call batch processing.
+
+    Example:
+        >>> response = ImprovementBatchResponse.model_validate([
+        ...     {"idea_index": 0, "improved_idea": "Enhanced idea 1...", "key_improvements": ["Fix 1"]},
+        ...     {"idea_index": 1, "improved_idea": "Enhanced idea 2...", "key_improvements": ["Fix 2"]}
+        ... ])
+        >>> for item in response.root:
+        ...     print(f"Idea {item.idea_index}: {item.improved_idea[:50]}...")
+    """
+    pass

@@ -17,7 +17,7 @@ from madspark.utils.utils import parse_batch_json_with_fallback
 from madspark.utils.batch_exceptions import BatchParsingError
 from madspark.utils.content_safety import GeminiSafetyHandler
 from madspark.utils.multimodal_input import build_prompt_with_multimodal
-from madspark.schemas.generation import GeneratedIdeas, ImprovementResponse
+from madspark.schemas.generation import GeneratedIdeas, ImprovementResponse, ImprovementBatchResponse
 from madspark.schemas.adapters import pydantic_to_genai_schema
 
 # Set up logger
@@ -553,7 +553,46 @@ def improve_ideas_batch(
       "Return ONLY a JSON array containing one object per idea, in order.\n"
       "Write only the improved ideas, no meta-commentary."
   )
-  
+
+  # Helper function to check router availability
+  def _should_use_router() -> bool:
+      """Check if router should be used (local function to avoid circular imports)."""
+      if not LLM_ROUTER_AVAILABLE or should_use_router is None:
+          return False
+      return should_use_router()
+
+  # Router path: Use LLM router for Ollama-only or multi-provider support
+  # Check router FIRST before falling back to mock mode
+  if router is not None and _should_use_router():
+      try:
+          logger.info("Using LLM router for batch improvement of %d ideas", len(ideas_with_feedback))
+
+          validated, response = router.generate_structured(
+              prompt=prompt,
+              schema=ImprovementBatchResponse,
+              temperature=temperature
+          )
+
+          # Convert Pydantic batch response to existing dict format
+          results = []
+          for item in validated.root:
+              results.append({
+                  "idea_index": item.idea_index,
+                  "improved_idea": item.improved_idea,
+                  "key_improvements": item.key_improvements or []
+              })
+
+          logger.info("Router batch improvement completed: %d items, %d tokens",
+                      len(results), response.tokens_used)
+          return results, response.tokens_used
+
+      except AllProvidersFailedError as e:
+          logger.warning("All providers failed for batch improvement: %s", e)
+          # Fall through to mock mode or Gemini direct
+      except Exception as e:
+          logger.warning("Router batch improvement failed: %s, falling back", e)
+          # Fall through to mock mode or Gemini direct
+
   if not GENAI_AVAILABLE or idea_generator_client is None:
     # Return mock improvements for CI/testing
     mock_results = []

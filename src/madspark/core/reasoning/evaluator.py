@@ -1,6 +1,10 @@
 """Multi-dimensional evaluation system for ideas."""
 
-from typing import Dict, List, Any, Optional
+import logging
+from typing import Dict, List, Any, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from madspark.llm.router import LLMRouter
 
 from madspark.schemas.evaluation import DimensionScore, MultiDimensionalEvaluations
 from madspark.schemas.adapters import pydantic_to_genai_schema
@@ -10,6 +14,18 @@ try:
     from madspark.utils.constants import LANGUAGE_CONSISTENCY_INSTRUCTION
 except ImportError:
     from ...utils.constants import LANGUAGE_CONSISTENCY_INSTRUCTION
+
+# Optional LLM Router import
+try:
+    from madspark.llm import should_use_router
+    from madspark.llm.exceptions import AllProvidersFailedError
+    LLM_ROUTER_AVAILABLE = True
+except ImportError:
+    LLM_ROUTER_AVAILABLE = False
+    should_use_router = None  # type: ignore
+    AllProvidersFailedError = Exception  # type: ignore
+
+logger = logging.getLogger(__name__)
 
 # Convert Pydantic models to GenAI schema format at module level (cached)
 _DIMENSION_SCORE_GENAI_SCHEMA = pydantic_to_genai_schema(DimensionScore)
@@ -114,20 +130,22 @@ Scoring guide:
 Respond with only the numeric score (e.g., "6")."""
     }
     
-    def __init__(self, genai_client=None, dimensions: Optional[Dict[str, Dict[str, Any]]] = None):
-        """Initialize multi-dimensional evaluator with required GenAI client.
-        
+    def __init__(self, genai_client=None, router: Optional["LLMRouter"] = None, dimensions: Optional[Dict[str, Dict[str, Any]]] = None):
+        """Initialize multi-dimensional evaluator with GenAI client and/or router.
+
         Args:
-            genai_client: Required GenAI client for AI-powered evaluation
+            genai_client: GenAI client for AI-powered evaluation (optional if router provided)
+            router: LLM router for multi-provider support (optional if genai_client provided)
             dimensions: Optional custom evaluation dimensions
         """
-        if genai_client is None:
+        if genai_client is None and router is None:
             raise ValueError(
-                "MultiDimensionalEvaluator requires a GenAI client. "
+                "MultiDimensionalEvaluator requires either a GenAI client or LLM router. "
                 "Keyword-based evaluation has been deprecated as it provides meaningless results. "
-                "Please ensure GOOGLE_API_KEY is configured."
+                "Please ensure GOOGLE_API_KEY is configured or Ollama is running."
             )
         self.genai_client = genai_client
+        self.router = router
         self.evaluation_dimensions = dimensions or self._get_default_dimensions()
         
         # Import types for configuration if available
@@ -141,7 +159,16 @@ Respond with only the numeric score (e.g., "6")."""
             self.types = builtin_types.SimpleNamespace(
                 GenerateContentConfig=lambda **kwargs: kwargs
             )
-        
+
+    def _should_use_router(self) -> bool:
+        """Check if router should be used based on configuration."""
+        if self.router is None:
+            return False
+        if should_use_router is None:
+            return False
+        # Use the global should_use_router function to check if router is enabled
+        return should_use_router(LLM_ROUTER_AVAILABLE, lambda: self.router)
+
     def _get_default_dimensions(self) -> Dict[str, Dict[str, Any]]:
         """Get default evaluation dimensions."""
         return {
@@ -250,6 +277,26 @@ Respond with only the numeric score (e.g., "6")."""
 
         # Build batch prompt for all ideas
         prompt = self._build_batch_evaluation_prompt(ideas, context_dict)
+
+        # Router path: Use LLM router for Ollama-only or multi-provider support
+        if self._should_use_router():
+            try:
+                logger.info(f"Using LLM router for batch evaluation of {len(ideas)} ideas")
+
+                validated, response = self.router.generate_structured(
+                    prompt=prompt,
+                    schema=MultiDimensionalEvaluations,
+                    temperature=0.0  # Deterministic for evaluation
+                )
+
+                # Convert Pydantic batch response to dict format
+                return self._process_batch_evaluation_response(validated.root, ideas)
+
+            except AllProvidersFailedError as e:
+                logger.warning(f"Router failed for batch evaluation, falling back to direct API: {e}")
+                # Fall through to direct Gemini API below
+                if self.genai_client is None:
+                    raise RuntimeError(f"Router failed and no Gemini client available: {e}")
 
         # Import model name getter
         try:
@@ -383,6 +430,64 @@ Return your evaluation in the specified JSON format."""
 
         return LANGUAGE_CONSISTENCY_INSTRUCTION + base_prompt
 
+    def _process_batch_evaluation_response(self, evaluations_data: List[Any], ideas: List[str]) -> List[Dict[str, Any]]:
+        """Process batch evaluation response from router (Pydantic objects) into dict format.
+
+        Args:
+            evaluations_data: List of Pydantic evaluation objects (from RootModel.root)
+            ideas: Original list of ideas being evaluated
+
+        Returns:
+            List of evaluation dictionaries with idea_index, one per idea
+        """
+        evaluations = []
+
+        for idx, eval_data in enumerate(evaluations_data):
+            # Build dimension scores dict - handle both Pydantic objects and dicts
+            dimension_scores = {}
+            for dim in self.evaluation_dimensions.keys():
+                # Try attribute access first (Pydantic), then dict access
+                if hasattr(eval_data, dim):
+                    score = getattr(eval_data, dim, 5.0)
+                elif isinstance(eval_data, dict) and dim in eval_data:
+                    score = eval_data[dim]
+                else:
+                    score = 5.0  # Default mid-score if missing
+                dimension_scores[dim] = max(1.0, min(10.0, float(score)))
+
+            # Calculate overall and weighted scores
+            overall_score = sum(dimension_scores.values()) / len(dimension_scores)
+            weighted_score = sum(
+                dimension_scores[dim] * config['weight']
+                for dim, config in self.evaluation_dimensions.items()
+            )
+
+            # Calculate confidence interval
+            scores = list(dimension_scores.values())
+            variance = sum((score - overall_score) ** 2 for score in scores) / len(scores)
+            confidence_interval = max(0.0, 1.0 - (variance / 25.0))
+
+            # Get idea text
+            idea_text = ideas[idx] if idx < len(ideas) else ""
+
+            # Build result with both nested and top-level dimension scores for compatibility
+            result = {
+                'idea_index': idx,
+                'idea': idea_text,
+                'overall_score': round(overall_score, 2),
+                'weighted_score': round(weighted_score, 2),
+                'dimension_scores': dimension_scores,
+                'confidence_interval': round(confidence_interval, 3),
+                'evaluation_summary': self._generate_evaluation_summary(dimension_scores, idea_text)
+            }
+
+            # Add dimension scores as top-level fields for test compatibility
+            result.update(dimension_scores)
+
+            evaluations.append(result)
+
+        return evaluations
+
     def _evaluate_dimension(self, idea: str, context: Dict[str, Any],
                            dimension: str, config: Dict[str, Any]) -> float:
         """Evaluate a single dimension using AI."""
@@ -398,6 +503,23 @@ Return your evaluation in the specified JSON format."""
                              dimension: str, config: Dict[str, Any]) -> float:
         """Evaluate dimension using AI with clear prompts and Pydantic validation."""
         prompt = self._build_dimension_prompt(idea, context, dimension)
+
+        # Router path: Use LLM router for Ollama-only or multi-provider support
+        if self._should_use_router():
+            try:
+                validated, response = self.router.generate_structured(
+                    prompt=prompt,
+                    schema=DimensionScore,
+                    temperature=0.0  # Deterministic for evaluation
+                )
+                # Clamp score to range
+                min_val, max_val = config.get('range', (1, 10))
+                score = max(min_val, min(validated.score, max_val))
+                return score
+            except AllProvidersFailedError as e:
+                logger.warning(f"Router failed for dimension evaluation, falling back: {e}")
+                if self.genai_client is None:
+                    raise RuntimeError(f"Router failed and no Gemini client available: {e}")
 
         # Import model name getter
         try:
@@ -417,7 +539,7 @@ Return your evaluation in the specified JSON format."""
             contents=prompt,
             config=api_config
         )
-        
+
         try:
             # Parse JSON response
             import json
@@ -542,21 +664,32 @@ Scores:
 
 Provide a concise 1-2 sentence summary highlighting key strengths and areas for improvement."""
 
-        # Use LLM to generate summary
+        # Use LLM to generate summary (try router first, then genai_client)
         try:
-            from madspark.agents.genai_client import get_model_name
-        except ImportError:
-            from ..agents.genai_client import get_model_name
+            # Try router first (supports Ollama-only mode)
+            if self.router is not None:
+                text, _ = self.router.generate(
+                    prompt=prompt,
+                    temperature=0.3
+                )
+                return text.strip()
 
-        try:
-            # Note: Summary generation doesn't use structured output config
-            # to keep it separate from dimension evaluations
-            response = self.genai_client.models.generate_content(
-                model=get_model_name(),
-                contents=prompt
-            )
+            # Fall back to direct GenAI client
+            if self.genai_client is not None:
+                try:
+                    from madspark.agents.genai_client import get_model_name
+                except ImportError:
+                    from ..agents.genai_client import get_model_name
 
-            return response.text.strip()
+                response = self.genai_client.models.generate_content(
+                    model=get_model_name(),
+                    contents=prompt
+                )
+                return response.text.strip()
+
+            # No LLM available, fall through to programmatic fallback
+            raise ValueError("No LLM client or router available")
+
         except Exception as e:
             # Fallback to programmatic summary if LLM fails
             import logging

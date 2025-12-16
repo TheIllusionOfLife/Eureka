@@ -1,7 +1,10 @@
 """Main enhanced reasoning engine that coordinates all reasoning components."""
 
 import logging
-from typing import Dict, List, Any, Optional, Union
+from typing import Dict, List, Any, Optional, Union, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from madspark.llm.router import LLMRouter
 
 from madspark.config.execution_constants import ThresholdConfig
 from madspark.utils.logical_inference_engine import InferenceType
@@ -16,18 +19,20 @@ logger = logging.getLogger(__name__)
 
 class ReasoningEngine:
     """Main enhanced reasoning engine that coordinates all reasoning components."""
-    
-    def __init__(self, config: Optional[Dict[str, Any]] = None, genai_client=None):
+
+    def __init__(self, config: Optional[Dict[str, Any]] = None, genai_client=None, router: Optional["LLMRouter"] = None):
         """Initialize reasoning engine with optional configuration.
 
         Args:
             config: Optional configuration dictionary
             genai_client: Optional GenAI client for multi-dimensional evaluation
+            router: Optional LLM router for multi-provider support
         """
         self.config = config or self._get_default_config()
+        self.router = router
 
-        # Auto-fetch genai_client if not provided
-        if genai_client is None:
+        # Auto-fetch genai_client if not provided and no router
+        if genai_client is None and router is None:
             try:
                 from madspark.agents.genai_client import get_genai_client
             except ImportError:
@@ -43,15 +48,16 @@ class ReasoningEngine:
             capacity=self.config.get('memory_capacity', 1000)
         )
 
-        # Initialize logical inference with GenAI client if available
-        self.logical_inference = LogicalInference(genai_client=genai_client)
-        
+        # Initialize logical inference with GenAI client and/or router
+        self.logical_inference = LogicalInference(genai_client=genai_client, router=router)
+
         # Initialize multi-dimensional evaluator
-        # Note: This requires genai_client to be functional
-        if genai_client:
+        # Note: This requires genai_client or router to be functional
+        if genai_client or router:
             try:
                 self.multi_evaluator = MultiDimensionalEvaluator(
                     genai_client=genai_client,
+                    router=router,
                     dimensions=self.config.get('evaluation_dimensions')
                 )
             except Exception as e:
@@ -59,7 +65,7 @@ class ReasoningEngine:
                 self.multi_evaluator = None
         else:
             self.multi_evaluator = None
-            
+
         self.conversation_tracker = AgentConversationTracker()
 
         # Expose logical inference engine directly for batch operations

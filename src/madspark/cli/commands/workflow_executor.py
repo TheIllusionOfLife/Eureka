@@ -16,6 +16,7 @@ try:
     from madspark.cli.cli import determine_num_candidates
     from madspark.llm.utils import should_use_router
     from madspark.llm.config import get_config
+    from madspark.llm import get_router
 except ImportError:
     from coordinator import run_multistep_workflow
     from async_coordinator import AsyncCoordinator
@@ -23,6 +24,7 @@ except ImportError:
     from cli import determine_num_candidates
     should_use_router = None
     get_config = None
+    get_router = None
 
 
 class WorkflowExecutor(CommandHandler):
@@ -213,11 +215,15 @@ class WorkflowExecutor(CommandHandler):
             if num_candidates > 1:
                 print(f"[{progress:.0%}] {message}")
 
+        # Get router for multi-provider support
+        router = get_router() if get_router is not None else None
+
         # Create async coordinator
         async_coordinator = AsyncCoordinator(
             max_concurrent_agents=int(os.getenv("MAX_CONCURRENT_AGENTS", "10")),
             progress_callback=progress_callback if num_candidates > 1 else None,
-            cache_manager=cache_manager
+            cache_manager=cache_manager,
+            router=router
         )
 
         try:

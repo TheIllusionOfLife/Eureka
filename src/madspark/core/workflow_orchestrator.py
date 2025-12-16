@@ -240,6 +240,11 @@ class WorkflowOrchestrator:
                 expected_count=len(ideas)
             )
 
+            # Debug logging for score flow tracing
+            logging.info(f"ORCHESTRATOR DEBUG: Parsed {len(evaluation_results)} evaluation results for {len(ideas)} ideas")
+            for i, result in enumerate(evaluation_results):
+                logging.info(f"ORCHESTRATOR DEBUG: Parsed eval {i+1}: score={result.get('score', 'N/A')}")
+
             # Create evaluated ideas
             evaluated_ideas_data: List[EvaluatedIdea] = []
             for i, idea in enumerate(ideas):
@@ -247,9 +252,11 @@ class WorkflowOrchestrator:
                     eval_data = evaluation_results[i]
                     score = eval_data.get("score", FALLBACK_SCORE)
                     critique = eval_data.get("comment", "No critique available")
+                    logging.info(f"ORCHESTRATOR DEBUG: Idea {i+1} assigned score={score}")
                 else:
                     score = FALLBACK_SCORE
                     critique = FALLBACK_CRITIQUE
+                    logging.warning(f"ORCHESTRATOR WARNING: Idea {i+1} missing evaluation, using FALLBACK_SCORE={FALLBACK_SCORE}")
 
                 evaluated_idea: EvaluatedIdea = {
                     "text": idea,

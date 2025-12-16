@@ -9,9 +9,9 @@ assert os.environ.get("MADSPARK_MODE") == "mock", (
     "Check tests/conftest.py pytest_configure()."
 )
 
-import pytest
-from unittest.mock import Mock, patch
-from madspark.core.enhanced_reasoning import MultiDimensionalEvaluator
+import pytest  # noqa: E402
+from unittest.mock import Mock, patch  # noqa: E402
+from madspark.core.enhanced_reasoning import MultiDimensionalEvaluator  # noqa: E402
 
 
 class TestAIMultiDimensionalEvaluator:

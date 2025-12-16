@@ -13,16 +13,16 @@ assert os.environ.get("MADSPARK_MODE") == "mock", (
     "Check tests/conftest.py pytest_configure()."
 )
 
-import pytest
-from unittest.mock import Mock, patch
-from pydantic import BaseModel, Field
-from datetime import datetime
+import pytest  # noqa: E402
+from unittest.mock import Mock, patch  # noqa: E402
+from pydantic import BaseModel, Field  # noqa: E402
+from datetime import datetime  # noqa: E402
 
-from madspark.llm.providers.ollama import OllamaProvider, OLLAMA_AVAILABLE
-from madspark.llm.providers.gemini import GeminiProvider, GENAI_AVAILABLE
-from madspark.llm.response import LLMResponse
-from madspark.llm.config import LLMConfig, ModelTier, get_config, reset_config
-from madspark.llm.exceptions import ProviderUnavailableError, SchemaValidationError
+from madspark.llm.providers.ollama import OllamaProvider, OLLAMA_AVAILABLE  # noqa: E402
+from madspark.llm.providers.gemini import GeminiProvider, GENAI_AVAILABLE  # noqa: E402
+from madspark.llm.response import LLMResponse  # noqa: E402
+from madspark.llm.config import LLMConfig, ModelTier, get_config, reset_config  # noqa: E402
+from madspark.llm.exceptions import ProviderUnavailableError, SchemaValidationError  # noqa: E402
 
 
 class SimpleSchema(BaseModel):

@@ -13,6 +13,11 @@ def pytest_configure(config):
 
     Sets environment variables for consistent test behavior.
     """
+    # Enable mock mode for all tests to prevent actual API calls in CI.
+    # Individual tests can override via monkeypatch if needed.
+    if "MADSPARK_MODE" not in os.environ:
+        os.environ["MADSPARK_MODE"] = "mock"
+
     # Disable LLM Router by default to maintain backward compatibility with existing tests.
     # Router-specific tests should explicitly enable router via monkeypatch or environment override.
     # This ensures tests that expect direct Gemini API calls continue to work as before.
@@ -64,3 +69,32 @@ def set_router_provider(monkeypatch):
         monkeypatch.setenv("MADSPARK_LLM_PROVIDER", provider)
 
     return _set_provider
+
+
+@pytest.fixture
+def mock_mode(monkeypatch):
+    """
+    Fixture to explicitly enable mock mode.
+
+    Usage:
+        def test_with_mocks(mock_mode):
+            # MADSPARK_MODE=mock is set for this test
+            pass
+    """
+    monkeypatch.setenv("MADSPARK_MODE", "mock")
+    yield
+
+
+@pytest.fixture
+def real_mode(monkeypatch):
+    """
+    Fixture to disable mock mode for integration tests.
+
+    Usage:
+        @pytest.mark.integration
+        def test_real_api(real_mode):
+            # MADSPARK_MODE is unset/not mock for this test
+            pass
+    """
+    monkeypatch.delenv("MADSPARK_MODE", raising=False)
+    yield

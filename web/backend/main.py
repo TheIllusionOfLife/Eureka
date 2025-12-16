@@ -1400,8 +1400,7 @@ async def generate_ideas(
         else:
             temp_mgr = temp_manager or TemperatureManager()
         
-        # Always setup reasoning engine for multi-dimensional evaluation (now a core feature)
-        reasoning_eng = reasoning_engine
+        # Note: reasoning_engine is passed via function parameter and used for logging below
         
         # Parse and validate MAX_CONCURRENT_AGENTS environment variable
         max_concurrent_agents = 10  # default
@@ -1514,9 +1513,9 @@ async def generate_ideas(
         logger.info(f"Request timeout configured: {timeout_seconds}s (env override: MADSPARK_DEFAULT_TIMEOUT)")
 
         # Log logical inference request
-        logger.info(f"Running workflow with logical_inference={parsed_request.logical_inference}, reasoning_engine={reasoning_eng is not None}")
-        if reasoning_eng and hasattr(reasoning_eng, 'logical_inference_engine'):
-            logger.info(f"Logical inference engine available: {reasoning_eng.logical_inference_engine is not None}")
+        logger.info(f"Running workflow with logical_inference={parsed_request.logical_inference}, reasoning_engine={reasoning_engine is not None}")
+        if reasoning_engine and hasattr(reasoning_engine, 'logical_inference_engine'):
+            logger.info(f"Logical inference engine available: {reasoning_engine.logical_inference_engine is not None}")
 
         try:
             try:

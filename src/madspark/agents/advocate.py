@@ -29,13 +29,14 @@ except ImportError:
 
 # Optional LLM Router import
 try:
-    from madspark.llm import get_router, should_use_router
+    from madspark.llm import get_router, should_use_router, batch_generate_with_router
     from madspark.llm.exceptions import AllProvidersFailedError
     LLM_ROUTER_AVAILABLE = True
 except ImportError:
     LLM_ROUTER_AVAILABLE = False
     get_router = None  # type: ignore
     should_use_router = None  # type: ignore
+    batch_generate_with_router = None  # type: ignore
     AllProvidersFailedError = Exception  # type: ignore
 
 # Import constants directly (not in compat_imports yet)
@@ -306,18 +307,18 @@ def advocate_ideas_batch(
   
   # Router path: Use LLM router for Ollama-only or multi-provider support
   # Check router FIRST before falling back to mock mode
-  if router is not None and _should_use_router():
-    try:
-      logger.info(f"Using LLM router for batch advocacy of {len(ideas_with_evaluations)} ideas")
+  if router is not None and _should_use_router() and batch_generate_with_router is not None:
+    validated, tokens_used = batch_generate_with_router(
+        router=router,
+        prompt=prompt,
+        schema=AdvocacyBatchResponse,
+        system_instruction=ADVOCATE_SYSTEM_INSTRUCTION + " Return a JSON array of advocacy responses.",
+        temperature=temperature,
+        batch_type="advocacy",
+        item_count=len(ideas_with_evaluations),
+    )
 
-      # Use the same prompt we built above, but with batch schema
-      validated, response = router.generate_structured(
-          prompt=prompt,
-          schema=AdvocacyBatchResponse,
-          system_instruction=ADVOCATE_SYSTEM_INSTRUCTION + " Return a JSON array of advocacy responses.",
-          temperature=temperature
-      )
-
+    if validated is not None:
       # Convert Pydantic batch response to existing dict format
       results = []
       newline = '\n'
@@ -340,13 +341,9 @@ def advocate_ideas_batch(
 
       # Sort by idea_index to ensure correct order
       results.sort(key=lambda x: x['idea_index'])
+      return results, tokens_used
 
-      logger.info(f"Router batch advocacy completed: {len(results)} items, {response.tokens_used} tokens")
-      return results, response.tokens_used
-
-    except AllProvidersFailedError as e:
-      logger.warning(f"Router failed for batch advocacy, falling back to direct API: {e}")
-      # Fall through to direct Gemini API below
+    # validated is None means router failed, fall through to direct API
 
   # Mock mode: Return mock advocacy when no API is available
   if not GENAI_AVAILABLE or advocate_client is None:

@@ -3,6 +3,15 @@ Unit tests for LLM Provider implementations.
 
 Tests configuration, Ollama provider, Gemini provider, and response handling.
 """
+import os
+
+# Explicit mock-mode guard - prevent accidental real API calls
+# This check runs at import time to fail fast if conftest changes
+assert os.environ.get("MADSPARK_MODE") == "mock", (
+    "MADSPARK_MODE must be 'mock' for LLM provider tests. "
+    "This prevents accidental real API calls in CI. "
+    "Check tests/conftest.py pytest_configure()."
+)
 
 import pytest
 from unittest.mock import Mock, patch

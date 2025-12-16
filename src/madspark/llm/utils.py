@@ -68,7 +68,10 @@ def batch_generate_with_router(
     Execute batch generation through LLM router with standard error handling.
 
     This helper centralizes the common pattern used by batch operations across
-    agents (advocate, skeptic) for router-based generation.
+    agents (advocate, skeptic, idea_generator) for router-based generation.
+
+    Only catches expected, recoverable failures and returns (None, 0) for fallback.
+    Programming errors (AttributeError, TypeError, etc.) are re-raised to aid debugging.
 
     Args:
         router: LLMRouter instance for request-scoped routing
@@ -81,8 +84,35 @@ def batch_generate_with_router(
 
     Returns:
         Tuple of (validated_response, tokens_used) on success.
-        Returns (None, 0) if router fails (callers should fall through to direct API).
+        Returns (None, 0) only for expected, recoverable failures.
+
+    Raises:
+        AttributeError, TypeError, KeyError: Programming errors (re-raised)
     """
+    import json
+    from pydantic import ValidationError
+
+    # Import expected router exceptions
+    try:
+        from madspark.llm.exceptions import (
+            AllProvidersFailedError,
+            SchemaValidationError,
+            ProviderUnavailableError,
+        )
+        router_exceptions = (AllProvidersFailedError, SchemaValidationError, ProviderUnavailableError)
+    except ImportError:
+        router_exceptions = ()
+
+    # Expected recoverable exceptions
+    recoverable_exceptions = (
+        *router_exceptions,
+        ValidationError,
+        json.JSONDecodeError,
+        OSError,
+        ConnectionError,
+        TimeoutError,
+    )
+
     try:
         logger.info(f"Using LLM router for batch {batch_type} of {item_count} ideas")
 
@@ -96,15 +126,6 @@ def batch_generate_with_router(
         logger.info(f"Router batch {batch_type} completed: {len(validated.root)} items, {response.tokens_used} tokens")
         return validated, response.tokens_used
 
-    except Exception as e:
-        # Import AllProvidersFailedError dynamically to avoid circular imports
-        try:
-            from madspark.llm.exceptions import AllProvidersFailedError
-            if isinstance(e, AllProvidersFailedError):
-                logger.warning(f"Router failed for batch {batch_type}, falling back to direct API: {e}")
-            else:
-                logger.warning(f"Router error for batch {batch_type}, falling back to direct API: {e}")
-        except ImportError:
-            logger.warning(f"Router error for batch {batch_type}, falling back to direct API: {e}")
-
+    except recoverable_exceptions as e:
+        logger.warning(f"Router failed for batch {batch_type}, falling back to direct API: {type(e).__name__}: {e}")
         return None, 0

@@ -36,13 +36,14 @@ except ImportError:
 
 # Optional LLM Router import
 try:
-    from madspark.llm import get_router, should_use_router
+    from madspark.llm import get_router, should_use_router, batch_generate_with_router
     from madspark.llm.exceptions import AllProvidersFailedError, SchemaValidationError
     LLM_ROUTER_AVAILABLE = True
 except ImportError:
     LLM_ROUTER_AVAILABLE = False
     get_router = None  # type: ignore
     should_use_router = None  # type: ignore
+    batch_generate_with_router = None  # type: ignore
     AllProvidersFailedError = Exception  # type: ignore
     SchemaValidationError = Exception  # type: ignore
 
@@ -558,27 +559,24 @@ def improve_ideas_batch(
   # Helper function to check router availability
   def _should_use_router_local() -> bool:
       """Check if router should be used (local function to avoid circular imports)."""
-      try:
-          if not LLM_ROUTER_AVAILABLE or should_use_router is None:
-              return False
-          # Pass required arguments to centralized should_use_router utility
-          return should_use_router(LLM_ROUTER_AVAILABLE, get_router)
-      except Exception as e:
-          logger.debug("Error checking router availability: %s", e)
+      if not LLM_ROUTER_AVAILABLE or should_use_router is None:
           return False
+      return should_use_router(LLM_ROUTER_AVAILABLE, get_router)
 
   # Router path: Use LLM router for Ollama-only or multi-provider support
   # Check router FIRST before falling back to mock mode
-  if router is not None and _should_use_router_local():
-      try:
-          logger.info("Using LLM router for batch improvement of %d ideas", len(ideas_with_feedback))
+  if router is not None and _should_use_router_local() and batch_generate_with_router is not None:
+      validated, tokens_used = batch_generate_with_router(
+          router=router,
+          prompt=prompt,
+          schema=ImprovementBatchResponse,
+          system_instruction=SYSTEM_INSTRUCTION + " Return a JSON array of improved ideas.",
+          temperature=temperature,
+          batch_type="improvement",
+          item_count=len(ideas_with_feedback),
+      )
 
-          validated, response = router.generate_structured(
-              prompt=prompt,
-              schema=ImprovementBatchResponse,
-              temperature=temperature
-          )
-
+      if validated is not None:
           # Convert Pydantic batch response to existing dict format
           results = []
           for item in validated.root:
@@ -587,17 +585,9 @@ def improve_ideas_batch(
                   "improved_idea": item.improved_idea,
                   "key_improvements": item.key_improvements or []
               })
+          return results, tokens_used
 
-          logger.info("Router batch improvement completed: %d items, %d tokens",
-                      len(results), response.tokens_used)
-          return results, response.tokens_used
-
-      except AllProvidersFailedError as e:
-          logger.warning("All providers failed for batch improvement: %s", e)
-          # Fall through to mock mode or Gemini direct
-      except (ValidationError, SchemaValidationError) as e:
-          logger.warning("Schema validation failed for batch improvement: %s, falling back", e)
-          # Fall through to mock mode or Gemini direct
+      # validated is None means router failed, fall through to direct API
 
   if not GENAI_AVAILABLE or idea_generator_client is None:
     # Return mock improvements for CI/testing

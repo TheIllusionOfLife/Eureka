@@ -486,8 +486,21 @@ class OllamaProvider(LLMProvider):
             # For array schemas (RootModel), count fields in the items schema
             items_schema = schema.get("items", {})
             field_count = count_fields(items_schema)
-            # Batch operations typically have 3-5 items with detailed content
-            array_multiplier = 5
+
+            # Derive multiplier from schema constraints with sane defaults
+            # maxItems is more reliable as it indicates expected array size
+            max_items = schema.get("maxItems")
+            min_items = schema.get("minItems")
+
+            if max_items is not None:
+                # Use maxItems as upper bound, capped at 10 for safety
+                array_multiplier = min(max_items, 10)
+            elif min_items is not None:
+                # Assume typical response is 2x minItems, capped at 10
+                array_multiplier = min(min_items * 2, 10)
+            else:
+                # Default for batch operations (typically 3-5 items)
+                array_multiplier = 5
         else:
             field_count = count_fields(schema)
             array_multiplier = 1
@@ -497,9 +510,10 @@ class OllamaProvider(LLMProvider):
         # Batch responses with lists of strings need more tokens per field
         budget = 1000 + (field_count * 400 * array_multiplier)
 
-        # Cap at generous maximum for complex Japanese batch output
-        # Batch advocacy/skepticism with 3 ideas × detailed Japanese responses needs ~20000 tokens
-        return min(budget, 24000)
+        # Cap at gemma3 context-appropriate maximum (8k conservative for output)
+        # This prevents excessive cache usage and stays within Ollama limits
+        # For very large batches, rely on pagination or direct API
+        return min(budget, 8000)
 
     def get_cost_per_token(self) -> float:
         """Local inference is free."""

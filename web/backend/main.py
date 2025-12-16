@@ -1399,9 +1399,7 @@ async def generate_ideas(
             temp_mgr = TemperatureManager.from_base_temperature(parsed_request.temperature)
         else:
             temp_mgr = temp_manager or TemperatureManager()
-        
-        # Note: reasoning_engine is passed via function parameter and used for logging below
-        
+
         # Parse and validate MAX_CONCURRENT_AGENTS environment variable
         max_concurrent_agents = 10  # default
         env_val = os.getenv("MAX_CONCURRENT_AGENTS", "10")
@@ -1512,10 +1510,10 @@ async def generate_ideas(
         timeout_seconds = parsed_request.timeout if parsed_request.timeout else TimeoutConfig.DEFAULT_REQUEST_TIMEOUT
         logger.info(f"Request timeout configured: {timeout_seconds}s (env override: MADSPARK_DEFAULT_TIMEOUT)")
 
-        # Log logical inference request
-        logger.info(f"Running workflow with logical_inference={parsed_request.logical_inference}, reasoning_engine={reasoning_engine is not None}")
-        if reasoning_engine and hasattr(reasoning_engine, 'logical_inference_engine'):
-            logger.info(f"Logical inference engine available: {reasoning_engine.logical_inference_engine is not None}")
+        # Log workflow configuration
+        logger.info(f"Running workflow: logical_inference={parsed_request.logical_inference}, "
+                    f"provider={parsed_request.llm_provider or 'auto'}, "
+                    f"tier={parsed_request.model_tier or 'balanced'}")
 
         try:
             try:

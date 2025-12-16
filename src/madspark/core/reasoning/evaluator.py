@@ -1,7 +1,7 @@
 """Multi-dimensional evaluation system for ideas."""
 
 import logging
-from typing import Dict, List, Any, Optional, TYPE_CHECKING
+from typing import Dict, List, Any, Optional, Tuple, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from madspark.llm.router import LLMRouter
@@ -192,25 +192,14 @@ Respond with only the numeric score (e.g., "6")."""
             Dictionary containing evaluation results
         """
         dimension_scores = {}
-        
+
         for dimension, config in self.evaluation_dimensions.items():
             score = self._evaluate_dimension(idea, context, dimension, config)
             dimension_scores[dimension] = score
-            
-        # Calculate weighted overall score
-        weighted_score = sum(
-            dimension_scores[dim] * config['weight'] 
-            for dim, config in self.evaluation_dimensions.items()
-        )
-        
-        # Calculate simple average
-        overall_score = sum(dimension_scores.values()) / len(dimension_scores)
-        
-        # Calculate confidence interval based on score variance
-        scores = list(dimension_scores.values())
-        variance = sum((score - overall_score) ** 2 for score in scores) / len(scores)
-        confidence_interval = max(0.0, 1.0 - (variance / 25.0))  # Normalize to 0-1
-        
+
+        # Calculate derived scores using shared helper
+        overall_score, weighted_score, confidence_interval = self._calculate_scores(dimension_scores)
+
         return {
             'overall_score': round(overall_score, 2),
             'weighted_score': round(weighted_score, 2),
@@ -218,6 +207,31 @@ Respond with only the numeric score (e.g., "6")."""
             'confidence_interval': round(confidence_interval, 3),
             'evaluation_summary': self._generate_evaluation_summary(dimension_scores, idea)
         }
+
+    def _calculate_scores(self, dimension_scores: Dict[str, float]) -> Tuple[float, float, float]:
+        """Calculate overall, weighted, and confidence scores from dimension scores.
+
+        Args:
+            dimension_scores: Dictionary mapping dimension names to scores
+
+        Returns:
+            Tuple of (overall_score, weighted_score, confidence_interval)
+        """
+        # Calculate simple average
+        overall_score = sum(dimension_scores.values()) / len(dimension_scores)
+
+        # Calculate weighted score
+        weighted_score = sum(
+            dimension_scores[dim] * config['weight']
+            for dim, config in self.evaluation_dimensions.items()
+        )
+
+        # Calculate confidence interval based on score variance
+        scores = list(dimension_scores.values())
+        variance = sum((score - overall_score) ** 2 for score in scores) / len(scores)
+        confidence_interval = max(0.0, 1.0 - (variance / 25.0))  # Normalize to 0-1
+
+        return overall_score, weighted_score, confidence_interval
         
     def compare_ideas(self, ideas: List[str], context: Dict[str, Any]) -> Dict[str, Any]:
         """Compare multiple ideas across all dimensions.
@@ -455,17 +469,8 @@ Return your evaluation in the specified JSON format."""
                     score = 5.0  # Default mid-score if missing
                 dimension_scores[dim] = max(1.0, min(10.0, float(score)))
 
-            # Calculate overall and weighted scores
-            overall_score = sum(dimension_scores.values()) / len(dimension_scores)
-            weighted_score = sum(
-                dimension_scores[dim] * config['weight']
-                for dim, config in self.evaluation_dimensions.items()
-            )
-
-            # Calculate confidence interval
-            scores = list(dimension_scores.values())
-            variance = sum((score - overall_score) ** 2 for score in scores) / len(scores)
-            confidence_interval = max(0.0, 1.0 - (variance / 25.0))
+            # Calculate derived scores using shared helper
+            overall_score, weighted_score, confidence_interval = self._calculate_scores(dimension_scores)
 
             # Get idea text
             idea_text = ideas[idx] if idx < len(ideas) else ""

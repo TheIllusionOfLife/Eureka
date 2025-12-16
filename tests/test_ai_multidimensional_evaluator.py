@@ -11,8 +11,9 @@ class TestAIMultiDimensionalEvaluator:
         """Test that evaluator requires a GenAI client and fails without it."""
         with pytest.raises(ValueError) as exc_info:
             MultiDimensionalEvaluator(genai_client=None)
-        
-        assert "MultiDimensionalEvaluator requires a GenAI client" in str(exc_info.value)
+
+        # Error message now mentions "either a GenAI client or LLM router"
+        assert "MultiDimensionalEvaluator requires either a GenAI client or LLM router" in str(exc_info.value)
         assert "Keyword-based evaluation has been deprecated" in str(exc_info.value)
         assert "GOOGLE_API_KEY" in str(exc_info.value)
     

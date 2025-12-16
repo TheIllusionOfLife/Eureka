@@ -336,8 +336,8 @@ class TestOllamaProvider:
         # SimpleSchema has 2 fields
         budget = provider._estimate_token_budget(SimpleSchema.model_json_schema())
 
-        # Should be 500 + (2 * 200) = 900 (increased for Japanese text support)
-        assert budget == 900
+        # Should be 1000 + (2 * 400) = 1800 (increased for Japanese text support)
+        assert budget == 1800
 
     @patch("madspark.llm.providers.ollama.ollama")
     def test_estimate_token_budget_nested(self, mock_ollama):

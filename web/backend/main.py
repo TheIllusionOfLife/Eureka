@@ -1629,9 +1629,6 @@ async def generate_ideas_async(request: Request, idea_request: IdeaGenerationReq
     else:
         temp_mgr = temp_manager or TemperatureManager()
 
-    # Always setup reasoning engine for multi-dimensional evaluation (now a core feature)
-    reasoning_eng = reasoning_engine
-
     # Parse and validate MAX_CONCURRENT_AGENTS environment variable
     max_concurrent_agents = 10  # default
     env_val = os.getenv("MAX_CONCURRENT_AGENTS", "10")

@@ -1,6 +1,5 @@
 """Tests for WorkflowConfig module."""
 
-import pytest
 from madspark.core.workflow_config import WorkflowConfig
 
 

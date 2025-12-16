@@ -37,13 +37,14 @@ except ImportError:
 # Optional LLM Router import
 try:
     from madspark.llm import get_router, should_use_router
-    from madspark.llm.exceptions import AllProvidersFailedError
+    from madspark.llm.exceptions import AllProvidersFailedError, SchemaValidationError
     LLM_ROUTER_AVAILABLE = True
 except ImportError:
     LLM_ROUTER_AVAILABLE = False
     get_router = None  # type: ignore
     should_use_router = None  # type: ignore
     AllProvidersFailedError = Exception  # type: ignore
+    SchemaValidationError = Exception  # type: ignore
 
 try:
     from madspark.utils.errors import ValidationError
@@ -590,8 +591,8 @@ def improve_ideas_batch(
       except AllProvidersFailedError as e:
           logger.warning("All providers failed for batch improvement: %s", e)
           # Fall through to mock mode or Gemini direct
-      except Exception as e:
-          logger.warning("Router batch improvement failed: %s, falling back", e)
+      except (ValidationError, SchemaValidationError) as e:
+          logger.warning("Schema validation failed for batch improvement: %s, falling back", e)
           # Fall through to mock mode or Gemini direct
 
   if not GENAI_AVAILABLE or idea_generator_client is None:

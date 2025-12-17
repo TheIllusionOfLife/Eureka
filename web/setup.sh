@@ -67,6 +67,45 @@ fi
 echo "✅ Docker and Docker Compose are installed"
 echo ""
 
+# Ensure Python dependencies are installed for local testing
+echo "📦 Setting up Python environment..."
+
+# Use root venv if it exists, otherwise create local one
+PROJECT_ROOT="${SCRIPT_DIR}/.."
+if [ -d "${PROJECT_ROOT}/venv" ]; then
+    VENV_DIR="${PROJECT_ROOT}/venv"
+    echo "   Using existing venv at ${VENV_DIR}"
+else
+    VENV_DIR="${SCRIPT_DIR}/venv"
+    if [ ! -d "$VENV_DIR" ]; then
+        echo "   Creating local venv..."
+        python3 -m venv "$VENV_DIR"
+    fi
+fi
+
+# Install dependencies
+echo "   Installing dependencies from config/requirements.txt..."
+"${VENV_DIR}/bin/pip" install -q -r "${PROJECT_ROOT}/config/requirements.txt" || {
+    echo "❌ Failed to install Python dependencies"
+    exit 1
+}
+
+# Verify critical packages
+MISSING=""
+for pkg in fastapi uvicorn slowapi; do
+    if ! "${VENV_DIR}/bin/python" -c "import $pkg" 2>/dev/null; then
+        MISSING="$MISSING $pkg"
+    fi
+done
+
+if [ -n "$MISSING" ]; then
+    echo "❌ Missing packages:$MISSING"
+    exit 1
+fi
+
+echo "✅ Python dependencies installed"
+echo ""
+
 # Pre-flight checks for system resources
 echo "🔍 Checking system resources..."
 echo ""

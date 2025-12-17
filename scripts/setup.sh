@@ -34,10 +34,26 @@ fi
 
 # Install dependencies
 echo -e "${BLUE}📚 Installing dependencies...${NC}"
-./venv/bin/pip install -r config/requirements.txt >/dev/null 2>&1 || ./venv/bin/pip install -r config/requirements.txt
+./venv/bin/pip install -r config/requirements.txt || { echo -e "${RED}❌ Failed to install dependencies${NC}"; exit 1; }
 
 # Make run.py executable
 chmod +x run.py
+
+# Verify critical web backend packages are installed
+echo -e "${BLUE}🔍 Verifying web backend dependencies...${NC}"
+MISSING_DEPS=""
+for pkg in fastapi uvicorn slowapi; do
+    if ! ./venv/bin/python -c "import $pkg" 2>/dev/null; then
+        MISSING_DEPS="$MISSING_DEPS $pkg"
+    fi
+done
+
+if [ -n "$MISSING_DEPS" ]; then
+    echo -e "${RED}❌ Missing packages:$MISSING_DEPS${NC}"
+    echo -e "${YELLOW}Retrying installation...${NC}"
+    ./venv/bin/pip install fastapi uvicorn slowapi python-multipart || { echo -e "${RED}❌ Failed to install web backend deps${NC}"; exit 1; }
+fi
+echo -e "${GREEN}✅ All dependencies verified${NC}"
 
 # Handle .env file and API key configuration
 ENV_FILE=".env"

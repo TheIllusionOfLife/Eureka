@@ -86,17 +86,6 @@ madspark "your topic here" "your context here"
 ms "your topic here" "your context here"         # Short alias
 ```
 
-### Command Aliases
-
-MadSpark provides three equivalent commands for your convenience:
-- `mad_spark` - Full command name
-- `madspark` - Alternative without underscore  
-- `ms` - Short alias for quick access
-
-All commands have identical functionality. Choose based on your preference.
-
-See [Command Aliases Documentation](docs/COMMAND_ALIASES.md) for detailed information about installation, troubleshooting, and advanced usage.
-
 ### Usage
 
 ```bash
@@ -109,9 +98,6 @@ mad_spark "how to reduce carbon footprint?" "small business"
 madspark "innovative teaching methods" "high school science"
 ms "Come up with innovative ways to teach math" "elementary school"
 
-# Second argument (context) is optional
-ms "I want to learn AI. Guide me."
-
 # Single argument works too - context will use default
 ms "future technology"                                                 
 
@@ -121,7 +107,7 @@ ms "education innovation" --detailed     # Full agent analysis
 ms "climate solutions" --simple         # Clean
 
 # Advanced options
-# Generate 3 ideas with high creativity. Default value is 1.
+# Generate ideas with high creativity. Check `ms --help` for more options.
 ms "space exploration" --top-ideas 3 --temperature-preset creative
 
 # Enhanced reasoning with advocate & skeptic agents    
@@ -131,17 +117,13 @@ ms "quantum computing" --enhanced
 ms "renewable energy" --logical
 
 # Cache results with Redis for instant repeated queries                   
-ms "how the universe began" --top-ideas 3 --enable-cache
-
-# Set custom timeout (default: 1200 seconds / 20 minutes)
-ms "complex analysis" --timeout 300     # 5 minute timeout
-ms "quick idea" --timeout 60 --async   # 1 minute timeout (async mode enforces timeout)
+ms "how the universe began" --enable-cache
 
 # Combined options
 ms "create a new game concept as a game director" "implementable within a month, solo" --top-ideas 5 --temperature-preset creative --enhanced --logical --enable-cache --detailed
 ```
 
-### Multi-Modal Input (NEW!)
+### Multi-Modal Input
 
 Enhance idea generation with visual and document context - provide images, PDFs, documents, and URLs alongside text prompts.
 
@@ -161,7 +143,7 @@ ms "Summarize findings" --file research.pdf --url https://competitor.com
 
 **📖 For Python API usage, detailed examples, and best practices, see [`docs/MULTIMODAL_GUIDE.md`](docs/MULTIMODAL_GUIDE.md)**
 
-### LLM Provider Selection (Ollama-First by Default!)
+### LLM Provider Selection (Ollama by Default)
 
 MadSpark uses a multi-LLM provider system with **Ollama as the default** for cost-free local inference, automatically falling back to Gemini when needed.
 
@@ -180,8 +162,6 @@ ollama pull gemma3:12b      # Balanced tier (~8.1GB)
 ollama list
 ```
 
-**Note:** The web interface auto-configures Ollama in Docker (no manual installation needed).
-
 **Usage:**
 
 ```bash
@@ -190,13 +170,11 @@ ollama list
 ms "urban farming" --show-llm-stats
 
 # Force specific provider
-ms "AI healthcare" --provider ollama        # Local inference (FREE)
 ms "quantum computing" --provider gemini    # Cloud API (paid)
 
 # Control model quality tier (default: balanced)
 ms "space exploration" --model-tier fast      # gemma3:4b (~3.3GB, quick)
 ms "climate solutions" --model-tier balanced  # gemma3:12b (~8.1GB, default)
-ms "renewable energy" --model-tier quality    # gemini-2.5-flash (cloud, best)
 
 # Cache management (enabled by default)
 ms "education innovation" --no-cache       # Disable caching
@@ -205,39 +183,8 @@ ms --clear-cache "healthcare AI"           # Clear cache first
 # Disable fallback (fail if primary provider unavailable)
 ms "future transportation" --no-fallback
 
-# Disable router entirely (use direct Gemini API like before)
-ms "legacy workflow" --no-router
-```
-
-**Provider Features:**
-- **Ollama (Primary)**: Local inference with gemma3 models, $0 cost, image support
-- **Gemini (Fallback)**: Cloud inference, PDF/URL support, higher quality
-- **Response Caching**: Disk-based cache with 24h TTL, 30-50% fewer API calls
-- **Automatic Fallback**: Seamlessly switches providers on failure
-- **Usage Statistics**: Track tokens, cost, cache hits with `--show-llm-stats`
-
-**Web Interface LLM Controls:**
-The web interface includes advanced LLM settings:
-- AI Provider selector (Auto/Ollama/Gemini)
-- Model Quality Tier (Fast/Balanced/Quality)
-- Response Caching toggle
-- LLM usage metrics display (tokens, cost, cache hit rate)
-
-### Standard CLI Usage
-
-```bash
-# Run the coordinator - full multi-agent analysis system
-# Orchestrates IdeaGenerator, Critic, Advocate, and Skeptic agents
-ms coordinator
-
-# Run test suite to verify functionality
-ms test
-
-# Web interface commands (see "Web Interface Setup" section for initial setup)
-cd web && ./setup.sh            # Initial setup (interactive)
-cd web && docker compose up -d  # Start services
-docker compose logs -f          # View logs
-docker compose down            # Stop services
+# Track tokens, cost, cache hits
+ms "AI in 2035" --show-llm-stats
 ```
 
 ### Understanding MadSpark Options
@@ -263,65 +210,9 @@ docker compose down            # Stop services
      - **Implications**: Reveals hidden consequences
    - Use when: You need rigorous logical validation and deeper analytical reasoning
 
-**Example Comparison:**
-```bash
-# Basic (Multi-dimensional evaluation only)
-ms "urban farming"
-# Output: Ideas with 7-dimension scores
-
-# With Enhanced Reasoning
-ms "urban farming" --enhanced  
-# Output: Ideas + Advocacy/Skepticism sections
-
-# With Logical Inference
-ms "urban farming" --logical
-# Output: Ideas + Logical analysis chains
-
-# Combined for maximum insight
-ms "urban farming" --enhanced --logical --detailed
-# Output: Complete analysis with all agents and reasoning
-```
-
-**Output Example:**
-When logical inference is enabled, you'll see analysis like this in the critique:
-
-```
-🧠 Logical Inference Analysis:
-
-Inference Chain:
-  → Urban areas have limited horizontal space
-  → Vertical solutions maximize space efficiency  
-  → Rooftop gardens provide local food production
-  → Community involvement ensures long-term sustainability
-
-Conclusion: Vertical rooftop gardens are an optimal solution for urban food security
-
-Confidence: 85%
-
-Suggested Improvements: Consider hydroponic systems for higher yields in limited space
-```
-
-### Structured Output Enhancement (NEW!)
-
-MadSpark uses Google Gemini's structured output feature for cleaner, more consistent formatting.
-
-**Key Improvements:**
-- ✅ No meta-commentary in responses (clean output)
-- ✅ Consistent JSON formatting with reliable markdown conversion
-- ✅ Eliminated parsing errors and truncation issues
-- ✅ Professional display quality with proper sections and bullet points
-
-**Technical Features:**
-- Uses `response_mime_type="application/json"` with `response_schema`
-- Dedicated `json_parsing` package with 5 progressive fallback strategies
-- 15-20% faster parsing with pre-compiled regex patterns
-- All agents support structured output (IdeaGenerator, Critic, Advocate, Skeptic)
-
-> 📖 For JsonParser API usage and migration guide, see project documentation
-
 ### Bookmark Management
 
-MadSpark automatically saves all generated ideas as bookmarks for future reference and remixing. 
+MadSpark automatically saves all generated ideas in CLI interface as bookmarks for future reference and remixing. 
 Each bookmark includes the improved idea text, score, topic, and timestamp.
 
 #### Key Features:
@@ -331,8 +222,7 @@ Each bookmark includes the improved idea text, score, topic, and timestamp.
 - **Flexible Management**: Add tags, search, remove, and remix bookmarks easily
 
 ```bash
-# Generate ideas - automatically saved as bookmarks
-ms "renewable energy" "urban applications"
+# Generate ideas with custom tags
 ms "smart cities" --bookmark-tags urban-innovation smart tech  # Add custom tags
 
 # Generate without saving (use --no-bookmark to disable)
@@ -353,44 +243,20 @@ ms "future technology" --remix --bookmark-tags smart
 ms "future technology" --remix --remix-ids bookmark_123,bookmark_456  # Use specific bookmark IDs
 ```
 
-### Web Interface Setup
-
-The MadSpark web interface provides a modern React-based UI for generating ideas with real-time progress updates. **Now with multi-modal support!** Add URLs and upload files directly from the browser for enhanced context.
-
-**Quick Setup (Recommended):**
-```bash
-cd ~/Eureka/web
-./setup.sh
-
-# Follow interactive prompts to choose:
-# 1) Ollama (Free, Local) - Recommended, auto-downloads models
-# 2) Gemini (Cloud, Requires API Key)
-# 3) Mock (Testing only, no AI)
-
-# Access at http://localhost:3000
-```
+### Web Interface Usage
 
 **Features:**
-- Real-time progress updates via WebSocket
+- All the features that the CLI interface has
 - Interactive bookmark management
-- **Multi-modal input: Add URLs and upload files (PDFs, images, documents)**
-- Duplicate detection with visual warnings
 - Export results in multiple formats
 - Keyboard shortcuts for power users
-- Free local inference with Ollama (auto-configured)
 
-**Managing the Web Interface:**
 ```bash
-cd ~/Eureka/web
-
-# View logs
-docker compose logs -f
-
-# Restart services
-docker compose restart
-
-# Stop services
-docker compose down
+cd web && ./setup.sh            # Initial setup (interactive)
+cd web && docker compose up -d  # Start services. Or use `docker compose restart` to restart.
+Access at http://localhost:3000
+docker compose logs -f          # View logs
+docker compose down            # Stop services
 ```
 
 <details>
@@ -458,10 +324,6 @@ export PYTHONPATH="${PYTHONPATH}:$(pwd)/src"
 # Configure API (use root .env file)
 echo 'GOOGLE_API_KEY="YOUR_API_KEY_HERE"' > .env
 echo 'GOOGLE_GENAI_MODEL="gemini-2.5-flash"' >> .env
-
-# Run commands
-ms "sustainable transportation" "low-cost solutions"
-ms coordinator
 ```
 
 </details>
@@ -485,44 +347,6 @@ python -m madspark.cli.batch_metrics
 python -m madspark.cli.batch_metrics --clear
 ```
 
-### Performance Results
-
-Real-world testing shows significant improvements with comprehensive optimizations:
-
-**🚀 Major Performance Optimizations (August 2025)**:
-- **⚡ 60-70% Execution Time Reduction**: Complex queries reduced from 9-10 minutes to 2-3 minutes
-- **🔄 Batch Logical Inference**: 80% API call reduction (5 calls → 1 call)
-- **⚙️ Parallel Processing**: 50% improvement for advocacy/skepticism operations
-- **📈 Combined API Optimization**: 30% fewer total API calls (13 → 9 calls)
-
-**Previous Batch Processing Improvements**:
-- **🚀 50% API Call Reduction**: 3 batch calls vs 6 individual calls for 2 candidates
-- **💰 45% Cost Savings**: Skeptic and improve operations show excellent savings
-- **📈 Token Efficiency**: ~1,298 tokens per item with detailed per-operation tracking
-- **💵 Cost Transparency**: $0.0036 average cost per item with full breakdown
-
-### Monitoring Features
-
-- **📊 Real-time Metrics**: Token usage, duration, and cost tracking per batch operation
-- **💡 Cost Effectiveness Analysis**: Automatic comparison vs individual API calls
-- **📈 Session Summaries**: Detailed breakdowns by batch type and efficiency metrics
-- **🔍 Performance Insights**: Items per second, tokens per item, and cost per operation
-- **📋 Historical Tracking**: Persistent metrics logged to `~/.madspark/batch_metrics.jsonl`
-
-### Example Monitoring Output
-
-```
-📊 Batch Type Analysis:
-  advocate: 1 batch calls vs 2 individual calls (2.0 items/call)
-  skeptic: 1 batch calls vs 2 individual calls (2.0 items/call) - 45% savings
-  improve: 1 batch calls vs 2 individual calls (2.0 items/call) - 45% savings
-
-📞 API Call Efficiency: 50.0% reduction
-💵 Estimated cost: $0.0214 ($0.0036 per item)
-```
-
-The monitoring system ensures you get maximum value from your API usage while maintaining full transparency on costs and performance.
-
 ## Project Structure
 
 ```
@@ -531,7 +355,7 @@ eureka/
 │   ├── agents/             # Agent definitions & response schemas
 │   ├── core/               # Coordinators & enhanced reasoning
 │   ├── utils/              # Utilities
-│   │   ├── json_parsing/   # Structured JSON parsing (NEW!)
+│   │   ├── json_parsing/   # Structured JSON parsing
 │   │   │   ├── patterns.py      # Pre-compiled regex patterns
 │   │   │   ├── strategies.py    # 5 fallback parsing strategies
 │   │   │   ├── parser.py        # JsonParser orchestrator

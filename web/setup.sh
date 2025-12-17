@@ -94,11 +94,13 @@ echo "   Installing dependencies from config/requirements.txt..."
 
 # Verify critical packages and retry if needed
 # Define packages and their import names (pip-name=import-name)
+# Note: Some pip package names differ from their Python import names:
+#   - python-multipart → imports as 'multipart' (not 'python_multipart')
 declare -A WEB_DEPS=(
     [fastapi]=fastapi
     [uvicorn]=uvicorn
     [slowapi]=slowapi
-    [python-multipart]=multipart
+    [python-multipart]=multipart  # pip name differs from import name
 )
 MISSING_DEPS=()
 

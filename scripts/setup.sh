@@ -34,20 +34,29 @@ fi
 
 # Install dependencies
 echo -e "${BLUE}📚 Installing dependencies...${NC}"
-./venv/bin/pip install -r config/requirements.txt || { echo -e "${RED}❌ Failed to install dependencies${NC}"; exit 1; }
+PIP_INSTALL_SUCCESS=true
+./venv/bin/pip install -r config/requirements.txt || PIP_INSTALL_SUCCESS=false
+
+if [ "$PIP_INSTALL_SUCCESS" = false ]; then
+    echo -e "${RED}❌ Failed to install dependencies${NC}"
+    exit 1
+fi
 
 # Make run.py executable
 chmod +x run.py
 
 # Verify critical web backend packages are installed
+# Only run verification if initial install succeeded (skip if network was down)
 echo -e "${BLUE}🔍 Verifying web backend dependencies...${NC}"
 
 # Define packages and their import names (pip-name=import-name)
+# Note: Some pip package names differ from their Python import names:
+#   - python-multipart → imports as 'multipart' (not 'python_multipart')
 declare -A WEB_DEPS=(
     [fastapi]=fastapi
     [uvicorn]=uvicorn
     [slowapi]=slowapi
-    [python-multipart]=multipart
+    [python-multipart]=multipart  # pip name differs from import name
 )
 MISSING_DEPS=()
 

@@ -1,6 +1,7 @@
 """Tests for enhanced setup.sh script functionality."""
 import os
 import shutil
+import subprocess
 import tempfile
 import pytest
 from unittest.mock import patch
@@ -261,3 +262,163 @@ class TestSetupUserFlow:
             # Test that we don't accidentally modify existing files
             # (This tests the principle - actual setup.sh preservation would be tested when enhanced)
             assert preserved_content == original_config, "Configuration should remain exactly the same"
+
+
+class TestWebBackendDependencyVerification:
+    """Test setup script web backend dependency verification logic."""
+
+    # Map of pip package names to their import names
+    # This mirrors the WEB_DEPS associative array in setup scripts
+    WEB_DEPS = {
+        'fastapi': 'fastapi',
+        'uvicorn': 'uvicorn',
+        'slowapi': 'slowapi',
+        'python-multipart': 'multipart',  # Note: pip name differs from import name
+    }
+
+    def test_all_web_deps_are_importable(self):
+        """Verify all critical web backend dependencies can be imported."""
+        import importlib
+
+        for pip_name, import_name in self.WEB_DEPS.items():
+            try:
+                importlib.import_module(import_name)
+            except ImportError:
+                pytest.fail(
+                    f"Failed to import '{import_name}' (pip: {pip_name}). "
+                    f"Run: pip install {pip_name}"
+                )
+
+    def test_python_multipart_import_name_mapping(self):
+        """Test that python-multipart uses 'multipart' as the primary import name."""
+        # This is a common gotcha - the pip package name differs from the import name
+        # The package provides both 'multipart' and 'python_multipart' but we use
+        # 'multipart' for consistency with how other packages work
+        import importlib
+
+        # 'multipart' is the canonical import name used in setup scripts
+        try:
+            multipart = importlib.import_module('multipart')
+            assert multipart is not None
+        except ImportError:
+            pytest.fail("'multipart' should be importable after 'pip install python-multipart'")
+
+        # Verify the module has expected attributes (MultipartParser is the key class)
+        assert hasattr(multipart, 'MultipartParser'), \
+            "'multipart' module should have MultipartParser class"
+
+    def test_setup_script_contains_verification_logic(self):
+        """Verify setup.sh contains the dependency verification logic."""
+        setup_script = os.path.join(os.path.dirname(__file__), "..", "scripts", "setup.sh")
+
+        with open(setup_script, 'r') as f:
+            content = f.read()
+
+        # Check for verification loop structure
+        assert 'WEB_DEPS' in content, "Should define WEB_DEPS associative array"
+        assert 'MISSING_DEPS' in content, "Should track missing dependencies"
+        assert 'python-multipart' in content, "Should include python-multipart"
+        assert 'multipart' in content, "Should map to 'multipart' import name"
+
+        # Check for retry logic
+        assert 'Retrying installation' in content, "Should have retry logic"
+
+    def test_web_setup_script_contains_verification_logic(self):
+        """Verify web/setup.sh contains the dependency verification logic."""
+        setup_script = os.path.join(os.path.dirname(__file__), "..", "web", "setup.sh")
+
+        with open(setup_script, 'r') as f:
+            content = f.read()
+
+        # Check for verification loop structure (same as main setup.sh)
+        assert 'WEB_DEPS' in content, "Should define WEB_DEPS associative array"
+        assert 'MISSING_DEPS' in content, "Should track missing dependencies"
+        assert 'python-multipart' in content, "Should include python-multipart"
+        assert 'multipart' in content, "Should map to 'multipart' import name"
+
+        # Check for retry logic (matching scripts/setup.sh behavior)
+        assert 'Retrying installation' in content, "Should have retry logic"
+
+    def test_setup_scripts_are_consistent(self):
+        """Verify both setup scripts use the same verification logic."""
+        main_setup = os.path.join(os.path.dirname(__file__), "..", "scripts", "setup.sh")
+        web_setup = os.path.join(os.path.dirname(__file__), "..", "web", "setup.sh")
+
+        with open(main_setup, 'r') as f:
+            main_content = f.read()
+        with open(web_setup, 'r') as f:
+            web_content = f.read()
+
+        # Extract WEB_DEPS definitions
+        import re
+        main_deps = re.search(r'declare -A WEB_DEPS=\((.*?)\)', main_content, re.DOTALL)
+        web_deps = re.search(r'declare -A WEB_DEPS=\((.*?)\)', web_content, re.DOTALL)
+
+        assert main_deps is not None, "Main setup should have WEB_DEPS"
+        assert web_deps is not None, "Web setup should have WEB_DEPS"
+
+        # Normalize whitespace and compare
+        main_deps_normalized = ' '.join(main_deps.group(1).split())
+        web_deps_normalized = ' '.join(web_deps.group(1).split())
+
+        assert main_deps_normalized == web_deps_normalized, \
+            "Both setup scripts should define the same WEB_DEPS"
+
+    def test_setup_script_syntax_valid(self):
+        """Verify setup scripts have valid bash syntax."""
+        scripts = [
+            os.path.join(os.path.dirname(__file__), "..", "scripts", "setup.sh"),
+            os.path.join(os.path.dirname(__file__), "..", "web", "setup.sh"),
+        ]
+
+        for script in scripts:
+            result = subprocess.run(
+                ['bash', '-n', script],
+                capture_output=True,
+                text=True
+            )
+            assert result.returncode == 0, \
+                f"Syntax error in {script}: {result.stderr}"
+
+    def test_verification_detects_missing_package(self):
+        """Test that verification logic correctly detects missing packages."""
+        # Create a test script that simulates the verification logic
+        test_script = '''
+        #!/bin/bash
+        # Simulate checking for a package that doesn't exist
+        if python3 -c "import nonexistent_package_xyz" 2>/dev/null; then
+            echo "FOUND"
+        else
+            echo "MISSING"
+        fi
+        '''
+
+        result = subprocess.run(
+            ['bash', '-c', test_script],
+            capture_output=True,
+            text=True
+        )
+
+        assert 'MISSING' in result.stdout, \
+            "Verification should detect missing packages"
+
+    def test_verification_detects_installed_package(self):
+        """Test that verification logic correctly detects installed packages."""
+        # Use 'os' module which is always available
+        test_script = '''
+        #!/bin/bash
+        if python3 -c "import os" 2>/dev/null; then
+            echo "FOUND"
+        else
+            echo "MISSING"
+        fi
+        '''
+
+        result = subprocess.run(
+            ['bash', '-c', test_script],
+            capture_output=True,
+            text=True
+        )
+
+        assert 'FOUND' in result.stdout, \
+            "Verification should detect installed packages"

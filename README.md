@@ -3,7 +3,7 @@
 [![Phase](https://img.shields.io/badge/Phase-2.2%20Complete-success)](#project-status) [![Testing](https://img.shields.io/badge/Testing-85%25%20Coverage-success)](#testing) [![CI/CD](https://img.shields.io/badge/CI%2FCD-Optimized-brightgreen)](#development)
 
 A sophisticated multi-agent system for idea generation and refinement using LLMs. 
-Features specialized agents for idea generation, criticism, advocacy, and skepticism with advanced reasoning capabilities and bookmark-based idea mix.
+Features specialized agents for idea generation, criticism, advocacy, and skepticism with bookmark-based idea remix functionality.
 
 ## 🚀 Key Features
 

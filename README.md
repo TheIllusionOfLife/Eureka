@@ -2,20 +2,16 @@
 
 [![Phase](https://img.shields.io/badge/Phase-2.2%20Complete-success)](#project-status) [![Testing](https://img.shields.io/badge/Testing-85%25%20Coverage-success)](#testing) [![CI/CD](https://img.shields.io/badge/CI%2FCD-Optimized-brightgreen)](#development)
 
-A sophisticated multi-agent system for idea generation and refinement using Google's Gemini API. 
-Features specialized agents for idea generation, criticism, advocacy, and skepticism with advanced reasoning capabilities.
+A sophisticated multi-agent system for idea generation and refinement using LLMs. 
+Features specialized agents for idea generation, criticism, advocacy, and skepticism with advanced reasoning capabilities and bookmark-based idea mix.
 
 ## 🚀 Key Features
 
 - **🧠 Multi-Agent System**: IdeaGenerator, Critic, Advocate, and Skeptic agents
-- **🎯 Structured Output**: Google Gemini's structured JSON output for clean, consistent formatting
-- **🦙 Multi-LLM Support**: Ollama (local, free) with Gemini fallback - automatic provider selection (NEW!)
+- **🦙 Multi-LLM Support**: Ollama (local, free) with Gemini fallback - automatic provider selection
 - **🖼️ Multi-Modal Input**: CLI and API support for images, PDFs, documents, and URLs as context
 - **💾 Response Caching**: Disk-based caching with 30-50% reduction in API calls
-- **🚀 Batch API Optimization**: 50% fewer API calls with 45% cost savings through intelligent batching
 - **📊 Real-time Monitoring**: Comprehensive token usage and cost tracking with detailed analytics
-- **🔗 Feedback Loop**: Ideas are improved based on agent insights with score comparison
-- **📚 OpenAPI Documentation**: Interactive API docs at `/docs` and `/redoc`
 - **🌐 Web Interface**: React frontend with WebSocket progress updates
 - **⌨️ Keyboard Shortcuts**: ? for help, Ctrl+Enter to submit, Ctrl+G to focus form
 - **🔍 Duplicate Detection**: Intelligent similarity-based bookmark filtering
@@ -397,7 +393,6 @@ pytest tests/ -v --cov=src --cov-report=html
 ```
 
 **📖 For comprehensive development workflows, testing strategies, and CI/CD guidelines, see:**
-- Testing: README has basic commands above; detailed testing guide coming soon
 - CI/CD: [`docs/ci-policy.md`](docs/ci-policy.md) - Complete CI management guidelines
 
 ## Documentation

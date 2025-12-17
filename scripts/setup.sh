@@ -41,17 +41,27 @@ chmod +x run.py
 
 # Verify critical web backend packages are installed
 echo -e "${BLUE}🔍 Verifying web backend dependencies...${NC}"
-MISSING_DEPS=""
-for pkg in fastapi uvicorn slowapi; do
-    if ! ./venv/bin/python -c "import $pkg" 2>/dev/null; then
-        MISSING_DEPS="$MISSING_DEPS $pkg"
+
+# Define packages and their import names (pip-name=import-name)
+declare -A WEB_DEPS=(
+    [fastapi]=fastapi
+    [uvicorn]=uvicorn
+    [slowapi]=slowapi
+    [python-multipart]=multipart
+)
+MISSING_DEPS=()
+
+for pkg in "${!WEB_DEPS[@]}"; do
+    import_name=${WEB_DEPS[$pkg]}
+    if ! ./venv/bin/python -c "import $import_name" 2>/dev/null; then
+        MISSING_DEPS+=("$pkg")
     fi
 done
 
-if [ -n "$MISSING_DEPS" ]; then
-    echo -e "${RED}❌ Missing packages:$MISSING_DEPS${NC}"
+if [ ${#MISSING_DEPS[@]} -gt 0 ]; then
+    echo -e "${RED}❌ Missing packages: ${MISSING_DEPS[*]}${NC}"
     echo -e "${YELLOW}Retrying installation...${NC}"
-    ./venv/bin/pip install fastapi uvicorn slowapi python-multipart || { echo -e "${RED}❌ Failed to install web backend deps${NC}"; exit 1; }
+    ./venv/bin/pip install "${MISSING_DEPS[@]}" || { echo -e "${RED}❌ Failed to install web backend deps${NC}"; exit 1; }
 fi
 echo -e "${GREEN}✅ All dependencies verified${NC}"
 

@@ -85,22 +85,37 @@ fi
 
 # Install dependencies
 echo "   Installing dependencies from config/requirements.txt..."
-"${VENV_DIR}/bin/pip" install -q -r "${PROJECT_ROOT}/config/requirements.txt" || {
+"${VENV_DIR}/bin/pip" install -r "${PROJECT_ROOT}/config/requirements.txt" || {
     echo "❌ Failed to install Python dependencies"
+    echo "   Check pip output above for details"
+    echo "   Try manually: pip install -r config/requirements.txt"
     exit 1
 }
 
-# Verify critical packages
-MISSING=""
-for pkg in fastapi uvicorn slowapi; do
-    if ! "${VENV_DIR}/bin/python" -c "import $pkg" 2>/dev/null; then
-        MISSING="$MISSING $pkg"
+# Verify critical packages and retry if needed
+# Define packages and their import names (pip-name=import-name)
+declare -A WEB_DEPS=(
+    [fastapi]=fastapi
+    [uvicorn]=uvicorn
+    [slowapi]=slowapi
+    [python-multipart]=multipart
+)
+MISSING_DEPS=()
+
+for pkg in "${!WEB_DEPS[@]}"; do
+    import_name=${WEB_DEPS[$pkg]}
+    if ! "${VENV_DIR}/bin/python" -c "import $import_name" 2>/dev/null; then
+        MISSING_DEPS+=("$pkg")
     fi
 done
 
-if [ -n "$MISSING" ]; then
-    echo "❌ Missing packages:$MISSING"
-    exit 1
+if [ ${#MISSING_DEPS[@]} -gt 0 ]; then
+    echo "❌ Missing packages: ${MISSING_DEPS[*]}"
+    echo "   Retrying installation..."
+    "${VENV_DIR}/bin/pip" install "${MISSING_DEPS[@]}" || {
+        echo "❌ Failed to install missing Python dependencies"
+        exit 1
+    }
 fi
 
 echo "✅ Python dependencies installed"

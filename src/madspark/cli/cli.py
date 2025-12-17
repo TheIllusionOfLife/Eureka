@@ -759,12 +759,14 @@ def determine_num_candidates(args) -> int:
     Returns:
         int: Number of candidates to process
     """
-    # If user explicitly set --num-candidates, use it and show deprecation warning
-    if args.num_candidates is not None:
+    # If user explicitly set --num-candidates (deprecated), use it and show deprecation warning
+    # Use getattr for backward compatibility since the argument may be removed
+    num_candidates = getattr(args, 'num_candidates', None)
+    if num_candidates is not None:
         logger = logging.getLogger(__name__)
         logger.warning("--num-candidates is deprecated. Please use --top-ideas instead.")
         # Ensure it's within the valid range for top_ideas
-        return min(max(args.num_candidates, 1), 5)
+        return min(max(num_candidates, 1), 5)
 
     # If user explicitly set --top-ideas, use it
     if args.top_ideas is not None:

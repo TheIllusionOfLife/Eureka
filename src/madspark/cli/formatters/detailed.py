@@ -50,6 +50,24 @@ class DetailedFormatter(ResultFormatter):
                 skepticism_data = self._parse_structured_agent_data(result['skepticism'], 'skepticism')
                 lines.append(f"\n{skepticism_data['formatted']}")
 
+            # Logical inference analysis (when --logical flag is used)
+            # Shown BEFORE improved idea because it informs the improvement process
+            if 'logical_inference' in result and result['logical_inference']:
+                try:
+                    from madspark.utils.output_processor import format_logical_inference_results
+                    inference_data = result['logical_inference']
+                    formatted_inference = format_logical_inference_results(inference_data)
+                    if formatted_inference:
+                        lines.append(f"\n{formatted_inference}")
+                except ImportError:
+                    # Fallback formatting
+                    lines.append("\n🔍 Logical Inference Analysis:")
+                    inference_data = result['logical_inference']
+                    if 'causal_chains' in inference_data:
+                        lines.append("  Causal Chains:")
+                        for chain in inference_data['causal_chains']:
+                            lines.append(f"    • {chain}")
+
             # Show improvement section if we have improved idea OR score improvements
             if 'improved_idea' in result or 'improved_score' in result or 'score_delta' in result:
                 # Show improved idea if available
@@ -128,23 +146,6 @@ class DetailedFormatter(ResultFormatter):
                         scores = eval_data['dimension_scores']
                         for dim, score in scores.items():
                             lines.append(f"  • {dim.replace('_', ' ').title()}: {score}")
-
-            # Logical inference analysis (when --logical flag is used)
-            if 'logical_inference' in result and result['logical_inference']:
-                try:
-                    from madspark.utils.output_processor import format_logical_inference_results
-                    inference_data = result['logical_inference']
-                    formatted_inference = format_logical_inference_results(inference_data)
-                    if formatted_inference:
-                        lines.append(f"\n{formatted_inference}")
-                except ImportError:
-                    # Fallback formatting
-                    lines.append("\n🔍 Logical Inference Analysis:")
-                    inference_data = result['logical_inference']
-                    if 'causal_chains' in inference_data:
-                        lines.append("  Causal Chains:")
-                        for chain in inference_data['causal_chains']:
-                            lines.append(f"    • {chain}")
 
             lines.append("-" * 80)
 

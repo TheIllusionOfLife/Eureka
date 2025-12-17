@@ -67,6 +67,62 @@ fi
 echo "✅ Docker and Docker Compose are installed"
 echo ""
 
+# Ensure Python dependencies are installed for local testing
+echo "📦 Setting up Python environment..."
+
+# Use root venv if it exists, otherwise create local one
+PROJECT_ROOT="${SCRIPT_DIR}/.."
+if [ -d "${PROJECT_ROOT}/venv" ]; then
+    VENV_DIR="${PROJECT_ROOT}/venv"
+    echo "   Using existing venv at ${VENV_DIR}"
+else
+    VENV_DIR="${SCRIPT_DIR}/venv"
+    if [ ! -d "$VENV_DIR" ]; then
+        echo "   Creating local venv..."
+        python3 -m venv "$VENV_DIR"
+    fi
+fi
+
+# Install dependencies
+echo "   Installing dependencies from config/requirements.txt..."
+"${VENV_DIR}/bin/pip" install -r "${PROJECT_ROOT}/config/requirements.txt" || {
+    echo "❌ Failed to install Python dependencies"
+    echo "   Check pip output above for details"
+    echo "   Try manually: pip install -r config/requirements.txt"
+    exit 1
+}
+
+# Verify critical packages and retry if needed
+# Define packages and their import names (pip-name=import-name)
+# Note: Some pip package names differ from their Python import names:
+#   - python-multipart → imports as 'multipart' (not 'python_multipart')
+declare -A WEB_DEPS=(
+    [fastapi]=fastapi
+    [uvicorn]=uvicorn
+    [slowapi]=slowapi
+    [python-multipart]=multipart  # pip name differs from import name
+)
+MISSING_DEPS=()
+
+for pkg in "${!WEB_DEPS[@]}"; do
+    import_name=${WEB_DEPS[$pkg]}
+    if ! "${VENV_DIR}/bin/python" -c "import $import_name" 2>/dev/null; then
+        MISSING_DEPS+=("$pkg")
+    fi
+done
+
+if [ ${#MISSING_DEPS[@]} -gt 0 ]; then
+    echo "❌ Missing packages: ${MISSING_DEPS[*]}"
+    echo "   Retrying installation..."
+    "${VENV_DIR}/bin/pip" install "${MISSING_DEPS[@]}" || {
+        echo "❌ Failed to install missing Python dependencies"
+        exit 1
+    }
+fi
+
+echo "✅ Python dependencies installed"
+echo ""
+
 # Pre-flight checks for system resources
 echo "🔍 Checking system resources..."
 echo ""

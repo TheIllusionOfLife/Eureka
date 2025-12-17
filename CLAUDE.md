@@ -228,6 +228,20 @@ output = formatter.format(results, args)
 - **Maintainability**: Clear separation of concerns
 - **Type Safety**: Complete type hints for better IDE support
 
+### Output Section Order
+Human-readable formatters (brief, simple, detailed, summary) display sections in **workflow execution order**:
+1. Original Idea + Initial Score/Critique
+2. Advocacy (strengths, opportunities)
+3. Skepticism (flaws, risks)
+4. **Logical Inference Analysis** (if `--logical` enabled)
+5. **Improved Idea** (informed by above analysis)
+6. Improved Score + Delta
+7. Multi-Dimensional Evaluation
+
+This order reflects the actual data flow: logical inference (Step 4.5) feeds into improvement (Step 5).
+
+**Note**: JSON output preserves raw structure without ordering since JSON objects are unordered by spec.
+
 ## Google GenAI API Usage Pattern
 When using Google's GenAI SDK, always use the nested API structure:
 ```python

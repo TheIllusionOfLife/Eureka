@@ -679,3 +679,124 @@ class TestFormatterEdgeCases:
         formatter = DetailedFormatter()
         output = formatter.format(results, Namespace())
         assert output is not None
+
+
+# Section Ordering Tests (regression tests for workflow order)
+class TestSectionOrdering:
+    """Test that formatters display sections in correct workflow order.
+
+    The workflow executes: Logical Inference (Step 4.5) -> Improvement (Step 5)
+    So logical inference should appear BEFORE improved idea in output.
+    """
+
+    @pytest.fixture
+    def result_with_logical_inference(self) -> List[Dict[str, Any]]:
+        """Result with logical inference data for ordering tests."""
+        return [{
+            "idea": "Original test idea",
+            "initial_score": 7.0,
+            "initial_critique": "Needs improvement",
+            "logical_inference": {
+                "causal_chains": ["Step A leads to B", "B enables C"],
+                "conclusion": "Therefore the approach is valid"
+            },
+            "improved_idea": "Improved idea based on logical analysis",
+            "improved_score": 8.5,
+            "score_delta": 1.5,
+        }]
+
+    def test_detailed_logical_before_improved(self, result_with_logical_inference):
+        """DetailedFormatter: Logical inference should appear before improved idea."""
+        formatter = DetailedFormatter()
+        output = formatter.format(result_with_logical_inference, Namespace())
+
+        # Find positions of key sections
+        logical_pos = output.find("Logical Inference") if "Logical Inference" in output else output.find("🔍")
+        improved_pos = output.find("✨ Improved") if "✨ Improved" in output else output.find("Improved Idea")
+
+        # Both sections should be present
+        assert logical_pos != -1, "Logical inference section not found in detailed output"
+        assert improved_pos != -1, "Improved idea section not found in detailed output"
+
+        # Logical inference should come before improved idea
+        assert logical_pos < improved_pos, \
+            f"Logical inference (pos {logical_pos}) should appear before improved idea (pos {improved_pos})"
+
+    def test_simple_logical_before_improved(self, result_with_logical_inference):
+        """SimpleFormatter: Logical inference should appear before improved idea."""
+        formatter = SimpleFormatter()
+        output = formatter.format(result_with_logical_inference, Namespace())
+
+        # Find positions of key sections
+        logical_pos = output.find("Logical Reasoning") if "Logical Reasoning" in output else output.find("🧠")
+        improved_pos = output.find("✨ Improved") if "✨ Improved" in output else output.find("Improved:")
+
+        # Both sections should be present
+        assert logical_pos != -1, "Logical reasoning section not found in simple output"
+        assert improved_pos != -1, "Improved idea section not found in simple output"
+
+        # Logical inference should come before improved idea
+        assert logical_pos < improved_pos, \
+            f"Logical reasoning (pos {logical_pos}) should appear before improved idea (pos {improved_pos})"
+
+    def test_brief_logical_before_solution(self, result_with_logical_inference):
+        """BriefFormatter: Logical insight should appear before solution."""
+        formatter = BriefFormatter()
+        output = formatter.format(result_with_logical_inference, Namespace())
+
+        # Find positions of key sections
+        logical_pos = output.find("Logical Insight") if "Logical Insight" in output else output.find("🔍")
+        solution_pos = output.find("**Solution:**") if "**Solution:**" in output else output.find("Solution")
+
+        # Both sections should be present
+        assert logical_pos != -1, "Logical insight section not found in brief output"
+        assert solution_pos != -1, "Solution section not found in brief output"
+
+        # Logical insight should come before solution
+        assert logical_pos < solution_pos, \
+            f"Logical insight (pos {logical_pos}) should appear before solution (pos {solution_pos})"
+
+    def test_summary_logical_before_improved(self, result_with_logical_inference):
+        """SummaryFormatter: Logical inference should appear before improved idea."""
+        formatter = SummaryFormatter()
+        output = formatter.format(result_with_logical_inference, Namespace())
+
+        # Find positions of key sections
+        logical_pos = output.find("Logical Inference") if "Logical Inference" in output else output.find("🔍")
+        # In summary, look for the improved idea text or fallback markers
+        improved_idea_text = result_with_logical_inference[0]["improved_idea"]
+        improved_pos = output.find(improved_idea_text)
+        if improved_pos == -1:
+            # Try finding partial text
+            improved_pos = output.find("Improved idea")
+        if improved_pos == -1:
+            # Try the Improved Score line which comes after the idea
+            improved_pos = output.find("Improved Score:")
+
+        # Both sections should be present
+        assert logical_pos != -1, "Logical inference section not found in summary output"
+        assert improved_pos != -1, f"Improved idea not found in summary output. Output: {output[:500]}"
+
+        # Logical inference should come before improved idea
+        assert logical_pos < improved_pos, \
+            f"Logical inference (pos {logical_pos}) should appear before improved idea (pos {improved_pos})"
+
+    def test_all_formatters_include_logical_when_present(self, result_with_logical_inference):
+        """All formatters should include logical inference when present in results."""
+        formatters = {
+            "brief": BriefFormatter(),
+            "simple": SimpleFormatter(),
+            "detailed": DetailedFormatter(),
+            "summary": SummaryFormatter(),
+        }
+
+        for name, formatter in formatters.items():
+            output = formatter.format(result_with_logical_inference, Namespace())
+            # Check that some form of logical inference is present
+            has_logical = (
+                "Logical" in output or
+                "🔍" in output or
+                "🧠" in output or
+                "causal" in output.lower()
+            )
+            assert has_logical, f"{name} formatter should include logical inference content"

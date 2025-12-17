@@ -49,22 +49,29 @@ class TestNewCLIOptions:
             assert args.top_ideas == num, f"Should parse --top-ideas {num}"
             assert determine_num_candidates(args) == num, f"Should return {num} through determine_num_candidates"
     
-    def test_num_candidates_backward_compatibility(self):
-        """Test that deprecated --num-candidates still works for backward compatibility."""
+    def test_num_candidates_removed(self):
+        """Test that deprecated --num-candidates has been removed.
+
+        Note: --num-candidates was removed in commit cd7c2c9c.
+        The determine_num_candidates() function now uses getattr() for safety
+        when called with a bare Namespace that doesn't have the attribute.
+        """
         parser = create_parser()
         from madspark.cli.cli import determine_num_candidates
-        
-        # Test that --num-candidates still works
-        args = parser.parse_args(['test topic', '--num-candidates', '5'])
-        assert hasattr(args, 'num_candidates'), "Should have num_candidates attribute"
-        assert args.num_candidates == 5, "Should parse --num-candidates 5"
-        
-        # Should use the value from --num-candidates (clamped to 1-5 range)
-        assert determine_num_candidates(args) == 5, "Should use num_candidates value"
-        
-        # Test that --num-candidates takes precedence when both are specified (current behavior)
-        args = parser.parse_args(['test topic', '--num-candidates', '5', '--top-ideas', '3'])
-        assert determine_num_candidates(args) == 5, "Currently --num-candidates takes precedence when both are specified"
+        from argparse import Namespace
+
+        # --num-candidates is no longer a valid argument
+        import pytest
+        with pytest.raises(SystemExit):
+            parser.parse_args(['test topic', '--num-candidates', '5'])
+
+        # determine_num_candidates should handle bare Namespace safely
+        bare_args = Namespace(top_ideas=3)
+        assert determine_num_candidates(bare_args) == 3, "Should use top_ideas value"
+
+        # Should default to 3 when neither is present
+        empty_args = Namespace()
+        assert determine_num_candidates(empty_args) == 3, "Should default to 3"
     
     def test_temperature_option(self):
         """Test --temperature option for custom temperature values."""

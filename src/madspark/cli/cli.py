@@ -316,14 +316,6 @@ Examples:
     # Workflow options
     workflow_group = parser.add_argument_group('workflow options')
     
-    # Note: --num-candidates is deprecated but kept for backward compatibility
-    workflow_group.add_argument(
-        '--num-candidates', '-n',
-        type=int,
-        default=None,  # Changed to None to detect if explicitly set
-        help='(Deprecated: use --top-ideas instead) Number of top candidates to fully process'
-    )
-    
     workflow_group.add_argument(
         '--top-ideas',
         dest='top_ideas',
@@ -444,14 +436,6 @@ Examples:
         '--enhanced-reasoning', '--enhanced',
         action='store_true',
         help='Add advocate & skeptic agents for balanced analysis (strengths/opportunities vs risks/flaws)'
-    )
-    
-    # Multi-dimensional evaluation is now always enabled
-    # Keeping the argument for backward compatibility but it has no effect
-    reasoning_group.add_argument(
-        '--multi-dimensional-eval',
-        action='store_true',
-        help='(DEPRECATED: Always enabled) Multi-dimensional evaluation across 7 dimensions is now a core feature'
     )
     
     reasoning_group.add_argument(

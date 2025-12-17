@@ -59,14 +59,17 @@ class DetailedFormatter(ResultFormatter):
                     formatted_inference = format_logical_inference_results(inference_data)
                     if formatted_inference:
                         lines.append(f"\n{formatted_inference}")
-                except ImportError:
-                    # Fallback formatting
+                except (ImportError, json.JSONDecodeError, KeyError, AttributeError, IndexError):
+                    # Fallback formatting for malformed data or missing imports
                     lines.append("\n🔍 Logical Inference Analysis:")
                     inference_data = result['logical_inference']
-                    if 'causal_chains' in inference_data:
-                        lines.append("  Causal Chains:")
-                        for chain in inference_data['causal_chains']:
-                            lines.append(f"    • {chain}")
+                    if isinstance(inference_data, dict):
+                        if 'causal_chains' in inference_data:
+                            lines.append("  Causal Chains:")
+                            for chain in inference_data['causal_chains']:
+                                lines.append(f"    • {chain}")
+                        if 'conclusion' in inference_data:
+                            lines.append(f"  Conclusion: {inference_data['conclusion']}")
 
             # Show improvement section if we have improved idea OR score improvements
             if 'improved_idea' in result or 'improved_score' in result or 'score_delta' in result:

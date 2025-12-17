@@ -2,6 +2,7 @@
 Summary formatter for improved ideas with multi-dimensional evaluation.
 """
 
+import json
 from argparse import Namespace
 from typing import Any, Dict, List
 
@@ -26,6 +27,25 @@ class SummaryFormatter(ResultFormatter):
 
         for i, result in enumerate(cleaned_results, 1):
             lines.append(f"--- IMPROVED IDEA {i} ---")
+
+            # Logical inference analysis (shown BEFORE improved idea - reflects workflow order)
+            if 'logical_inference' in result and result['logical_inference']:
+                try:
+                    from madspark.utils.output_processor import format_logical_inference_results
+                    inference_data = result['logical_inference']
+                    formatted_inference = format_logical_inference_results(inference_data)
+                    if formatted_inference:
+                        lines.append(f"\n{formatted_inference}")
+                except (ImportError, json.JSONDecodeError, KeyError, AttributeError, IndexError):
+                    # Fallback formatting
+                    lines.append("\n🔍 Logical Inference Analysis:")
+                    inference_data = result['logical_inference']
+                    if isinstance(inference_data, dict):
+                        if 'causal_chains' in inference_data:
+                            for chain in inference_data['causal_chains'][:3]:
+                                lines.append(f"  • {chain}")
+                        if 'conclusion' in inference_data:
+                            lines.append(f"  Conclusion: {inference_data['conclusion']}")
 
             # Get cleaned improved idea (already cleaned by clean_improved_ideas_in_results)
             # Fall back to original idea if no improved idea available

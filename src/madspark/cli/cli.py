@@ -769,8 +769,10 @@ def determine_num_candidates(args) -> int:
         return min(max(num_candidates, 1), 5)
 
     # If user explicitly set --top-ideas, use it
-    if args.top_ideas is not None:
-        return args.top_ideas
+    # Use getattr for safety when called with bare Namespace in tests/programmatic use
+    top_ideas = getattr(args, 'top_ideas', None)
+    if top_ideas is not None:
+        return top_ideas
 
     # Default value
     return 3

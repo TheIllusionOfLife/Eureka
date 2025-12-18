@@ -208,7 +208,7 @@ config = types.GenerateContentConfig(
 # 3. Make API call
 client = genai.Client()
 response = client.models.generate_content(
-    model="gemini-2.5-flash",
+    model="gemini-3-flash-preview",
     contents="Evaluate these ideas: ...",
     config=config
 )

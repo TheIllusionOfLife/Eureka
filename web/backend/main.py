@@ -1259,7 +1259,7 @@ async def get_llm_providers():
             {
                 "id": "fast",
                 "name": "Fast",
-                "description": "Quick responses with gemma3:4b (Ollama) or gemini-2.5-flash"
+                "description": "Quick responses with gemma3:4b (Ollama)"
             },
             {
                 "id": "balanced",

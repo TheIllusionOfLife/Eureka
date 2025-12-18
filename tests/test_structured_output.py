@@ -5,6 +5,7 @@ instead of regex-based cleaning for improved ideas.
 """
 import json
 from unittest.mock import Mock, patch
+from .test_constants import TEST_MODEL_NAME
 
 from madspark.agents.idea_generator import (
     improve_idea,
@@ -41,7 +42,7 @@ class TestStructuredOutputImplementation:
         assert "no meta-commentary" in prompt.lower() or "start directly" in prompt.lower()
     
     @patch('madspark.agents.idea_generator.idea_generator_client')
-    @patch('madspark.agents.idea_generator.model_name', 'gemini-2.5-flash')
+    @patch('madspark.agents.idea_generator.model_name', 'TEST_MODEL_NAME')
     @patch('madspark.agents.idea_generator.GENAI_AVAILABLE', True)
     def test_structured_output_configuration(self, mock_client):
         """Test that structured output is configured when available."""

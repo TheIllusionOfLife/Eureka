@@ -6,6 +6,7 @@ output instead of text parsing with regex.
 
 from unittest.mock import Mock, patch
 import json
+from .test_constants import TEST_MODEL_NAME
 
 
 class TestFullAnalysisStructuredOutput:
@@ -17,7 +18,7 @@ class TestFullAnalysisStructuredOutput:
         from madspark.utils.logical_inference_engine import LogicalInferenceEngine, InferenceType
         from google.genai import types
 
-        mock_get_model.return_value = "gemini-1.5-flash"
+        mock_get_model.return_value = "TEST_MODEL_NAME"
 
         # Create mock GenAI client
         mock_client = Mock()
@@ -55,7 +56,7 @@ class TestFullAnalysisStructuredOutput:
         """Should parse JSON response for full analysis."""
         from madspark.utils.logical_inference_engine import LogicalInferenceEngine, InferenceType
 
-        mock_get_model.return_value = "gemini-1.5-flash"
+        mock_get_model.return_value = "TEST_MODEL_NAME"
 
         mock_client = Mock()
         mock_response = Mock()
@@ -91,7 +92,7 @@ class TestCausalAnalysisStructuredOutput:
         """Should use structured output for causal analysis."""
         from madspark.utils.logical_inference_engine import LogicalInferenceEngine, InferenceType
 
-        mock_get_model.return_value = "gemini-1.5-flash"
+        mock_get_model.return_value = "TEST_MODEL_NAME"
 
         mock_client = Mock()
         mock_response = Mock()
@@ -135,7 +136,7 @@ class TestConstraintAnalysisStructuredOutput:
         """Should use structured output for constraint analysis."""
         from madspark.utils.logical_inference_engine import LogicalInferenceEngine, InferenceType
 
-        mock_get_model.return_value = "gemini-1.5-flash"
+        mock_get_model.return_value = "TEST_MODEL_NAME"
 
         mock_client = Mock()
         mock_response = Mock()
@@ -183,7 +184,7 @@ class TestContradictionAnalysisStructuredOutput:
         """Should parse contradictions from structured output."""
         from madspark.utils.logical_inference_engine import LogicalInferenceEngine, InferenceType
 
-        mock_get_model.return_value = "gemini-1.5-flash"
+        mock_get_model.return_value = "TEST_MODEL_NAME"
 
         mock_client = Mock()
         mock_response = Mock()
@@ -225,7 +226,7 @@ class TestContradictionAnalysisStructuredOutput:
         """Should handle case with no contradictions."""
         from madspark.utils.logical_inference_engine import LogicalInferenceEngine, InferenceType
 
-        mock_get_model.return_value = "gemini-1.5-flash"
+        mock_get_model.return_value = "TEST_MODEL_NAME"
 
         mock_client = Mock()
         mock_response = Mock()
@@ -263,7 +264,7 @@ class TestImplicationsAnalysisStructuredOutput:
         """Should use structured output for implications."""
         from madspark.utils.logical_inference_engine import LogicalInferenceEngine, InferenceType
 
-        mock_get_model.return_value = "gemini-1.5-flash"
+        mock_get_model.return_value = "TEST_MODEL_NAME"
 
         mock_client = Mock()
         mock_response = Mock()
@@ -369,7 +370,7 @@ class TestBatchAnalysisStructuredOutput:
         """Should use structured output for batch analysis."""
         from madspark.utils.logical_inference_engine import LogicalInferenceEngine, InferenceType
 
-        mock_get_model.return_value = "gemini-1.5-flash"
+        mock_get_model.return_value = "TEST_MODEL_NAME"
 
         mock_client = Mock()
         mock_response = Mock()
@@ -417,7 +418,7 @@ class TestErrorHandling:
         """Should handle invalid JSON gracefully with fallback to text parsing."""
         from madspark.utils.logical_inference_engine import LogicalInferenceEngine, InferenceType
 
-        mock_get_model.return_value = "gemini-1.5-flash"
+        mock_get_model.return_value = "TEST_MODEL_NAME"
 
         mock_client = Mock()
         mock_response = Mock()
@@ -445,7 +446,7 @@ class TestErrorHandling:
         """Should handle missing required fields."""
         from madspark.utils.logical_inference_engine import LogicalInferenceEngine, InferenceType
 
-        mock_get_model.return_value = "gemini-1.5-flash"
+        mock_get_model.return_value = "TEST_MODEL_NAME"
 
         mock_client = Mock()
         mock_response = Mock()
@@ -481,7 +482,7 @@ class TestBackwardCompatibility:
         """Existing test patterns should continue working."""
         from madspark.utils.logical_inference_engine import LogicalInferenceEngine, InferenceType
 
-        mock_get_model.return_value = "gemini-1.5-flash"
+        mock_get_model.return_value = "TEST_MODEL_NAME"
 
         mock_client = Mock()
         mock_response = Mock()

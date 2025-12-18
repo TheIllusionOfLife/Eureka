@@ -8,6 +8,7 @@ when configured, with proper fallback to direct API when router fails.
 import json
 import pytest
 from unittest.mock import patch, Mock
+from .test_constants import TEST_MODEL_NAME
 
 from madspark.schemas.evaluation import CriticEvaluations
 from madspark.llm.response import LLMResponse
@@ -131,7 +132,7 @@ class TestCriticRouterIntegration:
         mock_response = LLMResponse(
             text='[]',
             provider="gemini",
-            model="gemini-2.5-flash",
+            model="TEST_MODEL_NAME",
             tokens_used=200,
             latency_ms=500,
             cost=0.00004

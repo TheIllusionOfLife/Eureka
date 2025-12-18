@@ -6,6 +6,7 @@ output instead of text parsing.
 
 import pytest
 from unittest.mock import Mock, patch
+from .test_constants import TEST_MODEL_NAME
 
 
 class TestDimensionScoreStructuredOutput:
@@ -17,7 +18,7 @@ class TestDimensionScoreStructuredOutput:
         from madspark.core.enhanced_reasoning import MultiDimensionalEvaluator
         from google.genai import types
 
-        mock_get_model.return_value = "gemini-1.5-flash"
+        mock_get_model.return_value = "TEST_MODEL_NAME"
 
         # Create mock GenAI client
         mock_client = Mock()
@@ -53,7 +54,7 @@ class TestDimensionScoreStructuredOutput:
         """Should parse JSON response instead of raw text."""
         from madspark.core.enhanced_reasoning import MultiDimensionalEvaluator
 
-        mock_get_model.return_value = "gemini-1.5-flash"
+        mock_get_model.return_value = "TEST_MODEL_NAME"
 
         # Mock client that returns structured JSON
         mock_client = Mock()
@@ -78,7 +79,7 @@ class TestDimensionScoreStructuredOutput:
         """Should handle responses with optional reasoning field."""
         from madspark.core.enhanced_reasoning import MultiDimensionalEvaluator
 
-        mock_get_model.return_value = "gemini-1.5-flash"
+        mock_get_model.return_value = "TEST_MODEL_NAME"
 
         mock_client = Mock()
         mock_response = Mock()
@@ -102,7 +103,7 @@ class TestDimensionScoreStructuredOutput:
         """Should clamp scores to dimension range."""
         from madspark.core.enhanced_reasoning import MultiDimensionalEvaluator
 
-        mock_get_model.return_value = "gemini-1.5-flash"
+        mock_get_model.return_value = "TEST_MODEL_NAME"
 
         mock_client = Mock()
         mock_response = Mock()
@@ -127,7 +128,7 @@ class TestDimensionScoreStructuredOutput:
         """Should raise clear error on invalid JSON response."""
         from madspark.core.enhanced_reasoning import MultiDimensionalEvaluator
 
-        mock_get_model.return_value = "gemini-1.5-flash"
+        mock_get_model.return_value = "TEST_MODEL_NAME"
 
         mock_client = Mock()
         mock_response = Mock()
@@ -149,7 +150,7 @@ class TestDimensionScoreStructuredOutput:
         """Should raise clear error when score field is missing."""
         from madspark.core.enhanced_reasoning import MultiDimensionalEvaluator
 
-        mock_get_model.return_value = "gemini-1.5-flash"
+        mock_get_model.return_value = "TEST_MODEL_NAME"
 
         mock_client = Mock()
         mock_response = Mock()
@@ -211,7 +212,7 @@ class TestEnhancedReasoningIntegration:
         """Full evaluation should use structured output for all dimensions."""
         from madspark.core.enhanced_reasoning import MultiDimensionalEvaluator
 
-        mock_get_model.return_value = "gemini-1.5-flash"
+        mock_get_model.return_value = "TEST_MODEL_NAME"
 
         mock_client = Mock()
         # Return different scores for different dimensions (default has 7 dimensions)
@@ -253,7 +254,7 @@ class TestBackwardCompatibility:
         """Existing test patterns should still work."""
         from madspark.core.enhanced_reasoning import MultiDimensionalEvaluator
 
-        mock_get_model.return_value = "gemini-1.5-flash"
+        mock_get_model.return_value = "TEST_MODEL_NAME"
 
         mock_client = Mock()
         mock_response = Mock()

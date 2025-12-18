@@ -6,6 +6,22 @@ This module provides common test configuration and fixtures used across the test
 import os
 import pytest
 
+# ============================================================================
+# Test Model Constants
+# ============================================================================
+# Use these constants in tests instead of hardcoding model names.
+# This makes tests resilient to model upgrades.
+# For direct imports in test files, use: from test_constants import TEST_MODEL_NAME
+
+# Generic test model name - use for mocks where the exact name doesn't matter
+TEST_MODEL_NAME = "gemini-test-model"
+
+# Import the actual default model for tests that need it
+try:
+    from madspark.llm.models import GEMINI_MODEL_DEFAULT
+except ImportError:
+    GEMINI_MODEL_DEFAULT = "gemini-3-flash-preview"
+
 
 def pytest_configure(config):
     """

@@ -271,7 +271,9 @@ class TestConstantUsage:
         source = inspect.getsource(module)
 
         # Count occurrences of hardcoded model name (should be minimal after migration)
-        hardcoded_count = source.count('"gemini-2.5-flash"') + source.count("'gemini-2.5-flash'")
+        # Note: We check for the current default model name. Legacy model names in
+        # pricing_config.py are intentionally kept for backward compatibility.
+        hardcoded_count = source.count('"gemini-3-flash-preview"') + source.count("'gemini-3-flash-preview'")
 
         # Should have at most 1 (in the constant definition itself)
         assert hardcoded_count <= 1, \

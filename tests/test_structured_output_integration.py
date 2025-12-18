@@ -7,6 +7,7 @@ import os
 import json
 import pytest
 from unittest.mock import Mock, patch
+from .test_constants import TEST_MODEL_NAME
 
 # Test that the system loads and uses structured output
 class TestStructuredOutputIntegration:
@@ -14,7 +15,7 @@ class TestStructuredOutputIntegration:
     
     @patch('madspark.agents.idea_generator.GENAI_AVAILABLE', True)
     @patch('madspark.agents.idea_generator.idea_generator_client')
-    @patch('madspark.agents.idea_generator.model_name', 'gemini-2.5-flash')
+    @patch('madspark.agents.idea_generator.model_name', 'TEST_MODEL_NAME')
     def test_improve_idea_uses_structured_output(self, mock_client):
         """Test that improve_idea function uses structured output when available."""
         from madspark.agents.idea_generator import improve_idea

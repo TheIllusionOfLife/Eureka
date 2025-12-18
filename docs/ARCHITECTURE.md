@@ -720,7 +720,7 @@ services:
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
 | `GOOGLE_API_KEY` | Gemini API key | - | Yes (except mock) |
-| `GOOGLE_GENAI_MODEL` | Model name | gemini-2.5-flash | No |
+| `GOOGLE_GENAI_MODEL` | Model name | gemini-3-flash-preview | No |
 | `MADSPARK_MODE` | Operational mode | production | No |
 | `LOG_LEVEL` | Logging verbosity | INFO | No |
 | `REDIS_URL` | Redis connection | - | No |
@@ -816,7 +816,7 @@ Eureka/
     "tags": ["array", "of", "tags"],
     "timestamp": "ISO-8601",
     "metadata": {
-      "model_used": "gemini-2.5-flash",
+      "model_used": "gemini-3-flash-preview",
       "temperature": 0.9,
       "token_count": 1500
     }

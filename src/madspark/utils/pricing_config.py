@@ -9,6 +9,21 @@ from typing import Dict
 # Token costs configuration (per 1K tokens)
 # These values should be updated based on actual model pricing
 TOKEN_COSTS: Dict[str, Dict[str, float]] = {
+    # Gemini 3 Flash (current default)
+    "gemini-3-flash-preview": {
+        "input": 0.0005,    # $0.50 per 1M input tokens
+        "output": 0.003     # $3.00 per 1M output tokens
+    },
+    # Gemini 3 Pro (higher quality, more expensive)
+    "gemini-3-pro-preview": {
+        "input": 0.002,     # $2.00 per 1M input tokens (<200k)
+        "output": 0.012     # $12.00 per 1M output tokens (<200k)
+    },
+    # Legacy Gemini models
+    "gemini-2.5-flash": {
+        "input": 0.000075,  # $0.075 per 1M input tokens
+        "output": 0.0003    # $0.30 per 1M output tokens
+    },
     "gemini-1.5-pro": {
         "input": 0.00125,   # $1.25 per 1M input tokens
         "output": 0.005     # $5.00 per 1M output tokens
@@ -17,7 +32,7 @@ TOKEN_COSTS: Dict[str, Dict[str, float]] = {
         "input": 0.000075,  # $0.075 per 1M input tokens
         "output": 0.0003    # $0.30 per 1M output tokens
     },
-    # Add more models as needed
+    # OpenAI models (for reference)
     "gpt-4": {
         "input": 0.03,      # $30 per 1M input tokens
         "output": 0.06      # $60 per 1M output tokens
@@ -29,7 +44,7 @@ TOKEN_COSTS: Dict[str, Dict[str, float]] = {
 }
 
 # Default model for cost estimation when actual model is unknown
-DEFAULT_PRICING_MODEL = "gemini-1.5-pro"
+DEFAULT_PRICING_MODEL = "gemini-3-flash-preview"
 
 # Estimated output token ratio (output tokens as percentage of input tokens)
 DEFAULT_OUTPUT_RATIO = 0.3  # 30% output tokens

@@ -14,7 +14,7 @@ create_mock_env() {
     cat > "$ENV_FILE" << EOF
 # Google API Configuration
 GOOGLE_API_KEY="YOUR_API_KEY_HERE"
-GOOGLE_GENAI_MODEL="gemini-2.5-flash"
+GOOGLE_GENAI_MODEL="gemini-3-flash-preview"
 # Running in mock mode - no API key configured
 MADSPARK_MODE="mock"
 EOF
@@ -119,7 +119,7 @@ if [ "$API_KEY_CONFIGURED" = false ]; then
                 cat > "$ENV_FILE" << EOF
 # Google API Configuration
 GOOGLE_API_KEY="$api_key"
-GOOGLE_GENAI_MODEL="gemini-2.5-flash"
+GOOGLE_GENAI_MODEL="gemini-3-flash-preview"
 EOF
                 echo -e "${GREEN}✅ API key configured successfully!${NC}"
                 API_KEY_CONFIGURED=true

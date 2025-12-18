@@ -477,7 +477,7 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({
                 >
                   <option value="fast">Fast (gemma3:4b - Quick responses)</option>
                   <option value="balanced">Balanced (gemma3:12b - Better quality)</option>
-                  <option value="quality">Quality (gemini-2.5-flash - Best results)</option>
+                  <option value="quality">Quality (gemini-3-flash-preview - Best results)</option>
                 </select>
                 <p className="mt-1 text-xs text-gray-500">
                   Higher tiers provide better results but may be slower or cost more

@@ -459,11 +459,21 @@ class GeminiProvider(LLMProvider):
 
     def get_cost_per_token(self) -> float:
         """
-        Gemini 2.5 Flash approximate pricing.
+        Get cost per token based on model.
 
         Returns:
-            Cost per token in USD (approximate average)
+            Cost per token in USD (approximate average of input/output)
         """
-        # ~$0.075 per million input tokens + $0.30 per million output tokens
-        # Simplified average
-        return 0.0000002  # $0.20 per million tokens average
+        # Model-specific pricing (average of input + output costs)
+        model_costs = {
+            # Gemini 3 Flash: $0.50 input + $3.00 output = $1.75 average per 1M
+            "gemini-3-flash-preview": 0.00000175,
+            # Gemini 3 Pro: $2.00 input + $12.00 output = $7.00 average per 1M
+            "gemini-3-pro-preview": 0.000007,
+            # Gemini 2.5 Flash: $0.075 input + $0.30 output = $0.1875 average per 1M
+            "gemini-2.5-flash": 0.0000001875,
+            # Legacy defaults
+            "gemini-1.5-flash": 0.0000001875,
+            "gemini-1.5-pro": 0.000003125,
+        }
+        return model_costs.get(self._model, 0.00000175)  # Default to Gemini 3 Flash

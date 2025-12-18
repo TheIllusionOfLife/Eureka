@@ -1,6 +1,7 @@
 """Tests for batch idea improvement functionality."""
 import pytest
 from unittest.mock import Mock, patch
+from .test_constants import TEST_MODEL_NAME
 
 try:
     from madspark.agents.idea_generator import improve_ideas_batch
@@ -18,7 +19,7 @@ class TestIdeaImprovementBatch:
     @patch('madspark.agents.idea_generator.get_model_name')
     def test_improve_ideas_batch_single(self, mock_model_name, mock_client):
         """Test batch improvement with single idea."""
-        mock_model_name.return_value = "gemini-2.5-flash"
+        mock_model_name.return_value = "TEST_MODEL_NAME"
         
         # Mock response
         mock_response = Mock()
@@ -53,7 +54,7 @@ class TestIdeaImprovementBatch:
     @patch('madspark.agents.idea_generator.get_model_name')
     def test_improve_ideas_batch_multiple(self, mock_model_name, mock_client):
         """Test batch improvement with multiple ideas."""
-        mock_model_name.return_value = "gemini-2.5-flash"
+        mock_model_name.return_value = "TEST_MODEL_NAME"
         
         # Mock response for 3 ideas
         mock_response = Mock()
@@ -126,7 +127,7 @@ class TestIdeaImprovementBatch:
     @patch('madspark.agents.idea_generator.get_model_name')
     def test_improve_ideas_batch_invalid_json(self, mock_model_name, mock_client):
         """Test handling of invalid JSON response."""
-        mock_model_name.return_value = "gemini-2.5-flash"
+        mock_model_name.return_value = "TEST_MODEL_NAME"
         
         mock_response = Mock()
         mock_response.text = "Invalid JSON response"
@@ -147,7 +148,7 @@ class TestIdeaImprovementBatch:
     @patch('madspark.agents.idea_generator.get_model_name')
     def test_improve_ideas_batch_api_error(self, mock_model_name, mock_client):
         """Test handling of API errors."""
-        mock_model_name.return_value = "gemini-2.5-flash"
+        mock_model_name.return_value = "TEST_MODEL_NAME"
         mock_client.models.generate_content.side_effect = Exception("API Error")
         
         ideas = [{
@@ -227,7 +228,7 @@ class TestIdeaImprovementBatch:
     @patch('madspark.agents.idea_generator.get_model_name')
     def test_improve_ideas_batch_preserves_order(self, mock_model_name, mock_client):
         """Test that batch improvement preserves idea order."""
-        mock_model_name.return_value = "gemini-2.5-flash"
+        mock_model_name.return_value = "TEST_MODEL_NAME"
         
         # Return in different order to test ordering
         mock_response = Mock()

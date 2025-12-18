@@ -133,7 +133,7 @@ ms "topic" --provider gemini       # Force cloud API
 # Model tier (default: balanced)
 ms "topic" --model-tier fast       # gemma3:4b (quick, ~3.3GB)
 ms "topic" --model-tier balanced   # gemma3:12b (default, ~8.1GB)
-ms "topic" --model-tier quality    # gemini-2.5-flash (cloud, best)
+ms "topic" --model-tier quality    # gemini-3-flash-preview (cloud, best)
 
 # Cache control (enabled by default)
 ms "topic" --no-cache              # Disable caching
@@ -251,7 +251,7 @@ from google import genai
 genai_client = genai.Client()
 
 # Define your model and prompt
-model_name = "gemini-1.5-flash"  # or your preferred model
+model_name = "gemini-3-flash-preview"  # or your preferred model
 prompt = "Your prompt text here"
 
 # Configure the request
@@ -322,7 +322,7 @@ config = types.GenerateContentConfig(
 # 3. Make API call
 client = genai.Client()
 response = client.models.generate_content(
-    model="gemini-2.5-flash",
+    model="gemini-3-flash-preview",
     contents="...",
     config=config
 )

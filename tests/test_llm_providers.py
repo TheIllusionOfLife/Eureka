@@ -17,6 +17,7 @@ import pytest  # noqa: E402
 from unittest.mock import Mock, patch  # noqa: E402
 from pydantic import BaseModel, Field  # noqa: E402
 from datetime import datetime  # noqa: E402
+from .test_constants import TEST_MODEL_NAME  # noqa: E402
 
 from madspark.llm.providers.ollama import OllamaProvider, OLLAMA_AVAILABLE  # noqa: E402
 from madspark.llm.providers.gemini import GeminiProvider, GENAI_AVAILABLE  # noqa: E402
@@ -191,7 +192,7 @@ class TestLLMResponse:
         response = LLMResponse(
             text="test",
             provider="gemini",
-            model="gemini-2.5-flash",
+            model="TEST_MODEL_NAME",
             tokens_used=100,
             latency_ms=500,
             cost=0.00002,

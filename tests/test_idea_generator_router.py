@@ -6,6 +6,7 @@ Tests verify router routing with fallback, configuration detection, and backward
 
 import json
 from unittest.mock import patch, Mock
+from .test_constants import TEST_MODEL_NAME
 
 from madspark.schemas.generation import GeneratedIdeas
 from madspark.llm.response import LLMResponse
@@ -157,7 +158,7 @@ class TestIdeaGeneratorRouterIntegration:
         mock_response = LLMResponse(
             text='[]',
             provider="gemini",
-            model="gemini-2.5-flash",
+            model="TEST_MODEL_NAME",
             tokens_used=300,
             latency_ms=700,
             cost=0.00006

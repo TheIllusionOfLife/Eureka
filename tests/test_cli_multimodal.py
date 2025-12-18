@@ -563,6 +563,7 @@ class TestMultiModalWorkflowIntegration:
 class TestMultiModalMockMode:
     """Test that multi-modal features work in mock mode (no API key)."""
 
+    @patch('madspark.utils.multimodal_input.socket.gethostbyname', return_value='93.184.216.34')
     @patch('madspark.agents.idea_generator.GENAI_AVAILABLE', False)
     def test_multimodal_works_in_mock_mode(self, basic_args, temp_image):
         """Test that multi-modal inputs work when GENAI_AVAILABLE is False."""

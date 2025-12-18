@@ -30,13 +30,14 @@ def test_config_script_functions():
     """Test config script utility functions."""
     # Import the config script as a module
     config_script = Path(__file__).parent.parent / "src" / "madspark" / "bin" / "mad_spark_config"
-    
+
     # Read and exec the script to test its functions
     with open(config_script, 'r') as f:
         script_content = f.read()
-    
+
     # Create a namespace to execute the script
-    namespace = {}
+    # Provide __file__ for scripts that reference it at module level
+    namespace = {'__file__': str(config_script)}
     exec(script_content, namespace)
     
     # Test validate_api_key

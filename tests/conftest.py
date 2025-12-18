@@ -11,7 +11,7 @@ import pytest
 # ============================================================================
 # Re-export from test_constants for single source of truth.
 # Tests can import from either conftest or test_constants.
-from .test_constants import TEST_MODEL_NAME, GEMINI_MODEL_DEFAULT
+from .test_constants import TEST_MODEL_NAME, GEMINI_MODEL_DEFAULT  # noqa: F401
 
 
 def pytest_configure(config):

@@ -9,6 +9,7 @@ import pytest
 from unittest.mock import Mock, patch
 from pydantic import BaseModel, Field
 from typing import List
+from .test_constants import TEST_MODEL_NAME
 
 from madspark.llm.router import LLMRouter, reset_router
 from madspark.llm.response import LLMResponse
@@ -90,7 +91,7 @@ def mock_gemini_provider():
     """Create mock Gemini provider."""
     provider = Mock()
     provider.provider_name = "gemini"
-    provider.model_name = "gemini-2.5-flash"
+    provider.model_name = TEST_MODEL_NAME
     provider.health_check.return_value = True
     provider.supports_multimodal = True
 
@@ -103,7 +104,7 @@ def mock_gemini_provider():
                 LLMResponse(
                     text=f'{{"score": {6.0 + call_count[0]}, "comment": "Gemini eval {call_count[0]}"}}',
                     provider="gemini",
-                    model="gemini-2.5-flash",
+                    model=TEST_MODEL_NAME,
                     tokens_used=100 + call_count[0] * 10,
                     latency_ms=200 * call_count[0],
                     cost=0.00001 * call_count[0],

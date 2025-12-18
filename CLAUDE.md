@@ -34,6 +34,17 @@ For comprehensive development workflows, testing commands, and CI/CD guidelines,
 - **TypeScript**: ALWAYS run `npm run typecheck` after .ts/.tsx changes
 - **Branch Workflow**: Create feature branch BEFORE any work
 
+**Import Patterns:**
+Scripts and modules that need model constants should use try/except for graceful fallback:
+```python
+# Pattern for scripts that may run standalone or within package
+try:
+    from madspark.llm.models import GEMINI_MODEL_DEFAULT
+except ImportError:
+    GEMINI_MODEL_DEFAULT = "gemini-3-flash-preview"  # Fallback value
+```
+This pattern is used in `src/madspark/bin/mad_spark_config` and `tests/test_constants.py` to ensure code works both when installed as a package and when run standalone.
+
 ## Dependencies
 - **Python**: 3.10+ required for TypedDict and modern features
 - **Core**: google-genai, python-dotenv, ollama, diskcache (from `config/requirements.txt`)
@@ -133,7 +144,7 @@ ms "topic" --provider gemini       # Force cloud API
 # Model tier (default: balanced)
 ms "topic" --model-tier fast       # gemma3:4b (quick, ~3.3GB)
 ms "topic" --model-tier balanced   # gemma3:12b (default, ~8.1GB)
-ms "topic" --model-tier quality    # gemini-2.5-flash (cloud, best)
+ms "topic" --model-tier quality    # gemini-3-flash-preview (cloud, best)
 
 # Cache control (enabled by default)
 ms "topic" --no-cache              # Disable caching
@@ -251,7 +262,7 @@ from google import genai
 genai_client = genai.Client()
 
 # Define your model and prompt
-model_name = "gemini-1.5-flash"  # or your preferred model
+model_name = "gemini-3-flash-preview"  # or your preferred model
 prompt = "Your prompt text here"
 
 # Configure the request
@@ -322,7 +333,7 @@ config = types.GenerateContentConfig(
 # 3. Make API call
 client = genai.Client()
 response = client.models.generate_content(
-    model="gemini-2.5-flash",
+    model="gemini-3-flash-preview",
     contents="...",
     config=config
 )

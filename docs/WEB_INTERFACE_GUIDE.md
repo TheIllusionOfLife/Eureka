@@ -23,7 +23,7 @@ Services will start on:
 Ensure your `.env` file contains:
 ```env
 GOOGLE_API_KEY=your_api_key_here
-GOOGLE_GENAI_MODEL=gemini-2.5-flash
+GOOGLE_GENAI_MODEL=gemini-3-flash-preview
 ```
 
 ## User Interface Overview

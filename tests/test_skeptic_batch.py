@@ -1,6 +1,7 @@
 """Tests for batch skeptic functionality."""
 import pytest
 from unittest.mock import Mock, patch
+from .test_constants import TEST_MODEL_NAME
 
 try:
     from madspark.agents.skeptic import criticize_ideas_batch
@@ -18,7 +19,7 @@ class TestSkepticBatch:
     @patch('madspark.agents.skeptic.get_model_name')
     def test_criticize_ideas_batch_single(self, mock_model_name, mock_client):
         """Test batch skeptic with single idea."""
-        mock_model_name.return_value = "gemini-2.5-flash"
+        mock_model_name.return_value = TEST_MODEL_NAME
         
         # Mock response
         mock_response = Mock()
@@ -56,7 +57,7 @@ class TestSkepticBatch:
     @patch('madspark.agents.skeptic.get_model_name')
     def test_criticize_ideas_batch_multiple(self, mock_model_name, mock_client):
         """Test batch skeptic with multiple ideas."""
-        mock_model_name.return_value = "gemini-2.5-flash"
+        mock_model_name.return_value = TEST_MODEL_NAME
         
         # Mock response for 3 ideas
         mock_response = Mock()
@@ -123,7 +124,7 @@ class TestSkepticBatch:
     @patch('madspark.agents.skeptic.get_model_name')
     def test_criticize_ideas_batch_invalid_json(self, mock_model_name, mock_client):
         """Test handling of invalid JSON response."""
-        mock_model_name.return_value = "gemini-2.5-flash"
+        mock_model_name.return_value = TEST_MODEL_NAME
         
         mock_response = Mock()
         mock_response.text = "Invalid JSON response"
@@ -139,7 +140,7 @@ class TestSkepticBatch:
     @patch('madspark.agents.skeptic.get_model_name')
     def test_criticize_ideas_batch_api_error(self, mock_model_name, mock_client):
         """Test handling of API errors."""
-        mock_model_name.return_value = "gemini-2.5-flash"
+        mock_model_name.return_value = TEST_MODEL_NAME
         mock_client.models.generate_content.side_effect = Exception("API Error")
         
         ideas = [{"idea": "Test", "advocacy": "Test advocacy"}]
@@ -152,7 +153,7 @@ class TestSkepticBatch:
     @patch('madspark.agents.skeptic.get_model_name')
     def test_criticize_ideas_batch_formatted_output(self, mock_model_name, mock_client):
         """Test that batch results include formatted text output."""
-        mock_model_name.return_value = "gemini-2.5-flash"
+        mock_model_name.return_value = TEST_MODEL_NAME
         
         mock_response = Mock()
         mock_response.text = '''[{

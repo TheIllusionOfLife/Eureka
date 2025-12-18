@@ -60,7 +60,7 @@ class TestAutoMockMode:
             # Write test .env file with valid API key format
             with open(env_file, 'w') as f:
                 f.write('GOOGLE_API_KEY=AIzaSyTest1234567890123456789012345678\n')
-                f.write('GOOGLE_GENAI_MODEL=gemini-2.5-flash\n')
+                f.write('GOOGLE_GENAI_MODEL=gemini-3-flash-preview\n')
             
             with patch.dict(os.environ, {}, clear=True):
                 # First load the env file to simulate reading from .env

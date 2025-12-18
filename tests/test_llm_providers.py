@@ -17,6 +17,7 @@ import pytest  # noqa: E402
 from unittest.mock import Mock, patch  # noqa: E402
 from pydantic import BaseModel, Field  # noqa: E402
 from datetime import datetime  # noqa: E402
+from .test_constants import TEST_MODEL_NAME  # noqa: E402
 
 from madspark.llm.providers.ollama import OllamaProvider, OLLAMA_AVAILABLE  # noqa: E402
 from madspark.llm.providers.gemini import GeminiProvider, GENAI_AVAILABLE  # noqa: E402
@@ -191,7 +192,7 @@ class TestLLMResponse:
         response = LLMResponse(
             text="test",
             provider="gemini",
-            model="gemini-2.5-flash",
+            model=TEST_MODEL_NAME,
             tokens_used=100,
             latency_ms=500,
             cost=0.00002,
@@ -406,6 +407,57 @@ class TestGeminiProvider:
 
         assert cost > 0
         assert cost < 0.001  # Less than $1 per 1000 tokens
+
+    @patch("madspark.llm.providers.gemini.genai")
+    def test_gemini_3_flash_pricing(self, mock_genai, monkeypatch):
+        """Test Gemini 3 Flash returns correct weighted cost.
+
+        Pricing: $0.50/1M input, $3.00/1M output
+        With DEFAULT_OUTPUT_RATIO=0.3:
+        Weighted = $0.50 * 0.7 + $3.00 * 0.3 = $1.25/1M = $0.00000125/token
+        """
+        monkeypatch.setenv("GOOGLE_API_KEY", "test-key")
+
+        provider = GeminiProvider(model="gemini-3-flash-preview")
+        cost = provider.get_cost_per_token()
+
+        # Expected: $1.25 per 1M tokens = 0.00000125 per token
+        assert cost == pytest.approx(0.00000125, rel=0.01)
+
+    @patch("madspark.llm.providers.gemini.genai")
+    def test_unknown_model_fallback_pricing(self, mock_genai, monkeypatch):
+        """Test unknown model falls back to default pricing."""
+        monkeypatch.setenv("GOOGLE_API_KEY", "test-key")
+
+        provider = GeminiProvider(model="unknown-future-model")
+        cost = provider.get_cost_per_token()
+
+        # Should fall back to Gemini 3 Flash pricing
+        assert cost == pytest.approx(0.00000125, rel=0.01)
+
+    @patch("madspark.llm.providers.gemini.genai")
+    def test_default_model_initialization(self, mock_genai, monkeypatch, reset_config_fixture):
+        """Test GeminiProvider uses GEMINI_MODEL_DEFAULT when no model specified."""
+        from madspark.llm.models import GEMINI_MODEL_DEFAULT
+
+        # Clear any existing model env var and reset config singleton
+        monkeypatch.delenv("GOOGLE_GENAI_MODEL", raising=False)
+        monkeypatch.setenv("GOOGLE_API_KEY", "test-key")
+        reset_config()  # Force config to re-read defaults
+
+        provider = GeminiProvider()
+        assert provider.model_name == GEMINI_MODEL_DEFAULT
+
+    @patch("madspark.llm.providers.gemini.genai")
+    def test_legacy_model_pricing(self, mock_genai, monkeypatch):
+        """Test legacy Gemini 2.5 Flash pricing is preserved."""
+        monkeypatch.setenv("GOOGLE_API_KEY", "test-key")
+
+        provider = GeminiProvider(model="gemini-2.5-flash")
+        cost = provider.get_cost_per_token()
+
+        # Gemini 2.5 Flash: $0.075*0.7 + $0.30*0.3 = $0.1425/1M = $0.0000001425/token
+        assert cost == pytest.approx(0.0000001425, rel=0.01)
 
 
 @pytest.mark.integration

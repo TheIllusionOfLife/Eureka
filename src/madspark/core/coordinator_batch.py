@@ -28,7 +28,8 @@ from madspark.utils.constants import (
     MEANINGFUL_IMPROVEMENT_SCORE_DELTA,
     LOGICAL_INFERENCE_CONFIDENCE_THRESHOLD,
     TOKENS_PER_WORD_ESTIMATE,
-    OUTPUT_TOKENS_PER_INFERENCE
+    OUTPUT_TOKENS_PER_INFERENCE,
+    DEFAULT_GOOGLE_GENAI_MODEL,
 )
 from madspark.utils.temperature_control import TemperatureManager
 from madspark.utils.novelty_filter import NoveltyFilter
@@ -364,7 +365,7 @@ def _run_workflow_internal(
                         context=batch_context,
                         success=True,
                         tokens_used=input_tokens + output_tokens,
-                        model_name="gemini-2.5-flash"  # LogicalInferenceEngine uses flash model
+                        model_name=DEFAULT_GOOGLE_GENAI_MODEL
                     )
                 except Exception as e:
                     monitor.end_batch_call(

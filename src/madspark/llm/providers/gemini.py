@@ -459,11 +459,44 @@ class GeminiProvider(LLMProvider):
 
     def get_cost_per_token(self) -> float:
         """
-        Gemini 2.5 Flash approximate pricing.
+        Get cost per token based on model.
+
+        Uses weighted average based on DEFAULT_OUTPUT_RATIO (30% output tokens)
+        for more accurate cost estimates. This reflects typical LLM workloads
+        where input (prompts) tends to be larger than output (responses).
 
         Returns:
-            Cost per token in USD (approximate average)
+            Cost per token in USD (weighted average based on typical input/output ratio)
         """
-        # ~$0.075 per million input tokens + $0.30 per million output tokens
-        # Simplified average
-        return 0.0000002  # $0.20 per million tokens average
+        # Import pricing config for accurate weighted calculation
+        try:
+            from madspark.utils.pricing_config import TOKEN_COSTS, DEFAULT_OUTPUT_RATIO
+        except ImportError:
+            # Fallback if pricing_config not available
+            DEFAULT_OUTPUT_RATIO = 0.3
+
+            # Model-specific pricing (weighted: 70% input + 30% output)
+            model_costs = {
+                # Gemini 3 Flash: $0.50*0.7 + $3.00*0.3 = $1.25 per 1M
+                "gemini-3-flash-preview": 0.00000125,
+                # Gemini 3 Pro: $2.00*0.7 + $12.00*0.3 = $5.00 per 1M
+                "gemini-3-pro-preview": 0.000005,
+                # Gemini 2.5 Flash: $0.075*0.7 + $0.30*0.3 = $0.1425 per 1M
+                "gemini-2.5-flash": 0.0000001425,
+                # Legacy defaults
+                "gemini-1.5-flash": 0.0000001425,
+                "gemini-1.5-pro": 0.0000023875,
+            }
+            return model_costs.get(self._model, 0.00000125)
+
+        # Calculate weighted cost from TOKEN_COSTS
+        if self._model in TOKEN_COSTS:
+            costs = TOKEN_COSTS[self._model]
+            input_cost = costs.get("input", 0.0005)  # per 1K tokens
+            output_cost = costs.get("output", 0.003)  # per 1K tokens
+            # Weighted average: (1 - ratio) * input + ratio * output
+            weighted_per_1k = (1 - DEFAULT_OUTPUT_RATIO) * input_cost + DEFAULT_OUTPUT_RATIO * output_cost
+            return weighted_per_1k / 1000  # Convert per-1K to per-token
+
+        # Default to Gemini 3 Flash weighted pricing
+        return 0.00000125

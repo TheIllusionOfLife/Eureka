@@ -119,7 +119,7 @@ When `MADSPARK_LLM_PROVIDER=auto` (default), the router uses:
 | Provider | Models | Cost | Use Case |
 |----------|--------|------|----------|
 | **Ollama** | gemma3:4b (fast, 3.3GB)<br>gemma3:12b (balanced, 8.1GB) | FREE | Text-only, images (local) |
-| **Gemini** | gemini-2.5-flash | Paid | PDFs, URLs, fallback |
+| **Gemini** | gemini-3-flash-preview | Paid | PDFs, URLs, fallback |
 
 ### Model Tiers
 
@@ -127,7 +127,7 @@ Configure via UI "Advanced LLM Settings" or `MADSPARK_MODEL_TIER`:
 
 - **Fast**: gemma3:4b (3.3GB) - Quick responses (~10s)
 - **Balanced** (default): gemma3:12b (8.1GB) - Better quality (~20s)
-- **Quality**: gemini-2.5-flash - Best results (cloud, paid)
+- **Quality**: gemini-3-flash-preview - Best results (cloud, paid)
 
 ### LLM Usage Statistics
 
@@ -492,7 +492,7 @@ The web interface expects these fields in API responses:
 |----------|-------------|---------|
 | `MADSPARK_MODE` | `api` (production) or `mock` (testing) | `api` |
 | `GOOGLE_API_KEY` | Your Gemini API key (optional with Ollama) | `test_api_key` |
-| `GOOGLE_GENAI_MODEL` | Gemini model to use | `gemini-2.5-flash` |
+| `GOOGLE_GENAI_MODEL` | Gemini model to use | `gemini-3-flash-preview` |
 | `REDIS_URL` | Redis connection | `redis://redis:6379/0` |
 
 ### LLM Router Settings

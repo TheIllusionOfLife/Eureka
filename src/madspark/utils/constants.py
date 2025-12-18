@@ -86,7 +86,7 @@ try:
     DEFAULT_GOOGLE_GENAI_MODEL = GEMINI_MODEL_DEFAULT
 except ImportError:
     # Fallback for environments where llm package isn't available
-    DEFAULT_GOOGLE_GENAI_MODEL = "gemini-2.5-flash"
+    DEFAULT_GOOGLE_GENAI_MODEL = "gemini-3-flash-preview"
 
 # Temperature defaults for specific agents/functions
 DEFAULT_CRITIC_TEMPERATURE = 0.3

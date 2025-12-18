@@ -6,6 +6,13 @@ This module provides common test configuration and fixtures used across the test
 import os
 import pytest
 
+# ============================================================================
+# Test Model Constants
+# ============================================================================
+# Re-export from test_constants for single source of truth.
+# Tests can import from either conftest or test_constants.
+from .test_constants import TEST_MODEL_NAME, GEMINI_MODEL_DEFAULT  # noqa: F401
+
 
 def pytest_configure(config):
     """

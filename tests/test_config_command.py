@@ -30,13 +30,14 @@ def test_config_script_functions():
     """Test config script utility functions."""
     # Import the config script as a module
     config_script = Path(__file__).parent.parent / "src" / "madspark" / "bin" / "mad_spark_config"
-    
+
     # Read and exec the script to test its functions
     with open(config_script, 'r') as f:
         script_content = f.read()
-    
+
     # Create a namespace to execute the script
-    namespace = {}
+    # Provide __file__ for scripts that reference it at module level
+    namespace = {'__file__': str(config_script)}
     exec(script_content, namespace)
     
     # Test validate_api_key
@@ -50,16 +51,16 @@ def test_config_script_functions():
     test_env_content = '''
 # Google API Configuration
 GOOGLE_API_KEY="AIzaSyD-test-key"
-GOOGLE_GENAI_MODEL="gemini-2.5-flash"
+GOOGLE_GENAI_MODEL="gemini-3-flash-preview"
 MADSPARK_MODE="mock"
 '''
-    
+
     read_env_file = namespace['read_env_file']
     with patch('pathlib.Path.exists', return_value=True):
         with patch('builtins.open', mock_open(read_data=test_env_content)):
             config = read_env_file(Path("test.env"))
             assert config["GOOGLE_API_KEY"] == "AIzaSyD-test-key"
-            assert config["GOOGLE_GENAI_MODEL"] == "gemini-2.5-flash"
+            assert config["GOOGLE_GENAI_MODEL"] == "gemini-3-flash-preview"
             assert config["MADSPARK_MODE"] == "mock"
 
 def test_setup_default_behavior():

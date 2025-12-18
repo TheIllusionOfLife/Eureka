@@ -475,9 +475,9 @@ const IdeaGenerationForm: React.FC<IdeaGenerationFormProps> = ({
                   onChange={handleInputChange}
                   className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 >
-                  <option value="fast">Fast (gemma3:4b - Quick responses)</option>
-                  <option value="balanced">Balanced (gemma3:12b - Better quality)</option>
-                  <option value="quality">Quality (gemini-2.5-flash - Best results)</option>
+                  <option value="fast">Fast (gemma3:4b - Quick responses, FREE)</option>
+                  <option value="balanced">Balanced (gemma3:12b - Better quality, FREE)</option>
+                  <option value="quality">Cloud (gemini-3-flash-preview - Paid API)</option>
                 </select>
                 <p className="mt-1 text-xs text-gray-500">
                   Higher tiers provide better results but may be slower or cost more

@@ -57,9 +57,10 @@ def mock_ollama_provider():
 @pytest.fixture
 def mock_gemini_provider():
     """Create mock Gemini provider."""
+    from .test_constants import TEST_MODEL_NAME
     provider = Mock()
     provider.provider_name = "gemini"
-    provider.model_name = "gemini-2.5-flash"
+    provider.model_name = TEST_MODEL_NAME
     provider.health_check.return_value = True
     provider.supports_multimodal = True
     provider.generate_structured.return_value = (
@@ -67,7 +68,7 @@ def mock_gemini_provider():
         LLMResponse(
             text='{"score": 7.0, "comment": "Good from Gemini"}',
             provider="gemini",
-            model="gemini-2.5-flash",
+            model=TEST_MODEL_NAME,
             tokens_used=100,
             latency_ms=500,
             cost=0.00002,
@@ -317,11 +318,12 @@ class TestLLMRouter:
 
         status = router.health_status()
 
+        from .test_constants import TEST_MODEL_NAME
         assert status["ollama"]["available"] is True
         assert status["ollama"]["healthy"] is True
         assert status["ollama"]["model"] == "gemma3:4b"
         assert status["gemini"]["available"] is True
-        assert status["gemini"]["model"] == "gemini-2.5-flash"
+        assert status["gemini"]["model"] == TEST_MODEL_NAME
         assert "cache" in status
 
     @patch("madspark.llm.router._get_ollama_provider")

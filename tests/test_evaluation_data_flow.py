@@ -8,6 +8,7 @@ TDD tests for the data flow enhancements that pass:
 to the improvement step for better-informed improvements.
 """
 from unittest.mock import Mock, patch
+from .test_constants import TEST_MODEL_NAME
 
 
 class TestFormatLogicalInferenceForPrompt:
@@ -394,7 +395,7 @@ class TestImproveBatchWithNewFields:
         """Verify batch prompt includes initial_score when provided."""
         from madspark.agents.idea_generator import improve_ideas_batch
 
-        mock_model_name.return_value = "gemini-2.5-flash"
+        mock_model_name.return_value = TEST_MODEL_NAME
         mock_types.GenerateContentConfig.return_value = Mock()
         mock_response = Mock()
         mock_response.text = '[{"idea_index": 0, "improved_idea": "Better idea", "key_improvements": []}]'
@@ -423,7 +424,7 @@ class TestImproveBatchWithNewFields:
         """Verify batch prompt includes dimension_scores when provided."""
         from madspark.agents.idea_generator import improve_ideas_batch
 
-        mock_model_name.return_value = "gemini-2.5-flash"
+        mock_model_name.return_value = TEST_MODEL_NAME
         mock_types.GenerateContentConfig.return_value = Mock()
         mock_response = Mock()
         mock_response.text = '[{"idea_index": 0, "improved_idea": "Better idea", "key_improvements": []}]'
@@ -456,7 +457,7 @@ class TestImproveBatchWithNewFields:
         """Verify batch prompt includes logical_inference when provided."""
         from madspark.agents.idea_generator import improve_ideas_batch
 
-        mock_model_name.return_value = "gemini-2.5-flash"
+        mock_model_name.return_value = TEST_MODEL_NAME
         mock_types.GenerateContentConfig.return_value = Mock()
         mock_response = Mock()
         mock_response.text = '[{"idea_index": 0, "improved_idea": "Better idea", "key_improvements": []}]'

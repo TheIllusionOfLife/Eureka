@@ -71,7 +71,7 @@ For automated environments where interactive prompts aren't available:
 ```bash
 # Create .env file with your API key (root directory)
 echo 'GOOGLE_API_KEY="YOUR_API_KEY_HERE"' > .env
-echo 'GOOGLE_GENAI_MODEL="gemini-2.5-flash"' >> .env
+echo 'GOOGLE_GENAI_MODEL="gemini-3-flash-preview"' >> .env
 
 # Verify configuration
 mad_spark config --status
@@ -319,7 +319,7 @@ export PYTHONPATH="${PYTHONPATH}:$(pwd)/src"
 
 # Configure API (use root .env file)
 echo 'GOOGLE_API_KEY="YOUR_API_KEY_HERE"' > .env
-echo 'GOOGLE_GENAI_MODEL="gemini-2.5-flash"' >> .env
+echo 'GOOGLE_GENAI_MODEL="gemini-3-flash-preview"' >> .env
 ```
 
 </details>

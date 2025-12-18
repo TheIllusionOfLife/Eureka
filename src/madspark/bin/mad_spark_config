@@ -15,6 +15,17 @@ BLUE = '\033[0;34m'
 PURPLE = '\033[0;35m'
 NC = '\033[0m'  # No Color
 
+# Try to import the model constant from the package
+try:
+    # Add src to path for import
+    _script_dir = Path(__file__).resolve().parent
+    _src_dir = _script_dir.parent.parent.parent
+    sys.path.insert(0, str(_src_dir))
+    from madspark.llm.models import GEMINI_MODEL_DEFAULT
+except ImportError:
+    # Fallback if import fails
+    GEMINI_MODEL_DEFAULT = "gemini-3-flash-preview"
+
 def get_project_root():
     """Find project root by looking for README.md or run.py"""
     current = Path(__file__).resolve()
@@ -41,7 +52,7 @@ def write_env_file(env_path, config):
     lines = []
     lines.append("# Google API Configuration")
     lines.append(f'GOOGLE_API_KEY="{config.get("GOOGLE_API_KEY", "YOUR_API_KEY_HERE")}"')
-    lines.append(f'GOOGLE_GENAI_MODEL="{config.get("GOOGLE_GENAI_MODEL", "gemini-2.5-flash")}"')
+    lines.append(f'GOOGLE_GENAI_MODEL="{config.get("GOOGLE_GENAI_MODEL", GEMINI_MODEL_DEFAULT)}"')
     
     # Add MADSPARK_MODE if in mock mode
     if config.get("MADSPARK_MODE") == "mock":
@@ -102,8 +113,8 @@ def main():
         print(f"{PURPLE}Current Configuration:{NC}")
         print(f"  API Key: {'✅ Configured' if validate_api_key(current_key) else '❌ Not configured'}")
         print(f"  Mode: {'Mock' if current_mode == 'mock' or not validate_api_key(current_key) else 'API'}")
-        print(f"  Model: {config.get('GOOGLE_GENAI_MODEL', 'gemini-2.5-flash')}")
-        
+        print(f"  Model: {config.get('GOOGLE_GENAI_MODEL', GEMINI_MODEL_DEFAULT)}")
+
         if not sys.stdin.isatty() and not show_status_only:
             print()
             print(f"{YELLOW}💡 To configure interactively, run this command in a terminal{NC}")
@@ -181,8 +192,8 @@ def main():
         print(f"{PURPLE}Current Configuration:{NC}")
         print(f"  API Key: {'✅ Configured' if validate_api_key(current_key) else '❌ Not configured'}")
         print(f"  Mode: {'Mock' if current_mode == 'mock' or not validate_api_key(current_key) else 'API'}")
-        print(f"  Model: {config.get('GOOGLE_GENAI_MODEL', 'gemini-2.5-flash')}")
-    
+        print(f"  Model: {config.get('GOOGLE_GENAI_MODEL', GEMINI_MODEL_DEFAULT)}")
+
     elif choice == "4" or choice == "":
         print("Exiting...")
         sys.exit(0)

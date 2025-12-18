@@ -97,7 +97,7 @@ class LLMProvider(ABC):
         """
         Model being used by this provider.
 
-        Examples: 'gemma3:4b', 'gemma3:12b', 'gemini-2.5-flash'
+        Examples: 'gemma3:4b', 'gemma3:12b', 'gemini-3-flash-preview'
         """
         pass
 

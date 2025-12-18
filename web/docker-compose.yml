@@ -19,7 +19,7 @@ services:
       # Use environment variable substitution with defaults for CI/testing
       # Values will be read from host environment or use defaults if not set
       GOOGLE_API_KEY: ${GOOGLE_API_KEY:-test_api_key}
-      GOOGLE_GENAI_MODEL: ${GOOGLE_GENAI_MODEL:-gemini-2.5-flash}
+      GOOGLE_GENAI_MODEL: ${GOOGLE_GENAI_MODEL:-gemini-3-flash-preview}
       GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT:-test_project}
       # Default to 'api' mode for Ollama-first architecture (free local inference)
       # Set MADSPARK_MODE=mock explicitly if you want mock mode

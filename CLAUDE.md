@@ -34,6 +34,17 @@ For comprehensive development workflows, testing commands, and CI/CD guidelines,
 - **TypeScript**: ALWAYS run `npm run typecheck` after .ts/.tsx changes
 - **Branch Workflow**: Create feature branch BEFORE any work
 
+**Import Patterns:**
+Scripts and modules that need model constants should use try/except for graceful fallback:
+```python
+# Pattern for scripts that may run standalone or within package
+try:
+    from madspark.llm.models import GEMINI_MODEL_DEFAULT
+except ImportError:
+    GEMINI_MODEL_DEFAULT = "gemini-3-flash-preview"  # Fallback value
+```
+This pattern is used in `src/madspark/bin/mad_spark_config` and `tests/test_constants.py` to ensure code works both when installed as a package and when run standalone.
+
 ## Dependencies
 - **Python**: 3.10+ required for TypedDict and modern features
 - **Core**: google-genai, python-dotenv, ollama, diskcache (from `config/requirements.txt`)

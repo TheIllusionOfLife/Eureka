@@ -158,7 +158,7 @@ class TestIdeaGeneratorRouterIntegration:
         mock_response = LLMResponse(
             text='[]',
             provider="gemini",
-            model="TEST_MODEL_NAME",
+            model=TEST_MODEL_NAME,
             tokens_used=300,
             latency_ms=700,
             cost=0.00006

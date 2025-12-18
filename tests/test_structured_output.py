@@ -42,40 +42,41 @@ class TestStructuredOutputImplementation:
         assert "no meta-commentary" in prompt.lower() or "start directly" in prompt.lower()
     
     @patch('madspark.agents.idea_generator.idea_generator_client')
-    @patch('madspark.agents.idea_generator.model_name', 'TEST_MODEL_NAME')
     @patch('madspark.agents.idea_generator.GENAI_AVAILABLE', True)
     def test_structured_output_configuration(self, mock_client):
         """Test that structured output is configured when available."""
-        # Mock the genai types module
-        mock_config = Mock()
-        
-        # Mock response
-        mock_response = Mock()
-        mock_response.text = json.dumps({
-            "improved_idea": "This is a clean improved idea without meta-commentary",
-            "key_improvements": ["Added clarity", "Enhanced feasibility"]
-        })
-        
-        mock_client.models.generate_content.return_value = mock_response
-        
-        with patch('madspark.agents.idea_generator.types') as mock_types_module:
-            mock_types_module.GenerateContentConfig = Mock(return_value=mock_config)
-            
-            # Call improve_idea
-            result = improve_idea(
-                original_idea="Original test idea",
-                critique="Needs improvement",
-                advocacy_points="Has potential",
-                skeptic_points="Some concerns",
-                topic="test topic",
-                context="test context"
-            )
-            
-            # Verify the config was created with response schema
-            # Note: This would be the ideal implementation
-            # For now, just verify clean output is returned
-            assert "improved version of:" not in result.lower()
-            assert "enhanced concept:" not in result.lower()
+        # Patch model_name inside test to use the constant
+        with patch('madspark.agents.idea_generator.model_name', TEST_MODEL_NAME):
+            # Mock the genai types module
+            mock_config = Mock()
+
+            # Mock response
+            mock_response = Mock()
+            mock_response.text = json.dumps({
+                "improved_idea": "This is a clean improved idea without meta-commentary",
+                "key_improvements": ["Added clarity", "Enhanced feasibility"]
+            })
+
+            mock_client.models.generate_content.return_value = mock_response
+
+            with patch('madspark.agents.idea_generator.types') as mock_types_module:
+                mock_types_module.GenerateContentConfig = Mock(return_value=mock_config)
+
+                # Call improve_idea
+                result = improve_idea(
+                    original_idea="Original test idea",
+                    critique="Needs improvement",
+                    advocacy_points="Has potential",
+                    skeptic_points="Some concerns",
+                    topic="test topic",
+                    context="test context"
+                )
+
+                # Verify the config was created with response schema
+                # Note: This would be the ideal implementation
+                # For now, just verify clean output is returned
+                assert "improved version of:" not in result.lower()
+                assert "enhanced concept:" not in result.lower()
     
     def test_clean_output_without_regex(self):
         """Test that properly formatted output doesn't need regex cleaning."""

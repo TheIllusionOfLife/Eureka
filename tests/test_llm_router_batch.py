@@ -91,7 +91,7 @@ def mock_gemini_provider():
     """Create mock Gemini provider."""
     provider = Mock()
     provider.provider_name = "gemini"
-    provider.model_name = "TEST_MODEL_NAME"
+    provider.model_name = TEST_MODEL_NAME
     provider.health_check.return_value = True
     provider.supports_multimodal = True
 
@@ -104,7 +104,7 @@ def mock_gemini_provider():
                 LLMResponse(
                     text=f'{{"score": {6.0 + call_count[0]}, "comment": "Gemini eval {call_count[0]}"}}',
                     provider="gemini",
-                    model="TEST_MODEL_NAME",
+                    model=TEST_MODEL_NAME,
                     tokens_used=100 + call_count[0] * 10,
                     latency_ms=200 * call_count[0],
                     cost=0.00001 * call_count[0],

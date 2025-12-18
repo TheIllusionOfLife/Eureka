@@ -123,7 +123,7 @@ class TestLanguageConsistency:
     def test_actual_api_call_includes_language_instruction(self, mock_get_model):
         """Test that actual API calls include language instruction in the prompt."""
         # Arrange
-        mock_get_model.return_value = "TEST_MODEL_NAME"
+        mock_get_model.return_value = TEST_MODEL_NAME
         mock_client = Mock()
         mock_response = Mock()
         mock_response.text = '{"score": 7, "reasoning": "Good"}'

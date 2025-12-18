@@ -132,7 +132,7 @@ class TestCriticRouterIntegration:
         mock_response = LLMResponse(
             text='[]',
             provider="gemini",
-            model="TEST_MODEL_NAME",
+            model=TEST_MODEL_NAME,
             tokens_used=200,
             latency_ms=500,
             cost=0.00004

@@ -15,42 +15,43 @@ class TestStructuredOutputIntegration:
     
     @patch('madspark.agents.idea_generator.GENAI_AVAILABLE', True)
     @patch('madspark.agents.idea_generator.idea_generator_client')
-    @patch('madspark.agents.idea_generator.model_name', 'TEST_MODEL_NAME')
     def test_improve_idea_uses_structured_output(self, mock_client):
         """Test that improve_idea function uses structured output when available."""
         from madspark.agents.idea_generator import improve_idea
-        
-        # Mock the response to be JSON format
-        mock_response = Mock()
-        mock_response.text = json.dumps({
-            "improved_idea": "A revolutionary blockchain-based renewable energy marketplace connecting producers and consumers directly",
-            "key_improvements": [
-                "Added blockchain for transparency", 
-                "Enhanced scalability", 
-                "Improved user experience"
-            ]
-        })
-        mock_client.models.generate_content.return_value = mock_response
-        
-        # Mock types module
-        with patch('madspark.agents.idea_generator.types') as mock_types:
-            mock_config = Mock()
-            mock_types.GenerateContentConfig = Mock(return_value=mock_config)
-            
-            # Call improve_idea
-            result = improve_idea(
-                original_idea="Solar panel sharing",
-                critique="Needs better tracking and transparency",
-                advocacy_points="Great community benefits, sustainable",
-                skeptic_points="Security concerns, scalability issues",
-                topic="renewable energy solutions",
-                context="community-based initiatives"
-            )
-        
-        # Verify the result is clean without meta-commentary
-        assert "improved version" not in result.lower()
-        assert "enhanced concept" not in result.lower()
-        assert "blockchain-based renewable energy marketplace" in result
+
+        # Patch model_name inside test to use the constant
+        with patch('madspark.agents.idea_generator.model_name', TEST_MODEL_NAME):
+            # Mock the response to be JSON format
+            mock_response = Mock()
+            mock_response.text = json.dumps({
+                "improved_idea": "A revolutionary blockchain-based renewable energy marketplace connecting producers and consumers directly",
+                "key_improvements": [
+                    "Added blockchain for transparency",
+                    "Enhanced scalability",
+                    "Improved user experience"
+                ]
+            })
+            mock_client.models.generate_content.return_value = mock_response
+
+            # Mock types module
+            with patch('madspark.agents.idea_generator.types') as mock_types:
+                mock_config = Mock()
+                mock_types.GenerateContentConfig = Mock(return_value=mock_config)
+
+                # Call improve_idea
+                result = improve_idea(
+                    original_idea="Solar panel sharing",
+                    critique="Needs better tracking and transparency",
+                    advocacy_points="Great community benefits, sustainable",
+                    skeptic_points="Security concerns, scalability issues",
+                    topic="renewable energy solutions",
+                    context="community-based initiatives"
+                )
+
+            # Verify the result is clean without meta-commentary
+            assert "improved version" not in result.lower()
+            assert "enhanced concept" not in result.lower()
+            assert "blockchain-based renewable energy marketplace" in result
     
     @pytest.mark.skipif(os.getenv("MADSPARK_MODE") == "mock", reason="Test requires full mock control")
     @patch('madspark.agents.idea_generator.improve_ideas_batch')

@@ -17,7 +17,7 @@ Eureka features the MadSpark Multi-Agent System, a sophisticated AI-powered expe
 
 ## Common Tasks
 - **Run Coordinator**: `PYTHONPATH=src python -m madspark.core.coordinator`
-- **CLI Interface**: `PYTHONPATH=src python -m madspark.cli.cli "topic" "context"`
+- **CLI**: `PYTHONPATH=src python -m madspark.cli.cli "topic" "context"`
 - **Web Interface**: `cd web && docker compose up`
 - **Run Tests**: `PYTHONPATH=src pytest` (90%+ coverage) or `python tests/test_basic_imports_simple.py` (basic imports)
 
@@ -51,6 +51,7 @@ except ImportError:
 **✅ FULL INTEGRATION COMPLETE** - Ollama as primary LLM provider with automatic Gemini fallback.
 
 ### Quick Reference
+
 | Component | Location |
 |-----------|----------|
 | Router | `src/madspark/llm/router.py` |
@@ -61,18 +62,28 @@ except ImportError:
 ```bash
 ms "topic" --provider auto         # Default: Ollama primary, Gemini fallback
 ms "topic" --provider ollama       # Force local inference (FREE)
+ms "topic" --provider gemini       # Force cloud API
 ms "topic" --model-tier fast       # gemma3:4b (~3.3GB)
 ms "topic" --model-tier balanced   # gemma3:12b (default, ~8.1GB)
+ms "topic" --model-tier quality    # gemini-3-flash-preview (cloud, best)
+ms "topic" --no-cache              # Disable caching
+ms --clear-cache "topic"           # Clear cache first
 ms "topic" --no-router             # Use direct Gemini API
 ms "topic" --show-llm-stats        # Display usage metrics
 ```
 
 ### Environment Variables
 ```bash
-MADSPARK_LLM_PROVIDER=auto        # auto, ollama, gemini
+MADSPARK_LLM_PROVIDER=auto         # auto, ollama, gemini
 MADSPARK_MODEL_TIER=balanced       # fast, balanced (default), quality
+MADSPARK_FALLBACK_ENABLED=true     # Enable provider fallback
+MADSPARK_CACHE_ENABLED=true        # Enable response caching
+MADSPARK_CACHE_TTL=86400           # Cache TTL in seconds (24h)
+MADSPARK_CACHE_DIR=~/.cache/madspark/llm  # Cache directory
 MADSPARK_NO_ROUTER=false           # Set to true to disable router
-OLLAMA_HOST=http://localhost:11434
+OLLAMA_HOST=http://localhost:11434 # Ollama server
+OLLAMA_MODEL_FAST=gemma3:4b        # Fast tier model
+OLLAMA_MODEL_BALANCED=gemma3:12b   # Balanced tier model
 ```
 
 ### Cache Security
@@ -97,19 +108,30 @@ Human-readable formatters display sections in **workflow execution order**:
 ## Google GenAI API Usage
 ```python
 from google import genai
+from typing import TypedDict, List
 
+# Define response schema
+class MyResponse(TypedDict):
+    score: float
+    reasons: List[str]
+
+# Initialize client and configure request
 client = genai.Client()
 config = genai.types.GenerateContentConfig(
     temperature=0.7,
     response_mime_type="application/json",
-    response_schema=MyTypedDict,
-    system_instruction="..."
+    response_schema=MyResponse,
+    system_instruction="You are a helpful assistant."
 )
+
+# Make API call
+prompt = "Rate this idea: Solar-powered phone chargers"
 response = client.models.generate_content(
     model="gemini-3-flash-preview",
     contents=prompt,
     config=config
 )
+result = response.text  # JSON string matching MyResponse schema
 ```
 
 ### Testing Mock Pattern
@@ -137,14 +159,30 @@ src/madspark/schemas/
 
 ### Usage Pattern
 ```python
+from google import genai
+from google.genai import types
 from madspark.schemas.evaluation import CriticEvaluations
 from madspark.schemas.adapters import pydantic_to_genai_schema, genai_response_to_pydantic
 
+# Convert Pydantic schema to GenAI format
 config = types.GenerateContentConfig(
+    temperature=0.7,
+    response_mime_type="application/json",
     response_schema=pydantic_to_genai_schema(CriticEvaluations),
-    ...
 )
+
+# Make API call
+client = genai.Client()
+response = client.models.generate_content(
+    model="gemini-3-flash-preview",
+    contents="Evaluate these ideas...",
+    config=config
+)
+
+# Validate and parse response to Pydantic model
 validated = genai_response_to_pydantic(response.text, CriticEvaluations)
+for item in validated:
+    print(item.score, item.comment)  # Type-safe access
 ```
 
 See `src/madspark/schemas/README.md` for full documentation.

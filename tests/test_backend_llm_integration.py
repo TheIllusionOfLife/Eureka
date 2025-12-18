@@ -112,6 +112,7 @@ class TestBackendLLMEndpoints:
             assert "quality" in tier_ids
 
 
+@pytest.mark.skip(reason="Requires FastAPI/backend server environment (Docker)")
 class TestBackendLLMRequestParameters:
     """Test LLM configuration in request parameters."""
 
@@ -188,6 +189,7 @@ class TestBackendLLMRequestParameters:
         assert response.llm_metrics is None
 
 
+@pytest.mark.skip(reason="Requires FastAPI/backend server environment (Docker)")
 class TestBackendLLMConfigIntegration:
     """Test LLM config integration in workflow."""
 

@@ -1,6 +1,6 @@
 # Session Handover
 
-## Last Updated: 2025-12-16 19:09 JST
+## Last Updated: December 18, 2025 06:33 PM JST
 
 ## Work In Progress
 
@@ -8,44 +8,42 @@
 
 ## Recently Completed
 
-- ✅ **[PR #225](https://github.com/TheIllusionOfLife/Eureka/pull/225)**: Route Agents Through Ollama LLM Router - **MERGED** (December 16, 2025)
-  - **Core Achievement**: Integrated LLM router into all core agents (Critic, Advocate, Skeptic, Idea Generator)
-  - **Key Changes**:
-    - Added `batch_generate_with_router()` DRY helper in `src/madspark/llm/utils.py`
-    - Added `failed_requests` metric to RouterMetrics TypedDict
-    - Added custom `__init__` to `AllProvidersFailedError` for error details
-    - Schema-aware token budget calculation in Ollama provider
-    - Mock mode guards (`MADSPARK_MODE=mock`) in test files
-    - New `WorkflowConfig` class for centralized configuration
-  - **Files Changed**: 30 files (+1401, -200 lines)
-  - **CI Status**: All tests passing ✅
+- ✅ **[PR #232](https://github.com/TheIllusionOfLife/Eureka/pull/232)**: Upgrade to Gemini 3 Flash - **MERGED** (December 18, 2025)
+  - Updated GEMINI_MODEL_DEFAULT to gemini-3-flash-preview
+  - Centralized model constants: future upgrades only require `models.py` and `pricing_config.py` changes
+  - Added tests/test_constants.py for test model isolation
 
-- ✅ **[PR #223](https://github.com/TheIllusionOfLife/Eureka/pull/223)**: Make web/setup.sh Disk Space Check Work on macOS - **MERGED** (December 15, 2025)
+- ✅ **[PR #231](https://github.com/TheIllusionOfLife/Eureka/pull/231)**: Fix Setup Scripts Web Backend Deps - **MERGED** (December 17, 2025)
+  - Setup scripts now verify web backend dependencies (fastapi, uvicorn, slowapi, multipart)
+  - Added retry logic and helpful error messages
 
-- ✅ **[PR #221](https://github.com/TheIllusionOfLife/Eureka/pull/221)**: Feed Evaluations into Improvement Step & Standardize CLI Arguments - **MERGED** (December 7, 2025)
+- ✅ **[PR #230](https://github.com/TheIllusionOfLife/Eureka/pull/230)**: Reorder Logical Inference in CLI Output - **MERGED** (December 17, 2025)
+  - Logical inference now appears BEFORE improved idea in all formatters
+  - Reflects actual workflow order: inference (Step 4.5) feeds into improvement (Step 5)
 
 ## Next Priority Tasks
 
-**None currently identified** - All major features complete, codebase in excellent state.
+**None currently identified** - All major features complete, codebase stable.
 
 ## Known Issues / Blockers
 
-**None currently** - All CI checks passing, no blocking issues.
+**None currently** - All CI checks passing.
 
 ## Context for Next Session
 
 **Current State**: All major features complete, codebase stable with 90%+ test coverage.
-**Recent Focus**: LLM router integration, Ollama-first deployment.
+**Recent Focus**: Gemini 3 Flash upgrade, setup script reliability, output ordering.
 **Recommended Next**: Maintenance, performance optimization, or new feature development as needed.
 
 ## Historical Sessions (Summarized)
 
 <details>
-<summary>December 2025: Router Integration (PRs #221, #223, #225)</summary>
+<summary>December 2025: Router Integration & Maintenance (PRs #225-232)</summary>
 
-- **PR #225**: Route agents through Ollama LLM router, DRY batch helper
-- **PR #223**: macOS disk space check fix
-- **PR #221**: Evaluation data flow, CLI arg standardization
+- **PR #232**: Gemini 3 Flash upgrade with centralized model constants
+- **PR #231**: Setup script dependency verification
+- **PR #230**: Logical inference output ordering
+- **PR #225**: Route agents through Ollama LLM router
 
 </details>
 

@@ -150,7 +150,10 @@ class OllamaProvider(LLMProvider):
     """
 
     def __init__(
-        self, model: Optional[str] = None, host: Optional[str] = None
+        self,
+        model: Optional[str] = None,
+        host: Optional[str] = None,
+        timeout: Optional[float] = None,
     ) -> None:
         """
         Initialize Ollama provider.
@@ -158,6 +161,7 @@ class OllamaProvider(LLMProvider):
         Args:
             model: Model to use (default from config)
             host: Ollama server host (default from config)
+            timeout: Request timeout in seconds (default from config, 600s)
 
         Raises:
             ImportError: If ollama package not installed
@@ -170,6 +174,7 @@ class OllamaProvider(LLMProvider):
         config = get_config()
         self._model = model or config.get_ollama_model()
         self._host = host or config.ollama_host
+        self._timeout = timeout or config.ollama_timeout
         self._client = None
 
         # Health check caching with TTL (30 seconds)
@@ -182,7 +187,7 @@ class OllamaProvider(LLMProvider):
     def client(self):
         """Lazy initialization of Ollama client."""
         if self._client is None:
-            self._client = ollama.Client(host=self._host)
+            self._client = ollama.Client(host=self._host, timeout=self._timeout)
         return self._client
 
     @property

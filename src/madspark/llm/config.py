@@ -46,6 +46,7 @@ class LLMConfig:
     ollama_host: str = "http://localhost:11434"
     ollama_model_fast: str = OLLAMA_MODEL_FAST
     ollama_model_balanced: str = OLLAMA_MODEL_BALANCED
+    ollama_timeout: float = 600.0  # 10 minutes default
 
     # Gemini settings
     gemini_api_key: Optional[str] = None
@@ -73,6 +74,7 @@ class LLMConfig:
         - OLLAMA_HOST: Ollama server URL
         - OLLAMA_MODEL_FAST: Fast tier model name
         - OLLAMA_MODEL_BALANCED: Balanced tier model name
+        - OLLAMA_REQUEST_TIMEOUT: Request timeout in seconds (default: 600)
         - GOOGLE_API_KEY: Gemini API key
         - GOOGLE_GENAI_MODEL: Gemini model name
         - MADSPARK_CACHE_ENABLED: true/false
@@ -128,6 +130,25 @@ class LLMConfig:
         default_cache_dir = str(Path.home() / ".cache" / "madspark" / "llm")
         cache_dir = os.getenv("MADSPARK_CACHE_DIR", default_cache_dir)
 
+        # Parse ollama timeout with validation
+        ollama_timeout = 600.0  # Default: 10 minutes
+        ollama_timeout_env = os.getenv("OLLAMA_REQUEST_TIMEOUT")
+        if ollama_timeout_env:
+            try:
+                ollama_timeout = float(ollama_timeout_env)
+                if ollama_timeout <= 0:
+                    logger.warning(
+                        f"Invalid OLLAMA_REQUEST_TIMEOUT value '{ollama_timeout_env}' (must be positive). "
+                        f"Using default: 600.0"
+                    )
+                    ollama_timeout = 600.0
+            except ValueError:
+                logger.warning(
+                    f"Invalid OLLAMA_REQUEST_TIMEOUT value '{ollama_timeout_env}' (not a number). "
+                    f"Using default: 600.0"
+                )
+                ollama_timeout = 600.0
+
         return cls(
             default_provider=os.getenv("MADSPARK_LLM_PROVIDER", "auto"),
             model_tier=tier,
@@ -138,6 +159,7 @@ class LLMConfig:
             ollama_model_balanced=os.getenv(
                 "OLLAMA_MODEL_BALANCED", OLLAMA_MODEL_BALANCED
             ),
+            ollama_timeout=ollama_timeout,
             gemini_api_key=os.getenv("GOOGLE_API_KEY"),
             gemini_model=os.getenv("GOOGLE_GENAI_MODEL", GEMINI_MODEL_DEFAULT),
             cache_enabled=os.getenv("MADSPARK_CACHE_ENABLED", "true").lower()

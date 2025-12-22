@@ -104,12 +104,12 @@ class TimeoutConfig:
     #
     # Override via MADSPARK_*_TIMEOUT environment variables for per-environment tuning
     IDEA_GENERATION_TIMEOUT = _safe_float("MADSPARK_IDEA_TIMEOUT", 300.0)  # 5 min (was 60s)
-    EVALUATION_TIMEOUT = _safe_float("MADSPARK_EVAL_TIMEOUT", 300.0)       # 5 min (was 60s)
+    EVALUATION_TIMEOUT = _safe_float("MADSPARK_EVAL_TIMEOUT", 600.0)       # 10 min (was 5 min)
     ADVOCACY_TIMEOUT = _safe_float("MADSPARK_ADVOCACY_TIMEOUT", 240.0)     # 4 min (was 60s)
     SKEPTICISM_TIMEOUT = _safe_float("MADSPARK_SKEPTICISM_TIMEOUT", 240.0) # 4 min (was 60s)
-    IMPROVEMENT_TIMEOUT = _safe_float("MADSPARK_IMPROVEMENT_TIMEOUT", 300.0)  # 5 min (was 60s)
+    IMPROVEMENT_TIMEOUT = _safe_float("MADSPARK_IMPROVEMENT_TIMEOUT", 600.0)  # 10 min (was 5 min)
     REEVALUATION_TIMEOUT = _safe_float("MADSPARK_REEVAL_TIMEOUT", 240.0)   # 4 min (was 60s)
-    MULTI_DIMENSIONAL_EVAL_TIMEOUT = _safe_float("MADSPARK_MULTIDIM_TIMEOUT", 300.0)  # 5 min (was 120s)
+    MULTI_DIMENSIONAL_EVAL_TIMEOUT = _safe_float("MADSPARK_MULTIDIM_TIMEOUT", 600.0)  # 10 min (was 5 min)
     LOGICAL_INFERENCE_TIMEOUT = _safe_float("MADSPARK_INFERENCE_TIMEOUT", 240.0)     # 4 min (was 60s)
 
     # URL fetch timeout (new for multi-modal support)

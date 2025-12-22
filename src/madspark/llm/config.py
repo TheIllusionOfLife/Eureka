@@ -131,23 +131,24 @@ class LLMConfig:
         cache_dir = os.getenv("MADSPARK_CACHE_DIR", default_cache_dir)
 
         # Parse ollama timeout with validation
-        ollama_timeout = 600.0  # Default: 10 minutes
+        default_ollama_timeout = 600.0  # Default: 10 minutes
+        ollama_timeout = default_ollama_timeout
         ollama_timeout_env = os.getenv("OLLAMA_REQUEST_TIMEOUT")
         if ollama_timeout_env:
             try:
-                ollama_timeout = float(ollama_timeout_env)
-                if ollama_timeout <= 0:
+                parsed_timeout = float(ollama_timeout_env)
+                if parsed_timeout > 0:
+                    ollama_timeout = parsed_timeout
+                else:
                     logger.warning(
                         f"Invalid OLLAMA_REQUEST_TIMEOUT value '{ollama_timeout_env}' (must be positive). "
-                        f"Using default: 600.0"
+                        f"Using default: {default_ollama_timeout}"
                     )
-                    ollama_timeout = 600.0
             except ValueError:
                 logger.warning(
                     f"Invalid OLLAMA_REQUEST_TIMEOUT value '{ollama_timeout_env}' (not a number). "
-                    f"Using default: 600.0"
+                    f"Using default: {default_ollama_timeout}"
                 )
-                ollama_timeout = 600.0
 
         return cls(
             default_provider=os.getenv("MADSPARK_LLM_PROVIDER", "auto"),

@@ -168,6 +168,41 @@ class TestLLMConfig:
         config = LLMConfig.from_env()
         assert config.cache_ttl_seconds == 7200
 
+    def test_from_env_default_ollama_timeout(self, reset_config_fixture, monkeypatch):
+        """Test from_env uses default OLLAMA_REQUEST_TIMEOUT."""
+        monkeypatch.delenv("OLLAMA_REQUEST_TIMEOUT", raising=False)
+
+        config = LLMConfig.from_env()
+        assert config.ollama_timeout == 600.0  # Default: 10 minutes
+
+    def test_from_env_valid_ollama_timeout(self, reset_config_fixture, monkeypatch):
+        """Test from_env accepts valid OLLAMA_REQUEST_TIMEOUT."""
+        monkeypatch.setenv("OLLAMA_REQUEST_TIMEOUT", "300")
+
+        config = LLMConfig.from_env()
+        assert config.ollama_timeout == 300.0
+
+    def test_from_env_invalid_ollama_timeout(self, reset_config_fixture, monkeypatch):
+        """Test from_env handles invalid OLLAMA_REQUEST_TIMEOUT gracefully."""
+        monkeypatch.setenv("OLLAMA_REQUEST_TIMEOUT", "not-a-number")
+
+        config = LLMConfig.from_env()
+        assert config.ollama_timeout == 600.0  # Default value
+
+    def test_from_env_negative_ollama_timeout(self, reset_config_fixture, monkeypatch):
+        """Test from_env handles negative OLLAMA_REQUEST_TIMEOUT."""
+        monkeypatch.setenv("OLLAMA_REQUEST_TIMEOUT", "-100")
+
+        config = LLMConfig.from_env()
+        assert config.ollama_timeout == 600.0  # Default value
+
+    def test_from_env_zero_ollama_timeout(self, reset_config_fixture, monkeypatch):
+        """Test from_env handles zero OLLAMA_REQUEST_TIMEOUT."""
+        monkeypatch.setenv("OLLAMA_REQUEST_TIMEOUT", "0")
+
+        config = LLMConfig.from_env()
+        assert config.ollama_timeout == 600.0  # Default value
+
 
 class TestLLMResponse:
     """Test LLM response metadata."""
@@ -238,6 +273,33 @@ class TestOllamaProvider:
         )
         assert provider.model_name == "custom-model"
         assert provider._host == "http://custom:11434"
+
+    @patch("madspark.llm.providers.ollama.ollama")
+    def test_init_with_custom_timeout(self, mock_ollama):
+        """Test initialization with custom timeout."""
+        provider = OllamaProvider(timeout=300.0)
+        assert provider._timeout == 300.0
+
+    @patch("madspark.llm.providers.ollama.ollama")
+    def test_init_timeout_from_config(self, mock_ollama, reset_config_fixture, monkeypatch):
+        """Test initialization uses timeout from config when not specified."""
+        monkeypatch.setenv("OLLAMA_REQUEST_TIMEOUT", "450")
+        reset_config()  # Force config reload
+        provider = OllamaProvider()
+        assert provider._timeout == 450.0
+
+    @patch("madspark.llm.providers.ollama.ollama")
+    def test_client_receives_timeout(self, mock_ollama):
+        """Test that timeout is passed to ollama.Client."""
+        mock_client_class = Mock()
+        mock_ollama.Client = mock_client_class
+
+        provider = OllamaProvider(timeout=300.0)
+        _ = provider.client  # Trigger lazy initialization
+
+        mock_client_class.assert_called_once()
+        call_kwargs = mock_client_class.call_args[1]
+        assert call_kwargs.get("timeout") == 300.0
 
     @patch("madspark.llm.providers.ollama.ollama")
     def test_gemma3_supports_multimodal(self, mock_ollama):

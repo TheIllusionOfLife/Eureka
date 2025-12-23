@@ -361,8 +361,8 @@ Examples:
     workflow_group.add_argument(
         '--timeout',
         type=int,
-        default=1200,
-        help='Request timeout in seconds (default: 1200, i.e., 20 minutes)'
+        default=None,
+        help='Request timeout in seconds (default: auto-calculated based on workflow complexity)'
     )
     
     # Temperature control
@@ -785,12 +785,12 @@ def _validate_numeric_arguments(args: argparse.Namespace, parser: argparse.Argum
         args: Parsed command-line arguments
         parser: ArgumentParser instance for error reporting
     """
-    # Validate timeout value
-    if hasattr(args, 'timeout'):
+    # Validate timeout value (None means auto-calculated, which is valid)
+    if hasattr(args, 'timeout') and args.timeout is not None:
         if args.timeout < 1:
             parser.error("Timeout must be at least 1 second")
-        elif args.timeout > 3600:  # 1 hour max
-            parser.error("Timeout cannot exceed 3600 seconds (1 hour)")
+        elif args.timeout > 7200:  # 2 hours max for explicitly set timeout
+            parser.error("Timeout cannot exceed 7200 seconds (2 hours)")
 
     # Validate similarity threshold
     if hasattr(args, 'similarity_threshold') and args.similarity_threshold is not None:

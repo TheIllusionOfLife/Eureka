@@ -75,7 +75,8 @@ class TestWorkflowConfig:
         assert params["enhanced_reasoning"] is True
         assert params["multi_dimensional_eval"] is True
         assert params["logical_inference"] is False
-        assert params["timeout"] == 1200
+        # Timeout is auto-calculated: base (1200) + 3 candidates * 600 (enhanced) = 3000
+        assert params["timeout"] == 3000
         assert params["multimodal_files"] is None
         assert params["multimodal_urls"] is None
 

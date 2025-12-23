@@ -17,11 +17,11 @@ class TestCLITimeoutParsing:
     """Test that CLI properly parses timeout argument."""
     
     def test_parse_timeout_argument_default(self):
-        """Test default timeout value."""
+        """Test default timeout value is None (auto-calculated)."""
         parser = create_parser()
         args = parser.parse_args(['my topic', 'my context'])
-        assert getattr(args, 'timeout', None) is not None, "CLI should have timeout argument"
-        assert args.timeout == 1200, "Default timeout should be 1200 seconds"
+        # Default is now None (auto-calculated based on workflow complexity)
+        assert args.timeout is None, "Default timeout should be None (auto-calculated)"
     
     def test_parse_timeout_argument_custom(self):
         """Test custom timeout value."""
@@ -197,3 +197,142 @@ class TestTimeoutErrorMessages:
             
             # The error should be clear about timeout
             assert exc_info.type == asyncio.TimeoutError
+
+
+class TestTimeoutTaskCancellation:
+    """Test that timeout actually cancels running tasks."""
+
+    @pytest.mark.asyncio
+    async def test_timeout_cancels_internal_tasks(self):
+        """Test that timeout actually cancels running tasks, not just raises exception."""
+        coordinator = AsyncCoordinator(max_concurrent_agents=10)
+
+        task_was_cancelled = False
+
+        async def tracked_workflow(*args, **kwargs):
+            nonlocal task_was_cancelled
+            try:
+                await asyncio.sleep(100)  # Long running task
+                return []
+            except asyncio.CancelledError:
+                task_was_cancelled = True
+                raise
+
+        with patch.object(coordinator, '_run_workflow_internal', tracked_workflow):
+            with pytest.raises(asyncio.TimeoutError):
+                await coordinator.run_workflow(
+                    topic="test", context="test", timeout=0.1
+                )
+
+        # Give a moment for cancellation to propagate
+        await asyncio.sleep(0.2)
+
+        # Critical: verify task was actually cancelled
+        assert task_was_cancelled, "Internal workflow should receive CancelledError on timeout"
+
+    @pytest.mark.asyncio
+    async def test_timeout_cleanup_within_limit(self):
+        """Test that timeout cleanup completes within reasonable time."""
+        import time
+
+        coordinator = AsyncCoordinator(max_concurrent_agents=10)
+
+        async def slow_cleanup_workflow(*args, **kwargs):
+            try:
+                await asyncio.sleep(100)
+                return []
+            except asyncio.CancelledError:
+                # Simulate slow cleanup (but should be bounded)
+                await asyncio.sleep(1)
+                raise
+
+        with patch.object(coordinator, '_run_workflow_internal', slow_cleanup_workflow):
+            start_time = time.time()
+            with pytest.raises(asyncio.TimeoutError):
+                await coordinator.run_workflow(
+                    topic="test", context="test", timeout=0.1
+                )
+            elapsed_time = time.time() - start_time
+
+        # Timeout (0.1s) + cleanup timeout (5s) + buffer (1s) = max 6.1s
+        assert elapsed_time < 7.0, f"Timeout cleanup took too long: {elapsed_time:.1f}s"
+
+
+class TestDynamicTimeoutCalculation:
+    """Test dynamic timeout calculation based on workflow complexity."""
+
+    def test_base_timeout_simple_workflow(self):
+        """Test that simple workflow uses base timeout."""
+        from madspark.core.workflow_config import calculate_workflow_timeout
+
+        timeout = calculate_workflow_timeout(
+            enhanced_reasoning=False,
+            logical_inference=False,
+            num_candidates=3
+        )
+        assert timeout == 1200  # Base timeout
+
+    def test_enhanced_reasoning_adds_time(self):
+        """Test that enhanced reasoning adds time per candidate."""
+        from madspark.core.workflow_config import calculate_workflow_timeout
+
+        timeout = calculate_workflow_timeout(
+            enhanced_reasoning=True,
+            logical_inference=False,
+            num_candidates=3
+        )
+        # Base (1200) + 3 candidates * 600s = 3000s
+        assert timeout == 3000
+
+    def test_logical_inference_adds_time(self):
+        """Test that logical inference adds time per candidate."""
+        from madspark.core.workflow_config import calculate_workflow_timeout
+
+        timeout = calculate_workflow_timeout(
+            enhanced_reasoning=False,
+            logical_inference=True,
+            num_candidates=3
+        )
+        # Base (1200) + 3 candidates * 300s = 2100s
+        assert timeout == 2100
+
+    def test_full_complexity_timeout(self):
+        """Test timeout for fully complex workflow (enhanced + logical)."""
+        from madspark.core.workflow_config import calculate_workflow_timeout
+
+        timeout = calculate_workflow_timeout(
+            enhanced_reasoning=True,
+            logical_inference=True,
+            num_candidates=3
+        )
+        # Base (1200) + 3*600 (enhanced) + 3*300 (logical) = 3900s
+        assert timeout == 3900
+
+    def test_workflow_config_auto_calculates_timeout(self):
+        """Test that WorkflowConfig auto-calculates timeout when not provided."""
+        from madspark.core.workflow_config import WorkflowConfig
+
+        params = WorkflowConfig.build_workflow_params(
+            topic="test",
+            context="test",
+            num_candidates=3,
+            enhanced_reasoning=True,
+            logical_inference=True,
+            timeout=None  # Auto-calculate
+        )
+        # Should be 3900s for enhanced + logical with 3 candidates
+        assert params["timeout"] == 3900
+
+    def test_workflow_config_explicit_timeout_preserved(self):
+        """Test that explicit timeout overrides auto-calculation."""
+        from madspark.core.workflow_config import WorkflowConfig
+
+        params = WorkflowConfig.build_workflow_params(
+            topic="test",
+            context="test",
+            num_candidates=3,
+            enhanced_reasoning=True,
+            logical_inference=True,
+            timeout=600  # Explicit timeout
+        )
+        assert params["timeout"] == 600  # Should use explicit value

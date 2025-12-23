@@ -13,6 +13,49 @@ except ImportError:
     TemperatureManager = None  # type: ignore
 
 
+# Default timeout values
+DEFAULT_BASE_TIMEOUT = 1200  # 20 minutes base
+
+
+def calculate_workflow_timeout(
+    enhanced_reasoning: bool = False,
+    logical_inference: bool = False,
+    num_candidates: int = 3,
+    base_timeout: int = DEFAULT_BASE_TIMEOUT
+) -> int:
+    """Calculate appropriate timeout based on workflow complexity.
+
+    Enhanced workflows with Ollama need significantly more time because
+    local inference is slower than cloud APIs. This function dynamically
+    calculates a reasonable timeout based on enabled features.
+
+    Args:
+        enhanced_reasoning: Whether advocacy/skepticism analysis is enabled
+        logical_inference: Whether logical inference analysis is enabled
+        num_candidates: Number of candidates being processed
+        base_timeout: Base timeout for simple workflows (default 1200s)
+
+    Returns:
+        Calculated timeout in seconds
+
+    Time estimates per feature (with Ollama):
+        - Base workflow: ~1200s (20 min)
+        - Enhanced reasoning per candidate: +600s (advocacy, skepticism, improvement, re-eval)
+        - Logical inference per candidate: +300s
+    """
+    timeout = base_timeout
+
+    if enhanced_reasoning:
+        # Advocacy, skepticism, improvement, re-evaluation per candidate
+        timeout += num_candidates * 600
+
+    if logical_inference:
+        # Logical inference analysis per candidate
+        timeout += num_candidates * 300
+
+    return timeout
+
+
 class WorkflowConfig:
     """Shared workflow configuration builder.
 
@@ -36,7 +79,7 @@ class WorkflowConfig:
         enhanced_reasoning: bool = True,
         multi_dimensional_eval: bool = True,
         logical_inference: bool = False,
-        timeout: int = 1200,
+        timeout: Optional[int] = None,
         multimodal_files: Optional[List[str]] = None,
         multimodal_urls: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
@@ -53,7 +96,7 @@ class WorkflowConfig:
             enhanced_reasoning: Whether to enable enhanced reasoning with advocacy/skepticism
             multi_dimensional_eval: Whether to enable multi-dimensional evaluation
             logical_inference: Whether to enable logical inference analysis
-            timeout: Timeout in seconds for the workflow
+            timeout: Timeout in seconds for the workflow (None = auto-calculated)
             multimodal_files: List of file paths for multimodal inputs
             multimodal_urls: List of URLs for multimodal inputs
 
@@ -68,6 +111,14 @@ class WorkflowConfig:
         # Create default temperature manager if not provided
         if temperature_manager is None and TemperatureManager is not None:
             temperature_manager = TemperatureManager()
+
+        # Calculate timeout dynamically if not explicitly provided
+        if timeout is None:
+            timeout = calculate_workflow_timeout(
+                enhanced_reasoning=enhanced_reasoning,
+                logical_inference=logical_inference,
+                num_candidates=num_candidates,
+            )
 
         return {
             "topic": topic,

@@ -566,7 +566,9 @@ class AsyncCoordinator(BatchOperationsBase):
             workflow_task.cancel()
             try:
                 # Wait briefly for the task to clean up
-                await asyncio.wait_for(workflow_task, timeout=5.0)
+                await asyncio.wait_for(
+                    workflow_task, timeout=TimeoutConfig.TASK_CLEANUP_TIMEOUT
+                )
             except (asyncio.TimeoutError, asyncio.CancelledError):
                 # Task cleanup timed out or was cancelled - that's expected
                 pass

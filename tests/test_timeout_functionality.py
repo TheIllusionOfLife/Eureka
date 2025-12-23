@@ -5,12 +5,14 @@ is properly passed through and utilized in the coordinator.
 """
 import os
 import asyncio
+import time
 import pytest
 from unittest.mock import patch
 
 from madspark.cli.cli import create_parser
 from madspark.core.coordinator import run_multistep_workflow
 from madspark.core.async_coordinator import AsyncCoordinator
+from madspark.core.workflow_config import calculate_workflow_timeout, WorkflowConfig
 
 
 class TestCLITimeoutParsing:
@@ -233,8 +235,6 @@ class TestTimeoutTaskCancellation:
     @pytest.mark.asyncio
     async def test_timeout_cleanup_within_limit(self):
         """Test that timeout cleanup completes within reasonable time."""
-        import time
-
         coordinator = AsyncCoordinator(max_concurrent_agents=10)
 
         async def slow_cleanup_workflow(*args, **kwargs):
@@ -263,8 +263,6 @@ class TestDynamicTimeoutCalculation:
 
     def test_base_timeout_simple_workflow(self):
         """Test that simple workflow uses base timeout."""
-        from madspark.core.workflow_config import calculate_workflow_timeout
-
         timeout = calculate_workflow_timeout(
             enhanced_reasoning=False,
             logical_inference=False,
@@ -274,8 +272,6 @@ class TestDynamicTimeoutCalculation:
 
     def test_enhanced_reasoning_adds_time(self):
         """Test that enhanced reasoning adds time per candidate."""
-        from madspark.core.workflow_config import calculate_workflow_timeout
-
         timeout = calculate_workflow_timeout(
             enhanced_reasoning=True,
             logical_inference=False,
@@ -286,8 +282,6 @@ class TestDynamicTimeoutCalculation:
 
     def test_logical_inference_adds_time(self):
         """Test that logical inference adds time per candidate."""
-        from madspark.core.workflow_config import calculate_workflow_timeout
-
         timeout = calculate_workflow_timeout(
             enhanced_reasoning=False,
             logical_inference=True,
@@ -298,8 +292,6 @@ class TestDynamicTimeoutCalculation:
 
     def test_full_complexity_timeout(self):
         """Test timeout for fully complex workflow (enhanced + logical)."""
-        from madspark.core.workflow_config import calculate_workflow_timeout
-
         timeout = calculate_workflow_timeout(
             enhanced_reasoning=True,
             logical_inference=True,
@@ -310,8 +302,6 @@ class TestDynamicTimeoutCalculation:
 
     def test_workflow_config_auto_calculates_timeout(self):
         """Test that WorkflowConfig auto-calculates timeout when not provided."""
-        from madspark.core.workflow_config import WorkflowConfig
-
         params = WorkflowConfig.build_workflow_params(
             topic="test",
             context="test",
@@ -325,8 +315,6 @@ class TestDynamicTimeoutCalculation:
 
     def test_workflow_config_explicit_timeout_preserved(self):
         """Test that explicit timeout overrides auto-calculation."""
-        from madspark.core.workflow_config import WorkflowConfig
-
         params = WorkflowConfig.build_workflow_params(
             topic="test",
             context="test",

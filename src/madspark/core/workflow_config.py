@@ -12,16 +12,28 @@ try:
 except ImportError:
     TemperatureManager = None  # type: ignore
 
-
-# Default timeout values
-DEFAULT_BASE_TIMEOUT = 1200  # 20 minutes base
+# Try importing timeout constants with fallback
+try:
+    from madspark.config.execution_constants import TimeoutConfig
+    _WORKFLOW_BASE_TIMEOUT = int(TimeoutConfig.WORKFLOW_BASE_TIMEOUT)
+    _ENHANCED_TIMEOUT_PER_CANDIDATE = int(
+        TimeoutConfig.ENHANCED_REASONING_TIMEOUT_PER_CANDIDATE
+    )
+    _LOGICAL_TIMEOUT_PER_CANDIDATE = int(
+        TimeoutConfig.LOGICAL_INFERENCE_TIMEOUT_PER_CANDIDATE
+    )
+except ImportError:
+    # Fallback values if constants module not available
+    _WORKFLOW_BASE_TIMEOUT = 1200
+    _ENHANCED_TIMEOUT_PER_CANDIDATE = 600
+    _LOGICAL_TIMEOUT_PER_CANDIDATE = 300
 
 
 def calculate_workflow_timeout(
     enhanced_reasoning: bool = False,
     logical_inference: bool = False,
     num_candidates: int = 3,
-    base_timeout: int = DEFAULT_BASE_TIMEOUT
+    base_timeout: int = _WORKFLOW_BASE_TIMEOUT
 ) -> int:
     """Calculate appropriate timeout based on workflow complexity.
 
@@ -33,12 +45,12 @@ def calculate_workflow_timeout(
         enhanced_reasoning: Whether advocacy/skepticism analysis is enabled
         logical_inference: Whether logical inference analysis is enabled
         num_candidates: Number of candidates being processed
-        base_timeout: Base timeout for simple workflows (default 1200s)
+        base_timeout: Base timeout for simple workflows (default from TimeoutConfig)
 
     Returns:
         Calculated timeout in seconds
 
-    Time estimates per feature (with Ollama):
+    Time estimates per feature (with Ollama, may vary by hardware):
         - Base workflow: ~1200s (20 min)
         - Enhanced reasoning per candidate: +600s (advocacy, skepticism, improvement, re-eval)
         - Logical inference per candidate: +300s
@@ -47,11 +59,11 @@ def calculate_workflow_timeout(
 
     if enhanced_reasoning:
         # Advocacy, skepticism, improvement, re-evaluation per candidate
-        timeout += num_candidates * 600
+        timeout += num_candidates * _ENHANCED_TIMEOUT_PER_CANDIDATE
 
     if logical_inference:
         # Logical inference analysis per candidate
-        timeout += num_candidates * 300
+        timeout += num_candidates * _LOGICAL_TIMEOUT_PER_CANDIDATE
 
     return timeout
 

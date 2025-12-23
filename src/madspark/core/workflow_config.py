@@ -22,11 +22,13 @@ try:
     _LOGICAL_TIMEOUT_PER_CANDIDATE = int(
         TimeoutConfig.LOGICAL_INFERENCE_TIMEOUT_PER_CANDIDATE
     )
+    _MAX_AUTO_TIMEOUT = int(TimeoutConfig.MAX_AUTO_TIMEOUT)
 except ImportError:
     # Fallback values if constants module not available
     _WORKFLOW_BASE_TIMEOUT = 1200
     _ENHANCED_TIMEOUT_PER_CANDIDATE = 600
     _LOGICAL_TIMEOUT_PER_CANDIDATE = 300
+    _MAX_AUTO_TIMEOUT = 10800  # 3 hours
 
 
 def calculate_workflow_timeout(
@@ -65,7 +67,8 @@ def calculate_workflow_timeout(
         # Logical inference analysis per candidate
         timeout += num_candidates * _LOGICAL_TIMEOUT_PER_CANDIDATE
 
-    return timeout
+    # Cap at maximum auto-calculated timeout (3 hours)
+    return min(timeout, _MAX_AUTO_TIMEOUT)
 
 
 class WorkflowConfig:

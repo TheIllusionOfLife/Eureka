@@ -550,10 +550,8 @@ class AsyncCoordinator(BatchOperationsBase):
         )
 
         try:
-            # Use shield to prevent automatic cancellation by wait_for
-            # This allows us to control the cancellation ourselves
             return await asyncio.wait_for(
-                asyncio.shield(workflow_task),
+                workflow_task,
                 timeout=timeout,
             )
         except asyncio.TimeoutError:

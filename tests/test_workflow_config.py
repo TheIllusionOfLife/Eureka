@@ -1,6 +1,11 @@
 """Tests for WorkflowConfig module."""
 
+from madspark.config.execution_constants import TimeoutConfig
 from madspark.core.workflow_config import WorkflowConfig
+
+# Alias timeout constants for cleaner test assertions
+_BASE = int(TimeoutConfig.WORKFLOW_BASE_TIMEOUT)
+_ENHANCED_PER_CANDIDATE = int(TimeoutConfig.ENHANCED_REASONING_TIMEOUT_PER_CANDIDATE)
 
 
 class TestWorkflowConfig:
@@ -75,8 +80,9 @@ class TestWorkflowConfig:
         assert params["enhanced_reasoning"] is True
         assert params["multi_dimensional_eval"] is True
         assert params["logical_inference"] is False
-        # Timeout is auto-calculated: base (1200) + 3 candidates * 600 (enhanced) = 3000
-        assert params["timeout"] == 3000
+        # Timeout is auto-calculated: base + 3 candidates * enhanced_per_candidate
+        expected_timeout = _BASE + 3 * _ENHANCED_PER_CANDIDATE
+        assert params["timeout"] == expected_timeout
         assert params["multimodal_files"] is None
         assert params["multimodal_urls"] is None
 

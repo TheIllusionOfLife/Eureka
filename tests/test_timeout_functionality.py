@@ -10,9 +10,16 @@ import pytest
 from unittest.mock import patch
 
 from madspark.cli.cli import create_parser
+from madspark.config.execution_constants import TimeoutConfig
 from madspark.core.coordinator import run_multistep_workflow
 from madspark.core.async_coordinator import AsyncCoordinator
 from madspark.core.workflow_config import calculate_workflow_timeout, WorkflowConfig
+
+# Alias timeout constants for cleaner test assertions
+_BASE = int(TimeoutConfig.WORKFLOW_BASE_TIMEOUT)
+_ENHANCED_PER_CANDIDATE = int(TimeoutConfig.ENHANCED_REASONING_TIMEOUT_PER_CANDIDATE)
+_LOGICAL_PER_CANDIDATE = int(TimeoutConfig.LOGICAL_INFERENCE_TIMEOUT_PER_CANDIDATE)
+_MAX_AUTO = int(TimeoutConfig.MAX_AUTO_TIMEOUT)
 
 
 class TestCLITimeoutParsing:
@@ -268,7 +275,7 @@ class TestDynamicTimeoutCalculation:
             logical_inference=False,
             num_candidates=3
         )
-        assert timeout == 1200  # Base timeout
+        assert timeout == _BASE  # Base timeout
 
     def test_enhanced_reasoning_adds_time(self):
         """Test that enhanced reasoning adds time per candidate."""
@@ -277,8 +284,8 @@ class TestDynamicTimeoutCalculation:
             logical_inference=False,
             num_candidates=3
         )
-        # Base (1200) + 3 candidates * 600s = 3000s
-        assert timeout == 3000
+        expected = _BASE + 3 * _ENHANCED_PER_CANDIDATE
+        assert timeout == expected
 
     def test_logical_inference_adds_time(self):
         """Test that logical inference adds time per candidate."""
@@ -287,8 +294,8 @@ class TestDynamicTimeoutCalculation:
             logical_inference=True,
             num_candidates=3
         )
-        # Base (1200) + 3 candidates * 300s = 2100s
-        assert timeout == 2100
+        expected = _BASE + 3 * _LOGICAL_PER_CANDIDATE
+        assert timeout == expected
 
     def test_full_complexity_timeout(self):
         """Test timeout for fully complex workflow (enhanced + logical)."""
@@ -297,8 +304,8 @@ class TestDynamicTimeoutCalculation:
             logical_inference=True,
             num_candidates=3
         )
-        # Base (1200) + 3*600 (enhanced) + 3*300 (logical) = 3900s
-        assert timeout == 3900
+        expected = _BASE + 3 * _ENHANCED_PER_CANDIDATE + 3 * _LOGICAL_PER_CANDIDATE
+        assert timeout == expected
 
     def test_workflow_config_auto_calculates_timeout(self):
         """Test that WorkflowConfig auto-calculates timeout when not provided."""
@@ -310,8 +317,8 @@ class TestDynamicTimeoutCalculation:
             logical_inference=True,
             timeout=None  # Auto-calculate
         )
-        # Should be 3900s for enhanced + logical with 3 candidates
-        assert params["timeout"] == 3900
+        expected = _BASE + 3 * _ENHANCED_PER_CANDIDATE + 3 * _LOGICAL_PER_CANDIDATE
+        assert params["timeout"] == expected
 
     def test_workflow_config_explicit_timeout_preserved(self):
         """Test that explicit timeout overrides auto-calculation."""
@@ -324,3 +331,13 @@ class TestDynamicTimeoutCalculation:
             timeout=600  # Explicit timeout
         )
         assert params["timeout"] == 600  # Should use explicit value
+
+    def test_timeout_capped_at_max(self):
+        """Test that auto-calculated timeout is capped at maximum."""
+        # With many candidates, calculated timeout would exceed max
+        timeout = calculate_workflow_timeout(
+            enhanced_reasoning=True,
+            logical_inference=True,
+            num_candidates=20  # Would be 1200 + 20*600 + 20*300 = 19200s without cap
+        )
+        assert timeout == _MAX_AUTO  # Should be capped at 3 hours (10800s)

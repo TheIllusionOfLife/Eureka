@@ -530,24 +530,28 @@ class AsyncCoordinator(BatchOperationsBase):
         Raises:
             asyncio.TimeoutError: If the workflow exceeds the specified timeout
         """
+        # Create task explicitly so we can cancel it properly on timeout
+        workflow_task = asyncio.create_task(
+            self._run_workflow_internal(
+                topic=topic,
+                context=context,
+                num_top_candidates=num_top_candidates,
+                enable_novelty_filter=enable_novelty_filter,
+                novelty_threshold=novelty_threshold,
+                temperature_manager=temperature_manager,
+                verbose=verbose,
+                enhanced_reasoning=enhanced_reasoning,
+                multi_dimensional_eval=multi_dimensional_eval,
+                logical_inference=logical_inference,
+                reasoning_engine=reasoning_engine,
+                multimodal_files=multimodal_files,
+                multimodal_urls=multimodal_urls
+            )
+        )
+
         try:
-            # Wrap the actual workflow in a timeout
             return await asyncio.wait_for(
-                self._run_workflow_internal(
-                    topic=topic,
-                    context=context,
-                    num_top_candidates=num_top_candidates,
-                    enable_novelty_filter=enable_novelty_filter,
-                    novelty_threshold=novelty_threshold,
-                    temperature_manager=temperature_manager,
-                    verbose=verbose,
-                    enhanced_reasoning=enhanced_reasoning,
-                    multi_dimensional_eval=multi_dimensional_eval,
-                    logical_inference=logical_inference,
-                    reasoning_engine=reasoning_engine,
-                    multimodal_files=multimodal_files,
-                    multimodal_urls=multimodal_urls
-                ),
+                workflow_task,
                 timeout=timeout,
             )
         except asyncio.TimeoutError:
@@ -555,6 +559,18 @@ class AsyncCoordinator(BatchOperationsBase):
             await self._send_progress(
                 f"Workflow timed out after {timeout} seconds", 0.0
             )
+
+            # Explicitly cancel the workflow task
+            workflow_task.cancel()
+            try:
+                # Wait briefly for the task to clean up
+                await asyncio.wait_for(
+                    workflow_task, timeout=TimeoutConfig.TASK_CLEANUP_TIMEOUT
+                )
+            except (asyncio.TimeoutError, asyncio.CancelledError):
+                # Task cleanup timed out or was cancelled - that's expected
+                pass
+
             raise
 
     async def _run_workflow_internal(

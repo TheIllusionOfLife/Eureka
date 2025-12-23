@@ -12,6 +12,64 @@ try:
 except ImportError:
     TemperatureManager = None  # type: ignore
 
+# Try importing timeout constants with fallback
+try:
+    from madspark.config.execution_constants import TimeoutConfig
+    _WORKFLOW_BASE_TIMEOUT = int(TimeoutConfig.WORKFLOW_BASE_TIMEOUT)
+    _ENHANCED_TIMEOUT_PER_CANDIDATE = int(
+        TimeoutConfig.ENHANCED_REASONING_TIMEOUT_PER_CANDIDATE
+    )
+    _LOGICAL_TIMEOUT_PER_CANDIDATE = int(
+        TimeoutConfig.LOGICAL_INFERENCE_TIMEOUT_PER_CANDIDATE
+    )
+    _MAX_AUTO_TIMEOUT = int(TimeoutConfig.MAX_AUTO_TIMEOUT)
+except ImportError:
+    # Fallback values if constants module not available
+    _WORKFLOW_BASE_TIMEOUT = 1200
+    _ENHANCED_TIMEOUT_PER_CANDIDATE = 600
+    _LOGICAL_TIMEOUT_PER_CANDIDATE = 300
+    _MAX_AUTO_TIMEOUT = 10800  # 3 hours
+
+
+def calculate_workflow_timeout(
+    enhanced_reasoning: bool = False,
+    logical_inference: bool = False,
+    num_candidates: int = 3,
+    base_timeout: int = _WORKFLOW_BASE_TIMEOUT
+) -> int:
+    """Calculate appropriate timeout based on workflow complexity.
+
+    Enhanced workflows with Ollama need significantly more time because
+    local inference is slower than cloud APIs. This function dynamically
+    calculates a reasonable timeout based on enabled features.
+
+    Args:
+        enhanced_reasoning: Whether advocacy/skepticism analysis is enabled
+        logical_inference: Whether logical inference analysis is enabled
+        num_candidates: Number of candidates being processed
+        base_timeout: Base timeout for simple workflows (default from TimeoutConfig)
+
+    Returns:
+        Calculated timeout in seconds
+
+    Time estimates per feature (with Ollama, may vary by hardware):
+        - Base workflow: ~1200s (20 min)
+        - Enhanced reasoning per candidate: +600s (advocacy, skepticism, improvement, re-eval)
+        - Logical inference per candidate: +300s
+    """
+    timeout = base_timeout
+
+    if enhanced_reasoning:
+        # Advocacy, skepticism, improvement, re-evaluation per candidate
+        timeout += num_candidates * _ENHANCED_TIMEOUT_PER_CANDIDATE
+
+    if logical_inference:
+        # Logical inference analysis per candidate
+        timeout += num_candidates * _LOGICAL_TIMEOUT_PER_CANDIDATE
+
+    # Cap at maximum auto-calculated timeout (3 hours)
+    return min(timeout, _MAX_AUTO_TIMEOUT)
+
 
 class WorkflowConfig:
     """Shared workflow configuration builder.
@@ -36,7 +94,7 @@ class WorkflowConfig:
         enhanced_reasoning: bool = True,
         multi_dimensional_eval: bool = True,
         logical_inference: bool = False,
-        timeout: int = 1200,
+        timeout: Optional[int] = None,
         multimodal_files: Optional[List[str]] = None,
         multimodal_urls: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
@@ -53,7 +111,7 @@ class WorkflowConfig:
             enhanced_reasoning: Whether to enable enhanced reasoning with advocacy/skepticism
             multi_dimensional_eval: Whether to enable multi-dimensional evaluation
             logical_inference: Whether to enable logical inference analysis
-            timeout: Timeout in seconds for the workflow
+            timeout: Timeout in seconds for the workflow (None = auto-calculated)
             multimodal_files: List of file paths for multimodal inputs
             multimodal_urls: List of URLs for multimodal inputs
 
@@ -68,6 +126,14 @@ class WorkflowConfig:
         # Create default temperature manager if not provided
         if temperature_manager is None and TemperatureManager is not None:
             temperature_manager = TemperatureManager()
+
+        # Calculate timeout dynamically if not explicitly provided
+        if timeout is None:
+            timeout = calculate_workflow_timeout(
+                enhanced_reasoning=enhanced_reasoning,
+                logical_inference=logical_inference,
+                num_candidates=num_candidates,
+            )
 
         return {
             "topic": topic,

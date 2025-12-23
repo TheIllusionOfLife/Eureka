@@ -115,6 +115,16 @@ class TimeoutConfig:
     # URL fetch timeout (new for multi-modal support)
     URL_FETCH_TIMEOUT = 30.0
 
+    # Workflow timeout calculation constants
+    # Used by calculate_workflow_timeout() for dynamic timeout based on complexity
+    WORKFLOW_BASE_TIMEOUT = 1200.0  # 20 min base
+    ENHANCED_REASONING_TIMEOUT_PER_CANDIDATE = 600.0  # 10 min per candidate
+    LOGICAL_INFERENCE_TIMEOUT_PER_CANDIDATE = 300.0   # 5 min per candidate
+    MAX_AUTO_TIMEOUT = 10800.0  # 3 hours max for auto-calculated timeouts
+
+    # Cleanup timeout for graceful task cancellation
+    TASK_CLEANUP_TIMEOUT = 5.0
+
 
 # ========================================
 # Concurrency & Threading

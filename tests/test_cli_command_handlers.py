@@ -389,7 +389,7 @@ class TestWorkflowExecutor:
 
     def test_no_fallback_raises_error_when_ollama_unavailable(self, basic_args, mock_logger):
         """Test that --no-fallback causes error when Ollama is unavailable."""
-        from madspark.cli.commands.workflow_executor import WorkflowExecutor, OllamaUnavailableError
+        from madspark.cli.commands.workflow_executor import WorkflowExecutor
 
         mock_temp_manager = Mock()
         basic_args.provider = 'auto'

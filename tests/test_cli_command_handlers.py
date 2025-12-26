@@ -387,6 +387,88 @@ class TestWorkflowExecutor:
                 assert result.success is False
                 assert result.exit_code == 1
 
+    def test_no_fallback_raises_error_when_ollama_unavailable(self, basic_args, mock_logger):
+        """Test that --no-fallback causes error when Ollama is unavailable."""
+        from madspark.cli.commands.workflow_executor import WorkflowExecutor, OllamaUnavailableError
+
+        mock_temp_manager = Mock()
+        basic_args.provider = 'auto'
+        basic_args.no_router = False
+
+        # Mock config with fallback disabled
+        mock_config = Mock()
+        mock_config.fallback_enabled = False
+        mock_config.default_provider = 'auto'
+
+        with patch('madspark.cli.commands.workflow_executor.get_config', return_value=mock_config):
+            with patch('madspark.cli.commands.workflow_executor.os.getenv', return_value=None):
+                # Mock OllamaProvider at the source module (imported inside function)
+                with patch('madspark.llm.providers.ollama.OllamaProvider') as mock_ollama:
+                    mock_ollama.side_effect = ConnectionError("Connection refused")
+
+                    executor = WorkflowExecutor(basic_args, mock_logger, mock_temp_manager)
+
+                    # Should return failure result due to OllamaUnavailableError
+                    result = executor.execute()
+                    assert result.success is False
+                    assert result.exit_code == 1
+                    assert "--no-fallback" in result.message
+
+    def test_fallback_to_gemini_when_ollama_unavailable(self, basic_args, mock_logger):
+        """Test fallback to Gemini when Ollama unavailable and fallback enabled."""
+        from madspark.cli.commands.workflow_executor import WorkflowExecutor
+
+        mock_temp_manager = Mock()
+        basic_args.provider = 'auto'
+        basic_args.no_router = False
+
+        # Mock config with fallback enabled
+        mock_config = Mock()
+        mock_config.fallback_enabled = True
+        mock_config.default_provider = 'auto'
+        mock_config.gemini_model = 'gemini-3-flash-preview'
+        mock_config.validate_api_key.return_value = True
+
+        mock_results = [{"idea": "Test idea", "score": 85}]
+
+        with patch('madspark.cli.commands.workflow_executor.get_config', return_value=mock_config):
+            with patch('madspark.cli.commands.workflow_executor.os.getenv', return_value=None):
+                # Mock OllamaProvider at the source module (imported inside function)
+                with patch('madspark.llm.providers.ollama.OllamaProvider') as mock_ollama:
+                    mock_ollama.side_effect = ConnectionError("Connection refused")
+
+                    with patch('madspark.cli.commands.workflow_executor.run_multistep_workflow', return_value=mock_results):
+                        with patch('madspark.cli.commands.workflow_executor.determine_num_candidates', return_value=1):
+                            executor = WorkflowExecutor(basic_args, mock_logger, mock_temp_manager)
+                            result = executor.execute()
+
+                            # Should succeed because fallback is enabled
+                            assert result.success is True
+                            assert result.data == mock_results
+
+    def test_handle_ollama_unavailable_helper_raises_when_fallback_disabled(self, basic_args, mock_logger):
+        """Test _handle_ollama_unavailable raises exception when fallback disabled."""
+        from madspark.cli.commands.workflow_executor import WorkflowExecutor, OllamaUnavailableError
+
+        mock_temp_manager = Mock()
+        executor = WorkflowExecutor(basic_args, mock_logger, mock_temp_manager)
+
+        with pytest.raises(OllamaUnavailableError) as exc_info:
+            executor._handle_ollama_unavailable("test reason", fallback_enabled=False)
+
+        assert "test reason" in str(exc_info.value)
+        assert "--no-fallback" in str(exc_info.value)
+
+    def test_handle_ollama_unavailable_helper_returns_true_when_fallback_enabled(self, basic_args, mock_logger):
+        """Test _handle_ollama_unavailable returns True when fallback enabled."""
+        from madspark.cli.commands.workflow_executor import WorkflowExecutor
+
+        mock_temp_manager = Mock()
+        executor = WorkflowExecutor(basic_args, mock_logger, mock_temp_manager)
+
+        result = executor._handle_ollama_unavailable("test reason", fallback_enabled=True)
+        assert result is True
+
 
 # Tests for BatchHandler
 class TestBatchHandler:

@@ -4,10 +4,15 @@ import argparse
 import asyncio
 import logging
 import os
-import sys
 from typing import List, Dict, Any
 
 from .base import CommandHandler, CommandResult
+
+
+class OllamaUnavailableError(Exception):
+    """Raised when Ollama is unavailable and fallback is disabled."""
+
+    pass
 
 # Import MadSpark components with fallback for local development
 try:
@@ -79,12 +84,44 @@ class WorkflowExecutor(CommandHandler):
 
             return CommandResult(success=True, data=results)
 
+        except OllamaUnavailableError as e:
+            print(f"❌ {e}")
+            return CommandResult(success=False, exit_code=1, message=str(e))
         except Exception as e:
             self.log_error(f"Workflow execution failed: {e}")
             return CommandResult(success=False, exit_code=1, message=str(e))
 
+    def _handle_ollama_unavailable(
+        self, reason: str, fallback_enabled: bool, error: Exception | None = None
+    ) -> bool:
+        """Handle Ollama unavailability based on fallback settings.
+
+        Args:
+            reason: Human-readable reason for Ollama being unavailable
+            fallback_enabled: Whether fallback to Gemini is allowed
+            error: Optional exception that caused the unavailability
+
+        Returns:
+            True if should use Gemini fallback
+
+        Raises:
+            OllamaUnavailableError: If fallback is disabled
+        """
+        if fallback_enabled:
+            return True
+
+        # Build error message with consistent format
+        msg = f"Ollama unavailable ({reason}) and --no-fallback is set."
+        if error:
+            msg += f" Details: {error}"
+        raise OllamaUnavailableError(msg)
+
     def _show_startup_message(self) -> None:
-        """Show startup message with actual model name."""
+        """Show startup message with actual model name.
+
+        Raises:
+            OllamaUnavailableError: If Ollama is unavailable and fallback is disabled
+        """
         model_name = "AI model"  # Default fallback
         provider = "unknown"
 
@@ -95,9 +132,9 @@ class WorkflowExecutor(CommandHandler):
                 # Determine provider from config or args
                 provider_setting = getattr(self.args, 'provider', None) or config.default_provider
                 no_router = getattr(self.args, 'no_router', False)
+                fallback_enabled = config.fallback_enabled
 
                 use_gemini = False
-                fallback_enabled = config.fallback_enabled
                 if no_router or provider_setting == "gemini":
                     use_gemini = True
                 elif provider_setting in ("auto", "ollama", None):
@@ -116,39 +153,34 @@ class WorkflowExecutor(CommandHandler):
                                     provider = "ollama"
                                     model_name = config.get_ollama_model()
                                 else:
-                                    # Ollama unhealthy
-                                    if fallback_enabled:
-                                        use_gemini = True
-                                    else:
-                                        print("❌ Ollama unavailable and --no-fallback set. Exiting.")
-                                        sys.exit(1)
+                                    self.log_debug("Ollama health check returned unhealthy")
+                                    use_gemini = self._handle_ollama_unavailable(
+                                        "health check failed", fallback_enabled
+                                    )
                             except concurrent.futures.TimeoutError:
                                 self.log_debug("Ollama health check timed out")
-                                if fallback_enabled:
-                                    use_gemini = True
-                                else:
-                                    print("❌ Ollama health check timed out and --no-fallback set. Exiting.")
-                                    sys.exit(1)
+                                use_gemini = self._handle_ollama_unavailable(
+                                    "health check timed out", fallback_enabled
+                                )
                     except (ImportError, ConnectionError, OSError) as e:
                         # Expected failures: missing package, network issues, socket errors
                         self.log_debug(f"Ollama unavailable: {e}")
-                        if fallback_enabled:
-                            use_gemini = True
-                        else:
-                            print(f"❌ Ollama unavailable and --no-fallback set. Exiting. ({e})")
-                            sys.exit(1)
+                        use_gemini = self._handle_ollama_unavailable(
+                            "connection failed", fallback_enabled, e
+                        )
                     except Exception as e:
                         # Unexpected errors should be more visible
                         self.log_warning(f"Unexpected error checking Ollama: {e}")
-                        if fallback_enabled:
-                            use_gemini = True
-                        else:
-                            print(f"❌ Ollama error and --no-fallback set. Exiting. ({e})")
-                            sys.exit(1)
+                        use_gemini = self._handle_ollama_unavailable(
+                            "unexpected error", fallback_enabled, e
+                        )
 
                 if use_gemini:
                     provider = "gemini"
                     model_name = config.gemini_model
+        except OllamaUnavailableError:
+            # Re-raise to be handled by execute()
+            raise
         except Exception as e:
             self.log_error(f"Could not determine LLM provider for startup message: {e}")
             # Keep default fallback values

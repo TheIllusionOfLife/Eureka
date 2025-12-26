@@ -392,6 +392,13 @@ export PYTHONPATH="${PYTHONPATH}:$(pwd)/src"
 pytest tests/ -v --cov=src --cov-report=html
 ```
 
+**SOCKS Proxy Support:**
+For environments that route network traffic through SOCKS proxies (e.g., Claude Code sandbox, corporate networks), install `socksio`:
+```bash
+pip install socksio
+```
+This enables `httpx` (used by `google-genai`) to work with SOCKS proxies configured via `ALL_PROXY` or `HTTPS_PROXY` environment variables.
+
 **📖 For comprehensive development workflows, testing strategies, and CI/CD guidelines, see:**
 - CI/CD: [`docs/ci-policy.md`](docs/ci-policy.md) - Complete CI management guidelines
 

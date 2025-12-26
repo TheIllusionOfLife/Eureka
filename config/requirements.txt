@@ -1,5 +1,6 @@
 google-genai
 python-dotenv
+socksio>=1.0.0  # Enables SOCKS proxy support in httpx (transitive dep of google-genai)
 pytest>=7.4.0
 pytest-mock>=3.11.0
 pytest-asyncio>=0.23.0

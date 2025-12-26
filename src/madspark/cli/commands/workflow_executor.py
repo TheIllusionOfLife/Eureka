@@ -4,6 +4,7 @@ import argparse
 import asyncio
 import logging
 import os
+import sys
 from typing import List, Dict, Any
 
 from .base import CommandHandler, CommandResult
@@ -96,6 +97,7 @@ class WorkflowExecutor(CommandHandler):
                 no_router = getattr(self.args, 'no_router', False)
 
                 use_gemini = False
+                fallback_enabled = config.fallback_enabled
                 if no_router or provider_setting == "gemini":
                     use_gemini = True
                 elif provider_setting in ("auto", "ollama", None):
@@ -114,18 +116,35 @@ class WorkflowExecutor(CommandHandler):
                                     provider = "ollama"
                                     model_name = config.get_ollama_model()
                                 else:
-                                    use_gemini = True  # Ollama unhealthy, fallback to Gemini
+                                    # Ollama unhealthy
+                                    if fallback_enabled:
+                                        use_gemini = True
+                                    else:
+                                        print("❌ Ollama unavailable and --no-fallback set. Exiting.")
+                                        sys.exit(1)
                             except concurrent.futures.TimeoutError:
-                                self.log_debug("Ollama health check timed out, using Gemini")
-                                use_gemini = True
+                                self.log_debug("Ollama health check timed out")
+                                if fallback_enabled:
+                                    use_gemini = True
+                                else:
+                                    print("❌ Ollama health check timed out and --no-fallback set. Exiting.")
+                                    sys.exit(1)
                     except (ImportError, ConnectionError, OSError) as e:
                         # Expected failures: missing package, network issues, socket errors
-                        self.log_debug(f"Ollama unavailable, using Gemini: {e}")
-                        use_gemini = True
+                        self.log_debug(f"Ollama unavailable: {e}")
+                        if fallback_enabled:
+                            use_gemini = True
+                        else:
+                            print(f"❌ Ollama unavailable and --no-fallback set. Exiting. ({e})")
+                            sys.exit(1)
                     except Exception as e:
                         # Unexpected errors should be more visible
                         self.log_warning(f"Unexpected error checking Ollama: {e}")
-                        use_gemini = True
+                        if fallback_enabled:
+                            use_gemini = True
+                        else:
+                            print(f"❌ Ollama error and --no-fallback set. Exiting. ({e})")
+                            sys.exit(1)
 
                 if use_gemini:
                     provider = "gemini"

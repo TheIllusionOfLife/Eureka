@@ -4,6 +4,8 @@ Following TDD principles, these tests are written BEFORE implementation
 to define the expected behavior of each command handler.
 """
 
+import os
+
 import pytest
 from unittest.mock import Mock, patch
 import argparse
@@ -388,8 +390,11 @@ class TestWorkflowExecutor:
                 assert result.exit_code == 1
 
     def test_no_fallback_raises_error_when_ollama_unavailable(self, basic_args, mock_logger):
-        """Test that --no-fallback causes error when Ollama is unavailable."""
-        from madspark.cli.commands.workflow_executor import WorkflowExecutor
+        """Test that --no-fallback causes error when Ollama is unavailable.
+
+        Note: Tests _show_startup_message() directly because execute() skips it in mock mode.
+        """
+        from madspark.cli.commands.workflow_executor import WorkflowExecutor, OllamaUnavailableError
 
         mock_temp_manager = Mock()
         basic_args.provider = 'auto'
@@ -401,18 +406,17 @@ class TestWorkflowExecutor:
         mock_config.default_provider = 'auto'
 
         with patch('madspark.cli.commands.workflow_executor.get_config', return_value=mock_config):
-            with patch('madspark.cli.commands.workflow_executor.os.getenv', return_value=None):
-                # Mock OllamaProvider at the source module (imported inside function)
-                with patch('madspark.llm.providers.ollama.OllamaProvider') as mock_ollama:
-                    mock_ollama.side_effect = ConnectionError("Connection refused")
+            # Mock OllamaProvider at the source module (imported inside function)
+            with patch('madspark.llm.providers.ollama.OllamaProvider') as mock_ollama:
+                mock_ollama.side_effect = ConnectionError("Connection refused")
 
-                    executor = WorkflowExecutor(basic_args, mock_logger, mock_temp_manager)
+                executor = WorkflowExecutor(basic_args, mock_logger, mock_temp_manager)
 
-                    # Should return failure result due to OllamaUnavailableError
-                    result = executor.execute()
-                    assert result.success is False
-                    assert result.exit_code == 1
-                    assert "--no-fallback" in result.message
+                # Call _show_startup_message directly - this is where --no-fallback is checked
+                with pytest.raises(OllamaUnavailableError) as exc_info:
+                    executor._show_startup_message()
+
+                assert "--no-fallback" in str(exc_info.value)
 
     def test_fallback_to_gemini_when_ollama_unavailable(self, basic_args, mock_logger):
         """Test fallback to Gemini when Ollama unavailable and fallback enabled."""
@@ -431,20 +435,22 @@ class TestWorkflowExecutor:
 
         mock_results = [{"idea": "Test idea", "score": 85}]
 
-        with patch('madspark.cli.commands.workflow_executor.get_config', return_value=mock_config):
-            with patch('madspark.cli.commands.workflow_executor.os.getenv', return_value=None):
-                # Mock OllamaProvider at the source module (imported inside function)
-                with patch('madspark.llm.providers.ollama.OllamaProvider') as mock_ollama:
-                    mock_ollama.side_effect = ConnectionError("Connection refused")
+        # Use mock mode to avoid real API calls
+        with patch.dict(os.environ, {"MADSPARK_MODE": "mock"}):
+            with patch('madspark.cli.commands.workflow_executor.get_config', return_value=mock_config):
+                with patch('madspark.cli.commands.workflow_executor.os.getenv', return_value=None):
+                    # Mock OllamaProvider at the source module (imported inside function)
+                    with patch('madspark.llm.providers.ollama.OllamaProvider') as mock_ollama:
+                        mock_ollama.side_effect = ConnectionError("Connection refused")
 
-                    with patch('madspark.cli.commands.workflow_executor.run_multistep_workflow', return_value=mock_results):
-                        with patch('madspark.cli.commands.workflow_executor.determine_num_candidates', return_value=1):
-                            executor = WorkflowExecutor(basic_args, mock_logger, mock_temp_manager)
-                            result = executor.execute()
+                        with patch('madspark.cli.commands.workflow_executor.run_multistep_workflow', return_value=mock_results):
+                            with patch('madspark.cli.commands.workflow_executor.determine_num_candidates', return_value=1):
+                                executor = WorkflowExecutor(basic_args, mock_logger, mock_temp_manager)
+                                result = executor.execute()
 
-                            # Should succeed because fallback is enabled
-                            assert result.success is True
-                            assert result.data == mock_results
+                                # Should succeed because fallback is enabled
+                                assert result.success is True
+                                assert result.data == mock_results
 
     def test_handle_ollama_unavailable_helper_raises_when_fallback_disabled(self, basic_args, mock_logger):
         """Test _handle_ollama_unavailable raises exception when fallback disabled."""

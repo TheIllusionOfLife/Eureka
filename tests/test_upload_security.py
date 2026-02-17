@@ -3,7 +3,7 @@ import io
 import pytest
 from pathlib import Path
 from fastapi import UploadFile, HTTPException
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 import os
 import shutil
 

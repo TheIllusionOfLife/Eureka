@@ -384,4 +384,42 @@ describe('FileUpload Component', () => {
       expect(clickSpy).toHaveBeenCalled();
     });
   });
+
+  describe('Keyboard Interaction', () => {
+    it('should trigger file input when pressing Enter on drop zone', () => {
+      render(<FileUpload files={[]} onChange={mockOnChange} />);
+
+      const input = screen.getByTestId('file-input');
+      const clickSpy = jest.spyOn(input, 'click');
+
+      const dropZone = screen.getByText(/click to upload or drag files here/i).closest('.border-dashed');
+      fireEvent.keyDown(dropZone!, { key: 'Enter' });
+
+      expect(clickSpy).toHaveBeenCalled();
+    });
+
+    it('should trigger file input when pressing Space on drop zone', () => {
+      render(<FileUpload files={[]} onChange={mockOnChange} />);
+
+      const input = screen.getByTestId('file-input');
+      const clickSpy = jest.spyOn(input, 'click');
+
+      const dropZone = screen.getByText(/click to upload or drag files here/i).closest('.border-dashed');
+      fireEvent.keyDown(dropZone!, { key: ' ' });
+
+      expect(clickSpy).toHaveBeenCalled();
+    });
+
+    it('should not trigger file input when pressing other keys', () => {
+      render(<FileUpload files={[]} onChange={mockOnChange} />);
+
+      const input = screen.getByTestId('file-input');
+      const clickSpy = jest.spyOn(input, 'click');
+
+      const dropZone = screen.getByText(/click to upload or drag files here/i).closest('.border-dashed');
+      fireEvent.keyDown(dropZone!, { key: 'a' });
+
+      expect(clickSpy).not.toHaveBeenCalled();
+    });
+  });
 });

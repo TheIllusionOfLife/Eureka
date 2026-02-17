@@ -138,6 +138,17 @@ const FileUpload: React.FC<FileUploadProps> = ({
   };
 
   /**
+   * Handle keyboard interactions for drop zone
+   */
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (disabled) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      fileInputRef.current?.click();
+    }
+  };
+
+  /**
    * Get file icon based on extension
    */
   const getFileIcon = (file: File): string => {
@@ -180,13 +191,17 @@ const FileUpload: React.FC<FileUploadProps> = ({
 
       {/* Drop Zone */}
       <div
+        role="button"
+        tabIndex={disabled ? -1 : 0}
+        aria-label="Upload files drop zone"
+        onKeyDown={handleKeyDown}
         onClick={handleDropZoneClick}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         className={`
           border-2 border-dashed rounded-lg p-6 text-center cursor-pointer
-          transition-colors duration-200
+          transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
           ${isDragging
             ? 'border-blue-500 bg-blue-50'
             : 'border-gray-300 hover:border-blue-400'

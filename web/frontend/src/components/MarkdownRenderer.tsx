@@ -53,4 +53,5 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, className 
   );
 };
 
-export default MarkdownRenderer;
+// Memoized to prevent expensive regex re-rendering when parent components update
+export default React.memo(MarkdownRenderer);

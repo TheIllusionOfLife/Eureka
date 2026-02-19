@@ -257,7 +257,28 @@ Examples:
         """
     )
     
-    # Positional arguments for basic workflow
+    # Add argument groups using helper functions
+    _add_positional_args(parser)
+    _add_basic_args(parser)
+    _add_batch_args(parser)
+    _add_workflow_args(parser)
+
+    # Temperature control (external utility)
+    add_temperature_arguments(parser)
+
+    _add_bookmark_args(parser)
+    _add_remix_args(parser)
+    _add_reasoning_args(parser)
+    _add_llm_provider_args(parser)
+    _add_output_args(parser)
+    _add_export_args(parser)
+    _add_multimodal_args(parser)
+
+    return parser
+
+
+def _add_positional_args(parser: argparse.ArgumentParser) -> None:
+    """Add positional arguments for basic workflow."""
     parser.add_argument(
         'topic',
         nargs='?',
@@ -269,30 +290,34 @@ Examples:
         nargs='?',
         help='Context and criteria for idea generation (optional additional information)'
     )
-    
-    # Interactive mode
+
+
+def _add_basic_args(parser: argparse.ArgumentParser) -> None:
+    """Add basic and interactive mode flags."""
     parser.add_argument(
         '--version',
         action='version',
         version='MadSpark Multi-Agent System v2.2',
         help='Show version information and exit'
     )
-    
+
     parser.add_argument(
         '--interactive', '-i',
         action='store_true',
         help='Run in interactive mode with step-by-step guidance'
     )
-    
-    # Batch processing
+
+
+def _add_batch_args(parser: argparse.ArgumentParser) -> None:
+    """Add batch processing arguments."""
     batch_group = parser.add_argument_group('batch processing')
-    
+
     batch_group.add_argument(
         '--batch',
         metavar='FILE',
         help='Process multiple themes from CSV or JSON file'
     )
-    
+
     batch_group.add_argument(
         '--batch-concurrent',
         type=int,
@@ -300,22 +325,24 @@ Examples:
         metavar='N',
         help='Maximum concurrent batch items (default: 3)'
     )
-    
+
     batch_group.add_argument(
         '--batch-export-dir',
         default='batch_exports',
         help='Directory for batch export results (default: batch_exports)'
     )
-    
+
     batch_group.add_argument(
         '--create-sample-batch',
         choices=['csv', 'json'],
         help='Create a sample batch file and exit'
     )
-    
-    # Workflow options
+
+
+def _add_workflow_args(parser: argparse.ArgumentParser) -> None:
+    """Add workflow configuration arguments."""
     workflow_group = parser.add_argument_group('workflow options')
-    
+
     workflow_group.add_argument(
         '--top-ideas',
         dest='top_ideas',
@@ -324,7 +351,7 @@ Examples:
         default=None,  # Changed to None to detect if explicitly set
         help='Number of top ideas to generate (1-5, default: 3). Multiple ideas may take up to 5 minutes to process.'
     )
-    
+
     workflow_group.add_argument(
         '--similarity',
         dest='similarity_threshold',
@@ -332,119 +359,124 @@ Examples:
         choices=[round(x * 0.1, 1) for x in range(11)],  # 0.0, 0.1, ..., 1.0
         help='Similarity threshold for novelty filter (0.0-1.0)'
     )
-    
+
     workflow_group.add_argument(
         '--disable-novelty-filter',
         action='store_true',
         help='Disable the novelty filter for duplicate detection'
     )
-    
+
     workflow_group.add_argument(
         '--novelty-threshold',
         type=float,
         default=0.8,
         help='Threshold for novelty filter similarity detection (0.0-1.0, default: 0.8)'
     )
-    
+
     workflow_group.add_argument(
         '--async',
         action='store_true',
         help='Use async execution for better performance (Phase 2.3)'
     )
-    
+
     workflow_group.add_argument(
         '--enable-cache',
         action='store_true',
         help='Enable Redis caching for faster repeated queries (requires Redis)'
     )
-    
+
     workflow_group.add_argument(
         '--timeout',
         type=int,
         default=None,
         help='Request timeout in seconds (default: auto-calculated based on workflow complexity)'
     )
-    
-    # Temperature control
-    add_temperature_arguments(parser)
-    
-    # Bookmark management (automatic by default)
-    bookmark_group = parser.add_argument_group('bookmark management', 
+
+
+def _add_bookmark_args(parser: argparse.ArgumentParser) -> None:
+    """Add bookmark management arguments."""
+    bookmark_group = parser.add_argument_group('bookmark management',
                                               'All generated ideas are automatically bookmarked for future reference')
-    
+
     bookmark_group.add_argument(
         '--no-bookmark',
         action='store_true',
         help='Disable automatic bookmarking of generated ideas'
     )
-    
+
     bookmark_group.add_argument(
         '--bookmark-tags',
         nargs='*',
         help='Tags to apply when bookmarking results'
     )
-    
+
     bookmark_group.add_argument(
         '--bookmark-file',
         default='examples/data/bookmarks.json',
         help='File to store bookmarks (default: examples/data/bookmarks.json)'
     )
-    
+
     bookmark_group.add_argument(
         '--list-bookmarks',
         action='store_true',
         help='List all saved bookmarks and exit'
     )
-    
+
     bookmark_group.add_argument(
         '--search-bookmarks',
         metavar='QUERY',
         help='Search bookmarks by text content'
     )
-    
+
     bookmark_group.add_argument(
         '--remove-bookmark',
         metavar='IDS',
         help='Remove bookmarks by ID (comma-separated for multiple)'
     )
-    
+
     bookmark_group.add_argument(
         '--remix-bookmarks',
         metavar='IDS',
         help='Remix ideas using specific bookmark IDs (comma-separated)'
     )
-    
-    # Remix functionality
+
+
+def _add_remix_args(parser: argparse.ArgumentParser) -> None:
+    """Add remix functionality arguments."""
     remix_group = parser.add_argument_group('remix functionality')
-    
+
     remix_group.add_argument(
         '--remix',
         action='store_true',
         help='Generate ideas based on bookmarked ideas (remix mode)'
     )
-    
+
     remix_group.add_argument(
         '--remix-ids',
         nargs='*',
         help='Specific bookmark IDs to use for remix (default: use all)'
     )
-    
-    # Enhanced reasoning (Phase 2.1)
+
+
+def _add_reasoning_args(parser: argparse.ArgumentParser) -> None:
+    """Add enhanced reasoning arguments."""
     reasoning_group = parser.add_argument_group('enhanced reasoning (Phase 2.1)')
-    
+
     reasoning_group.add_argument(
         '--enhanced-reasoning', '--enhanced',
         action='store_true',
         help='Add advocate & skeptic agents for balanced analysis (strengths/opportunities vs risks/flaws)'
     )
-    
+
     reasoning_group.add_argument(
         '--logical-inference', '--logical',
         action='store_true',
         help='Add logical inference analysis (causal chains, constraints, contradictions, implications)'
     )
 
-    # LLM Provider options
+
+def _add_llm_provider_args(parser: argparse.ArgumentParser) -> None:
+    """Add LLM provider options."""
     llm_group = parser.add_argument_group(
         'LLM provider options',
         'Control LLM provider selection, caching, and model tier'
@@ -494,12 +526,14 @@ Examples:
         help='Disable LLM router entirely (use direct Gemini API calls instead)'
     )
 
-    # Output options
+
+def _add_output_args(parser: argparse.ArgumentParser) -> None:
+    """Add output options."""
     output_group = parser.add_argument_group('output options')
-    
+
     # Create mutually exclusive group for output modes
     output_mode_group = output_group.add_mutually_exclusive_group()
-    
+
     output_mode_group.add_argument(
         '--simple',
         action='store_const',
@@ -507,70 +541,74 @@ Examples:
         const='simple',
         help='Simple, clean output format'
     )
-    
+
     output_mode_group.add_argument(
         '--brief', '-b',
         action='store_const',
-        dest='output_mode', 
+        dest='output_mode',
         const='brief',
         help='Brief output showing only final results (default)'
     )
-    
+
     output_mode_group.add_argument(
         '--detailed', '-d',
         action='store_const',
         dest='output_mode',
-        const='detailed', 
+        const='detailed',
         help='Detailed output with all agent interactions'
     )
-    
+
     # Set default output mode
     parser.set_defaults(output_mode='brief')
-    
+
     output_group.add_argument(
         '--output-format',
         choices=['json', 'text', 'summary', 'simple', 'brief', 'detailed'],
         help='Output format (overrides --simple/--brief/--detailed)'
     )
-    
+
     output_group.add_argument(
         '--output-file',
         help='Save results to file instead of stdout'
     )
-    
+
     output_group.add_argument(
         '--verbose', '-v',
         action='store_true',
         help='Enable verbose logging and show timestamps'
     )
-    
+
     output_group.add_argument(
         '--no-logs',
         action='store_true',
         help='Suppress all log output for clean results'
     )
-    
-    # Export options (Phase 2.2)
+
+
+def _add_export_args(parser: argparse.ArgumentParser) -> None:
+    """Add export options."""
     export_group = parser.add_argument_group('export options (Phase 2.2)')
-    
+
     export_group.add_argument(
         '--export',
         choices=['json', 'csv', 'markdown', 'pdf', 'all'],
         help='Export results to specified format'
     )
-    
+
     export_group.add_argument(
         '--export-dir',
         default='exports',
         help='Directory for exported files (default: exports)'
     )
-    
+
     export_group.add_argument(
         '--export-filename',
         help='Base filename for exports (timestamp will be added if not specified)'
     )
 
-    # Multi-modal inputs
+
+def _add_multimodal_args(parser: argparse.ArgumentParser) -> None:
+    """Add multi-modal input arguments."""
     multimodal_group = parser.add_argument_group(
         'multi-modal inputs',
         'Provide additional context via files and URLs for richer idea generation'
@@ -599,8 +637,6 @@ Examples:
         metavar='PATH',
         help='Add image for visual context (PNG, JPG, JPEG, WebP, GIF, BMP). Can specify multiple times.'
     )
-
-    return parser
 
 
 def list_bookmarks_command(args: argparse.Namespace) -> None:

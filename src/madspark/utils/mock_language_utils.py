@@ -24,17 +24,17 @@ def detect_language(text: str) -> str:
            for char in text):
         return 'ja'
     
-    # Check for French characters/diacritics
-    if any(char in 'àâäæéèêëïîôöùûüÿ' for char in text.lower()):
-        return 'fr'
-    
-    # Check for Spanish characters
-    if any(char in 'ñáíóúç' for char in text.lower()):
-        return 'es'
-    
     # Check for German characters
     if any(char in 'äöüß' for char in text.lower()):
         return 'de'
+    
+    # Check for Spanish characters
+    if any(char in 'ñáíóú' for char in text.lower()):
+        return 'es'
+    
+    # Check for French characters/diacritics
+    if any(char in 'éàèùâêîôûëïç' for char in text.lower()):
+        return 'fr'
     
     # Default to English
     return 'en'

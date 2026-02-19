@@ -1417,7 +1417,8 @@ async def generate_ideas(
         if parsed_request.bookmark_ids:
             try:
                 from madspark.utils.bookmark_system import remix_with_bookmarks
-                context = remix_with_bookmarks(
+                context = await asyncio.to_thread(
+                    remix_with_bookmarks,
                     topic=parsed_request.topic,
                     context=parsed_request.context,
                     bookmark_ids=parsed_request.bookmark_ids,

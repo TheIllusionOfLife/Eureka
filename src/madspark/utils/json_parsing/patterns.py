@@ -89,37 +89,38 @@ NEWLINE_IN_STRING = re.compile(r'("(?:[^"\\]|\\.)*")')
 # Score/Comment Patterns (Legacy Fallback - Last Resort)
 # ============================================================================
 
-#: Standard format: "Score: 8 Comment: text" (case-insensitive)
+#: Standard format: "Score: 8.5 Comment: text" (case-insensitive)
+#: Supports both integer and float scores.
 SCORE_COMMENT_STANDARD = re.compile(
-    r'(?:score|Score)[\s:]+(\d+).*?(?:comment|Comment|critique|Critique)[\s:]+([^\n]+)',
+    r'(?:score|Score)[\s:]+(\d+(?:\.\d+)?).*?(?:comment|Comment|critique|Critique)[\s:]+([^\n]+)',
     re.IGNORECASE | re.DOTALL
 )
 
-#: Narrative format 1: "scores an 8" or "scores a 9 out of 10"
+#: Narrative format 1: "scores an 8.5" or "scores a 9 out of 10"
 #: ReDoS Protection: Comment limited to 500 characters
 SCORE_NARRATIVE_AN = re.compile(
-    r'scores?\s+an?\s+(\d+)(?:\s+out\s+of\s+\d+)?[.,]?\s*(?:Comment|comment)?:?\s*([^\n]{1,500})',
+    r'scores?\s+an?\s+(\d+(?:\.\d+)?)(?:\s+out\s+of\s+\d+)?[.,]?\s*(?:Comment|comment)?:?\s*([^\n]{1,500})',
     re.IGNORECASE
 )
 
-#: Narrative format 2: "give it a score of 7"
+#: Narrative format 2: "give it a score of 7.5"
 #: ReDoS Protection: Comment limited to 500 characters
 SCORE_NARRATIVE_GIVE = re.compile(
-    r'give\s+it\s+a\s+score\s+of\s+(\d+)[.,]?\s*(?:Comment|comment)?:?\s*([^\n]{1,500})',
+    r'give\s+it\s+a\s+score\s+of\s+(\d+(?:\.\d+)?)[.,]?\s*(?:Comment|comment)?:?\s*([^\n]{1,500})',
     re.IGNORECASE
 )
 
-#: Narrative format 3: "deserves a 9" or "gets a 6"
+#: Narrative format 3: "deserves a 9.0" or "gets a 6.5"
 #: ReDoS Protection: Comment limited to 500 characters
 SCORE_NARRATIVE_DESERVES = re.compile(
-    r'(?:deserves?|gets?)\s+an?\s+(\d+)[.,]?\s*(?:Comment|comment)?:?\s*([^\n]{1,500})',
+    r'(?:deserves?|gets?)\s+an?\s+(\d+(?:\.\d+)?)[.,]?\s*(?:Comment|comment)?:?\s*([^\n]{1,500})',
     re.IGNORECASE
 )
 
-#: Narrative format 4: "scores 8" (simplest form)
+#: Narrative format 4: "scores 8.5" (simplest form)
 #: ReDoS Protection: Comment limited to 500 characters
 SCORE_NARRATIVE_SIMPLE = re.compile(
-    r'scores?\s+(\d+)[.,]?\s*(?:Comment|comment)?:?\s*([^\n]{1,500})',
+    r'scores?\s+(\d+(?:\.\d+)?)[.,]?\s*(?:Comment|comment)?:?\s*([^\n]{1,500})',
     re.IGNORECASE
 )
 

@@ -241,6 +241,10 @@ def validate_evaluation_json(data: Dict[str, Any]) -> Dict[str, Any]:
         # Try to convert string scores to float first
         if isinstance(score, str):
             try:
+                # Handle "8.5/10" or "8/10" format by taking the numerator
+                if '/' in score:
+                    score = score.split('/')[0].strip()
+
                 score = float(score)
                 # Check for special float values after conversion
                 import math

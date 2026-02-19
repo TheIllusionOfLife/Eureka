@@ -350,8 +350,13 @@ class ScoreCommentExtractionStrategy(ParsingStrategy):
         matches = patterns.SCORE_COMMENT_STANDARD.findall(text)
         for score_str, comment in matches:
             try:
+                # Use float to support decimal scores and prevent ValueError on float strings
+                score_val = float(score_str)
+                # Convert to int if it's a whole number for cleaner data
+                score = int(score_val) if score_val == int(score_val) else score_val
+
                 results.append({
-                    "score": int(score_str),
+                    "score": score,
                     "comment": comment.strip().strip('"\'')
                 })
             except ValueError:
@@ -363,8 +368,11 @@ class ScoreCommentExtractionStrategy(ParsingStrategy):
                 narrative_matches = pattern.findall(text)
                 for score_str, comment in narrative_matches:
                     try:
+                        score_val = float(score_str)
+                        score = int(score_val) if score_val == int(score_val) else score_val
+
                         results.append({
-                            "score": int(score_str),
+                            "score": score,
                             "comment": comment.strip().strip('"\'.')
                         })
                     except ValueError:

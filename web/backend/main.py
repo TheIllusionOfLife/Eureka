@@ -183,6 +183,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Constants for file handling
+CHUNK_SIZE = 1024 * 1024  # 1MB chunk size for streaming uploads
+
 # Note: Thread-safety is now achieved through request-scoped router instances
 # No global lock needed - each request creates its own independent router
 
@@ -1002,7 +1005,6 @@ def save_upload_file(upload_file: UploadFile) -> Path:
 
     try:
         # Save file securely with chunked reading and incremental size validation
-        CHUNK_SIZE = 1024 * 1024  # 1MB chunks
         total_size = 0
 
         with temp_path.open("wb") as f:
@@ -1013,11 +1015,6 @@ def save_upload_file(upload_file: UploadFile) -> Path:
 
                 total_size += len(chunk)
                 if total_size > MultiModalConfig.MAX_FILE_SIZE:
-                    # Clean up partial file immediately
-                    f.close() # Close file handle to allow unlink
-                    if temp_path.exists():
-                        temp_path.unlink(missing_ok=True)
-
                     raise HTTPException(
                         status_code=413,
                         detail=f"File too large: exceeded {MultiModalConfig.MAX_FILE_SIZE} bytes limit during upload"

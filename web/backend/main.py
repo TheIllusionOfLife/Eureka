@@ -650,7 +650,6 @@ async def add_security_headers(request: Request, call_next):
             response.headers["Strict-Transport-Security"] = hsts_value
 
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
             "script-src 'self' 'unsafe-inline'; "

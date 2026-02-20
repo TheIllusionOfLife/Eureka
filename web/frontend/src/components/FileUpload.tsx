@@ -11,7 +11,7 @@
  * - File size display
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useId } from 'react';
 import { validateFile, formatFileSize, getFileExtension } from '../utils/multimodalValidation';
 import { showError } from '../utils/toast';
 
@@ -29,21 +29,28 @@ const FileUpload: React.FC<FileUploadProps> = ({
   label,
   helpText,
   disabled = false
-}) => {
+}: FileUploadProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const baseId = useId();
+
+  // Derived IDs for accessibility
+  const labelId = `${baseId}-label`;
+  const descriptionId = `${baseId}-description`;
+  const restrictionsId = `${baseId}-restrictions`;
+  const helpTextId = `${baseId}-helptext`;
 
   /**
    * Validate and add files to the list
    */
-  const handleFiles = (newFiles: FileList | null) => {
+  const handleFiles = (newFiles: FileList | null): void => {
     if (!newFiles || newFiles.length === 0 || disabled) return;
 
     const validFiles: File[] = [];
     const errors: string[] = [];
 
     // Check for duplicates and validate each file
-    Array.from(newFiles).forEach(file => {
+    Array.from(newFiles).forEach((file: File) => {
       // Check for duplicates
       const isDuplicate = files.some(existing => existing.name === file.name);
       if (isDuplicate) {
@@ -55,7 +62,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
       try {
         validateFile(file);
         validFiles.push(file);
-      } catch (error) {
+      } catch (error: unknown) {
         if (error instanceof Error) {
           errors.push(`${file.name}: ${error.message}`);
         } else {
@@ -78,7 +85,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
   /**
    * Handle file input change
    */
-  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     handleFiles(e.target.files);
     // Reset input so the same file can be selected again if removed
     e.target.value = '';
@@ -87,14 +94,15 @@ const FileUpload: React.FC<FileUploadProps> = ({
   /**
    * Handle drag over event
    */
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>): void => {
     e.preventDefault();
     e.stopPropagation();
 
     if (disabled) return;
 
     // Only show drag state if files are being dragged
-    if (e.dataTransfer.types.includes('Files')) {
+    // Security: Use Array.from for compatibility with older environments
+    if (Array.from(e.dataTransfer.types).includes('Files')) {
       setIsDragging(true);
     }
   };
@@ -102,7 +110,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
   /**
    * Handle drag leave event
    */
-  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>): void => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
@@ -111,7 +119,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
   /**
    * Handle drop event
    */
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>): void => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
@@ -124,14 +132,14 @@ const FileUpload: React.FC<FileUploadProps> = ({
   /**
    * Handle remove file
    */
-  const handleRemoveFile = (fileToRemove: File) => {
+  const handleRemoveFile = (fileToRemove: File): void => {
     onChange(files.filter(file => file !== fileToRemove));
   };
 
   /**
    * Handle click on drop zone
    */
-  const handleDropZoneClick = () => {
+  const handleDropZoneClick = (): void => {
     if (!disabled && fileInputRef.current) {
       fileInputRef.current.click();
     }
@@ -140,7 +148,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
   /**
    * Handle keyboard interactions for drop zone
    */
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>): void => {
     if (disabled) return;
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
@@ -167,7 +175,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
     <div className="space-y-3">
       {/* Label */}
       {label && (
-        <label className="block text-sm font-medium text-gray-700">
+        <label id={labelId} className="block text-sm font-medium text-gray-700">
           {label}
           {files.length > 0 && (
             <span className="ml-2 text-xs text-gray-500">
@@ -196,7 +204,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
         role="button"
         tabIndex={disabled ? -1 : 0}
         aria-disabled={disabled}
-        aria-labelledby="drop-zone-label drop-zone-description drop-zone-restrictions"
+        aria-labelledby={`${label ? labelId : ''} ${descriptionId} ${restrictionsId} ${helpText ? helpTextId : ''}`.trim()}
         onClick={handleDropZoneClick}
         onKeyDown={handleKeyDown}
         onDragOver={handleDragOver}
@@ -218,10 +226,10 @@ const FileUpload: React.FC<FileUploadProps> = ({
       >
         <div className="space-y-2">
           <div className="text-4xl" aria-hidden="true">{isDragging ? '📥' : '📎'}</div>
-          <p id="drop-zone-description" className="text-sm text-gray-600">
+          <p id={descriptionId} className="text-sm text-gray-600">
             Click to upload or drag files here
           </p>
-          <p id="drop-zone-restrictions" className="text-xs text-gray-500">
+          <p id={restrictionsId} className="text-xs text-gray-500">
             <span className="font-medium">Images:</span> PNG, JPG, WebP, GIF (max 8MB)
             <br />
             <span className="font-medium">Documents:</span> PDF (max 40MB), TXT/MD/DOC/DOCX (max 20MB)
@@ -231,7 +239,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
 
       {/* Help Text */}
       {helpText && (
-        <p id="drop-zone-label" className="text-xs text-gray-500">
+        <p id={helpTextId} className="text-xs text-gray-500">
           {helpText}
         </p>
       )}

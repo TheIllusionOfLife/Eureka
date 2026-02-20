@@ -62,6 +62,11 @@ describe('FileUpload Component', () => {
       const dropZone = screen.getByRole('button', { name: /click to upload/i });
       expect(dropZone).toBeInTheDocument();
       expect(dropZone).toHaveAttribute('tabIndex', '0');
+      expect(dropZone).toHaveAttribute('aria-disabled', 'false');
+      // Verify aria-labelledby is present and has multiple IDs (baseId-description, baseId-restrictions)
+      const labelledBy = dropZone.getAttribute('aria-labelledby');
+      expect(labelledBy).toBeTruthy();
+      expect(labelledBy?.split(' ').length).toBeGreaterThanOrEqual(2);
     });
   });
 

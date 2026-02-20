@@ -1415,19 +1415,22 @@ async def generate_ideas(
         # Handle remix context if bookmark IDs are provided
         context = parsed_request.context
         if parsed_request.bookmark_ids:
-            try:
-                from madspark.utils.bookmark_system import remix_with_bookmarks
-                context = await asyncio.to_thread(
-                    remix_with_bookmarks,
-                    topic=parsed_request.topic,
-                    context=parsed_request.context,
-                    bookmark_ids=parsed_request.bookmark_ids,
-                    bookmark_file=bookmark_system.bookmark_file
-                )
-                await ws_manager.send_progress_update(f"Using {len(parsed_request.bookmark_ids)} bookmarks for remix context", 5.0)
-            except Exception as e:
-                logger.warning(f"Failed to create remix context: {e}")
-                # Continue with original context if remix fails
+            if bookmark_system is None:
+                logger.warning("bookmark_system is not initialized; skipping remix context")
+            else:
+                try:
+                    from madspark.utils.bookmark_system import remix_with_bookmarks
+                    context = await asyncio.to_thread(
+                        remix_with_bookmarks,
+                        topic=parsed_request.topic,
+                        context=parsed_request.context,
+                        bookmark_ids=parsed_request.bookmark_ids,
+                        bookmark_file=bookmark_system.bookmark_file
+                    )
+                    await ws_manager.send_progress_update(f"Using {len(parsed_request.bookmark_ids)} bookmarks for remix context", 5.0)
+                except Exception as e:
+                    logger.warning(f"Failed to create remix context: {e}")
+                    # Continue with original context if remix fails
 
         # Handle multi-modal file uploads
         multimodal_file_paths = []

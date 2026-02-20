@@ -125,7 +125,7 @@ describe('FileUpload Component', () => {
       render(<FileUpload files={[]} onChange={mockOnChange} />);
 
       const file = new File(['test'], 'test.pdf', { type: 'application/pdf' });
-      const dropZone = screen.getByText(/click to upload or drag files here/i).closest('.border-dashed');
+      const dropZone = screen.getByRole('button', { name: /click to upload or drag files here/i });
 
       const dropEvent = {
         dataTransfer: {
@@ -135,8 +135,8 @@ describe('FileUpload Component', () => {
         }
       };
 
-      fireEvent.dragOver(dropZone!, dropEvent as any);
-      fireEvent.drop(dropZone!, dropEvent as any);
+      fireEvent.dragOver(dropZone, dropEvent as any);
+      fireEvent.drop(dropZone, dropEvent as any);
 
       await waitFor(() => {
         expect(mockOnChange).toHaveBeenCalledWith([file]);
@@ -146,7 +146,7 @@ describe('FileUpload Component', () => {
     it('should show drag-over styling when dragging files', () => {
       render(<FileUpload files={[]} onChange={mockOnChange} />);
 
-      const dropZone = screen.getByText(/click to upload or drag files here/i).closest('.border-dashed');
+      const dropZone = screen.getByRole('button', { name: /click to upload or drag files here/i });
 
       const dragEvent = {
         dataTransfer: {
@@ -155,7 +155,7 @@ describe('FileUpload Component', () => {
         }
       };
 
-      fireEvent.dragOver(dropZone!, dragEvent as any);
+      fireEvent.dragOver(dropZone, dragEvent as any);
 
       expect(dropZone).toHaveClass('border-blue-500');
     });
@@ -163,7 +163,7 @@ describe('FileUpload Component', () => {
     it('should remove drag-over styling when drag leaves', () => {
       render(<FileUpload files={[]} onChange={mockOnChange} />);
 
-      const dropZone = screen.getByText(/click to upload or drag files here/i).closest('.border-dashed');
+      const dropZone = screen.getByRole('button', { name: /click to upload or drag files here/i });
 
       const dragEvent = {
         dataTransfer: {
@@ -172,8 +172,8 @@ describe('FileUpload Component', () => {
         }
       };
 
-      fireEvent.dragOver(dropZone!, dragEvent as any);
-      fireEvent.dragLeave(dropZone!);
+      fireEvent.dragOver(dropZone, dragEvent as any);
+      fireEvent.dragLeave(dropZone);
 
       expect(dropZone).not.toHaveClass('border-blue-500');
     });
@@ -181,11 +181,11 @@ describe('FileUpload Component', () => {
     it('should handle dragOver without errors', () => {
       render(<FileUpload files={[]} onChange={mockOnChange} />);
 
-      const dropZone = screen.getByText(/click to upload or drag files here/i).closest('.border-dashed');
+      const dropZone = screen.getByRole('button', { name: /click to upload or drag files here/i });
 
       // This test just verifies dragOver handler doesn't throw errors
       expect(() => {
-        fireEvent.dragOver(dropZone!, {
+        fireEvent.dragOver(dropZone, {
           dataTransfer: { items: [{ kind: 'file' }], types: ['Files'] }
         } as any);
       }).not.toThrow();
@@ -355,7 +355,7 @@ describe('FileUpload Component', () => {
       render(<FileUpload files={[]} onChange={mockOnChange} disabled={true} />);
 
       const file = new File(['test'], 'test.pdf', { type: 'application/pdf' });
-      const dropZone = screen.getByText(/click to upload or drag files here/i).closest('.border-dashed');
+      const dropZone = screen.getByRole('button', { name: /click to upload or drag files here/i });
 
       const dropEvent = {
         dataTransfer: {
@@ -363,7 +363,7 @@ describe('FileUpload Component', () => {
         }
       };
 
-      fireEvent.drop(dropZone!, dropEvent as any);
+      fireEvent.drop(dropZone, dropEvent as any);
 
       await waitFor(() => {
         expect(mockOnChange).not.toHaveBeenCalled();
@@ -378,8 +378,8 @@ describe('FileUpload Component', () => {
       const input = screen.getByTestId('file-input');
       const clickSpy = jest.spyOn(input, 'click');
 
-      const dropZone = screen.getByText(/click to upload or drag files here/i).closest('.border-dashed');
-      fireEvent.click(dropZone!);
+      const dropZone = screen.getByRole('button', { name: /click to upload or drag files here/i });
+      fireEvent.click(dropZone);
 
       expect(clickSpy).toHaveBeenCalled();
     });
@@ -392,8 +392,8 @@ describe('FileUpload Component', () => {
       const input = screen.getByTestId('file-input');
       const clickSpy = jest.spyOn(input, 'click');
 
-      const dropZone = screen.getByText(/click to upload or drag files here/i).closest('.border-dashed');
-      fireEvent.keyDown(dropZone!, { key: 'Enter' });
+      const dropZone = screen.getByRole('button', { name: /click to upload or drag files here/i });
+      fireEvent.keyDown(dropZone, { key: 'Enter' });
 
       expect(clickSpy).toHaveBeenCalled();
     });
@@ -404,8 +404,8 @@ describe('FileUpload Component', () => {
       const input = screen.getByTestId('file-input');
       const clickSpy = jest.spyOn(input, 'click');
 
-      const dropZone = screen.getByText(/click to upload or drag files here/i).closest('.border-dashed');
-      fireEvent.keyDown(dropZone!, { key: ' ' });
+      const dropZone = screen.getByRole('button', { name: /click to upload or drag files here/i });
+      fireEvent.keyDown(dropZone, { key: ' ' });
 
       expect(clickSpy).toHaveBeenCalled();
     });
@@ -416,8 +416,8 @@ describe('FileUpload Component', () => {
       const input = screen.getByTestId('file-input');
       const clickSpy = jest.spyOn(input, 'click');
 
-      const dropZone = screen.getByText(/click to upload or drag files here/i).closest('.border-dashed');
-      fireEvent.keyDown(dropZone!, { key: 'a' });
+      const dropZone = screen.getByRole('button', { name: /click to upload or drag files here/i });
+      fireEvent.keyDown(dropZone, { key: 'a' });
 
       expect(clickSpy).not.toHaveBeenCalled();
     });

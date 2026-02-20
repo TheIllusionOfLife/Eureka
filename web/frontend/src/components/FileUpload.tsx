@@ -193,7 +193,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
       <div
         role="button"
         tabIndex={disabled ? -1 : 0}
-        aria-label="Upload files drop zone"
+        aria-labelledby="drop-zone-label drop-zone-description drop-zone-restrictions"
         onKeyDown={handleKeyDown}
         onClick={handleDropZoneClick}
         onDragOver={handleDragOver}
@@ -213,11 +213,11 @@ const FileUpload: React.FC<FileUploadProps> = ({
         `}
       >
         <div className="space-y-2">
-          <div className="text-4xl">{isDragging ? '📥' : '📎'}</div>
-          <p className="text-sm text-gray-600">
+          <div className="text-4xl" aria-hidden="true">{isDragging ? '📥' : '📎'}</div>
+          <p id="drop-zone-description" className="text-sm text-gray-600">
             Click to upload or drag files here
           </p>
-          <p className="text-xs text-gray-500">
+          <p id="drop-zone-restrictions" className="text-xs text-gray-500">
             <span className="font-medium">Images:</span> PNG, JPG, WebP, GIF (max 8MB)
             <br />
             <span className="font-medium">Documents:</span> PDF (max 40MB), TXT/MD/DOC/DOCX (max 20MB)
@@ -227,7 +227,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
 
       {/* Help Text */}
       {helpText && (
-        <p className="text-xs text-gray-500">
+        <p id="drop-zone-label" className="text-xs text-gray-500">
           {helpText}
         </p>
       )}
@@ -237,12 +237,12 @@ const FileUpload: React.FC<FileUploadProps> = ({
         <div className="space-y-2" role="list">
           {files.map((file, index) => (
             <div
-              key={file.name}
+              key={`${file.name}-${index}`}
               className="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-200"
               role="listitem"
             >
               <div className="flex items-center gap-2 flex-1 min-w-0">
-                <span className="text-xl flex-shrink-0">
+                <span className="text-xl flex-shrink-0" aria-hidden="true">
                   {getFileIcon(file)}
                 </span>
                 <div className="flex-1 min-w-0">
@@ -259,7 +259,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
                 onClick={() => handleRemoveFile(file)}
                 disabled={disabled}
                 className="ml-2 px-2 py-1 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                aria-label="Remove file"
+                aria-label={`Remove ${file.name}`}
               >
                 Remove
               </button>

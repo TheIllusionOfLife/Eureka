@@ -221,16 +221,16 @@ def evaluate_ideas(ideas: str, topic: str, context: str, temperature: float = DE
         return json.dumps(mock_evaluations), 0
     else:
         # Legacy text format for backward compatibility
+        comment = "Mock evaluation for testing"
         if any(char >= '\u3040' and char <= '\u309F' or char >= '\u30A0' and char <= '\u30FF' or char >= '\u4E00' and char <= '\u9FAF' for char in combined_text):
-            return '{"score": 8, "comment": "テスト用のモック評価"}', 0
+            comment = "テスト用のモック評価"
         elif any(char in 'àâäæéèêëïîôöùûüÿ' for char in combined_text.lower()):
-            return '{"score": 8, "comment": "Évaluation factice pour les tests"}', 0
+            comment = "Évaluation factice pour les tests"
         elif any(char in 'ñáíóúüç' for char in combined_text.lower()):
-            return '{"score": 8, "comment": "Evaluación simulada para pruebas"}', 0
+            comment = "Evaluación simulada para pruebas"
         elif any(char in 'äöüß' for char in combined_text.lower()):
-            return '{"score": 8, "comment": "Mock-Bewertung für Tests"}', 0
-        else:
-            return '{"score": 8, "comment": "Mock evaluation for testing"}', 0
+            comment = "Mock-Bewertung für Tests"
+        return f'{{"score": 8, "comment": "{comment}"}}', 0
   
   if critic_client is None:
     from madspark.utils.errors import ConfigurationError

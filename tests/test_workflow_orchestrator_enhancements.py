@@ -49,7 +49,7 @@ class TestWorkflowOrchestratorMonitoring:
         monitor = BatchMonitor()
 
         with patch('madspark.core.workflow_orchestrator.call_critic_with_retry') as mock_critic:
-            mock_critic.return_value = '[{"score": 8, "comment": "Good idea"}]'
+            mock_critic.return_value = ('[{"score": 8, "comment": "Good idea"}]', 100)
 
             # Call with monitoring
             evaluated, tokens = orchestrator.evaluate_ideas_with_monitoring(
@@ -152,7 +152,7 @@ class TestWorkflowOrchestratorMonitoring:
         ]
 
         with patch('madspark.core.workflow_orchestrator.call_critic_with_retry') as mock_critic:
-            mock_critic.return_value = '[{"score": 9, "comment": "Much better"}]'
+            mock_critic.return_value = ('[{"score": 9, "comment": "Much better"}]', 100)
 
             updated, tokens = orchestrator.reevaluate_ideas_with_monitoring(
                 candidates=candidates,
@@ -221,7 +221,7 @@ class TestWorkflowOrchestratorAsync:
         orchestrator = WorkflowOrchestrator(verbose=False)
 
         with patch('madspark.core.workflow_orchestrator.call_critic_with_retry') as mock_critic:
-            mock_critic.return_value = '[{"score": 7, "comment": "Async evaluation"}]'
+            mock_critic.return_value = ('[{"score": 7, "comment": "Async evaluation"}]', 100)
 
             evaluated, tokens = await orchestrator.evaluate_ideas_async(
                 ideas=["Async idea"],
@@ -299,7 +299,7 @@ class TestWorkflowOrchestratorAsync:
         candidates = [{"improved_idea": "Improved", "initial_score": 5}]
 
         with patch('madspark.core.workflow_orchestrator.call_critic_with_retry') as mock_critic:
-            mock_critic.return_value = '[{"score": 8, "comment": "Async better"}]'
+            mock_critic.return_value = ('[{"score": 8, "comment": "Async better"}]', 100)
 
             updated, tokens = await orchestrator.reevaluate_ideas_async(
                 candidates=candidates,
@@ -502,7 +502,7 @@ class TestWorkflowOrchestratorIntegration:
 
             mock_gen.return_value = '{"ideas": [{"text": "Idea 1"}, {"text": "Idea 2"}]}'
             mock_parser.return_value = ["Idea 1", "Idea 2"]
-            mock_critic.return_value = '[{"score": 7, "comment": "Good"}, {"score": 6, "comment": "Ok"}]'
+            mock_critic.return_value = ('[{"score": 7, "comment": "Good"}, {"score": 6, "comment": "Ok"}]', 100)
             mock_advocate.return_value = ([{"formatted": "Advocacy"}] * 2, 100)
             mock_skeptic.return_value = ([{"formatted": "Skepticism"}] * 2, 100)
             mock_improve.return_value = ([{"improved_idea": "Better"}] * 2, 150)
@@ -546,7 +546,7 @@ class TestWorkflowOrchestratorIntegration:
 
             mock_gen.return_value = '{"ideas": [{"text": "Async idea"}]}'
             mock_parser.return_value = ["Async idea"]
-            mock_critic.return_value = '[{"score": 8, "comment": "Great"}]'
+            mock_critic.return_value = ('[{"score": 8, "comment": "Great"}]', 100)
             mock_advocate.return_value = ([{"formatted": "Advocacy"}], 100)
             mock_skeptic.return_value = ([{"formatted": "Skepticism"}], 100)
             mock_improve.return_value = ([{"improved_idea": "Improved"}], 150)

@@ -228,7 +228,7 @@ class WorkflowOrchestrator:
         ideas_text = "\n".join([f"Idea {i+1}: {idea}" for i, idea in enumerate(ideas)])
 
         try:
-            evaluation_output = call_critic_with_retry(
+            evaluation_output, token_count = call_critic_with_retry(
                 ideas=ideas_text,
                 topic=topic,
                 context=context,
@@ -268,9 +268,6 @@ class WorkflowOrchestrator:
                     "multi_dimensional_evaluation": None
                 }
                 evaluated_ideas_data.append(evaluated_idea)
-
-            # TODO: Replace with actual API token counts from response metadata
-            token_count = len(evaluation_output) // 4  # Rough estimation
 
             return evaluated_ideas_data, token_count
 
@@ -540,7 +537,7 @@ class WorkflowOrchestrator:
 
         try:
             # Use ORIGINAL context to prevent bias (not from candidate)
-            evaluation_output = call_critic_with_retry(
+            evaluation_output, token_count = call_critic_with_retry(
                 ideas=ideas_text,
                 topic=topic,
                 context=context,  # Original context, not from candidate
@@ -565,9 +562,6 @@ class WorkflowOrchestrator:
                     # Fallback to original score
                     candidate["improved_score"] = float(candidate.get("initial_score", FALLBACK_SCORE))
                     candidate["improved_critique"] = FALLBACK_CRITIQUE
-
-            # TODO: Replace with actual API token counts from response metadata
-            token_count = len(evaluation_output) // 4  # Rough estimation
 
             return candidates, token_count
 

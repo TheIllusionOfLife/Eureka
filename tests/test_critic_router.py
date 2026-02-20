@@ -49,7 +49,7 @@ class TestCriticRouterIntegration:
         with patch('madspark.agents.critic.get_router', return_value=mock_router):
             with patch('madspark.agents.critic.LLM_ROUTER_AVAILABLE', True):
                 with patch('madspark.agents.critic._should_use_router', return_value=True):
-                    result = evaluate_ideas(
+                    result, _ = evaluate_ideas(
                         ideas="1. AI-powered recycling sorter",
                         topic="Sustainability",
                         context="Urban waste management",
@@ -79,7 +79,7 @@ class TestCriticRouterIntegration:
             with patch('madspark.agents.critic.LLM_ROUTER_AVAILABLE', True):
                 with patch('madspark.agents.critic.GENAI_AVAILABLE', False):
                     # use_router=False should skip router entirely
-                    result = evaluate_ideas(
+                    result, _ = evaluate_ideas(
                         ideas="Test idea",
                         topic="Topic",
                         context="Context",
@@ -109,7 +109,7 @@ class TestCriticRouterIntegration:
             with patch('madspark.agents.critic.LLM_ROUTER_AVAILABLE', True):
                 with patch('madspark.agents.critic._should_use_router', return_value=True):
                     # Should fall back to mock response (no critic_client available in tests)
-                    result = evaluate_ideas(
+                    result, _ = evaluate_ideas(
                         ideas="Test idea",
                         topic="Topic",
                         context="Context"
@@ -210,7 +210,7 @@ class TestCriticRouterIntegration:
         with patch('madspark.agents.critic.get_router', return_value=mock_router):
             with patch('madspark.agents.critic.LLM_ROUTER_AVAILABLE', True):
                 with patch('madspark.agents.critic._should_use_router', return_value=True):
-                    result = evaluate_ideas(
+                    result, _ = evaluate_ideas(
                         ideas=ideas_text,
                         topic="Multi-idea test",
                         context="Testing multiple ideas"
@@ -230,7 +230,7 @@ class TestCriticRouterIntegration:
 
         with patch('madspark.agents.critic.get_router', return_value=mock_router):
             with patch('madspark.agents.critic.LLM_ROUTER_AVAILABLE', False):
-                result = evaluate_ideas(
+                result, _ = evaluate_ideas(
                     ideas="Test",
                     topic="Topic",
                     context="Context"
@@ -246,7 +246,7 @@ class TestCriticRouterIntegration:
         from madspark.agents.critic import evaluate_ideas
 
         # Call without use_router parameter (should default to True)
-        result = evaluate_ideas(
+        result, _ = evaluate_ideas(
             ideas="Test idea",
             topic="Topic",
             context="Context"
@@ -330,7 +330,7 @@ class TestCriticRouterErrorHandling:
             with patch('madspark.agents.critic.LLM_ROUTER_AVAILABLE', True):
                 with patch('madspark.agents.critic._should_use_router', return_value=True):
                     # Should not raise, should fall back
-                    result = evaluate_ideas(
+                    result, _ = evaluate_ideas(
                         ideas="Test",
                         topic="Topic",
                         context="Context"

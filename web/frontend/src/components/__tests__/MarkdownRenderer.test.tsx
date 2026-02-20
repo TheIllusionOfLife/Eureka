@@ -6,28 +6,29 @@ import MarkdownRenderer from '../MarkdownRenderer';
 describe('MarkdownRenderer', () => {
   it('renders markdown content correctly', () => {
     const content = '**Bold Text**';
-    const { container } = render(<MarkdownRenderer content={content} />);
+    render(<MarkdownRenderer content={content} />);
 
-    // Check for strong tag
-    const strongElement = container.querySelector('strong');
-    expect(strongElement).toBeInTheDocument();
-    expect(strongElement).toHaveTextContent('Bold Text');
+    // Check for bold text content
+    const boldText = screen.getByText('Bold Text');
+    expect(boldText).toBeInTheDocument();
+    // Verify it's wrapped in a strong tag (or has font-bold equivalent if using tailwind)
+    // RTL focuses on what user sees, but we can check tagName if needed
+    expect(boldText.tagName).toBe('STRONG');
   });
 
   it('renders headers correctly', () => {
     const content = '### Header 3';
-    const { container } = render(<MarkdownRenderer content={content} />);
+    render(<MarkdownRenderer content={content} />);
 
-    const h3Element = container.querySelector('h3');
+    const h3Element = screen.getByRole('heading', { level: 3, name: /header 3/i });
     expect(h3Element).toBeInTheDocument();
-    expect(h3Element).toHaveTextContent('Header 3');
   });
 
   it('renders lists correctly', () => {
     const content = '* List item';
-    const { container } = render(<MarkdownRenderer content={content} />);
+    render(<MarkdownRenderer content={content} />);
 
-    const liElement = container.querySelector('li');
+    const liElement = screen.getByRole('listitem');
     expect(liElement).toBeInTheDocument();
     expect(liElement).toHaveTextContent('List item');
   });

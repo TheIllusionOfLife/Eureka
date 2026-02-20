@@ -144,7 +144,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
     if (disabled) return;
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      fileInputRef.current?.click();
+      handleDropZoneClick();
     }
   };
 
@@ -187,6 +187,8 @@ const FileUpload: React.FC<FileUploadProps> = ({
         onChange={handleFileInputChange}
         disabled={disabled}
         className="hidden"
+        aria-hidden="true"
+        tabIndex={-1}
       />
 
       {/* Drop Zone */}
@@ -195,21 +197,22 @@ const FileUpload: React.FC<FileUploadProps> = ({
         tabIndex={disabled ? -1 : 0}
         aria-disabled={disabled}
         aria-labelledby="drop-zone-label drop-zone-description drop-zone-restrictions"
-        onKeyDown={handleKeyDown}
         onClick={handleDropZoneClick}
+        onKeyDown={handleKeyDown}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         className={`
           border-2 border-dashed rounded-lg p-6 text-center cursor-pointer
-          transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+          transition-colors duration-200
+          outline-none
           ${isDragging
             ? 'border-blue-500 bg-blue-50'
             : 'border-gray-300 hover:border-blue-400'
           }
           ${disabled
             ? 'opacity-50 cursor-not-allowed bg-gray-100'
-            : 'bg-white'
+            : 'bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50'
           }
         `}
       >

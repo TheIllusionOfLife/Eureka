@@ -38,7 +38,7 @@ def test_single_idea():
     print(f"Topic: {topic}")
     print(f"Context: {context}")
 
-    result = evaluate_ideas(
+    result, token_count = evaluate_ideas(
         ideas=idea,
         topic=topic,
         context=context,
@@ -48,6 +48,7 @@ def test_single_idea():
 
     print(f"\n--- Raw API Response ---")
     print(result)
+    print(f"Token count: {token_count}")
 
     # Parse and validate
     try:
@@ -107,7 +108,7 @@ Virtual reality remote collaboration workspace"""
     print(f"\nTopic: {topic}")
     print(f"Context: {context}")
 
-    result = evaluate_ideas(
+    result, token_count = evaluate_ideas(
         ideas=ideas,
         topic=topic,
         context=context,
@@ -117,6 +118,7 @@ Virtual reality remote collaboration workspace"""
 
     print(f"\n--- Raw API Response ---")
     print(result)
+    print(f"Token count: {token_count}")
 
     # Parse and validate
     try:
@@ -175,7 +177,7 @@ Terrible idea that makes no sense and is completely unfeasible"""
 
     print(f"\nTesting extreme cases to verify API enforces 0-10 bounds...")
 
-    result = evaluate_ideas(
+    result, _ = evaluate_ideas(
         ideas=ideas,
         topic=topic,
         context=context,

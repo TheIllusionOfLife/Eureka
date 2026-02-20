@@ -183,6 +183,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Constants for file handling
+CHUNK_SIZE = 1024 * 1024  # 1MB chunk size for streaming uploads
+
 # Note: Thread-safety is now achieved through request-scoped router instances
 # No global lock needed - each request creates its own independent router
 
@@ -985,7 +988,7 @@ def save_upload_file(upload_file: UploadFile) -> Path:
             detail="Multi-modal support not available"
         )
 
-    # Validate file size before saving
+    # Validate file size before saving (initial check based on headers)
     file_size = getattr(upload_file, 'size', None)
     if file_size and file_size > MultiModalConfig.MAX_FILE_SIZE:
         raise HTTPException(
@@ -1001,10 +1004,23 @@ def save_upload_file(upload_file: UploadFile) -> Path:
     temp_path = temp_dir / f"{uuid.uuid4()}_{upload_file.filename}"
 
     try:
-        # Save file
+        # Save file securely with chunked reading and incremental size validation
+        total_size = 0
+
         with temp_path.open("wb") as f:
-            content = upload_file.file.read()
-            f.write(content)
+            while True:
+                chunk = upload_file.file.read(CHUNK_SIZE)
+                if not chunk:
+                    break
+
+                total_size += len(chunk)
+                if total_size > MultiModalConfig.MAX_FILE_SIZE:
+                    raise HTTPException(
+                        status_code=413,
+                        detail=f"File too large: exceeded {MultiModalConfig.MAX_FILE_SIZE} bytes limit during upload"
+                    )
+
+                f.write(chunk)
 
         # Validate using existing MultiModalInput
         mm_input = MultiModalInput()
@@ -1023,6 +1039,11 @@ def save_upload_file(upload_file: UploadFile) -> Path:
             status_code=400,
             detail=f"File validation failed: {str(e)}"
         )
+    except HTTPException:
+        # Re-raise HTTP exceptions (like our 413 size limit)
+        if temp_path.exists():
+            temp_path.unlink(missing_ok=True)
+        raise
     except Exception as e:
         # File save failed - clean up if file was partially created
         if temp_path.exists():

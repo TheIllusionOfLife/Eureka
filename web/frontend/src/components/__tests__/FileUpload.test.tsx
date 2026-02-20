@@ -56,6 +56,13 @@ describe('FileUpload Component', () => {
       expect(screen.getByText(/test\.pdf/)).toBeInTheDocument();
       expect(screen.getByText(/image\.png/)).toBeInTheDocument();
     });
+
+    it('should have accessible attributes on drop zone', () => {
+      render(<FileUpload files={[]} onChange={mockOnChange} />);
+      const dropZone = screen.getByRole('button', { name: /click to upload/i });
+      expect(dropZone).toBeInTheDocument();
+      expect(dropZone).toHaveAttribute('tabIndex', '0');
+    });
   });
 
   describe('File Selection', () => {
@@ -117,6 +124,44 @@ describe('FileUpload Component', () => {
       await waitFor(() => {
         expect(mockOnChange).toHaveBeenCalledWith([existingFiles[0], newFile]);
       });
+    });
+  });
+
+  describe('Keyboard Interaction', () => {
+    it('should trigger file input when pressing Enter on drop zone', () => {
+      render(<FileUpload files={[]} onChange={mockOnChange} />);
+
+      const input = screen.getByTestId('file-input');
+      const clickSpy = jest.spyOn(input, 'click');
+
+      const dropZone = screen.getByRole('button', { name: /click to upload/i });
+      fireEvent.keyDown(dropZone, { key: 'Enter' });
+
+      expect(clickSpy).toHaveBeenCalled();
+    });
+
+    it('should trigger file input when pressing Space on drop zone', () => {
+      render(<FileUpload files={[]} onChange={mockOnChange} />);
+
+      const input = screen.getByTestId('file-input');
+      const clickSpy = jest.spyOn(input, 'click');
+
+      const dropZone = screen.getByRole('button', { name: /click to upload/i });
+      fireEvent.keyDown(dropZone, { key: ' ' });
+
+      expect(clickSpy).toHaveBeenCalled();
+    });
+
+    it('should not trigger file input when pressing other keys', () => {
+      render(<FileUpload files={[]} onChange={mockOnChange} />);
+
+      const input = screen.getByTestId('file-input');
+      const clickSpy = jest.spyOn(input, 'click');
+
+      const dropZone = screen.getByRole('button', { name: /click to upload/i });
+      fireEvent.keyDown(dropZone, { key: 'a' });
+
+      expect(clickSpy).not.toHaveBeenCalled();
     });
   });
 
@@ -351,6 +396,14 @@ describe('FileUpload Component', () => {
       expect(removeButton).toBeDisabled();
     });
 
+    it('should make drop zone non-interactive when disabled', () => {
+      render(<FileUpload files={[]} onChange={mockOnChange} disabled={true} />);
+
+      const dropZone = screen.getByRole('button', { name: /click to upload/i });
+      expect(dropZone).toHaveAttribute('aria-disabled', 'true');
+      expect(dropZone).toHaveAttribute('tabIndex', '-1');
+    });
+
     it('should not accept drag and drop when disabled', async () => {
       render(<FileUpload files={[]} onChange={mockOnChange} disabled={true} />);
 
@@ -382,44 +435,6 @@ describe('FileUpload Component', () => {
       fireEvent.click(dropZone);
 
       expect(clickSpy).toHaveBeenCalled();
-    });
-  });
-
-  describe('Keyboard Interaction', () => {
-    it('should trigger file input when pressing Enter on drop zone', () => {
-      render(<FileUpload files={[]} onChange={mockOnChange} />);
-
-      const input = screen.getByTestId('file-input');
-      const clickSpy = jest.spyOn(input, 'click');
-
-      const dropZone = screen.getByRole('button', { name: /click to upload or drag files here/i });
-      fireEvent.keyDown(dropZone, { key: 'Enter' });
-
-      expect(clickSpy).toHaveBeenCalled();
-    });
-
-    it('should trigger file input when pressing Space on drop zone', () => {
-      render(<FileUpload files={[]} onChange={mockOnChange} />);
-
-      const input = screen.getByTestId('file-input');
-      const clickSpy = jest.spyOn(input, 'click');
-
-      const dropZone = screen.getByRole('button', { name: /click to upload or drag files here/i });
-      fireEvent.keyDown(dropZone, { key: ' ' });
-
-      expect(clickSpy).toHaveBeenCalled();
-    });
-
-    it('should not trigger file input when pressing other keys', () => {
-      render(<FileUpload files={[]} onChange={mockOnChange} />);
-
-      const input = screen.getByTestId('file-input');
-      const clickSpy = jest.spyOn(input, 'click');
-
-      const dropZone = screen.getByRole('button', { name: /click to upload or drag files here/i });
-      fireEvent.keyDown(dropZone, { key: 'a' });
-
-      expect(clickSpy).not.toHaveBeenCalled();
     });
   });
 });

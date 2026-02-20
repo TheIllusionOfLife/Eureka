@@ -1107,7 +1107,7 @@ def main() -> None:
         ):
             # Auto-generate output filename
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            topic_slug = args.topic[:30].replace(' ', '_').replace('/', '_')
+            topic_slug = args.topic[:30].replace(' ', '_').replace('/', '_').replace('..', '')
             auto_filename = f"output/markdown/madspark_{topic_slug}_{timestamp}.md"
             
             # Ensure output directory exists

@@ -1,14 +1,6 @@
 
 from fastapi.testclient import TestClient
-import sys
-import os
-
-# Add web/backend to sys.path to import main
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../web/backend')))
-# Add src to sys.path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
-
-from main import app
+from web.backend.main import app
 
 client = TestClient(app)
 
@@ -19,9 +11,9 @@ def test_security_headers_present():
 
     headers = response.headers
 
-    # Check for HSTS (currently missing, expecting this to fail)
+    # Check for HSTS (verified fix with preload directive)
     assert "Strict-Transport-Security" in headers, "HSTS header is missing"
-    assert headers["Strict-Transport-Security"] == "max-age=31536000; includeSubDomains"
+    assert headers["Strict-Transport-Security"] == "max-age=31536000; includeSubDomains; preload"
 
     # Check other headers
     assert headers["X-Content-Type-Options"] == "nosniff"

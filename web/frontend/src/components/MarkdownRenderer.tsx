@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 
 interface MarkdownRendererProps {
   content: string;
@@ -45,10 +45,12 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, className 
     return { __html: html };
   };
 
+  const renderedHtml = useMemo(() => renderMarkdown(safeContent), [safeContent]);
+
   return (
     <div 
       className={`prose prose-sm max-w-none ${className}`}
-      dangerouslySetInnerHTML={renderMarkdown(safeContent)}
+      dangerouslySetInnerHTML={renderedHtml}
     />
   );
 };

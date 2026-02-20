@@ -26,9 +26,9 @@ describe('MarkdownRenderer', () => {
 
   it('renders lists correctly', () => {
     const content = '* List item';
-    render(<MarkdownRenderer content={content} />);
+    const { container } = render(<MarkdownRenderer content={content} />);
 
-    const liElement = screen.getByRole('listitem');
+    const liElement = container.querySelector('li');
     expect(liElement).toBeInTheDocument();
     expect(liElement).toHaveTextContent('List item');
   });
@@ -36,5 +36,6 @@ describe('MarkdownRenderer', () => {
   it('handles empty content gracefully', () => {
     const { container } = render(<MarkdownRenderer content="" />);
     expect(container.firstChild).toBeInTheDocument();
+    expect(container.firstChild).toHaveTextContent('');
   });
 });

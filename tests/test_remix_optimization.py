@@ -1,7 +1,7 @@
 
 import asyncio
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 # Mock the function we want to call in a thread
 def mock_remix_with_bookmarks(topic, context, bookmark_ids, bookmark_file):

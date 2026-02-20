@@ -376,11 +376,11 @@ class TestLanguageMatching:
             assert "FORCES:" in result
             assert "Force factice" in result
         
-        # Test German - Note: ö overlaps with French chars so this will show French
+        # Test German - Note: Improved detection correctly identifies German even with overlapping chars
         with patch('madspark.agents.skeptic.GENAI_AVAILABLE', False):
             result = criticize_idea("Test Idee", "Befürwortung", "test topic", "Größe", use_structured_output=False)  # "Größe" has ö
-            # Due to character overlap, this will be detected as French
-            assert "DÉFAUTS CRITIQUES:" in result or "KRITISCHE SCHWÄCHEN:" in result
+            # Should be correctly detected as German
+            assert "KRITISCHE MÄNGEL:" in result
         
         # Test English fallback
         with patch('madspark.agents.advocate.GENAI_AVAILABLE', False):

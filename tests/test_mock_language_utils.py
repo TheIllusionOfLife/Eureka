@@ -1,5 +1,4 @@
 """Tests for mock language detection and response utilities."""
-import pytest
 from madspark.utils.mock_language_utils import detect_language, get_mock_response
 
 class TestMockLanguageUtils:

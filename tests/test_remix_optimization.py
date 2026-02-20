@@ -64,7 +64,7 @@ class TestRemixOptimization(unittest.IsolatedAsyncioTestCase):
             # Simulate the guard logic added to generate_ideas
             bookmark_system = main_module.bookmark_system
             bookmark_ids = ["b-1"]
-            context = "original context"
+            _context = "original context"
 
             if bookmark_ids:
                 if bookmark_system is None:

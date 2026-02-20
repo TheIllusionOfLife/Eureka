@@ -14,8 +14,9 @@ def detect_language(text: str) -> str:
         text: The text to analyze
         
     Returns:
-        Language code: 'ja' for Japanese, 'fr' for French, 'es' for Spanish,
-                      'de' for German, 'en' for English (default)
+        Language code based on character analysis.
+        Detection priority: Japanese > German > Spanish > French > English.
+        Returns 'ja', 'de', 'es', 'fr', or 'en' (default).
     """
     # Check for Japanese characters
     if any(char >= '\u3040' and char <= '\u309F' or  # Hiragana

@@ -50,7 +50,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
       <div className="divide-y divide-gray-200">
         {results.map((result, index) => (
           <ResultItem
-            key={index}
+            key={`${index}-${result.idea.substring(0, 20)}-${result.improved_idea?.substring(0, 20) || ''}`}
             result={result}
             index={index}
             showDetailedResults={showDetailedResults}

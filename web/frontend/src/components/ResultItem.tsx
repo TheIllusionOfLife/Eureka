@@ -30,14 +30,6 @@ const ResultItem: React.FC<ResultItemProps> = React.memo(({
   const [isSharing, setIsSharing] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
-  // Reset local state when result changes
-  React.useEffect(() => {
-    setExpandedSections(new Set());
-    setIsBookmarking(false);
-    setIsSharing(false);
-    setIsExporting(false);
-  }, [result]);
-
   const toggleSection = (section: string) => {
     setExpandedSections(prev => {
       const newSet = new Set(prev);
@@ -93,8 +85,8 @@ const ResultItem: React.FC<ResultItemProps> = React.memo(({
       } else {
         await handleClipboardShare(shareText);
       }
-    } catch (err: any) {
-      if (err.name === 'AbortError') {
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'AbortError') {
         return;
       }
 
@@ -136,7 +128,7 @@ const ResultItem: React.FC<ResultItemProps> = React.memo(({
           document.body.removeChild(textArea);
         }
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Clipboard operation failed:', err);
       const userWantsCopy = window.confirm(
         'Unable to copy automatically. Click OK to see the text to copy manually.'
@@ -177,7 +169,7 @@ const ResultItem: React.FC<ResultItemProps> = React.memo(({
 
       await new Promise(resolve => setTimeout(resolve, 500));
       showSuccess('Idea exported successfully!');
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Export failed:', error);
       showError('Failed to export idea. Please try again.');
     } finally {

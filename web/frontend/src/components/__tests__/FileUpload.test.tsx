@@ -59,7 +59,7 @@ describe('FileUpload Component', () => {
 
     it('should have accessible attributes on drop zone', () => {
       render(<FileUpload files={[]} onChange={mockOnChange} />);
-      const dropZone = screen.getByRole('button', { name: /upload files/i });
+      const dropZone = screen.getByRole('button', { name: /click to upload/i });
       expect(dropZone).toBeInTheDocument();
       expect(dropZone).toHaveAttribute('tabIndex', '0');
     });
@@ -134,7 +134,7 @@ describe('FileUpload Component', () => {
       const input = screen.getByTestId('file-input');
       const clickSpy = jest.spyOn(input, 'click');
 
-      const dropZone = screen.getByRole('button', { name: /upload files/i });
+      const dropZone = screen.getByRole('button', { name: /click to upload/i });
       fireEvent.keyDown(dropZone, { key: 'Enter' });
 
       expect(clickSpy).toHaveBeenCalled();
@@ -146,7 +146,7 @@ describe('FileUpload Component', () => {
       const input = screen.getByTestId('file-input');
       const clickSpy = jest.spyOn(input, 'click');
 
-      const dropZone = screen.getByRole('button', { name: /upload files/i });
+      const dropZone = screen.getByRole('button', { name: /click to upload/i });
       fireEvent.keyDown(dropZone, { key: ' ' });
 
       expect(clickSpy).toHaveBeenCalled();
@@ -158,7 +158,7 @@ describe('FileUpload Component', () => {
       const input = screen.getByTestId('file-input');
       const clickSpy = jest.spyOn(input, 'click');
 
-      const dropZone = screen.getByRole('button', { name: /upload files/i });
+      const dropZone = screen.getByRole('button', { name: /click to upload/i });
       fireEvent.keyDown(dropZone, { key: 'a' });
 
       expect(clickSpy).not.toHaveBeenCalled();
@@ -399,7 +399,7 @@ describe('FileUpload Component', () => {
     it('should make drop zone non-interactive when disabled', () => {
       render(<FileUpload files={[]} onChange={mockOnChange} disabled={true} />);
 
-      const dropZone = screen.getByRole('button', { name: /upload files/i });
+      const dropZone = screen.getByRole('button', { name: /click to upload/i });
       expect(dropZone).toHaveAttribute('aria-disabled', 'true');
       expect(dropZone).toHaveAttribute('tabIndex', '-1');
     });

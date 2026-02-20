@@ -196,7 +196,6 @@ const FileUpload: React.FC<FileUploadProps> = ({
       <div
         role="button"
         tabIndex={disabled ? -1 : 0}
-        aria-label="Upload files. Click to browse or drag and drop files here."
         aria-disabled={disabled}
         onClick={handleDropZoneClick}
         onKeyDown={handleKeyDown}

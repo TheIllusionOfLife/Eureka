@@ -4,7 +4,7 @@ This module consolidates the retry logic for all agent functions that was previo
 duplicated between coordinator.py and async_coordinator.py. This eliminates
 code duplication and provides a single source of truth for agent retry behavior.
 """
-from typing import List, Optional, Union, TYPE_CHECKING
+from typing import List, Optional, Union, TYPE_CHECKING, Tuple
 from pathlib import Path
 
 if TYPE_CHECKING:
@@ -75,7 +75,7 @@ class AgentRetryWrapper:
         temperature: float = 0.3,
         use_structured_output: bool = True,
         router: Optional["LLMRouter"] = None
-    ) -> str:
+    ) -> Tuple[str, int]:
         """Evaluate ideas with retry logic.
 
         Args:
@@ -87,7 +87,7 @@ class AgentRetryWrapper:
             router: Optional LLMRouter instance for request-scoped routing.
 
         Returns:
-            Evaluation results as string.
+            Tuple of (Evaluation results as string, Token count as int).
         """
         return evaluate_ideas(
             ideas=ideas,

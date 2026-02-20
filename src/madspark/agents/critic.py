@@ -6,7 +6,7 @@ and context, providing scores and textual feedback.
 """
 import json
 import logging
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, Tuple
 
 # Set up logger
 logger = logging.getLogger(__name__)
@@ -75,7 +75,7 @@ def _should_use_router() -> bool:
     return should_use_router(LLM_ROUTER_AVAILABLE, get_router)
 
 
-def evaluate_ideas(ideas: str, topic: str, context: str, temperature: float = DEFAULT_CRITIC_TEMPERATURE, use_structured_output: bool = True, use_router: bool = True, router: Optional["LLMRouter"] = None) -> str:
+def evaluate_ideas(ideas: str, topic: str, context: str, temperature: float = DEFAULT_CRITIC_TEMPERATURE, use_structured_output: bool = True, use_router: bool = True, router: Optional["LLMRouter"] = None) -> Tuple[str, int]:
   """Evaluates ideas based on topic and context using the critic model.
 
   When use_router=True and LLM Router is available, routes through the
@@ -95,9 +95,12 @@ def evaluate_ideas(ideas: str, topic: str, context: str, temperature: float = DE
         Enables thread-safe concurrent operation in backend environments.
 
   Returns:
-    A string from the LLM. If use_structured_output is True, returns JSON string.
-    Otherwise, returns newline-separated JSON objects for backward compatibility.
-    Returns an empty string if the model provides no content.
+    A tuple containing:
+    1. A string from the LLM. If use_structured_output is True, returns JSON string.
+       Otherwise, returns newline-separated JSON objects for backward compatibility.
+       Returns an empty string if the model provides no content.
+    2. The token count used for the generation.
+
   Raises:
     ValueError: If ideas, topic, or context are empty or invalid.
   """
@@ -173,7 +176,7 @@ def evaluate_ideas(ideas: str, topic: str, context: str, temperature: float = DE
 
           # Convert validated Pydantic model to JSON string for backward compatibility
           # CriticEvaluations is a RootModel containing list[CriticEvaluation]
-          return json.dumps([eval_item.model_dump() for eval_item in validated.root])
+          return json.dumps([eval_item.model_dump() for eval_item in validated.root]), response.tokens_used
 
       except AllProvidersFailedError as e:
           logger.warning(f"LLM Router failed, falling back to direct API: {e}")
@@ -215,19 +218,19 @@ def evaluate_ideas(ideas: str, topic: str, context: str, temperature: float = DE
                 }
             })
         
-        return json.dumps(mock_evaluations)
+        return json.dumps(mock_evaluations), 0
     else:
         # Legacy text format for backward compatibility
+        comment = "Mock evaluation for testing"
         if any(char >= '\u3040' and char <= '\u309F' or char >= '\u30A0' and char <= '\u30FF' or char >= '\u4E00' and char <= '\u9FAF' for char in combined_text):
-            return '{"score": 8, "comment": "テスト用のモック評価"}'
+            comment = "テスト用のモック評価"
         elif any(char in 'àâäæéèêëïîôöùûüÿ' for char in combined_text.lower()):
-            return '{"score": 8, "comment": "Évaluation factice pour les tests"}'
+            comment = "Évaluation factice pour les tests"
         elif any(char in 'ñáíóúüç' for char in combined_text.lower()):
-            return '{"score": 8, "comment": "Evaluación simulada para pruebas"}'
+            comment = "Evaluación simulada para pruebas"
         elif any(char in 'äöüß' for char in combined_text.lower()):
-            return '{"score": 8, "comment": "Mock-Bewertung für Tests"}'
-        else:
-            return '{"score": 8, "comment": "Mock evaluation for testing"}'
+            comment = "Mock-Bewertung für Tests"
+        return f'{{"score": 8, "comment": "{comment}"}}', 0
   
   if critic_client is None:
     from madspark.utils.errors import ConfigurationError
@@ -259,14 +262,19 @@ def evaluate_ideas(ideas: str, topic: str, context: str, temperature: float = DE
         config=config
     )
     agent_response = response.text if response.text else ""
+
+    # Extract token usage if available
+    token_usage = 0
+    if hasattr(response, 'usage_metadata') and response.usage_metadata:
+        token_usage = response.usage_metadata.total_token_count
+
   except (AttributeError, ValueError, RuntimeError) as e:
     # Return empty string on API/connection errors - coordinator will handle this
     logger.error(f"Error calling Gemini API in criticize_ideas: {e}", exc_info=True)
     agent_response = ""
+    token_usage = 0
 
   # If agent_response is empty or only whitespace, it will be returned as such.
   # The coordinator's parsing of json_evaluation_lines will correctly result
   # in an empty list, leading to default "Evaluation not available" critiques.
-  return agent_response
-
-
+  return agent_response, token_usage

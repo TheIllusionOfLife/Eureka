@@ -154,7 +154,7 @@ class TestCritic:
         mock_response.text = '{"score": 8, "comment": "Mock evaluation for testing"}'
         mock_client.models.generate_content.return_value = mock_response
         
-        result = evaluate_ideas(str(sample_ideas), "innovation and feasibility", "technology startup context")
+        result, _ = evaluate_ideas(str(sample_ideas), "innovation and feasibility", "technology startup context")
         
         assert result is not None
         assert isinstance(result, str)
@@ -264,7 +264,7 @@ class TestAgentIntegration:
         assert ideas is not None
         assert isinstance(ideas, str)
         
-        evaluations = evaluate_ideas(ideas, "innovation and market potential", "startup technology context")
+        evaluations, _ = evaluate_ideas(ideas, "innovation and market potential", "startup technology context")
         assert evaluations is not None
         assert isinstance(evaluations, str)
 
@@ -307,7 +307,7 @@ class TestLanguageMatching:
         mock_client.models.generate_content.return_value = mock_response
         
         # Spanish input
-        result = evaluate_ideas("Automatización con IA", "Innovación tecnológica", "Contexto empresarial")
+        result, _ = evaluate_ideas("Automatización con IA", "Innovación tecnológica", "Contexto empresarial")
         
         # Verify the function was called and prompt contains language instruction
         mock_client.models.generate_content.assert_called_once()
@@ -367,7 +367,7 @@ class TestLanguageMatching:
         
         # Test Spanish
         with patch('madspark.agents.critic.GENAI_AVAILABLE', False):
-            result = evaluate_ideas("Prueba de ideas", "Criterios de evaluación", "Contexto", use_structured_output=False)
+            result, _ = evaluate_ideas("Prueba de ideas", "Criterios de evaluación", "Contexto", use_structured_output=False)
             assert "Evaluación simulada para pruebas" in result
         
         # Test French

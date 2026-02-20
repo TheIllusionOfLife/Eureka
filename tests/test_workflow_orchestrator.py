@@ -135,7 +135,7 @@ class TestWorkflowOrchestratorEvaluateIdeas:
     @patch('madspark.core.workflow_orchestrator.parse_json_with_fallback')
     def test_evaluate_ideas_success(self, mock_parse, mock_critic, orchestrator, sample_ideas):
         """Test successful idea evaluation."""
-        mock_critic.return_value = '[{"score": 8, "comment": "Good"}, {"score": 7, "comment": "OK"}, {"score": 9, "comment": "Great"}]'
+        mock_critic.return_value = ('[{"score": 8, "comment": "Good"}, {"score": 7, "comment": "OK"}, {"score": 9, "comment": "Great"}]', 100)
         mock_parse.return_value = [
             {"score": 8, "comment": "Good feasibility"},
             {"score": 7, "comment": "Needs work"},
@@ -409,7 +409,7 @@ class TestWorkflowOrchestratorReevaluateIdeas:
     @patch('madspark.core.workflow_orchestrator.parse_json_with_fallback')
     def test_reevaluate_ideas_success(self, mock_parse, mock_critic, orchestrator, sample_candidates):
         """Test successful re-evaluation."""
-        mock_critic.return_value = '[{"score": 9, "comment": "Much improved"}]'
+        mock_critic.return_value = ('[{"score": 9, "comment": "Much improved"}]', 100)
         mock_parse.return_value = [
             {"score": 9, "comment": "Excellent improvements address concerns"}
         ]
@@ -431,7 +431,7 @@ class TestWorkflowOrchestratorReevaluateIdeas:
     @patch('madspark.core.workflow_orchestrator.call_critic_with_retry')
     def test_reevaluate_uses_original_context(self, mock_critic, orchestrator, sample_candidates):
         """Test re-evaluation uses original context to avoid bias."""
-        mock_critic.return_value = '[{"score": 8, "comment": "Good"}]'
+        mock_critic.return_value = ('[{"score": 8, "comment": "Good"}]', 100)
 
         # Call with different context than stored in candidate
         updated_candidates, token_count = orchestrator.reevaluate_ideas(
@@ -550,7 +550,7 @@ class TestWorkflowOrchestratorIntegration:
         """Test complete workflow execution through all steps."""
         # Mock all workflow steps
         mock_generator.return_value = "Idea 1: Smart traffic\nIdea 2: AI energy"
-        mock_critic.return_value = '[{"score": 8, "comment": "Good"}, {"score": 7, "comment": "OK"}]'
+        mock_critic.return_value = ('[{"score": 8, "comment": "Good"}, {"score": 7, "comment": "OK"}]', 100)
 
         mock_advocate.return_value = ([
             {"idea_index": 0, "formatted": "Strong advocacy"},

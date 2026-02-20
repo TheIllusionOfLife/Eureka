@@ -7,6 +7,7 @@ import ScoreComparison from './ScoreComparison';
 import { cleanImprovedIdea } from '../utils/ideaCleaner';
 import { showError, showSuccess } from '../utils/toast';
 import { renderAdvocacyContent, renderSkepticismContent } from '../utils/contentRenderers';
+import { formatScore } from '../utils/numberFormat';
 
 interface ResultItemProps {
   result: IdeaResult;
@@ -248,7 +249,7 @@ const ResultItem: React.FC<ResultItemProps> = React.memo(({
             <div className="flex items-center mr-4">
               <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium text-white ${getScoreColor(result.improved_score || 0)}`}>
                 <span className="mr-1">⭐</span>
-                {(result.improved_score || 0).toFixed(1)}/10
+                {formatScore(result.improved_score)}/10
               </div>
               <div className="text-xs text-gray-500 ml-2">
                 {getScoreLabel(result.improved_score || 0)}
@@ -377,11 +378,11 @@ const ResultItem: React.FC<ResultItemProps> = React.memo(({
               />
               <div className="mt-3 text-sm text-gray-600">
                 <p>
-                  <strong>Overall Score:</strong> {(result.multi_dimensional_evaluation.overall_score || 0).toFixed(1)}/10
+                  <strong>Overall Score:</strong> {formatScore(result.multi_dimensional_evaluation.overall_score)}/10
                 </p>
                 <p>
                   <strong>Confidence:</strong> {result.multi_dimensional_evaluation.confidence_interval ?
-                    `${result.multi_dimensional_evaluation.confidence_interval.lower.toFixed(1)} - ${result.multi_dimensional_evaluation.confidence_interval.upper.toFixed(1)}` :
+                    `${formatScore(result.multi_dimensional_evaluation.confidence_interval.lower)} - ${formatScore(result.multi_dimensional_evaluation.confidence_interval.upper)}` :
                     'N/A'}
                 </p>
               </div>
@@ -831,11 +832,11 @@ const ResultItem: React.FC<ResultItemProps> = React.memo(({
                     />
                     <div className="mt-3 text-sm text-gray-600">
                       <p>
-                        <strong>Overall Score:</strong> {(result.multi_dimensional_evaluation.overall_score || 0).toFixed(1)}/10
+                        <strong>Overall Score:</strong> {formatScore(result.multi_dimensional_evaluation.overall_score)}/10
                       </p>
                       <p>
                         <strong>Confidence:</strong> {result.multi_dimensional_evaluation.confidence_interval ?
-                          `${result.multi_dimensional_evaluation.confidence_interval.lower.toFixed(1)} - ${result.multi_dimensional_evaluation.confidence_interval.upper.toFixed(1)}` :
+                          `${formatScore(result.multi_dimensional_evaluation.confidence_interval.lower)} - ${formatScore(result.multi_dimensional_evaluation.confidence_interval.upper)}` :
                           'N/A'}
                       </p>
                     </div>

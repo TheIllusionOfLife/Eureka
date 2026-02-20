@@ -632,6 +632,23 @@ async def add_security_headers(request: Request, call_next):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
+
+        # HSTS is only meaningful over HTTPS; check scheme and forwarded headers
+        forwarded_proto = request.headers.get("x-forwarded-proto", "").split(",")[0].strip().lower()
+        forwarded_ssl = request.headers.get("x-forwarded-ssl", "").strip().lower()
+        is_https = (
+            request.url.scheme == "https"
+            or forwarded_proto == "https"
+            or forwarded_ssl == "on"
+        )
+        if is_https:
+            # preload is irreversible — only enable when explicitly configured for production
+            hsts_preload = os.environ.get("HSTS_PRELOAD", "").strip().lower() == "true"
+            hsts_value = "max-age=31536000; includeSubDomains"
+            if hsts_preload:
+                hsts_value += "; preload"
+            response.headers["Strict-Transport-Security"] = hsts_value
+
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "

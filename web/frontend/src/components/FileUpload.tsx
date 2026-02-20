@@ -193,6 +193,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
       <div
         role="button"
         tabIndex={disabled ? -1 : 0}
+        aria-disabled={disabled}
         aria-labelledby="drop-zone-label drop-zone-description drop-zone-restrictions"
         onKeyDown={handleKeyDown}
         onClick={handleDropZoneClick}

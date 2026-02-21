@@ -1,7 +1,7 @@
 """Tests for CacheManager.get_cache_stats."""
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 from madspark.utils.cache_manager import CacheManager, CacheConfig, RedisConnectionError
 
 class TestCacheManagerStats:

@@ -30,6 +30,14 @@ def parse_idea_generator_response(ideas_text: str) -> List[str]:
         # Extract ideas from structured format
         parsed_ideas = []
         for idea_obj in ideas_list:
+            # Handle non-dict objects (e.g. list of strings)
+            if isinstance(idea_obj, str):
+                parsed_ideas.append(idea_obj.strip())
+                continue
+            elif not isinstance(idea_obj, dict):
+                # Skip unknown types or convert to string representation
+                continue
+
             # Build a formatted idea string from the structured data
             idea_number = idea_obj.get('idea_number')
             title = idea_obj.get('title', 'Untitled')
@@ -44,8 +52,16 @@ def parse_idea_generator_response(ideas_text: str) -> List[str]:
             if 'key_features' in idea_obj and idea_obj['key_features']:
                 # Add key features as a formatted list, ensuring all items are strings
                 try:
-                    features = " Key features: " + ", ".join(str(f) for f in idea_obj['key_features'])
-                    idea_text += features
+                    key_features = idea_obj['key_features']
+                    features_str = ""
+
+                    if isinstance(key_features, list):
+                        features_str = " Key features: " + ", ".join(str(f) for f in key_features)
+                    elif isinstance(key_features, str):
+                        features_str = " Key features: " + key_features
+
+                    if features_str:
+                        idea_text += features_str
                 except Exception:
                     # Skip features if there's any issue with formatting
                     pass
@@ -53,7 +69,7 @@ def parse_idea_generator_response(ideas_text: str) -> List[str]:
             
         return parsed_ideas
         
-    except (json.JSONDecodeError, TypeError):
+    except (json.JSONDecodeError, TypeError, AttributeError):
         # Fall back to text parsing for backward compatibility
         return [idea.strip() for idea in ideas_text.split('\n') if idea.strip()]
 

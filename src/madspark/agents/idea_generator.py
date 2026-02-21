@@ -173,7 +173,7 @@ def generate_ideas(
   Args:
     topic: The main topic for which ideas should be generated.
     context: Supporting context, constraints, or inspiration for the ideas.
-    temperature: Controls randomness in generation (0.0-1.0). Higher values increase creativity.
+    temperature: Controls randomness in generation (0.0-2.0). Higher values increase creativity.
     use_structured_output: Whether to use structured JSON output (default: True).
         Note: When routing through LLM Router, always returns structured JSON regardless
         of this flag, as router enforces Pydantic schema validation for type safety.
@@ -332,7 +332,7 @@ def improve_idea(
     topic: The main topic/theme for the idea.
     context: The constraints or additional context for improvement.
     logical_inference: Optional logical analysis results to inform improvement.
-    temperature: Controls randomness in generation (0.0-1.0).
+    temperature: Controls randomness in generation (0.0-2.0).
                  Default 0.9 to maintain creativity.
     multimodal_files: Optional list of file paths (images, PDFs, documents) for context.
     multimodal_urls: Optional list of URLs for context.
@@ -478,7 +478,7 @@ def improve_ideas_batch(
                         and optional 'logical_inference' key
     topic: The main topic/theme for the ideas
     context: The constraints or additional context for improvement
-    temperature: Generation temperature (0.0-1.0)
+    temperature: Generation temperature (0.0-2.0)
     router: Optional LLMRouter for request-scoped configuration (currently unused,
             batch operations use direct Gemini API for efficiency)
     

@@ -101,7 +101,7 @@ def improve_idea_structured(
         topic: The topic for idea improvement
         context: The original context for improvement
         logical_inference: Optional logical analysis
-        temperature: Controls randomness (0.0-1.0)
+        temperature: Controls randomness (0.0-2.0)
         genai_client: Optional GenAI client instance (bypasses router)
         model_name: Model to use for generation
         multimodal_files: Optional files for multimodal input
@@ -253,7 +253,7 @@ def generate_ideas_structured(
     Args:
         topic: The topic for idea generation
         context: Additional context or constraints
-        temperature: Controls creativity (0.0-1.0)
+        temperature: Controls creativity (0.0-2.0)
         genai_client: Optional GenAI client instance
         model_name: Model to use for generation
         

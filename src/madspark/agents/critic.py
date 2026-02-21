@@ -85,7 +85,7 @@ def evaluate_ideas(ideas: str, topic: str, context: str, temperature: float = DE
     ideas: A string containing the ideas to be evaluated, typically newline-separated.
     topic: The main topic/theme for the ideas.
     context: The constraints or additional context for evaluation.
-    temperature: Controls randomness in generation (0.0-1.0). Lower values increase consistency.
+    temperature: Controls randomness in generation (0.0-2.0). Lower values increase consistency.
     use_structured_output: Whether to use structured JSON output (default: True).
         Note: When routing through LLM Router, always returns structured JSON regardless
         of this flag, as router enforces Pydantic schema validation for type safety.

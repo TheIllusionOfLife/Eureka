@@ -17,7 +17,7 @@ class TestTemperatureRangeValidation:
     """Test temperature range validation supports 0.0-2.0."""
     
     def test_temperature_2_0_should_be_valid(self):
-        """Test that temperature 2.0 is accepted (currently fails)."""
+        """Test that temperature 2.0 is accepted."""
         # Create args with temperature 2.0
         args = argparse.Namespace(
             temperature=2.0,
@@ -79,7 +79,7 @@ class TestCreativityOptionRemoval:
     """Test that --creativity option is removed and --temperature-preset is used."""
     
     def test_creativity_option_should_not_exist(self):
-        """Test that --creativity option is removed from CLI (currently fails)."""
+        """Test that --creativity option is removed from CLI."""
         parser = create_parser()
         
         # Test that attempting to use --creativity raises an error
@@ -105,7 +105,7 @@ class TestCreativityOptionRemoval:
         assert 'creative' in temp_preset_action.choices
     
     def test_help_text_mentions_temperature_range_2_0(self):
-        """Test that help text shows correct temperature range (currently fails)."""
+        """Test that help text shows correct temperature range."""
         parser = argparse.ArgumentParser()
         add_temperature_arguments(parser)
         
@@ -139,7 +139,7 @@ class TestCLIIntegration:
             main()
     
     def test_cli_with_temperature_2_0(self, mock_cli_environment):
-        """Test CLI accepts temperature 2.0 (currently fails)."""
+        """Test CLI accepts temperature 2.0."""
         # This should not raise an error when fixed
         # Use --top-ideas 1 to force sync execution (which uses run_multistep_workflow)
         self.run_cli_with_args(['cli.py', 'test topic', '--temperature', '2.0', '--no-bookmark', '--top-ideas', '1'])
@@ -151,6 +151,6 @@ class TestCLIIntegration:
         self.run_cli_with_args(['cli.py', 'test topic', '--temperature-preset', 'wild', '--no-bookmark', '--top-ideas', '1'])
     
     def test_cli_rejects_creativity_option(self, mock_cli_environment):
-        """Test CLI rejects --creativity option (currently fails)."""
+        """Test CLI rejects --creativity option."""
         with pytest.raises(SystemExit):
             self.run_cli_with_args(['cli.py', 'test topic', '--creativity', 'wild', '--no-bookmark'])

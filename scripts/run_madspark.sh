@@ -1,15 +1,20 @@
 #!/bin/bash
-# Run MadSpark with environment variables loaded
+# Run MadSpark using the robust Python runner
 
-# Activate virtual environment
-source venv/bin/activate
+# Get the directory of the script
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+# Assuming the script is in scripts/, the root is one level up
+ROOT_DIR="$DIR/.."
 
-# Load environment variables from .env file
-# set -a enables automatic export of all variables
-# set +a disables it after sourcing
-set -a
-source .env
-set +a
+# Path to run.py
+RUN_SCRIPT="$ROOT_DIR/run.py"
 
-# Run the CLI with all arguments passed through
-python cli.py "$@"
+# Check if run.py exists
+if [ ! -f "$RUN_SCRIPT" ]; then
+    echo "Error: run.py not found at $RUN_SCRIPT"
+    exit 1
+fi
+
+# Delegate to run.py, passing all arguments
+# run.py handles venv activation and safe .env loading via python-dotenv
+exec "$RUN_SCRIPT" "$@"

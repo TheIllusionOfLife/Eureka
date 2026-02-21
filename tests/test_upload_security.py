@@ -49,8 +49,9 @@ class TestUploadSecurity:
         if self.test_dir.exists():
             shutil.rmtree(self.test_dir)
 
+    @pytest.mark.asyncio
     @patch("madspark.utils.multimodal_input.MultiModalInput.validate_file", return_value=True)
-    def test_save_upload_file_chunked(self, mock_validate):
+    async def test_save_upload_file_chunked(self, mock_validate):
         """Test that save_upload_file works with a valid file."""
         content = b"test content" * 1000
         filename = "test_file.txt"
@@ -62,14 +63,20 @@ class TestUploadSecurity:
         upload_file.file = file_obj
         upload_file.size = len(content)
 
+        # Mock read method
+        async def mock_read(size=-1):
+            return file_obj.read(size)
+        upload_file.read = mock_read
+
         # Call the function
-        saved_path = save_upload_file(upload_file)
+        saved_path = await save_upload_file(upload_file)
 
         assert saved_path.exists()
         assert saved_path.read_bytes() == content
         mock_validate.assert_called_once()
 
-    def test_save_upload_file_too_large(self):
+    @pytest.mark.asyncio
+    async def test_save_upload_file_too_large(self):
         """Test that save_upload_file raises HTTPException if file is too large."""
         # Create content slightly larger than limit
         max_size = MultiModalConfig.MAX_FILE_SIZE
@@ -81,12 +88,13 @@ class TestUploadSecurity:
         upload_file.size = content_size
 
         with pytest.raises(HTTPException) as excinfo:
-            save_upload_file(upload_file)
+            await save_upload_file(upload_file)
 
         assert excinfo.value.status_code == 413
         assert "File too large" in excinfo.value.detail
 
-    def test_save_upload_file_spoofed_content_length(self):
+    @pytest.mark.asyncio
+    async def test_save_upload_file_spoofed_content_length(self):
         """
         Test that save_upload_file detects large file even if size attribute (Content-Length) is small.
         This verifies the incremental size check.
@@ -101,8 +109,13 @@ class TestUploadSecurity:
         upload_file.file = file_obj
         upload_file.size = 1024 # Lie about the size (1KB)
 
+        # Mock read method
+        async def mock_read(size=-1):
+            return file_obj.read(size)
+        upload_file.read = mock_read
+
         with pytest.raises(HTTPException) as excinfo:
-            save_upload_file(upload_file)
+            await save_upload_file(upload_file)
 
         assert excinfo.value.status_code == 413
         # Ensure it's not the first check

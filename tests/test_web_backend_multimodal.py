@@ -23,6 +23,9 @@ except ImportError:
             self.file = file
             self.size = 0
 
+        async def read(self, size=-1):
+            return self.file.read(size)
+
     FastAPIUploadFile = UploadFile
 
 
@@ -198,7 +201,8 @@ class TestURLValidation:
 class TestSaveUploadFile:
     """Test cases for save_upload_file helper function."""
 
-    def test_save_valid_pdf(self, mock_upload_file, temp_upload_dir):
+    @pytest.mark.asyncio
+    async def test_save_valid_pdf(self, mock_upload_file, temp_upload_dir):
         """Test saving a valid PDF file."""
         # Import the helper function
         import sys
@@ -209,7 +213,7 @@ class TestSaveUploadFile:
         from main import save_upload_file
 
         # Save the file
-        saved_path = save_upload_file(mock_upload_file)
+        saved_path = await save_upload_file(mock_upload_file)
 
         # Verify file exists
         assert saved_path.exists()
@@ -219,7 +223,8 @@ class TestSaveUploadFile:
         # Cleanup
         saved_path.unlink(missing_ok=True)
 
-    def test_save_rejects_oversized_file(self, temp_upload_dir):
+    @pytest.mark.asyncio
+    async def test_save_rejects_oversized_file(self, temp_upload_dir):
         """Test that save_upload_file rejects files exceeding size limit."""
         from madspark.config.execution_constants import MultiModalConfig
         import sys
@@ -242,11 +247,12 @@ class TestSaveUploadFile:
             pytest.skip("FastAPI not available")
 
         with pytest.raises(HTTPException) as exc_info:
-            save_upload_file(upload_file)
+            await save_upload_file(upload_file)
 
         assert exc_info.value.status_code == 413
 
-    def test_save_creates_unique_filename(self, mock_upload_file, temp_upload_dir):
+    @pytest.mark.asyncio
+    async def test_save_creates_unique_filename(self, mock_upload_file, temp_upload_dir):
         """Test that save_upload_file creates unique filenames."""
         import sys
         from pathlib import Path
@@ -256,14 +262,14 @@ class TestSaveUploadFile:
 
         # Reset file pointer
         mock_upload_file.file.seek(0)
-        path1 = save_upload_file(mock_upload_file)
+        path1 = await save_upload_file(mock_upload_file)
 
         # Create second upload with same filename
         file2 = BytesIO(b"%PDF-1.4\nTest PDF content 2")
         upload_file2 = UploadFile(filename="test.pdf", file=file2)
         upload_file2.size = len(file2.getvalue())
 
-        path2 = save_upload_file(upload_file2)
+        path2 = await save_upload_file(upload_file2)
 
         # Verify different paths
         assert path1 != path2
@@ -273,7 +279,8 @@ class TestSaveUploadFile:
         path1.unlink(missing_ok=True)
         path2.unlink(missing_ok=True)
 
-    def test_save_validates_file_format(self, temp_upload_dir):
+    @pytest.mark.asyncio
+    async def test_save_validates_file_format(self, temp_upload_dir):
         """Test that save_upload_file validates file format."""
         import sys
         from pathlib import Path
@@ -295,12 +302,13 @@ class TestSaveUploadFile:
             pytest.skip("FastAPI not available")
 
         with pytest.raises(HTTPException) as exc_info:
-            save_upload_file(upload_file)
+            await save_upload_file(upload_file)
 
         assert exc_info.value.status_code == 400
         assert "validation failed" in str(exc_info.value.detail).lower()
 
-    def test_cleanup_temp_file_on_error(self, temp_upload_dir):
+    @pytest.mark.asyncio
+    async def test_cleanup_temp_file_on_error(self, temp_upload_dir):
         """Test that temp files are cleaned up on error."""
         import sys
         from pathlib import Path
@@ -322,7 +330,7 @@ class TestSaveUploadFile:
             pytest.skip("FastAPI not available")
 
         try:
-            save_upload_file(upload_file)
+            await save_upload_file(upload_file)
         except HTTPException:
             pass  # Expected
 

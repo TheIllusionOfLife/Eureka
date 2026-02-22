@@ -1657,6 +1657,27 @@ async def generate_ideas_async(request: Request, idea_request: IdeaGenerationReq
     """Generate ideas using the async MadSpark workflow for better performance."""
     start_time = datetime.now()
 
+    # Check if running in mock mode - check environment variable properly
+    google_api_key = os.environ.get("GOOGLE_API_KEY", "").strip()
+    environment = os.getenv('ENVIRONMENT', '').lower()
+    madspark_mode = os.getenv('MADSPARK_MODE', '').lower()
+    if (madspark_mode == 'mock' or
+        not google_api_key or
+        google_api_key == "your-api-key-here" or
+        google_api_key.startswith('mock-') or
+        google_api_key.startswith('test-') or
+        environment in ['test', 'ci', 'mock']):
+        logger.info("Running in mock mode (async) - returning sample results")
+        mock_results = generate_mock_results(idea_request.topic, idea_request.num_top_candidates, idea_request.logical_inference)
+        return IdeaGenerationResponse(
+            status="success",
+            message=f"Generated {len(mock_results)} mock ideas (async)",
+            results=format_results_for_frontend(mock_results, structured_output_used=False),
+            processing_time=0.5,
+            timestamp=start_time.isoformat(),
+            structured_output=False
+        )
+
     # Define progress callback
     async def progress_callback(message: str, progress: float):
         await ws_manager.send_progress_update(message, progress)

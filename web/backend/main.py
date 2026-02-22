@@ -602,9 +602,16 @@ else:
     logging.info("Rate limiting disabled in mock/test mode (10000/minute)")
 
 # Configure CORS
+cors_origins_str = os.getenv("MADSPARK_CORS_ORIGINS", "")
+if cors_origins_str:
+    cors_origins = [origin.strip() for origin in cors_origins_str.split(",") if origin.strip()]
+else:
+    # Default to React dev server
+    cors_origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],  # React dev server
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

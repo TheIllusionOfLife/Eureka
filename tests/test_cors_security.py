@@ -1,7 +1,6 @@
 import os
 import importlib
 from unittest.mock import patch
-import pytest
 from fastapi.middleware.cors import CORSMiddleware
 
 # We need to import the module to be able to reload it

@@ -1179,7 +1179,7 @@ async def get_temperature_presets():
         }
     except Exception as e:
         logger.error(f"Failed to get temperature presets: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 # LLM Router endpoints
@@ -1238,7 +1238,7 @@ async def get_llm_metrics():
         }
     except Exception as e:
         logger.error(f"Failed to get LLM metrics: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.post(
@@ -1263,7 +1263,7 @@ async def clear_llm_cache():
         }
     except Exception as e:
         logger.error(f"Failed to clear LLM cache: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.get(
@@ -1638,12 +1638,13 @@ async def generate_ideas(
         }
         
         error_tracker.track_error('idea_generation', str(e), error_context)
-        await ws_manager.send_progress_update(f"Error: {str(e)}", 0.0)
+        await ws_manager.send_progress_update("Error: An internal error occurred during idea generation.", 0.0)
         
-        # Provide more detailed error information
+        # Provide more detailed error information (sanitized for user)
+        # SECURE: Do not leak exception details to user
         error_detail = {
-            "error": str(e),
-            "type": type(e).__name__,
+            "error": "An internal error occurred during idea generation.",
+            "type": "InternalServerError",
             "processing_time": processing_time,
             "context": "idea_generation"
         }
@@ -1758,8 +1759,9 @@ async def generate_ideas_async(request: Request, idea_request: IdeaGenerationReq
 
     except Exception as e:
         logger.error(f"Async idea generation failed: {e}")
-        await ws_manager.send_progress_update(f"Error: {str(e)}", 0.0)
-        raise HTTPException(status_code=500, detail=str(e))
+        await ws_manager.send_progress_update("Error: An internal error occurred.", 0.0)
+        # SECURE: Generic error for user
+        raise HTTPException(status_code=500, detail="An internal error occurred.")
     finally:
         # Router cleanup not needed - request-scoped router will be garbage collected
         pass
@@ -1846,7 +1848,7 @@ async def check_bookmark_duplicates(request: Request, duplicate_request: Duplica
             'error_type': type(e).__name__
         }
         error_tracker.track_error('duplicate_check', str(e), error_context)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.get("/api/bookmarks/similar")
@@ -1896,7 +1898,7 @@ async def find_similar_bookmarks(
             'error_type': type(e).__name__
         }
         error_tracker.track_error('similar_search', str(e), error_context)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.get("/api/bookmarks")
@@ -1933,7 +1935,7 @@ async def get_bookmarks(request: Request, tags: Optional[str] = None):
         }
     except Exception as e:
         logger.error(f"Failed to get bookmarks: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.post("/api/bookmarks", response_model=EnhancedBookmarkResponse)
@@ -2025,7 +2027,7 @@ async def create_bookmark(
         }
         
         error_tracker.track_error('bookmark_creation', str(e), error_context)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.delete("/api/bookmarks/{bookmark_id}")
@@ -2050,7 +2052,7 @@ async def delete_bookmark(request: Request, bookmark_id: str):
         }
         
         error_tracker.track_error('bookmark_deletion', str(e), error_context)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.get("/api/cache/stats")
@@ -2068,7 +2070,7 @@ async def get_cache_stats():
         
     except Exception as e:
         logger.error(f"Failed to get cache stats: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.post("/api/cache/invalidate")
@@ -2096,7 +2098,7 @@ async def invalidate_cache(pattern: Optional[str] = None):
             
     except Exception as e:
         error_tracker.track_error('cache_invalidation', str(e), {'pattern': pattern})
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.get("/api/system/errors")
@@ -2115,7 +2117,7 @@ async def get_error_stats():
         }
     except Exception as e:
         logger.error(f"Failed to get error stats: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.get("/api/system/health")
@@ -2152,7 +2154,7 @@ async def detailed_health_check():
             status_code=503,
             content={
                 "status": "unhealthy", 
-                "error": str(e),
+                "error": "Internal server error",
                 "timestamp": datetime.now().isoformat()
             }
         )

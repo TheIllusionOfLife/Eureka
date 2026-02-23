@@ -2,7 +2,7 @@
 # Run MadSpark using the robust Python runner
 
 # Get the directory of the script
-DIR="$( cd -- "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # Assuming the script is in scripts/, the root is one level up
 ROOT_DIR="$DIR/.."
 

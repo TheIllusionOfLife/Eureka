@@ -39,8 +39,7 @@ class NoveltyFilter:
         """
         self.similarity_threshold = similarity_threshold
         self.seen_hashes: Set[str] = set()
-        self.processed_ideas: List[str] = []
-        self.processed_keywords: List[Set[str]] = []
+        self.processed_ideas: List[Tuple[str, Set[str]]] = []
         
     def _normalize_text(self, text: str) -> str:
         """Normalize text for comparison."""
@@ -90,21 +89,11 @@ class NoveltyFilter:
         if text_keywords is None:
             text_keywords = self._get_keywords(text)
 
-        # Use parallel lists if available (should always be synchronized)
-        if len(self.processed_keywords) == len(self.processed_ideas):
-            for existing_idea, existing_keywords in zip(self.processed_ideas, self.processed_keywords):
-                similarity = self._calculate_similarity_from_sets(text_keywords, existing_keywords)
-                if similarity > max_similarity:
-                    max_similarity = similarity
-                    most_similar = existing_idea
-        else:
-            # Fallback if lists are out of sync (should not happen)
-            logger.warning("NoveltyFilter lists out of sync, falling back to slow comparison")
-            for existing_idea in self.processed_ideas:
-                similarity = self._calculate_keyword_similarity(text, existing_idea)
-                if similarity > max_similarity:
-                    max_similarity = similarity
-                    most_similar = existing_idea
+        for existing_idea, existing_keywords in self.processed_ideas:
+            similarity = self._calculate_similarity_from_sets(text_keywords, existing_keywords)
+            if similarity > max_similarity:
+                max_similarity = similarity
+                most_similar = existing_idea
                 
         return max_similarity, most_similar
     
@@ -147,8 +136,7 @@ class NoveltyFilter:
         # Store for future comparisons
         self.seen_hashes.add(text_hash)
         if is_novel:
-            self.processed_ideas.append(idea_text)
-            self.processed_keywords.append(idea_keywords)
+            self.processed_ideas.append((idea_text, idea_keywords))
         
         logger.debug(
             f"Idea novelty check: {idea_text[:50]}... "
@@ -201,7 +189,6 @@ class NoveltyFilter:
         """Reset the filter state."""
         self.seen_hashes.clear()
         self.processed_ideas.clear()
-        self.processed_keywords.clear()
         logger.debug("Novelty filter state reset")
 
 

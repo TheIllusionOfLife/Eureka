@@ -39,7 +39,7 @@ class NoveltyFilter:
         """
         self.similarity_threshold = similarity_threshold
         self.seen_hashes: Set[str] = set()
-        self.processed_ideas: List[str] = []
+        self.processed_ideas: List[Tuple[str, Set[str]]] = []
         
     def _normalize_text(self, text: str) -> str:
         """Normalize text for comparison."""
@@ -65,6 +65,10 @@ class NoveltyFilter:
         keywords1 = self._get_keywords(text1)
         keywords2 = self._get_keywords(text2)
         
+        return self._calculate_similarity_from_sets(keywords1, keywords2)
+
+    def _calculate_similarity_from_sets(self, keywords1: Set[str], keywords2: Set[str]) -> float:
+        """Calculate similarity based on pre-computed keyword sets."""
         if not keywords1 or not keywords2:
             return 0.0
             
@@ -73,7 +77,7 @@ class NoveltyFilter:
         
         return len(intersection) / len(union) if union else 0.0
     
-    def _find_most_similar(self, text: str) -> Tuple[float, str]:
+    def _find_most_similar(self, text: str, text_keywords: Set[str] = None) -> Tuple[float, str]:
         """Find the most similar existing idea."""
         if not self.processed_ideas:
             return 0.0, ""
@@ -81,8 +85,12 @@ class NoveltyFilter:
         max_similarity = 0.0
         most_similar = ""
         
-        for existing_idea in self.processed_ideas:
-            similarity = self._calculate_keyword_similarity(text, existing_idea)
+        # Calculate keywords once if not provided
+        if text_keywords is None:
+            text_keywords = self._get_keywords(text)
+
+        for existing_idea, existing_keywords in self.processed_ideas:
+            similarity = self._calculate_similarity_from_sets(text_keywords, existing_keywords)
             if similarity > max_similarity:
                 max_similarity = similarity
                 most_similar = existing_idea
@@ -117,15 +125,18 @@ class NoveltyFilter:
                 similar_to="Exact duplicate"
             )
         
+        # Calculate keywords for the new idea
+        idea_keywords = self._get_keywords(idea_text)
+
         # Check for semantic similarity
-        max_similarity, most_similar = self._find_most_similar(idea_text)
+        max_similarity, most_similar = self._find_most_similar(idea_text, idea_keywords)
         
         is_novel = max_similarity < self.similarity_threshold
         
         # Store for future comparisons
         self.seen_hashes.add(text_hash)
         if is_novel:
-            self.processed_ideas.append(idea_text)
+            self.processed_ideas.append((idea_text, idea_keywords))
         
         logger.debug(
             f"Idea novelty check: {idea_text[:50]}... "

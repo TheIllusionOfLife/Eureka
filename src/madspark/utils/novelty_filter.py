@@ -39,7 +39,7 @@ class NoveltyFilter:
         """
         self.similarity_threshold = similarity_threshold
         self.seen_hashes: Set[str] = set()
-        self.processed_ideas: List[Tuple[str, Set[str]]] = []
+        self.processed_entries: List[Tuple[str, Set[str]]] = []
         
     def _normalize_text(self, text: str) -> str:
         """Normalize text for comparison."""
@@ -79,7 +79,7 @@ class NoveltyFilter:
     
     def _find_most_similar(self, text: str, text_keywords: Set[str] = None) -> Tuple[float, str]:
         """Find the most similar existing idea."""
-        if not self.processed_ideas:
+        if not self.processed_entries:
             return 0.0, ""
             
         max_similarity = 0.0
@@ -89,7 +89,7 @@ class NoveltyFilter:
         if text_keywords is None:
             text_keywords = self._get_keywords(text)
 
-        for existing_idea, existing_keywords in self.processed_ideas:
+        for existing_idea, existing_keywords in self.processed_entries:
             similarity = self._calculate_similarity_from_sets(text_keywords, existing_keywords)
             if similarity > max_similarity:
                 max_similarity = similarity
@@ -136,7 +136,7 @@ class NoveltyFilter:
         # Store for future comparisons
         self.seen_hashes.add(text_hash)
         if is_novel:
-            self.processed_ideas.append((idea_text, idea_keywords))
+            self.processed_entries.append((idea_text, idea_keywords))
         
         logger.debug(
             f"Idea novelty check: {idea_text[:50]}... "
@@ -188,7 +188,7 @@ class NoveltyFilter:
     def reset(self):
         """Reset the filter state."""
         self.seen_hashes.clear()
-        self.processed_ideas.clear()
+        self.processed_entries.clear()
         logger.debug("Novelty filter state reset")
 
 

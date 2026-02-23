@@ -25,9 +25,7 @@ class TestParseIdeaGeneratorResponse:
             ]
         })
         result = parse_idea_generator_response(json_input)
-        assert len(result) == 2
-        assert result[0] == "1. Idea 1: Desc 1"
-        assert result[1] == "2. Idea 2: Desc 2"
+        assert result == ["1. Idea 1: Desc 1", "2. Idea 2: Desc 2"]
 
     def test_parse_list_format(self):
         """Test parsing JSON list of ideas."""
@@ -36,9 +34,7 @@ class TestParseIdeaGeneratorResponse:
             {"idea_number": 2, "title": "Idea 2", "description": "Desc 2"}
         ])
         result = parse_idea_generator_response(json_input)
-        assert len(result) == 2
-        assert result[0] == "1. Idea 1: Desc 1"
-        assert result[1] == "2. Idea 2: Desc 2"
+        assert result == ["1. Idea 1: Desc 1", "2. Idea 2: Desc 2"]
 
     def test_parse_single_object(self):
         """Test parsing single JSON object."""
@@ -46,8 +42,7 @@ class TestParseIdeaGeneratorResponse:
             "idea_number": 1, "title": "Idea 1", "description": "Desc 1"
         })
         result = parse_idea_generator_response(json_input)
-        assert len(result) == 1
-        assert result[0] == "1. Idea 1: Desc 1"
+        assert result == ["1. Idea 1: Desc 1"]
 
     def test_parse_with_key_features(self):
         """Test parsing ideas with key features."""
@@ -98,9 +93,7 @@ class TestParseIdeaGeneratorResponse:
         text_input = "Idea 1: Desc 1\nIdea 2: Desc 2"
         # Not a valid JSON
         result = parse_idea_generator_response(text_input)
-        assert len(result) == 2
-        assert result[0] == "Idea 1: Desc 1"
-        assert result[1] == "Idea 2: Desc 2"
+        assert result == ["Idea 1: Desc 1", "Idea 2: Desc 2"]
 
     def test_parse_invalid_structure_list_of_strings(self):
         """Test handling of list of strings (should handle gracefully)."""
@@ -109,10 +102,7 @@ class TestParseIdeaGeneratorResponse:
         result = parse_idea_generator_response(json_input)
 
         # Verify it returns the strings as is, thanks to explicit handling
-        assert isinstance(result, list)
-        assert len(result) == 2
-        assert result[0] == "Just a string"
-        assert result[1] == "Another string"
+        assert result == ["Just a string", "Another string"]
 
     def test_parse_invalid_structure_random_dict(self):
         """Test handling of random dict without 'ideas' key."""

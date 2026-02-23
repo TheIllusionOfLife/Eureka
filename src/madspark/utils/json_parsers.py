@@ -35,7 +35,7 @@ def parse_idea_generator_response(ideas_text: str) -> List[str]:
                 parsed_ideas.append(idea_obj.strip())
                 continue
             elif not isinstance(idea_obj, dict):
-                # Skip unknown types or convert to string representation
+                # Skip unknown types that are not strings or dicts.
                 continue
 
             # Build a formatted idea string from the structured data
@@ -51,20 +51,16 @@ def parse_idea_generator_response(ideas_text: str) -> List[str]:
                 
             if 'key_features' in idea_obj and idea_obj['key_features']:
                 # Add key features as a formatted list, ensuring all items are strings
-                try:
-                    key_features = idea_obj['key_features']
-                    features_str = ""
+                key_features = idea_obj['key_features']
+                features_content = ""
 
-                    if isinstance(key_features, list):
-                        features_str = " Key features: " + ", ".join(str(f) for f in key_features)
-                    elif isinstance(key_features, str):
-                        features_str = " Key features: " + key_features
+                if isinstance(key_features, list):
+                    features_content = ", ".join(str(f) for f in key_features)
+                elif isinstance(key_features, str):
+                    features_content = key_features
 
-                    if features_str:
-                        idea_text += features_str
-                except Exception:
-                    # Skip features if there's any issue with formatting
-                    pass
+                if features_content:
+                    idea_text += " Key features: " + features_content
             parsed_ideas.append(idea_text.strip())
             
         return parsed_ideas

@@ -479,8 +479,9 @@ def improve_ideas_batch(
     topic: The main topic/theme for the ideas
     context: The constraints or additional context for improvement
     temperature: Generation temperature (0.0-2.0)
-    router: Optional LLMRouter for request-scoped configuration (currently unused,
-            batch operations use direct Gemini API for efficiency)
+    router: Optional LLMRouter for request-scoped configuration.
+            When provided and router mode is enabled, batch generation
+            can route through the LLM router.
     
   Returns:
     List of improvement responses with structured format including:
@@ -694,5 +695,4 @@ def improve_ideas_batch(
       return fallback_results, 0
     logger.error(f"Unexpected batch improvement failure: {e}", exc_info=True)
     raise RuntimeError(f"Batch improvement failed: {e}")
-
 

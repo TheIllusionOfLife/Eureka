@@ -250,9 +250,10 @@ def advocate_ideas_batch(
     ideas_with_evaluations: List of dicts with 'idea' and 'evaluation' keys
     topic: The main topic or theme being explored
     context: Additional constraints or criteria for evaluation
-    temperature: Generation temperature (0.0-1.0)
-    router: Optional LLMRouter for request-scoped configuration (currently unused,
-            batch operations use direct Gemini API for efficiency)
+    temperature: Generation temperature (0.0-2.0)
+    router: Optional LLMRouter for request-scoped configuration.
+            When provided and router mode is enabled, batch generation
+            can route through the LLM router.
     
   Returns:
     List of advocacy responses with structured format including:
@@ -505,5 +506,4 @@ def advocate_ideas_batch(
         batch_type="advocate",
         items_count=len(ideas_with_evaluations)
     )
-
 

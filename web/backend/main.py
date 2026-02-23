@@ -10,6 +10,7 @@ import json
 import logging
 import os
 import random
+import re
 import uuid
 import sys
 from datetime import datetime
@@ -1018,8 +1019,10 @@ async def save_upload_file(upload_file: UploadFile) -> Path:
     temp_dir = Path("/tmp/madspark_uploads")
     temp_dir.mkdir(exist_ok=True)
 
-    # Generate unique filename with traversal-safe basename
-    safe_filename = os.path.basename(upload_file.filename or "upload.bin")
+    # Sanitize filename
+    safe_filename = re.sub(r'[^a-zA-Z0-9_.-]', '_', upload_file.filename)
+
+    # Generate unique filename
     temp_path = temp_dir / f"{uuid.uuid4()}_{safe_filename}"
 
     try:

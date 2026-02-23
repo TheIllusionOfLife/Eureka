@@ -58,11 +58,18 @@ def get_token_cost(model: str, token_type: str = "input") -> float:
         
     Returns:
         Cost per 1K tokens, or default model cost if model not found
+
+    Raises:
+        ValueError: If token_type is invalid
     """
     if model in TOKEN_COSTS and token_type in TOKEN_COSTS[model]:
         return TOKEN_COSTS[model][token_type]
-    
+
     # Fall back to default model pricing
+    if token_type not in TOKEN_COSTS[DEFAULT_PRICING_MODEL]:
+        valid_types = list(TOKEN_COSTS[DEFAULT_PRICING_MODEL].keys())
+        raise ValueError(f"Invalid token_type: {token_type}. Must be one of {valid_types}")
+
     return TOKEN_COSTS[DEFAULT_PRICING_MODEL][token_type]
 
 def estimate_cost(model: str, input_tokens: int, output_tokens: int = None) -> float:

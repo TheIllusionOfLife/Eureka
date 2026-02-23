@@ -10,7 +10,6 @@ duplication and improving maintainability.
 import asyncio
 import logging
 import time
-from functools import partial
 from typing import List, Tuple, Dict, Any, Optional, Union, TYPE_CHECKING
 from pathlib import Path
 
@@ -896,9 +895,7 @@ class WorkflowOrchestrator:
 
     async def _run_async(self, func, *args, **kwargs):
         """Helper to run synchronous methods in the default executor."""
-        loop = asyncio.get_running_loop()
-        pfunc = partial(func, *args, **kwargs)
-        return await loop.run_in_executor(None, pfunc)
+        return await asyncio.to_thread(func, *args, **kwargs)
 
     async def generate_ideas_async(
         self,

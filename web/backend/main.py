@@ -1652,8 +1652,6 @@ async def generate_ideas(
         error_detail = {
             "error": "An internal error occurred during idea generation.",
             "type": "InternalServerError",
-            "processing_time": processing_time,
-            "context": "idea_generation"
         }
         raise HTTPException(status_code=500, detail=error_detail)
 

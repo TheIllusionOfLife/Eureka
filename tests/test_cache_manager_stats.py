@@ -1,15 +1,16 @@
 """Tests for CacheManager.get_cache_stats."""
 
-import os
-
-os.environ.setdefault("MADSPARK_MODE", "mock")
-
 import pytest
 from unittest.mock import AsyncMock
 from madspark.utils.cache_manager import CacheManager, CacheConfig, RedisConnectionError
 
 class TestCacheManagerStats:
     """Test get_cache_stats method in CacheManager."""
+
+    @pytest.fixture(autouse=True)
+    def setup_env(self, monkeypatch):
+        """Set MADSPARK_MODE to mock for all tests."""
+        monkeypatch.setenv("MADSPARK_MODE", "mock")
 
     @pytest.mark.asyncio
     async def test_get_cache_stats_disconnected(self):

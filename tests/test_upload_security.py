@@ -45,12 +45,19 @@ class TestUploadSecurity:
              shutil.rmtree(self.test_dir)
         self.test_dir.mkdir(exist_ok=True)
 
+    def _mock_async_read(self, upload_file_mock: MagicMock, file_like_obj):
+        """Attach a mocked async read method to an UploadFile mock."""
+        async def mock_read(size=-1):
+            return file_like_obj.read(size)
+        upload_file_mock.read = mock_read
+
     def teardown_method(self):
         if self.test_dir.exists():
             shutil.rmtree(self.test_dir)
 
+    @pytest.mark.asyncio
     @patch("madspark.utils.multimodal_input.MultiModalInput.validate_file", return_value=True)
-    def test_save_upload_file_chunked(self, mock_validate):
+    async def test_save_upload_file_chunked(self, mock_validate):
         """Test that save_upload_file works with a valid file."""
         content = b"test content" * 1000
         filename = "test_file.txt"
@@ -62,14 +69,17 @@ class TestUploadSecurity:
         upload_file.file = file_obj
         upload_file.size = len(content)
 
+        self._mock_async_read(upload_file, file_obj)
+
         # Call the function
-        saved_path = save_upload_file(upload_file)
+        saved_path = await save_upload_file(upload_file)
 
         assert saved_path.exists()
         assert saved_path.read_bytes() == content
         mock_validate.assert_called_once()
 
-    def test_save_upload_file_too_large(self):
+    @pytest.mark.asyncio
+    async def test_save_upload_file_too_large(self):
         """Test that save_upload_file raises HTTPException if file is too large."""
         # Create content slightly larger than limit
         max_size = MultiModalConfig.MAX_FILE_SIZE
@@ -81,12 +91,13 @@ class TestUploadSecurity:
         upload_file.size = content_size
 
         with pytest.raises(HTTPException) as excinfo:
-            save_upload_file(upload_file)
+            await save_upload_file(upload_file)
 
         assert excinfo.value.status_code == 413
         assert "File too large" in excinfo.value.detail
 
-    def test_save_upload_file_spoofed_content_length(self):
+    @pytest.mark.asyncio
+    async def test_save_upload_file_spoofed_content_length(self):
         """
         Test that save_upload_file detects large file even if size attribute (Content-Length) is small.
         This verifies the incremental size check.
@@ -101,10 +112,33 @@ class TestUploadSecurity:
         upload_file.file = file_obj
         upload_file.size = 1024 # Lie about the size (1KB)
 
+        self._mock_async_read(upload_file, file_obj)
+
         with pytest.raises(HTTPException) as excinfo:
-            save_upload_file(upload_file)
+            await save_upload_file(upload_file)
 
         assert excinfo.value.status_code == 413
         # Ensure it's not the first check
         assert "exceeded" in excinfo.value.detail
         assert "bytes limit during upload" in excinfo.value.detail
+
+    @pytest.mark.asyncio
+    @patch("madspark.utils.multimodal_input.MultiModalInput.validate_file", return_value=True)
+    async def test_save_upload_file_sanitizes_filename(self, mock_validate):
+        """Path traversal attempts in upload filename should be sanitized."""
+        content = b"safe content"
+        file_obj = io.BytesIO(content)
+
+        upload_file = MagicMock(spec=UploadFile)
+        upload_file.filename = "../../etc/passwd"
+        upload_file.file = file_obj
+        upload_file.size = len(content)
+        self._mock_async_read(upload_file, file_obj)
+
+        saved_path = await save_upload_file(upload_file)
+
+        assert saved_path.parent == self.test_dir
+        assert saved_path.read_bytes() == content
+        assert "passwd" in saved_path.name
+        assert ".." not in saved_path.name
+        mock_validate.assert_called_once()

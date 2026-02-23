@@ -32,6 +32,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 import html
+from anyio import open_file
 
 # Import OpenAPI enhancements
 try:
@@ -981,7 +982,7 @@ ws_manager = WebSocketManager()
 
 
 # Multi-modal file upload helper
-def save_upload_file(upload_file: UploadFile) -> Path:
+async def save_upload_file(upload_file: UploadFile) -> Path:
     """Save uploaded file to temp directory with validation.
 
     Args:
@@ -1017,16 +1018,17 @@ def save_upload_file(upload_file: UploadFile) -> Path:
     temp_dir = Path("/tmp/madspark_uploads")
     temp_dir.mkdir(exist_ok=True)
 
-    # Generate unique filename
-    temp_path = temp_dir / f"{uuid.uuid4()}_{upload_file.filename}"
+    # Generate unique filename with traversal-safe basename
+    safe_filename = os.path.basename(upload_file.filename or "upload.bin")
+    temp_path = temp_dir / f"{uuid.uuid4()}_{safe_filename}"
 
     try:
         # Save file securely with chunked reading and incremental size validation
         total_size = 0
 
-        with temp_path.open("wb") as f:
+        async with await open_file(temp_path, "wb") as f:
             while True:
-                chunk = upload_file.file.read(CHUNK_SIZE)
+                chunk = await upload_file.read(CHUNK_SIZE)
                 if not chunk:
                     break
 
@@ -1037,11 +1039,11 @@ def save_upload_file(upload_file: UploadFile) -> Path:
                         detail=f"File too large: exceeded {MultiModalConfig.MAX_FILE_SIZE} bytes limit during upload"
                     )
 
-                f.write(chunk)
+                await f.write(chunk)
 
         # Validate using existing MultiModalInput
         mm_input = MultiModalInput()
-        mm_input.validate_file(temp_path)
+        await asyncio.to_thread(mm_input.validate_file, temp_path)
 
         logger.info(f"Saved and validated file: {upload_file.filename} -> {temp_path}")
         return temp_path
@@ -1492,7 +1494,7 @@ async def generate_ideas(
             if multimodal_files:
                 for file in multimodal_files:
                     try:
-                        temp_path = save_upload_file(file)
+                        temp_path = await save_upload_file(file)
                         temp_files.append(temp_path)
                         multimodal_file_paths.append(temp_path)
                         logger.info(f"Processed file upload: {file.filename}")
@@ -1508,7 +1510,7 @@ async def generate_ideas(
             if multimodal_images:
                 for file in multimodal_images:
                     try:
-                        temp_path = save_upload_file(file)
+                        temp_path = await save_upload_file(file)
                         temp_files.append(temp_path)
                         multimodal_file_paths.append(temp_path)
                         logger.info(f"Processed image upload: {file.filename}")

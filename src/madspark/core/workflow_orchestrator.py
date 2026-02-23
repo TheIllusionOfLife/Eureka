@@ -10,7 +10,6 @@ duplication and improving maintainability.
 import asyncio
 import logging
 import time
-from functools import partial
 from typing import List, Tuple, Dict, Any, Optional, Union, TYPE_CHECKING
 from pathlib import Path
 
@@ -894,6 +893,10 @@ class WorkflowOrchestrator:
     # ASYNC METHOD VARIANTS (Phase 3.2a)
     # ========================================================================
 
+    async def _run_async(self, func, *args, **kwargs):
+        """Helper to run synchronous methods in the default executor."""
+        return await asyncio.to_thread(func, *args, **kwargs)
+
     async def generate_ideas_async(
         self,
         topic: str,
@@ -914,9 +917,7 @@ class WorkflowOrchestrator:
         Returns:
             Tuple of (list of idea strings, token count).
         """
-        # Use partial to handle keyword arguments with run_in_executor
-        loop = asyncio.get_running_loop()
-        func = partial(
+        return await self._run_async(
             self.generate_ideas,
             topic=topic,
             context=context,
@@ -924,7 +925,6 @@ class WorkflowOrchestrator:
             multimodal_files=multimodal_files,
             multimodal_urls=multimodal_urls
         )
-        return await loop.run_in_executor(None, func)
 
     async def evaluate_ideas_async(
         self,
@@ -942,9 +942,7 @@ class WorkflowOrchestrator:
         Returns:
             Tuple of (evaluated ideas, token count).
         """
-        loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(
-            None,
+        return await self._run_async(
             self.evaluate_ideas,
             ideas,
             topic,
@@ -967,9 +965,7 @@ class WorkflowOrchestrator:
         Returns:
             Tuple of (updated candidates, token count).
         """
-        loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(
-            None,
+        return await self._run_async(
             self.process_advocacy,
             candidates,
             topic,
@@ -992,9 +988,7 @@ class WorkflowOrchestrator:
         Returns:
             Tuple of (updated candidates, token count).
         """
-        loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(
-            None,
+        return await self._run_async(
             self.process_skepticism,
             candidates,
             topic,
@@ -1017,9 +1011,7 @@ class WorkflowOrchestrator:
         Returns:
             Tuple of (updated candidates, token count).
         """
-        loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(
-            None,
+        return await self._run_async(
             self.improve_ideas,
             candidates,
             topic,
@@ -1042,9 +1034,7 @@ class WorkflowOrchestrator:
         Returns:
             Tuple of (updated candidates, token count).
         """
-        loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(
-            None,
+        return await self._run_async(
             self.reevaluate_ideas,
             candidates,
             topic,
@@ -1166,13 +1156,10 @@ class WorkflowOrchestrator:
         Returns:
             Updated candidates with multi_dimensional_evaluation field.
         """
-        loop = asyncio.get_running_loop()
-        # Use partial to pass keyword arguments
-        func = partial(
+        return await self._run_async(
             self.add_multi_dimensional_evaluation,
             candidates=candidates,
             topic=topic,
             context=context,
             text_key=text_key
         )
-        return await loop.run_in_executor(None, func)

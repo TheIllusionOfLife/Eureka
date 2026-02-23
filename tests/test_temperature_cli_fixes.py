@@ -138,6 +138,7 @@ class TestCLIIntegration:
     
     def test_cli_with_temperature_2_0(self, mock_cli_environment):
         """Test CLI accepts temperature 2.0."""
+        # This should not raise an error when fixed
         # Use --top-ideas 1 to force sync execution (which uses run_multistep_workflow)
         self.run_cli_with_args(['cli.py', 'test topic', '--temperature', '2.0', '--no-bookmark', '--top-ideas', '1'])
     

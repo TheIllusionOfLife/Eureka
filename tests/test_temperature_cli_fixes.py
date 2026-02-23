@@ -25,7 +25,6 @@ class TestTemperatureRangeValidation:
             list_presets=False
         )
         
-        # This should NOT raise an error when fixed
         manager = create_temperature_manager_from_args(args)
         assert manager.config.base_temperature == 2.0
     
@@ -37,7 +36,6 @@ class TestTemperatureRangeValidation:
             list_presets=False
         )
         
-        # This should NOT raise an error when fixed
         manager = create_temperature_manager_from_args(args)
         assert manager.config.base_temperature == 1.5
     

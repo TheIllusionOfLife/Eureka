@@ -1,4 +1,6 @@
 """Tests for batch JSON parsing with fallback strategies."""
+import pytest
+
 from madspark.utils.utils import parse_batch_json_with_fallback
 
 class TestBatchJsonParsing:
@@ -12,42 +14,33 @@ class TestBatchJsonParsing:
         assert result[0]["id"] == 1
         assert result[1]["name"] == "Item 2"
 
-    def test_missing_comma_after_string(self):
-        """Strategy 2: Test missing comma after a string value."""
-        # JSON structure: {"key1": "value1" "key2": "value2"}
-        # The regex expects newline separation: "value"\n    "key":
-        invalid_json = '[\n  {\n    "key1": "value1"\n    "key2": "value2"\n  }\n]'
+    @pytest.mark.parametrize(
+        "invalid_json, expected",
+        [
+            (
+                '[\n  {\n    "key1": "value1"\n    "key2": "value2"\n  }\n]',
+                {"key1": "value1", "key2": "value2"},
+            ),
+            (
+                '[\n  {\n    "list": ["a", "b"]\n    "key": "value"\n  }\n]',
+                {"list": ["a", "b"], "key": "value"},
+            ),
+            (
+                '[\n  {\n    "num": 123\n    "key": "value"\n  }\n]',
+                {"num": 123, "key": "value"},
+            ),
+            (
+                '[\n  {\n    "nested": {"a": 1}\n    "key": "value"\n  }\n]',
+                {"nested": {"a": 1}, "key": "value"},
+            ),
+        ],
+        ids=["after-string", "after-array", "after-number", "after-object"],
+    )
+    def test_missing_comma_fallback(self, invalid_json, expected):
+        """Strategy 2: Test missing comma repair for multiple value types."""
         result = parse_batch_json_with_fallback(invalid_json)
         assert len(result) == 1
-        assert result[0]["key1"] == "value1"
-        assert result[0]["key2"] == "value2"
-
-    def test_missing_comma_after_array(self):
-        """Strategy 2: Test missing comma after an array value."""
-        # JSON structure: {"list": ["a", "b"] "key": "value"}
-        invalid_json = '[\n  {\n    "list": ["a", "b"]\n    "key": "value"\n  }\n]'
-        result = parse_batch_json_with_fallback(invalid_json)
-        assert len(result) == 1
-        assert result[0]["list"] == ["a", "b"]
-        assert result[0]["key"] == "value"
-
-    def test_missing_comma_after_number(self):
-        """Strategy 2: Test missing comma after a number value."""
-        # JSON structure: {"num": 123 "key": "value"}
-        invalid_json = '[\n  {\n    "num": 123\n    "key": "value"\n  }\n]'
-        result = parse_batch_json_with_fallback(invalid_json)
-        assert len(result) == 1
-        assert result[0]["num"] == 123
-        assert result[0]["key"] == "value"
-
-    def test_missing_comma_after_object(self):
-        """Strategy 2: Test missing comma after a nested object."""
-        # JSON structure: {"nested": {"a": 1} "key": "value"}
-        invalid_json = '[\n  {\n    "nested": {"a": 1}\n    "key": "value"\n  }\n]'
-        result = parse_batch_json_with_fallback(invalid_json)
-        assert len(result) == 1
-        assert result[0]["nested"]["a"] == 1
-        assert result[0]["key"] == "value"
+        assert result[0] == expected
 
     def test_regex_extraction(self):
         """Strategy 3: Test extracting objects when list structure is broken."""

@@ -1,9 +1,4 @@
-import sys
-import os
 import unittest
-
-# Adjust path so we can import madspark modules
-sys.path.append(os.path.join(os.path.dirname(__file__), "../src"))
 
 from madspark.utils.duplicate_detector import (
     DuplicateDetector,

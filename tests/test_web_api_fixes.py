@@ -1,6 +1,7 @@
 """Tests for Web API fixes and improvements."""
 
 import pytest
+import uuid
 from datetime import datetime
 from unittest.mock import patch
 
@@ -111,7 +112,6 @@ class TestWebAPIFixes:
     def test_bookmark_field_validation(self, client):
         """Test bookmark creation with proper field validation."""
         # Use unique idea to avoid duplicate detection issues
-        import uuid
         unique_id = str(uuid.uuid4())
 
         bookmark_data = {

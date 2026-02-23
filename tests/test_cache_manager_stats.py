@@ -1,5 +1,9 @@
 """Tests for CacheManager.get_cache_stats."""
 
+import os
+
+os.environ.setdefault("MADSPARK_MODE", "mock")
+
 import pytest
 from unittest.mock import AsyncMock
 from madspark.utils.cache_manager import CacheManager, CacheConfig, RedisConnectionError
@@ -37,10 +41,10 @@ class TestCacheManagerStats:
 
         # Mock scan_iter for workflow and agent keys
         async def mock_scan_iter(match=None):
-            if "workflow" in match:
+            if match and "workflow" in match:
                 for i in range(10):
                     yield f"workflow:{i}"
-            elif "agent" in match:
+            elif match and "agent" in match:
                 for i in range(5):
                     yield f"agent:{i}"
             else:

@@ -1026,7 +1026,7 @@ async def save_upload_file(upload_file: UploadFile) -> Path:
         # Save file securely with chunked reading and incremental size validation
         total_size = 0
 
-        async with open_file(temp_path, "wb") as f:
+        async with await open_file(temp_path, "wb") as f:
             while True:
                 chunk = await upload_file.read(CHUNK_SIZE)
                 if not chunk:

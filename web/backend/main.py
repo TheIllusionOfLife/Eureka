@@ -227,6 +227,21 @@ class ErrorTracker:
 error_tracker = ErrorTracker()
 
 
+def _is_mock_mode() -> bool:
+    """Return True when runtime configuration indicates mock mode should be used."""
+    google_api_key = os.environ.get("GOOGLE_API_KEY", "").strip()
+    madspark_mode = os.getenv("MADSPARK_MODE", "").lower()
+    environment = os.getenv("ENVIRONMENT", "").lower()
+    return (
+        madspark_mode == "mock"
+        or not google_api_key
+        or google_api_key == "your-api-key-here"
+        or google_api_key.startswith("mock-")
+        or google_api_key.startswith("test-")
+        or environment in ["test", "ci", "mock"]
+    )
+
+
 def create_request_router(idea_request: "IdeaGenerationRequest") -> Optional["LLMRouter"]:
     """Create a request-scoped LLMRouter from the request model.
 
@@ -1083,7 +1098,7 @@ async def save_upload_file(upload_file: UploadFile) -> Path:
         logger.error(f"Failed to save file {upload_file.filename}: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to save file: {str(e)}"
+            detail="Internal server error while saving file"
         )
 
 
@@ -1133,7 +1148,7 @@ async def health_check():
         error_tracker.track_error('health_check_basic', str(e))
         return JSONResponse(
             status_code=503,
-            content={"status": "unhealthy", "error": str(e)}
+            content={"status": "unhealthy", "error": "Internal server error"}
         )
 
 
@@ -1193,7 +1208,7 @@ async def get_temperature_presets():
         }
     except Exception as e:
         logger.error(f"Failed to get temperature presets: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 # LLM Router endpoints
@@ -1223,7 +1238,7 @@ async def get_llm_health():
         logger.error(f"Failed to get LLM health: {e}")
         return {
             "status": "error",
-            "message": str(e),
+            "message": "Internal server error",
             "providers": {}
         }
 
@@ -1252,7 +1267,7 @@ async def get_llm_metrics():
         }
     except Exception as e:
         logger.error(f"Failed to get LLM metrics: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.post(
@@ -1277,7 +1292,7 @@ async def clear_llm_cache():
         }
     except Exception as e:
         logger.error(f"Failed to clear LLM cache: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.get(
@@ -1419,15 +1434,7 @@ async def generate_ideas(
     parsed_request = await parse_idea_request(idea_request, request)
 
     # Check if running in mock mode - check environment variable properly
-    google_api_key = os.environ.get("GOOGLE_API_KEY", "").strip()
-    environment = os.getenv('ENVIRONMENT', '').lower()
-    madspark_mode = os.getenv('MADSPARK_MODE', '').lower()
-    if (madspark_mode == 'mock' or
-        not google_api_key or 
-        google_api_key == "your-api-key-here" or 
-        google_api_key.startswith('mock-') or 
-        google_api_key.startswith('test-') or
-        environment in ['test', 'ci', 'mock']):
+    if _is_mock_mode():
         logger.info("Running in mock mode - returning sample results")
         mock_results = generate_mock_results(parsed_request.topic, parsed_request.num_top_candidates, parsed_request.logical_inference)
         return IdeaGenerationResponse(
@@ -1652,14 +1659,13 @@ async def generate_ideas(
         }
         
         error_tracker.track_error('idea_generation', str(e), error_context)
-        await ws_manager.send_progress_update(f"Error: {str(e)}", 0.0)
+        await ws_manager.send_progress_update("Error: An internal error occurred during idea generation.", 0.0)
         
-        # Provide more detailed error information
+        # Provide more detailed error information (sanitized for user)
+        # SECURE: Do not leak exception details to user
         error_detail = {
-            "error": str(e),
-            "type": type(e).__name__,
-            "processing_time": processing_time,
-            "context": "idea_generation"
+            "error": "An internal error occurred during idea generation.",
+            "type": "InternalServerError",
         }
         raise HTTPException(status_code=500, detail=error_detail)
 
@@ -1669,6 +1675,19 @@ async def generate_ideas(
 async def generate_ideas_async(request: Request, idea_request: IdeaGenerationRequest):
     """Generate ideas using the async MadSpark workflow for better performance."""
     start_time = datetime.now()
+
+    # Check if running in mock mode - check environment variable properly
+    if _is_mock_mode():
+        logger.info("Running in mock mode (async) - returning sample results")
+        mock_results = generate_mock_results(idea_request.topic, idea_request.num_top_candidates, idea_request.logical_inference)
+        return IdeaGenerationResponse(
+            status="success",
+            message=f"Generated {len(mock_results)} mock ideas (async)",
+            results=format_results_for_frontend(mock_results, structured_output_used=False),
+            processing_time=0.5,
+            timestamp=start_time.isoformat(),
+            structured_output=False
+        )
 
     # Define progress callback
     async def progress_callback(message: str, progress: float):
@@ -1770,10 +1789,13 @@ async def generate_ideas_async(request: Request, idea_request: IdeaGenerationReq
             llm_metrics=llm_metrics
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Async idea generation failed: {e}")
-        await ws_manager.send_progress_update(f"Error: {str(e)}", 0.0)
-        raise HTTPException(status_code=500, detail=str(e))
+        await ws_manager.send_progress_update("Error: An internal error occurred.", 0.0)
+        # SECURE: Generic error for user
+        raise HTTPException(status_code=500, detail="An internal error occurred.")
     finally:
         # Router cleanup not needed - request-scoped router will be garbage collected
         pass
@@ -1860,7 +1882,7 @@ async def check_bookmark_duplicates(request: Request, duplicate_request: Duplica
             'error_type': type(e).__name__
         }
         error_tracker.track_error('duplicate_check', str(e), error_context)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.get("/api/bookmarks/similar")
@@ -1910,7 +1932,7 @@ async def find_similar_bookmarks(
             'error_type': type(e).__name__
         }
         error_tracker.track_error('similar_search', str(e), error_context)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.get("/api/bookmarks")
@@ -1947,7 +1969,7 @@ async def get_bookmarks(request: Request, tags: Optional[str] = None):
         }
     except Exception as e:
         logger.error(f"Failed to get bookmarks: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.post("/api/bookmarks", response_model=EnhancedBookmarkResponse)
@@ -2039,7 +2061,7 @@ async def create_bookmark(
         }
         
         error_tracker.track_error('bookmark_creation', str(e), error_context)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.delete("/api/bookmarks/{bookmark_id}")
@@ -2057,6 +2079,8 @@ async def delete_bookmark(request: Request, bookmark_id: str):
         else:
             raise HTTPException(status_code=404, detail=f"Bookmark {bookmark_id} not found")
             
+    except HTTPException:
+        raise
     except Exception as e:
         error_context = {
             'bookmark_id': bookmark_id,
@@ -2064,7 +2088,7 @@ async def delete_bookmark(request: Request, bookmark_id: str):
         }
         
         error_tracker.track_error('bookmark_deletion', str(e), error_context)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.get("/api/cache/stats")
@@ -2082,7 +2106,7 @@ async def get_cache_stats():
         
     except Exception as e:
         logger.error(f"Failed to get cache stats: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.post("/api/cache/invalidate")
@@ -2110,7 +2134,7 @@ async def invalidate_cache(pattern: Optional[str] = None):
             
     except Exception as e:
         error_tracker.track_error('cache_invalidation', str(e), {'pattern': pattern})
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.get("/api/system/errors")
@@ -2118,9 +2142,19 @@ async def get_error_stats():
     """Get error statistics for debugging."""
     try:
         stats = error_tracker.get_error_stats()
+        sanitized_recent_errors = []
+        for error in stats.get("recent_errors", []):
+            sanitized_error = dict(error)
+            if "message" in sanitized_error:
+                sanitized_error["message"] = "[REDACTED]"
+            sanitized_recent_errors.append(sanitized_error)
+
+        sanitized_stats = dict(stats)
+        sanitized_stats["recent_errors"] = sanitized_recent_errors
+
         return {
             "status": "success",
-            "error_stats": stats,
+            "error_stats": sanitized_stats,
             "system_info": {
                 "timestamp": datetime.now().isoformat(),
                 "uptime_seconds": (datetime.now() - app.state.start_time).total_seconds() if hasattr(app.state, 'start_time') else 0,
@@ -2129,7 +2163,7 @@ async def get_error_stats():
         }
     except Exception as e:
         logger.error(f"Failed to get error stats: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.get("/api/system/health")
@@ -2166,7 +2200,7 @@ async def detailed_health_check():
             status_code=503,
             content={
                 "status": "unhealthy", 
-                "error": str(e),
+                "error": "Internal server error",
                 "timestamp": datetime.now().isoformat()
             }
         )

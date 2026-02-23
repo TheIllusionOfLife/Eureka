@@ -1,6 +1,7 @@
 """Tests for Web API fixes and improvements."""
 
 import pytest
+import uuid
 from datetime import datetime
 from unittest.mock import patch
 
@@ -110,10 +111,13 @@ class TestWebAPIFixes:
     @pytest.mark.integration
     def test_bookmark_field_validation(self, client):
         """Test bookmark creation with proper field validation."""
+        # Use unique idea to avoid duplicate detection issues
+        unique_id = str(uuid.uuid4())
+
         bookmark_data = {
             "topic": "test topic",
             "context": "test context",
-            "idea": "test idea that is long enough to meet validation",
+            "idea": f"test idea that is long enough to meet validation {unique_id}",
             "improved_idea": "test improved idea that also meets length requirements",
             "initial_critique": "test critique with sufficient length",
             "advocacy": "test advocacy with sufficient length",
@@ -122,7 +126,8 @@ class TestWebAPIFixes:
             "improved_score": 8.5
         }
         
-        response = client.post("/api/bookmarks", json=bookmark_data)
+        # Disable duplicate check to ensure creation
+        response = client.post("/api/bookmarks?check_duplicates=false", json=bookmark_data)
         assert response.status_code in [200, 201]
         
         created = response.json()

@@ -1018,14 +1018,15 @@ async def save_upload_file(upload_file: UploadFile) -> Path:
     temp_dir = Path("/tmp/madspark_uploads")
     temp_dir.mkdir(exist_ok=True)
 
-    # Generate unique filename
-    temp_path = temp_dir / f"{uuid.uuid4()}_{upload_file.filename}"
+    # Generate unique filename with traversal-safe basename
+    safe_filename = os.path.basename(upload_file.filename or "upload.bin")
+    temp_path = temp_dir / f"{uuid.uuid4()}_{safe_filename}"
 
     try:
         # Save file securely with chunked reading and incremental size validation
         total_size = 0
 
-        async with await open_file(temp_path, "wb") as f:
+        async with open_file(temp_path, "wb") as f:
             while True:
                 chunk = await upload_file.read(CHUNK_SIZE)
                 if not chunk:

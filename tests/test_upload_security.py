@@ -45,6 +45,12 @@ class TestUploadSecurity:
              shutil.rmtree(self.test_dir)
         self.test_dir.mkdir(exist_ok=True)
 
+    def _mock_async_read(self, upload_file_mock: MagicMock, file_like_obj):
+        """Attach a mocked async read method to an UploadFile mock."""
+        async def mock_read(size=-1):
+            return file_like_obj.read(size)
+        upload_file_mock.read = mock_read
+
     def teardown_method(self):
         if self.test_dir.exists():
             shutil.rmtree(self.test_dir)
@@ -63,10 +69,7 @@ class TestUploadSecurity:
         upload_file.file = file_obj
         upload_file.size = len(content)
 
-        # Mock read method
-        async def mock_read(size=-1):
-            return file_obj.read(size)
-        upload_file.read = mock_read
+        self._mock_async_read(upload_file, file_obj)
 
         # Call the function
         saved_path = await save_upload_file(upload_file)
@@ -109,10 +112,7 @@ class TestUploadSecurity:
         upload_file.file = file_obj
         upload_file.size = 1024 # Lie about the size (1KB)
 
-        # Mock read method
-        async def mock_read(size=-1):
-            return file_obj.read(size)
-        upload_file.read = mock_read
+        self._mock_async_read(upload_file, file_obj)
 
         with pytest.raises(HTTPException) as excinfo:
             await save_upload_file(upload_file)
@@ -121,3 +121,24 @@ class TestUploadSecurity:
         # Ensure it's not the first check
         assert "exceeded" in excinfo.value.detail
         assert "bytes limit during upload" in excinfo.value.detail
+
+    @pytest.mark.asyncio
+    @patch("madspark.utils.multimodal_input.MultiModalInput.validate_file", return_value=True)
+    async def test_save_upload_file_sanitizes_filename(self, mock_validate):
+        """Path traversal attempts in upload filename should be sanitized."""
+        content = b"safe content"
+        file_obj = io.BytesIO(content)
+
+        upload_file = MagicMock(spec=UploadFile)
+        upload_file.filename = "../../etc/passwd"
+        upload_file.file = file_obj
+        upload_file.size = len(content)
+        self._mock_async_read(upload_file, file_obj)
+
+        saved_path = await save_upload_file(upload_file)
+
+        assert saved_path.parent == self.test_dir
+        assert saved_path.read_bytes() == content
+        assert "passwd" in saved_path.name
+        assert ".." not in saved_path.name
+        mock_validate.assert_called_once()

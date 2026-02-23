@@ -62,11 +62,10 @@ def get_token_cost(model: str, token_type: str = "input") -> float:
     Raises:
         ValueError: If token_type is invalid
     """
-    model_pricing = TOKEN_COSTS.get(model, TOKEN_COSTS[DEFAULT_PRICING_MODEL])
-    cost = model_pricing.get(token_type)
-    if cost is not None:
-        return cost
+    if model in TOKEN_COSTS and token_type in TOKEN_COSTS[model]:
+        return TOKEN_COSTS[model][token_type]
 
+    # Fall back to default model pricing
     if token_type not in TOKEN_COSTS[DEFAULT_PRICING_MODEL]:
         valid_types = list(TOKEN_COSTS[DEFAULT_PRICING_MODEL].keys())
         raise ValueError(f"Invalid token_type: {token_type}. Must be one of {valid_types}")

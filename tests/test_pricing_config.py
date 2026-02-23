@@ -14,14 +14,13 @@ def load_pricing_config():
     return module
 
 class TestPricingConfig(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.pricing_config = load_pricing_config()
-        cls.get_token_cost = staticmethod(cls.pricing_config.get_token_cost)
-        cls.estimate_cost = staticmethod(cls.pricing_config.estimate_cost)
-        cls.TOKEN_COSTS = cls.pricing_config.TOKEN_COSTS
-        cls.DEFAULT_PRICING_MODEL = cls.pricing_config.DEFAULT_PRICING_MODEL
-        cls.DEFAULT_OUTPUT_RATIO = cls.pricing_config.DEFAULT_OUTPUT_RATIO
+    def setUp(self):
+        self.pricing_config = load_pricing_config()
+        self.get_token_cost = self.pricing_config.get_token_cost
+        self.estimate_cost = self.pricing_config.estimate_cost
+        self.TOKEN_COSTS = self.pricing_config.TOKEN_COSTS
+        self.DEFAULT_PRICING_MODEL = self.pricing_config.DEFAULT_PRICING_MODEL
+        self.DEFAULT_OUTPUT_RATIO = self.pricing_config.DEFAULT_OUTPUT_RATIO
 
     def test_get_token_cost_valid_model_input(self):
         """Test getting cost for a valid model and input type."""
@@ -46,7 +45,7 @@ class TestPricingConfig(unittest.TestCase):
         """Test handling of invalid token type."""
         # Should raise ValueError for invalid token type
         with self.assertRaises(ValueError):
-            self.get_token_cost("gemini-3-flash-preview", "invalid_type")
+             self.get_token_cost("gemini-3-flash-preview", "invalid_type")
 
     def test_estimate_cost_explicit_output(self):
         """Test cost estimation with explicit output tokens."""
